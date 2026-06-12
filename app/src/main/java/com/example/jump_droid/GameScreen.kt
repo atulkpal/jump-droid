@@ -83,6 +83,7 @@ fun GameScreen() {
     var groundY by remember { mutableFloatStateOf(0f) }
 
     val player = remember { Player(0f, 0f) }
+    val altitudeManager = remember { AltitudeManager() }
     val platforms = remember { mutableStateListOf<Platform>() }
     val powerUps = remember { mutableStateListOf<PowerUp>() }
     val landingEffects = remember { mutableStateListOf<LandingEffect>() }
@@ -218,6 +219,7 @@ fun GameScreen() {
         player.efficiencyTimer = 0f
         
         score = 0
+        altitudeManager.updateAltitude(0)
         highestYReached = groundY
         cameraY = 0f
         platforms.clear()
@@ -507,6 +509,7 @@ fun GameScreen() {
                             val newScore = ((groundY - highestYReached) / 10f).toInt()
                             if (newScore > score) {
                                 score = newScore
+                                altitudeManager.updateAltitude(score)
                                 checkUnlock(score)
                             }
                         }

@@ -18,4 +18,12 @@ object Constants {
     const val HEAT_GENERATION_RATE = 40f
     const val COOLING_RATE = 20f
     const val OVERHEAT_COOLDOWN_TIME = 2.0f
+
+    // --- Altitude Zones ---
+    const val ZONE_THRESHOLD_EARTH = 0
+    const val ZONE_THRESHOLD_CLOUD_LAYER = 1000
+    const val ZONE_THRESHOLD_UPPER_ATMOSPHERE = 2500
+    const val ZONE_THRESHOLD_ORBIT = 5000
+    const val ZONE_THRESHOLD_DEEP_SPACE = 10000
+    const val ZONE_THRESHOLD_VOID = 20000
 }
