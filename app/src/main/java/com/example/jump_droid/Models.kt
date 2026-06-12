@@ -11,70 +11,53 @@ enum class PowerUpType {
     FUEL_TANK, TURBO_BOOSTER, EFFICIENCY_MODULE, HEAT_SINK, SHIELD, FUEL_CONVERTER, OVERDRIVE, GRAVITY_STABILIZER, MAGNET, SCANNER, BEACON, ASCENSION_CORE, ARTIFACT, REPAIR_KIT
 }
 
-enum class DiscoveryType(val title: String, val description: String, val category: String) {
+enum class DiscoveryType(val title: String, val description: String, val lore: String, val category: String) {
     // Platforms
-    NORMAL_PLATFORM("Standard Platform", "Reliable landing platform.\nNo special effects.", "PLATFORMS"),
-    MOVING_PLATFORM("Moving Platform", "Moves horizontally.\nTime your landing carefully.", "PLATFORMS"),
-    ICE_PLATFORM("Ice Platform", "Very slippery.\nMomentum is preserved.", "PLATFORMS"),
-    BOOST_PLATFORM("Boost Platform", "Launches your rocket much higher.", "PLATFORMS"),
-    BREAKABLE_PLATFORM("Breakable Platform", "Collapses shortly after landing.\nKeep moving.", "PLATFORMS"),
+    NORMAL_PLATFORM("Standard Platform", "Reliable landing platform.", "The backbone of the Ascension Program's infrastructure.", "PLATFORMS"),
+    MOVING_PLATFORM("Moving Platform", "Moves horizontally.", "Early prototypes often malfunctioned, leading to their current oscillating behavior.", "PLATFORMS"),
+    ICE_PLATFORM("Ice Platform", "Very slippery.", "Condensation from high-altitude clouds flash-freezes on these surfaces.", "PLATFORMS"),
+    BOOST_PLATFORM("Boost Platform", "Launches your rocket higher.", "Utilizes kinetic energy recovery systems to provide an extra push.", "PLATFORMS"),
+    BREAKABLE_PLATFORM("Breakable Platform", "Collapses shortly after landing.", "Constructed from lightweight, temporary alloys meant for rapid deployment.", "PLATFORMS"),
     
     // Powerups
-    FUEL_TANK("Fuel Tank", "Increases maximum fuel capacity.", "POWERUPS"),
-    TURBO_BOOSTER("Turbo Booster", "Temporarily increases thrust power.", "POWERUPS"),
-    EFFICIENCY_MODULE("Efficiency Module", "Reduces fuel consumption temporarily.", "POWERUPS"),
-    HEAT_SINK("Heat Sink", "Instantly removes 50% heat.", "POWERUPS"),
-    GUARDIAN_SHIELD("Guardian Shield", "Blocks one projectile.", "POWERUPS"),
-    FUEL_CONVERTER("Fuel Converter", "Heat becomes fuel.", "POWERUPS"),
-    OVERDRIVE_CORE("Overdrive Core", "Massive thrust increase. Heat generation doubled.", "POWERUPS"),
-    GRAVITY_STABILIZER("Gravity Stabilizer", "Reduces gravity.", "POWERUPS"),
-    MAGNET_DRONE("Magnet Drone", "Attracts nearby powerups.", "POWERUPS"),
-    ARTIFACT_SCANNER("Artifact Scanner", "Highlights nearby artifacts.", "POWERUPS"),
-    GUARDIAN_BEACON("Guardian Beacon", "Guardian support active.", "POWERUPS"),
-    ASCENSION_CORE("Ascension Core", "Unlimited fuel and cooling.", "POWERUPS"),
+    FUEL_TANK("Fuel Tank", "Increases maximum fuel capacity.", "Standardized liquid oxygen tanks recovered from previous expeditions.", "POWERUPS"),
+    TURBO_BOOSTER("Turbo Booster", "Increases thrust power.", "An experimental injector that temporarily overrides engine safety limits.", "POWERUPS"),
+    EFFICIENCY_MODULE("Efficiency Module", "Reduces fuel consumption.", "Optimizes the fuel-to-air ratio for thinner atmospheric conditions.", "POWERUPS"),
+    HEAT_SINK("Heat Sink", "Instantly removes heat.", "Advanced thermal paste and cooling fins designed for vacuum operation.", "POWERUPS"),
     
     // Mechanics
-    HEAT_SYSTEM("Engine Heat", "Using thrusters generates heat.\nAllow the engine to cool or risk overheating.", "MECHANICS"),
-    OVERHEAT_SYSTEM("Overheated", "Your engines have shut down temporarily.\nUse platforms while waiting for cooldown.", "MECHANICS"),
+    HEAT_SYSTEM("Engine Heat", "Using thrusters generates heat.", "Atmospheric friction and engine stress must be managed carefully.", "MECHANICS"),
+    OVERHEAT_SYSTEM("Overheated", "Engines shut down temporarily.", "Safety protocols engage to prevent catastrophic engine failure.", "MECHANICS"),
     
     // Areas
-    AREA_EARTH("Earth", "Starting region. Blue sky. ideal for training.", "AREAS"),
-    AREA_CLOUDS("Cloud Layer", "Visibility decreases. Cloud density increases.", "AREAS"),
-    AREA_ATMOSPHERE("Upper Atmosphere", "The sky darkens. Stars become visible.", "AREAS"),
-    AREA_ORBIT("Orbit", "Boundary between atmosphere and space. Debris fields.", "AREAS"),
-    AREA_SPACE("Deep Space", "The frontier. No atmosphere. Only distance.", "AREAS"),
-    AREA_VOID("The Void", "Beyond Deep Space. Distorted stars. Unknown phenomena.", "AREAS"),
+    AREA_EARTH("Earth", "Humanity's home.", "The final familiar place before the ascent begins.", "AREAS"),
+    AREA_CLOUDS("Cloud Layer", "A realm above the weather.", "Most pilots never reach this altitude. The air is crisp and the view is infinite.", "AREAS"),
+    AREA_ATMOSPHERE("Upper Atmosphere", "The edge between sky and space.", "A place of silence and isolation. The sky turns a deep, bruised purple.", "AREAS"),
+    AREA_ORBIT("Orbit", "Where Earth becomes a distant world.", "The first true step into the unknown. Silence is absolute here.", "AREAS"),
+    AREA_SPACE("Deep Space", "Beyond established routes.", "Signals become strange. Maps become unreliable. You are truly alone.", "AREAS"),
+    AREA_VOID("The Void", "A region that should not exist.", "Sensors report impossible readings. The stars themselves seem distorted.", "AREAS"),
 
     // Rockets
-    ROCKET_BALANCED("Balanced Rocket", "The standard exploration craft. Reliable. Stable.", "ROCKETS"),
-    ROCKET_SCOUT("Scout Rocket", "High thrust, low fuel reserves.", "ROCKETS"),
-    ROCKET_TANK("Tank Rocket", "Massive fuel reserves, sluggish maneuverability.", "ROCKETS"),
-    ROCKET_EXPERIMENTAL("Experimental Rocket", "Exceptional thrust, rapid overheating.", "ROCKETS"),
+    ROCKET_BALANCED("Balanced Rocket", "Standard exploration craft.", "Reliable and stable, it has carried many pilots on their first ascent.", "ROCKETS"),
+    ROCKET_SCOUT("Scout Rocket", "High thrust, low fuel.", "Designed for rapid surveying, it sacrifices endurance for speed.", "ROCKETS"),
+    ROCKET_TANK("Tank Rocket", "Massive fuel, low maneuverability.", "Built for long-range expeditions where fuel stations are scarce.", "ROCKETS"),
+    ROCKET_EXPERIMENTAL("Experimental Rocket", "Exceptional thrust, high heat.", "A dangerous prototype that pushes the boundaries of engine technology.", "ROCKETS"),
 
     // Lore
-    LORE_ASCENSION("The Ascension Program", "A multinational effort to reach an unidentified object detected beyond the solar system.", "LORE"),
-    LORE_SIGNAL("The First Signal", "A repeating transmission detected beyond Deep Space.", "LORE"),
-    LORE_LOST_FLEET("The Lost Fleet", "Records suggest multiple rockets disappeared during the original mission.", "LORE"),
-    LORE_LOGS("The Ascension Logs", "Recovered fragments from the first expedition.", "LORE"),
-
+    LORE_ASCENSION("The Ascension Program", "A multinational effort.", "Records indicate the program started after the 'Great Signal' was received.", "LORE"),
+    LORE_SIGNAL("The First Signal", "A repeating transmission.", "It originated from the Void, carrying a sequence that matched no known language.", "LORE"),
+    LORE_LOST_FLEET("The Lost Fleet", "Records of disappeared vessels.", "Multiple rockets vanished during the initial push into the Void.", "LORE"),
+    LORE_LOGS("The Ascension Logs", "Recovered fragments.", "Encrypted data logs suggesting the signal might be coming from within the planet.", "LORE"),
+    
     // Artifacts
-    ART_RECORDER("Flight Recorder", "A damaged recording unit from a previous mission.", "ARTIFACTS"),
-    ART_ALLOY("Unknown Alloy", "A fragment of material not found on Earth.", "ARTIFACTS"),
-    ART_BEACON("Encrypted Beacon", "A short-range signaling device of unknown manufacture.", "ARTIFACTS"),
-    ART_DRONE("Drone Core", "The processor from an automated survey unit.", "ARTIFACTS"),
-    ART_CRYSTAL("Navigation Crystal", "A crystal used in advanced navigation systems.", "ARTIFACTS"),
-    ART_CELL("Ancient Power Cell", "A powerful and old energy source.", "ARTIFACTS"),
-    ART_VOID("Void Fragment", "A mysterious shard from the Void.", "ARTIFACTS"),
-    ART_RELIC("Guardian Relic", "A relic left behind by the Guardians.", "ARTIFACTS"),
+    ART_RECORDER("Flight Recorder", "A damaged recording unit.", "Contains garbled audio of a pilot describing 'structures in the clouds'.", "ARTIFACTS"),
+    ART_ALLOY("Unknown Alloy", "A fragment of material.", "Its molecular structure suggests it was grown, not forged.", "ARTIFACTS"),
+    ART_BEACON("Encrypted Beacon", "A signaling device.", "Found drifting in orbit, it continuously broadcasts a single prime number.", "ARTIFACTS"),
+    ART_DRONE("Drone Core", "An automated survey unit.", "The AI within seems to be stuck in a loop, repeating 'The Void calls'.", "ARTIFACTS"),
 
     // Threats
-    THREAT_SENTINEL("The Sentinel", "A massive autonomous defense platform.", "THREATS"),
-    THREAT_COLLECTOR("The Collector", "Believed to harvest abandoned technology.", "THREATS"),
-    THREAT_VOID_ENGINE("The Void Engine", "An impossible object drifting beyond known space.", "THREATS"),
-    THREAT_HUNGER("The Hunger", "Massive platform-consuming organism.", "THREATS"),
-    THREAT_SIEGEBREAKER("The Siegebreaker", "Ancient Ascension war machine.", "THREATS"),
-    THREAT_FROSTMAW("The Frostmaw", "Converts platforms into ice.", "THREATS"),
-    THREAT_STORM_SHEPHERD("The Storm Shepherd", "Creates wind zones.", "THREATS")
+    THREAT_SENTINEL("The Sentinel", "Autonomous defense platform.", "A relic of an unknown civilization tasked with guarding the orbit.", "THREATS"),
+    THREAT_VOID_ENGINE("The Void Engine", "An impossible object.", "A massive structure drifting in the Void that seems to warp space around it.", "THREATS")
 }
 
 enum class RocketType(

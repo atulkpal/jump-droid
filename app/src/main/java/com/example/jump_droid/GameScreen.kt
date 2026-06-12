@@ -87,6 +87,7 @@ fun GameScreen() {
     val player = remember { Player(0f, 0f) }
     val altitudeManager = remember { AltitudeManager() }
     val backgroundRenderer = remember { ZoneBackgroundRenderer() }
+    val ambientManager = remember { AmbientManager() }
     val platforms = remember { mutableStateListOf<Platform>() }
     val powerUps = remember { mutableStateListOf<PowerUp>() }
     val landingEffects = remember { mutableStateListOf<LandingEffect>() }
@@ -104,13 +105,12 @@ fun GameScreen() {
     var thrustTarget by remember { mutableStateOf(Offset.Zero) }
 
     fun checkDiscovery(type: DiscoveryType) {
-        if (!sharedPrefs.getBoolean("discovery_$type", false)) {
+        if (discoveryManager.discover(type)) {
             codexNotification = type
             if (type == DiscoveryType.HEAT_SYSTEM || type == DiscoveryType.OVERHEAT_SYSTEM || type.category == "PLATFORMS" || type.category == "POWERUPS" || type.category == "ARTIFACTS") {
                 activeDiscovery = type
                 gameState = GameState.TUTORIAL
             }
-            sharedPrefs.edit { putBoolean("discovery_$type", true) }
         }
     }
 
@@ -283,6 +283,7 @@ fun GameScreen() {
 
                         // Update systems
                         discoveryManager.update(dt)
+                        ambientManager.update(dt, cameraY, screenWidth, screenHeight, altitudeManager.currentZone)
 
                         val textIterator = floatingTexts.iterator()
                         while (textIterator.hasNext()) {
@@ -515,6 +516,7 @@ fun GameScreen() {
                     currentZone = altitudeManager.currentZone,
                     cameraY = cameraY
                 )
+                ambientManager.render(this, cameraY)
             }
 
             if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL) {
@@ -669,13 +671,14 @@ fun GameScreen() {
                         }
                         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                             if (selectedCat == "ACHIEVEMENTS") {
-                                AchievementsList.forEach { ach -> val unlocked = sharedPrefs.getBoolean("achievement_${ach.id}", false); CodexCard(ach.title, if (unlocked) ach.description else "???", unlocked) }
+                                AchievementsList.forEach { ach -> val unlocked = sharedPrefs.getBoolean("achievement_${ach.id}", false); CodexCard(ach.title, if (unlocked) ach.description else "???", "", unlocked) }
                             } else {
                                 DiscoveryType.entries.filter { it.category == selectedCat }.forEach { entry ->
-                                    val unlocked = sharedPrefs.getBoolean("discovery_$entry", false)
+                                    val unlocked = discoveryManager.isDiscovered(entry)
                                     val title = if (unlocked || selectedCat != "THREATS") entry.title else "UNKNOWN SIGNAL"
                                     val desc = if (unlocked) entry.description else "Locked: Encounter during expedition to unlock."
-                                    CodexCard(title, desc, unlocked)
+                                    val lore = if (unlocked) entry.lore else ""
+                                    CodexCard(title, desc, lore, unlocked)
                                 }
                             }
                         }
@@ -830,7 +833,7 @@ fun GameScreen() {
 }
 
 @Composable
-fun CodexCard(title: String, description: String, unlocked: Boolean) {
+fun CodexCard(title: String, description: String, lore: String, unlocked: Boolean) {
     Surface(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         color = if (unlocked) Color.DarkGray else Color.DarkGray.copy(alpha = 0.3f),
@@ -840,6 +843,10 @@ fun CodexCard(title: String, description: String, unlocked: Boolean) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = if (unlocked) Color.Yellow else Color.Gray)
             Spacer(Modifier.height(4.dp))
             Text(description, style = MaterialTheme.typography.bodySmall, color = Color.LightGray, textAlign = TextAlign.Start)
+            if (unlocked && lore.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(lore, style = MaterialTheme.typography.bodySmall, color = Color.Cyan.copy(alpha = 0.7f), fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+            }
         }
     }
 }

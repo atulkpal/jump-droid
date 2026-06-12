@@ -11,8 +11,7 @@ import androidx.core.content.edit
  */
 sealed class DiscoveryEvent {
     data class Zone(val zone: AltitudeZone) : DiscoveryEvent()
-    data class Artifact(val type: DiscoveryType) : DiscoveryEvent()
-    data class Rocket(val type: RocketType) : DiscoveryEvent()
+    data class Generic(val type: DiscoveryType) : DiscoveryEvent()
 }
 
 /**
@@ -36,25 +35,34 @@ class DiscoveryManager(private val sharedPrefs: SharedPreferences) {
     }
 
     /**
-     * Checks if a zone has been discovered. If not, triggers the discovery event.
+     * Discovers a zone and its corresponding DiscoveryType.
      */
     fun discoverZone(zone: AltitudeZone) {
-        val key = "discovery_zone_${zone.name}"
-        if (!sharedPrefs.getBoolean(key, false)) {
-            sharedPrefs.edit { putBoolean(key, true) }
+        val discoveryType = when(zone) {
+            AltitudeZone.EARTH -> DiscoveryType.AREA_EARTH
+            AltitudeZone.CLOUD_LAYER -> DiscoveryType.AREA_CLOUDS
+            AltitudeZone.UPPER_ATMOSPHERE -> DiscoveryType.AREA_ATMOSPHERE
+            AltitudeZone.ORBIT -> DiscoveryType.AREA_ORBIT
+            AltitudeZone.DEEP_SPACE -> DiscoveryType.AREA_SPACE
+            AltitudeZone.VOID -> DiscoveryType.AREA_VOID
+        }
+        
+        if (discover(discoveryType)) {
             triggerEvent(DiscoveryEvent.Zone(zone))
         }
     }
 
     /**
-     * Generic discovery for future expansion (Artifacts, etc.)
+     * General discovery for any DiscoveryType.
+     * Returns true if it's a new discovery.
      */
-    fun discoverGeneric(type: DiscoveryType) {
-        val key = "discovery_generic_${type.name}"
+    fun discover(type: DiscoveryType): Boolean {
+        val key = "discovery_$type"
         if (!sharedPrefs.getBoolean(key, false)) {
             sharedPrefs.edit { putBoolean(key, true) }
-            triggerEvent(DiscoveryEvent.Artifact(type))
+            return true
         }
+        return false
     }
 
     private fun triggerEvent(event: DiscoveryEvent) {
@@ -62,7 +70,7 @@ class DiscoveryManager(private val sharedPrefs: SharedPreferences) {
         eventTimer = 4.0f // Display for 4 seconds
     }
 
-    fun isDiscovered(zone: AltitudeZone): Boolean {
-        return sharedPrefs.getBoolean("discovery_zone_${zone.name}", false)
+    fun isDiscovered(type: DiscoveryType): Boolean {
+        return sharedPrefs.getBoolean("discovery_$type", false)
     }
 }
