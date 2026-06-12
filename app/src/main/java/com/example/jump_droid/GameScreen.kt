@@ -74,11 +74,11 @@ fun GameScreen() {
     
     var gameState by remember { mutableStateOf(GameState.TITLE) }
     var activeDiscovery by remember { mutableStateOf<DiscoveryType?>(null) }
-    var zoneTitleCard by remember { mutableStateOf<AltitudeZone?>(null) }
-    var zoneTitleCardTimer by remember { mutableFloatStateOf(0f) }
     var showHelp by remember { mutableStateOf(false) }
     var unlockedRocket by remember { mutableStateOf<RocketType?>(null) }
     var codexNotification by remember { mutableStateOf<DiscoveryType?>(null) }
+
+    val discoveryManager = remember { DiscoveryManager(sharedPrefs) }
 
     var screenWidth by remember { mutableFloatStateOf(0f) }
     var screenHeight by remember { mutableFloatStateOf(0f) }
@@ -116,18 +116,7 @@ fun GameScreen() {
 
     LaunchedEffect(Unit) {
         altitudeManager.onZoneChanged = { newZone ->
-            zoneTitleCard = newZone
-            zoneTitleCardTimer = 4.0f
-            
-            val discoveryType = when(newZone) {
-                AltitudeZone.EARTH -> DiscoveryType.AREA_EARTH
-                AltitudeZone.CLOUD_LAYER -> DiscoveryType.AREA_CLOUDS
-                AltitudeZone.UPPER_ATMOSPHERE -> DiscoveryType.AREA_ATMOSPHERE
-                AltitudeZone.ORBIT -> DiscoveryType.AREA_ORBIT
-                AltitudeZone.DEEP_SPACE -> DiscoveryType.AREA_SPACE
-                AltitudeZone.VOID -> DiscoveryType.AREA_VOID
-            }
-            checkDiscovery(discoveryType)
+            discoveryManager.discoverZone(newZone)
         }
     }
 
@@ -293,10 +282,7 @@ fun GameScreen() {
                         if (screenWidth <= 0f) return@withFrameNanos
 
                         // Update systems
-                        if (zoneTitleCardTimer > 0) {
-                            zoneTitleCardTimer -= dt
-                            if (zoneTitleCardTimer <= 0) zoneTitleCard = null
-                        }
+                        discoveryManager.update(dt)
 
                         val textIterator = floatingTexts.iterator()
                         while (textIterator.hasNext()) {
@@ -795,12 +781,14 @@ fun GameScreen() {
 
                 // Cinematic Area Discovery Title Card
                 AnimatedVisibility(
-                    visible = zoneTitleCard != null,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically(),
+                    visible = discoveryManager.activeEvent is DiscoveryEvent.Zone,
+                    enter = fadeIn(tween(1000)) + expandVertically(tween(1000)),
+                    exit = fadeOut(tween(1000)) + shrinkVertically(tween(1000)),
                     modifier = Modifier.align(Alignment.Center)
                 ) {
-                    zoneTitleCard?.let { zone ->
+                    val event = discoveryManager.activeEvent as? DiscoveryEvent.Zone
+                    event?.let { zoneEvent ->
+                        val zone = zoneEvent.zone
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
@@ -808,25 +796,25 @@ fun GameScreen() {
                                 .padding(32.dp)
                         ) {
                             Text(
-                                text = "ENTERING",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.Cyan.copy(alpha = 0.7f),
-                                letterSpacing = 6.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
                                 text = zone.zoneName.uppercase(),
                                 style = MaterialTheme.typography.displayMedium,
                                 color = Color.White,
                                 fontWeight = FontWeight.Black,
                                 textAlign = TextAlign.Center
                             )
-                            Spacer(Modifier.height(12.dp))
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = zone.subtitle,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.Cyan.copy(alpha = 0.9f),
+                                letterSpacing = 2.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(Modifier.height(16.dp))
                             Box(
                                 Modifier
-                                    .width(120.dp)
-                                    .height(2.dp)
+                                    .width(150.dp)
+                                    .height(1.dp)
                                     .background(
                                         brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
                                             listOf(Color.Transparent, Color.Cyan, Color.Transparent)

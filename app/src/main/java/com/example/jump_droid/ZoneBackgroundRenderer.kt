@@ -5,10 +5,173 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.translate
 import kotlin.random.Random
 
 class ZoneBackgroundRenderer {
+
+    private val parallaxManager = ParallaxManager()
+
+    init {
+        setupEarthLayers()
+        setupCloudLayers()
+        setupSpaceLayers()
+    }
+
+    private fun setupEarthLayers() {
+        // Distant Mountains (10%)
+        parallaxManager.registerLayer(AltitudeZone.EARTH, SilhouetteParallaxLayer(
+            parallaxFactor = 0.10f,
+            zIndex = 1,
+            color = Color(0xFF1A0033).copy(alpha = 0.4f),
+            pathPoints = listOf(
+                Offset(0f, 0.85f), Offset(0.25f, 0.7f), Offset(0.5f, 0.9f), 
+                Offset(0.75f, 0.65f), Offset(1f, 0.95f)
+            ),
+            baseHeightPercent = 0.85f
+        ))
+
+        // Near Hills (25%)
+        parallaxManager.registerLayer(AltitudeZone.EARTH, SilhouetteParallaxLayer(
+            parallaxFactor = 0.25f,
+            zIndex = 2,
+            color = Color(0xFF0D47A1).copy(alpha = 0.3f),
+            pathPoints = listOf(
+                Offset(0f, 0.92f), Offset(0.2f, 0.88f), Offset(0.4f, 0.95f), 
+                Offset(0.6f, 0.9f), Offset(0.8f, 0.94f), Offset(1f, 0.9f)
+            ),
+            baseHeightPercent = 0.92f
+        ))
+
+        // Earth Clouds (45%)
+        parallaxManager.registerLayer(AltitudeZone.EARTH, RepeatingParallaxLayer(
+            parallaxFactor = 0.45f,
+            zIndex = 3,
+            density = 4,
+            seed = 42,
+            renderElement = { x, y, opacity, random ->
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.25f * opacity),
+                    radius = 100f + random.nextFloat() * 150f,
+                    center = Offset(x, y)
+                )
+            }
+        ))
+    }
+
+    private fun setupCloudLayers() {
+        // Far Clouds
+        parallaxManager.registerLayer(AltitudeZone.CLOUD_LAYER, RepeatingParallaxLayer(
+            parallaxFactor = 0.2f,
+            zIndex = 1,
+            density = 6,
+            seed = 101,
+            renderElement = { x, y, opacity, random ->
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.2f * opacity),
+                    radius = 150f + random.nextFloat() * 200f,
+                    center = Offset(x, y)
+                )
+            }
+        ))
+
+        // Medium Clouds
+        parallaxManager.registerLayer(AltitudeZone.CLOUD_LAYER, RepeatingParallaxLayer(
+            parallaxFactor = 0.4f,
+            zIndex = 2,
+            density = 8,
+            seed = 202,
+            renderElement = { x, y, opacity, random ->
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.35f * opacity),
+                    radius = 100f + random.nextFloat() * 150f,
+                    center = Offset(x, y)
+                )
+            }
+        ))
+
+        // Near Clouds
+        parallaxManager.registerLayer(AltitudeZone.CLOUD_LAYER, RepeatingParallaxLayer(
+            parallaxFactor = 0.6f,
+            zIndex = 3,
+            density = 5,
+            seed = 303,
+            renderElement = { x, y, opacity, random ->
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.5f * opacity),
+                    radius = 80f + random.nextFloat() * 100f,
+                    center = Offset(x, y)
+                )
+            }
+        ))
+    }
+
+    private fun setupSpaceLayers() {
+        // Common Stars for space zones
+        listOf(AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID).forEach { zone ->
+            val starDensity = when(zone) {
+                AltitudeZone.UPPER_ATMOSPHERE -> 40
+                AltitudeZone.ORBIT -> 80
+                AltitudeZone.DEEP_SPACE -> 100
+                AltitudeZone.VOID -> 30
+                else -> 0
+            }
+            
+            parallaxManager.registerLayer(zone, RepeatingParallaxLayer(
+                parallaxFactor = 0.05f,
+                zIndex = 0,
+                density = starDensity,
+                seed = zone.ordinal,
+                renderElement = { x, y, opacity, random ->
+                    val brightness = (0.3f + random.nextFloat() * 0.7f) * opacity
+                    drawCircle(Color.White.copy(alpha = brightness), radius = 0.8f + random.nextFloat() * 1.2f, center = Offset(x, y))
+                }
+            ))
+
+            // Nebulae for deep space
+            if (zone == AltitudeZone.DEEP_SPACE || zone == AltitudeZone.ORBIT || zone == AltitudeZone.UPPER_ATMOSPHERE) {
+                val nebOpacity = when(zone) {
+                    AltitudeZone.UPPER_ATMOSPHERE -> 0.05f
+                    AltitudeZone.ORBIT -> 0.08f
+                    AltitudeZone.DEEP_SPACE -> 0.1f
+                    else -> 0f
+                }
+                parallaxManager.registerLayer(zone, RepeatingParallaxLayer(
+                    parallaxFactor = 0.08f,
+                    zIndex = -1, // Behind stars
+                    density = 2,
+                    seed = zone.ordinal + 50,
+                    renderElement = { x, y, opacity, random ->
+                        val radius = 400f + random.nextFloat() * 400f
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    if (random.nextBoolean()) Color(0xFF4A00E0).copy(alpha = nebOpacity * opacity) else Color(0xFF8E2DE2).copy(alpha = nebOpacity * 0.8f * opacity),
+                                    Color.Transparent
+                                ),
+                                center = Offset(x, y),
+                                radius = radius
+                            ),
+                            radius = radius,
+                            center = Offset(x, y)
+                        )
+                    }
+                ))
+            }
+        }
+
+        // Orbit Curve
+        parallaxManager.registerLayer(AltitudeZone.ORBIT, SingleObjectParallaxLayer(
+            parallaxFactor = 0.02f,
+            zIndex = -2,
+            renderElement = { opacity ->
+                drawCircle(
+                    color = Color(0xFF2196F3).copy(alpha = 0.2f * opacity),
+                    radius = size.width * 2f,
+                    center = Offset(size.width / 2, size.height + size.width * 1.8f)
+                )
+            }
+        ))
+    }
 
     fun render(
         drawScope: DrawScope,
@@ -23,6 +186,7 @@ class ZoneBackgroundRenderer {
 
             val progress = calculateZoneProgress(altitude, currentZone)
             
+            // Background Gradients
             when (currentZone) {
                 AltitudeZone.EARTH -> {
                     drawInterpolatedBackground(
@@ -34,7 +198,6 @@ class ZoneBackgroundRenderer {
                         middleEnd = Color(0xFF90CAF9),
                         bottomEnd = Color(0xFFE3F2FD)
                     )
-                    drawEarthLayers(progress, cameraY, width, height)
                 }
                 AltitudeZone.CLOUD_LAYER -> {
                     drawInterpolatedBackground(
@@ -46,7 +209,6 @@ class ZoneBackgroundRenderer {
                         middleEnd = Color(0xFF1A0033),
                         bottomEnd = Color(0xFF311B92)
                     )
-                    drawCloudLayerLayers(progress, cameraY, width, height)
                 }
                 AltitudeZone.UPPER_ATMOSPHERE -> {
                     drawInterpolatedBackground(
@@ -58,7 +220,6 @@ class ZoneBackgroundRenderer {
                         middleEnd = Color(0xFF0D001A),
                         bottomEnd = Color(0xFF1A0033)
                     )
-                    drawUpperAtmosphereLayers(progress, cameraY, width, height)
                 }
                 AltitudeZone.ORBIT -> {
                     drawInterpolatedBackground(
@@ -70,7 +231,6 @@ class ZoneBackgroundRenderer {
                         middleEnd = Color.Black,
                         bottomEnd = Color(0xFF0D001A)
                     )
-                    drawOrbitLayers(progress, cameraY, width, height)
                 }
                 AltitudeZone.DEEP_SPACE -> {
                     drawInterpolatedBackground(
@@ -82,13 +242,14 @@ class ZoneBackgroundRenderer {
                         middleEnd = Color.Black,
                         bottomEnd = Color.Black
                     )
-                    drawDeepSpaceLayers(progress, cameraY, width, height)
                 }
                 AltitudeZone.VOID -> {
                     drawRect(Color.Black)
-                    drawVoidLayers(cameraY, width, height)
                 }
             }
+
+            // Render Parallax Layers
+            parallaxManager.render(this, cameraY, currentZone, progress)
         }
     }
 
@@ -100,7 +261,6 @@ class ZoneBackgroundRenderer {
             
             val time = (System.currentTimeMillis() % 100000) / 1000f
 
-            // Mysterious deep space gradient
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(Color(0xFF000411), Color(0xFF0D001A), Color(0xFF1A0033))
@@ -109,12 +269,10 @@ class ZoneBackgroundRenderer {
             
             val starRandom = Random(42)
 
-            // Subtle Nebula layers (Restored with safety)
             repeat(2) { i ->
                 val nx = (starRandom.nextFloat() * width + time * 1.5f) % width
                 val ny = starRandom.nextFloat() * height
                 
-                // Ensure coordinates are valid and non-NaN
                 if (nx.isFinite() && ny.isFinite()) {
                     val centerOffset = Offset(nx, ny)
                     val r = 500f
@@ -133,7 +291,6 @@ class ZoneBackgroundRenderer {
                 }
             }
             
-            // Stars field (Restored animation)
             repeat(120) {
                 val sx = (starRandom.nextFloat() * width + time * 4f) % width
                 val sy = starRandom.nextFloat() * height
@@ -141,7 +298,6 @@ class ZoneBackgroundRenderer {
                 drawCircle(Color.White.copy(alpha = brightness), radius = 1.1f, center = Offset(sx, sy))
             }
 
-            // Distant mountain silhouettes
             val mPath = Path().apply {
                 moveTo(0f, height * 0.88f)
                 lineTo(width * 0.25f, height * 0.78f)
@@ -164,7 +320,7 @@ class ZoneBackgroundRenderer {
         val range = nextThreshold - currentZone.threshold
         if (range <= 0) return 0f
         
-        val transitionWindow = (range * 0.4f).coerceAtMost(300f) // Slightly wider transition but capped
+        val transitionWindow = (range * 0.4f).coerceAtMost(300f)
         val transitionStart = nextThreshold - transitionWindow
         
         if (altitude < transitionStart) return 0f
@@ -197,181 +353,5 @@ class ZoneBackgroundRenderer {
             blue = start.blue + (end.blue - start.blue) * f,
             alpha = start.alpha + (end.alpha - start.alpha) * f
         )
-    }
-
-    private fun DrawScope.drawEarthLayers(
-        progress: Float,
-        cameraY: Float,
-        screenWidth: Float,
-        screenHeight: Float
-    ) {
-        val mountainAlpha = (0.4f * (1f - progress)).coerceIn(0f, 1f)
-        if (mountainAlpha > 0.05f) {
-            val mountainColor = Color(0xFF1A0033).copy(alpha = mountainAlpha)
-            val mountainPath = Path().apply {
-                moveTo(0f, screenHeight * 0.85f)
-                lineTo(screenWidth * 0.25f, screenHeight * 0.7f)
-                lineTo(screenWidth * 0.5f, screenHeight * 0.9f)
-                lineTo(screenWidth * 0.75f, screenHeight * 0.65f)
-                lineTo(screenWidth, screenHeight * 0.95f)
-                lineTo(screenWidth, screenHeight)
-                lineTo(0f, screenHeight)
-                close()
-            }
-            translate(top = -cameraY * 0.05f) {
-                drawPath(mountainPath, color = mountainColor)
-            }
-        }
-        drawDriftingClouds(cameraY, screenWidth, screenHeight, density = 4, opacity = 0.25f * (1f - progress))
-    }
-
-    private fun DrawScope.drawCloudLayerLayers(
-        progress: Float,
-        cameraY: Float,
-        screenWidth: Float,
-        screenHeight: Float
-    ) {
-        drawCircle(
-            color = Color.Yellow.copy(alpha = 0.03f * (1f - progress)),
-            radius = screenWidth * 1.2f,
-            center = Offset(screenWidth * 0.9f, -cameraY * 0.02f)
-        )
-        drawDriftingClouds(cameraY, screenWidth, screenHeight, density = 12, opacity = 0.45f * (1f - progress))
-        drawStars(cameraY, screenWidth, screenHeight, density = 20, alpha = progress * 0.3f)
-    }
-
-    private fun DrawScope.drawUpperAtmosphereLayers(
-        progress: Float,
-        cameraY: Float,
-        screenWidth: Float,
-        screenHeight: Float
-    ) {
-        drawStars(cameraY, screenWidth, screenHeight, density = 40, alpha = 0.3f + progress * 0.4f)
-        drawNebulae(cameraY, screenWidth, screenHeight, opacity = 0.05f * progress)
-    }
-
-    private fun DrawScope.drawOrbitLayers(
-        progress: Float,
-        cameraY: Float,
-        screenWidth: Float,
-        screenHeight: Float
-    ) {
-        drawStars(cameraY, screenWidth, screenHeight, density = 80, alpha = 0.7f + progress * 0.3f)
-        drawNebulae(cameraY, screenWidth, screenHeight, opacity = 0.05f + 0.05f * progress)
-        
-        // Distant Earth Curve at the bottom
-        val curveAlpha = (0.2f * (1f - progress)).coerceIn(0f, 1f)
-        if (curveAlpha > 0f) {
-            drawCircle(
-                color = Color(0xFF2196F3).copy(alpha = curveAlpha),
-                radius = screenWidth * 2f,
-                center = Offset(screenWidth / 2, screenHeight + screenWidth * 1.8f - cameraY * 0.05f)
-            )
-        }
-    }
-
-    private fun DrawScope.drawDeepSpaceLayers(
-        progress: Float,
-        cameraY: Float,
-        screenWidth: Float,
-        screenHeight: Float
-    ) {
-        drawStars(cameraY, screenWidth, screenHeight, density = 100, alpha = 1.0f - progress * 0.5f)
-        drawNebulae(cameraY, screenWidth, screenHeight, opacity = 0.1f * (1f - progress))
-    }
-
-    private fun DrawScope.drawVoidLayers(
-        cameraY: Float,
-        screenWidth: Float,
-        screenHeight: Float
-    ) {
-        drawStars(cameraY, screenWidth, screenHeight, density = 30, alpha = 0.3f)
-    }
-
-    private fun DrawScope.drawStars(
-        cameraY: Float,
-        screenWidth: Float,
-        screenHeight: Float,
-        density: Int,
-        alpha: Float
-    ) {
-        val op = alpha.coerceIn(0f, 1f)
-        if (op <= 0.01f) return
-        
-        val starRandom = Random(42)
-        repeat(density) { i ->
-            val parallaxFactor = 0.01f + (i * 0.005f)
-            val sx = starRandom.nextFloat() * screenWidth
-            val sy = (starRandom.nextFloat() * screenHeight - (cameraY * parallaxFactor)) % screenHeight
-            val finalSy = if (sy < 0) sy + screenHeight else sy
-            
-            val brightness = (0.3f + starRandom.nextFloat() * 0.7f) * op
-            if (sx.isFinite() && finalSy.isFinite()) {
-                drawCircle(
-                    color = Color.White.copy(alpha = brightness),
-                    radius = 0.8f + starRandom.nextFloat() * 1.2f,
-                    center = Offset(sx, finalSy)
-                )
-            }
-        }
-    }
-
-    private fun DrawScope.drawNebulae(
-        cameraY: Float,
-        screenWidth: Float,
-        screenHeight: Float,
-        opacity: Float
-    ) {
-        val op = opacity.coerceIn(0f, 1f)
-        if (op <= 0.01f) return
-        
-        val nebRandom = Random(123)
-        repeat(2) { i ->
-            val parallaxFactor = 0.02f + i * 0.01f
-            val nx = nebRandom.nextFloat() * screenWidth
-            val ny = (nebRandom.nextFloat() * screenHeight - (cameraY * parallaxFactor)) % screenHeight
-            val finalNy = if (ny < 0) ny + screenHeight else ny
-            
-            if (nx.isFinite() && finalNy.isFinite()) {
-                val center = Offset(nx, finalNy)
-                val radius = 400f + nebRandom.nextFloat() * 400f
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            if (i == 0) Color(0xFF4A00E0).copy(alpha = op) else Color(0xFF8E2DE2).copy(alpha = op * 0.8f),
-                            Color.Transparent
-                        ),
-                        center = center,
-                        radius = radius
-                    ),
-                    radius = radius,
-                    center = center
-                )
-            }
-        }
-    }
-
-    private fun DrawScope.drawDriftingClouds(
-        cameraY: Float,
-        screenWidth: Float,
-        screenHeight: Float,
-        density: Int,
-        opacity: Float
-    ) {
-        val op = opacity.coerceIn(0f, 1f)
-        if (op <= 0f) return
-        val cloudRandom = Random(42)
-        repeat(density) { i ->
-            val parallaxFactor = 0.12f + (i * 0.03f)
-            val cx = (cloudRandom.nextFloat() * screenWidth + (System.currentTimeMillis() / 250f * (i + 1) % screenWidth)) % screenWidth
-            val cy = (cloudRandom.nextFloat() * screenHeight + (-cameraY * parallaxFactor)) % screenHeight
-            if (cx.isFinite() && cy.isFinite()) {
-                drawCircle(
-                    color = Color.White.copy(alpha = op),
-                    radius = 100f + cloudRandom.nextFloat() * 150f,
-                    center = Offset(cx, cy)
-                )
-            }
-        }
     }
 }
