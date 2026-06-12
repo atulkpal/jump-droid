@@ -20,10 +20,11 @@ object Constants {
     const val OVERHEAT_COOLDOWN_TIME = 2.0f
 
     // --- Altitude Zones ---
+    // TEMPORARY TEST RANGES (Restoration planned for Epic 1 production pass)
     const val ZONE_THRESHOLD_EARTH = 0
-    const val ZONE_THRESHOLD_CLOUD_LAYER = 1000
-    const val ZONE_THRESHOLD_UPPER_ATMOSPHERE = 2500
-    const val ZONE_THRESHOLD_ORBIT = 5000
-    const val ZONE_THRESHOLD_DEEP_SPACE = 10000
-    const val ZONE_THRESHOLD_VOID = 20000
+    const val ZONE_THRESHOLD_CLOUD_LAYER = 200
+    const val ZONE_THRESHOLD_UPPER_ATMOSPHERE = 500
+    const val ZONE_THRESHOLD_ORBIT = 1000
+    const val ZONE_THRESHOLD_DEEP_SPACE = 2000
+    const val ZONE_THRESHOLD_VOID = 4000
 }

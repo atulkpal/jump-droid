@@ -74,6 +74,8 @@ fun GameScreen() {
     
     var gameState by remember { mutableStateOf(GameState.TITLE) }
     var activeDiscovery by remember { mutableStateOf<DiscoveryType?>(null) }
+    var zoneTitleCard by remember { mutableStateOf<AltitudeZone?>(null) }
+    var zoneTitleCardTimer by remember { mutableFloatStateOf(0f) }
     var showHelp by remember { mutableStateOf(false) }
     var unlockedRocket by remember { mutableStateOf<RocketType?>(null) }
     var codexNotification by remember { mutableStateOf<DiscoveryType?>(null) }
@@ -84,6 +86,7 @@ fun GameScreen() {
 
     val player = remember { Player(0f, 0f) }
     val altitudeManager = remember { AltitudeManager() }
+    val backgroundRenderer = remember { ZoneBackgroundRenderer() }
     val platforms = remember { mutableStateListOf<Platform>() }
     val powerUps = remember { mutableStateListOf<PowerUp>() }
     val landingEffects = remember { mutableStateListOf<LandingEffect>() }
@@ -111,6 +114,23 @@ fun GameScreen() {
         }
     }
 
+    LaunchedEffect(Unit) {
+        altitudeManager.onZoneChanged = { newZone ->
+            zoneTitleCard = newZone
+            zoneTitleCardTimer = 4.0f
+            
+            val discoveryType = when(newZone) {
+                AltitudeZone.EARTH -> DiscoveryType.AREA_EARTH
+                AltitudeZone.CLOUD_LAYER -> DiscoveryType.AREA_CLOUDS
+                AltitudeZone.UPPER_ATMOSPHERE -> DiscoveryType.AREA_ATMOSPHERE
+                AltitudeZone.ORBIT -> DiscoveryType.AREA_ORBIT
+                AltitudeZone.DEEP_SPACE -> DiscoveryType.AREA_SPACE
+                AltitudeZone.VOID -> DiscoveryType.AREA_VOID
+            }
+            checkDiscovery(discoveryType)
+        }
+    }
+
     fun checkUnlock(newScore: Int) {
         RocketType.entries.forEach { type ->
             if (newScore >= type.unlockScore && !sharedPrefs.getBoolean("unlock_${type.name}", false)) {
@@ -119,13 +139,6 @@ fun GameScreen() {
                 sharedPrefs.edit { putBoolean("unlock_${type.name}", true) }
             }
         }
-        
-        if (newScore >= 15000) checkDiscovery(DiscoveryType.AREA_VOID)
-        else if (newScore >= 10000) checkDiscovery(DiscoveryType.AREA_SPACE)
-        else if (newScore >= 5000) checkDiscovery(DiscoveryType.AREA_ORBIT)
-        else if (newScore >= 2500) checkDiscovery(DiscoveryType.AREA_ATMOSPHERE)
-        else if (newScore >= 1000) checkDiscovery(DiscoveryType.AREA_CLOUDS)
-        else if (newScore >= 0) checkDiscovery(DiscoveryType.AREA_EARTH)
         
         if (newScore >= 0) checkDiscovery(player.rocketType.discovery)
 
@@ -240,26 +253,6 @@ fun GameScreen() {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                    colors = listOf(
-                        when {
-                            score > 15000 -> Color(0xFF000000) // Void
-                            score > 10000 -> Color(0xFF0D001A) // Deep Space
-                            score > 5000 -> Color(0xFF000000)  // Orbit
-                            score > 2500 -> Color(0xFF1A237E)  // Upper Atmos
-                            score > 1000 -> Color(0xFF42A5F5)  // Cloud Layer
-                            else -> Color(0xFF2196F3)         // Earth
-                        },
-                        when {
-                            score > 15000 -> Color(0xFF0D001A)
-                            score > 10000 -> Color(0xFF1A0033)
-                            score > 5000 -> Color(0xFF1A237E)
-                            else -> Color(0xFF90CAF9)
-                        }
-                    )
-                )
-            )
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
@@ -300,6 +293,11 @@ fun GameScreen() {
                         if (screenWidth <= 0f) return@withFrameNanos
 
                         // Update systems
+                        if (zoneTitleCardTimer > 0) {
+                            zoneTitleCardTimer -= dt
+                            if (zoneTitleCardTimer <= 0) zoneTitleCard = null
+                        }
+
                         val textIterator = floatingTexts.iterator()
                         while (textIterator.hasNext()) {
                             val ft = textIterator.next()
@@ -520,32 +518,20 @@ fun GameScreen() {
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            if (gameState == GameState.TITLE || gameState == GameState.MAIN_MENU || gameState == GameState.HANGAR) {
-                val time = (System.currentTimeMillis() % 100000) / 1000f
-                drawRect(Color(0xFF0D001A))
-                val starRandom = Random(42)
-                repeat(100) {
-                    val sx = (starRandom.nextFloat() * size.width + time * 5f) % size.width
-                    val sy = starRandom.nextFloat() * size.height
-                    drawCircle(Color.White.copy(alpha = 0.3f), radius = 1.5f, center = Offset(sx, sy))
-                }
-                val mPath = Path().apply {
-                    moveTo(0f, size.height * 0.8f); lineTo(size.width * 0.2f, size.height * 0.7f); lineTo(size.width * 0.5f, size.height * 0.85f); lineTo(size.width * 0.8f, size.height * 0.65f); lineTo(size.width, size.height * 0.9f); lineTo(size.width, size.height); lineTo(0f, size.height); close()
-                }
-                drawPath(mPath, Color(0xFF1A0033).copy(alpha = 0.5f))
+            if (gameState == GameState.TITLE || gameState == GameState.MAIN_MENU || gameState == GameState.HANGAR || 
+                gameState == GameState.CODEX || gameState == GameState.SETTINGS || gameState == GameState.ABOUT || 
+                gameState == GameState.LEADERBOARD) {
+                backgroundRenderer.renderTitle(this)
+            } else {
+                backgroundRenderer.render(
+                    drawScope = this,
+                    altitude = score,
+                    currentZone = altitudeManager.currentZone,
+                    cameraY = cameraY
+                )
             }
 
             if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL) {
-                if (score > 2500) {
-                    val starRandom = Random(42)
-                    repeat(if (score > 15000) 150 else 50) {
-                        val sx = starRandom.nextFloat() * size.width
-                        val sy = (starRandom.nextFloat() * size.height + (cameraY * (if (score > 15000) 0.05f else 0.1f))) % size.height
-                        val color = if (score > 15000) { listOf(Color.White, Color.Cyan, Color.Magenta).random(starRandom).copy(alpha = 0.6f) } else Color.White.copy(alpha = 0.5f)
-                        drawCircle(color, radius = if (score > 15000) 3f else 2f, center = Offset(sx, sy))
-                    }
-                }
-                
                 drawRect(Color(0xFF795548), topLeft = Offset(0f, groundY + (ROCKET_HEIGHT / 2) - cameraY), size = Size(screenWidth, screenHeight))
 
                 particles.forEach { p -> drawCircle(p.color.copy(alpha = (p.life/1.0f).coerceIn(0f, 1f)), radius = p.size, center = Offset(p.x, p.y - cameraY)) }
@@ -553,7 +539,14 @@ fun GameScreen() {
 
                 platforms.forEach { platform ->
                     val color = when (platform.type) {
-                        PlatformType.NORMAL -> if (score < 1000) Color(0xFF4CAF50) else if (score < 5000) Color(0xFF81C784) else Color(0xFFB0BEC5)
+                        PlatformType.NORMAL -> when (altitudeManager.currentZone) {
+                            AltitudeZone.EARTH -> Color(0xFF4CAF50)
+                            AltitudeZone.CLOUD_LAYER -> Color(0xFF81C784)
+                            AltitudeZone.UPPER_ATMOSPHERE -> Color(0xFFB0BEC5)
+                            AltitudeZone.ORBIT -> Color(0xFF90A4AE)
+                            AltitudeZone.DEEP_SPACE -> Color(0xFF607D8B)
+                            AltitudeZone.VOID -> Color(0xFF37474F)
+                        }
                         PlatformType.MOVING -> Color(0xFF2196F3)
                         PlatformType.BOOST -> Color(0xFFFFEB3B)
                         PlatformType.ICE -> Color(0xFF00BCD4)
@@ -796,6 +789,50 @@ fun GameScreen() {
                             Text("Score: $score", color = Color.White, style = MaterialTheme.typography.headlineSmall); Text("Best: $highScore", color = Color.Yellow, style = MaterialTheme.typography.headlineSmall)
                             Spacer(Modifier.height(24.dp)); Button(onClick = { restartGame() }) { Text("RESTART") }
                             Spacer(Modifier.height(16.dp)); Button(onClick = { gameState = GameState.MAIN_MENU }) { Text("MAIN MENU") }
+                        }
+                    }
+                }
+
+                // Cinematic Area Discovery Title Card
+                AnimatedVisibility(
+                    visible = zoneTitleCard != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                    modifier = Modifier.align(Alignment.Center)
+                ) {
+                    zoneTitleCard?.let { zone ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                .padding(32.dp)
+                        ) {
+                            Text(
+                                text = "ENTERING",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.Cyan.copy(alpha = 0.7f),
+                                letterSpacing = 6.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = zone.zoneName.uppercase(),
+                                style = MaterialTheme.typography.displayMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Black,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Box(
+                                Modifier
+                                    .width(120.dp)
+                                    .height(2.dp)
+                                    .background(
+                                        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                            listOf(Color.Transparent, Color.Cyan, Color.Transparent)
+                                        )
+                                    )
+                            )
                         }
                     }
                 }
