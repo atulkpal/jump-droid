@@ -13,7 +13,7 @@ interface ParallaxLayer {
     val parallaxFactor: Float // 0f = fixed, 1f = moves with camera
     val zIndex: Int
     
-    fun render(drawScope: DrawScope, cameraY: Float, opacity: Float)
+    fun render(drawScope: DrawScope, cameraY: Float, opacity: Float, gameTime: Long)
 }
 
 /**
@@ -24,10 +24,10 @@ class RepeatingParallaxLayer(
     override val zIndex: Int,
     private val density: Int,
     private val seed: Int,
-    private val renderElement: DrawScope.(x: Float, y: Float, opacity: Float, random: Random) -> Unit
+    private val renderElement: DrawScope.(x: Float, y: Float, opacity: Float, random: Random, gameTime: Long) -> Unit
 ) : ParallaxLayer {
 
-    override fun render(drawScope: DrawScope, cameraY: Float, opacity: Float) {
+    override fun render(drawScope: DrawScope, cameraY: Float, opacity: Float, gameTime: Long) {
         if (opacity <= 0.01f) return
         val random = Random(seed)
         val width = drawScope.size.width
@@ -35,13 +35,11 @@ class RepeatingParallaxLayer(
         
         repeat(density) { i ->
             val rx = random.nextFloat() * width
-            // Calculate Y with parallax. We use modulo to keep elements on screen
-            // but we need a large virtual height to avoid obvious snapping.
             val virtualY = (random.nextFloat() * height - (cameraY * parallaxFactor)) % height
             val finalY = if (virtualY < 0) virtualY + height else virtualY
             
             if (rx.isFinite() && finalY.isFinite()) {
-                drawScope.renderElement(rx, finalY, opacity, random)
+                drawScope.renderElement(rx, finalY, opacity, random, gameTime)
             }
         }
     }
@@ -58,7 +56,7 @@ class SilhouetteParallaxLayer(
     private val baseHeightPercent: Float
 ) : ParallaxLayer {
     
-    override fun render(drawScope: DrawScope, cameraY: Float, opacity: Float) {
+    override fun render(drawScope: DrawScope, cameraY: Float, opacity: Float, gameTime: Long) {
         if (opacity <= 0.01f) return
         val width = drawScope.size.width
         val height = drawScope.size.height
@@ -86,12 +84,12 @@ class SilhouetteParallaxLayer(
 class SingleObjectParallaxLayer(
     override val parallaxFactor: Float,
     override val zIndex: Int,
-    private val renderElement: DrawScope.(opacity: Float) -> Unit
+    private val renderElement: DrawScope.(opacity: Float, gameTime: Long) -> Unit
 ) : ParallaxLayer {
-    override fun render(drawScope: DrawScope, cameraY: Float, opacity: Float) {
+    override fun render(drawScope: DrawScope, cameraY: Float, opacity: Float, gameTime: Long) {
         if (opacity <= 0.01f) return
         drawScope.translate(top = -cameraY * parallaxFactor) {
-            renderElement(opacity)
+            renderElement(opacity, gameTime)
         }
     }
 }
@@ -108,10 +106,10 @@ class ParallaxManager {
         list.sortBy { it.zIndex }
     }
 
-    fun render(drawScope: DrawScope, cameraY: Float, currentZone: AltitudeZone, zoneProgress: Float) {
+    fun render(drawScope: DrawScope, cameraY: Float, currentZone: AltitudeZone, zoneProgress: Float, gameTime: Long) {
         // Render current zone layers
         layersByZone[currentZone]?.forEach { layer ->
-            layer.render(drawScope, cameraY, 1f - zoneProgress)
+            layer.render(drawScope, cameraY, 1f - zoneProgress, gameTime)
         }
         
         // Render next zone layers if transitioning
@@ -120,7 +118,7 @@ class ParallaxManager {
             if (nextZoneOrdinal < AltitudeZone.entries.size) {
                 val nextZone = AltitudeZone.entries[nextZoneOrdinal]
                 layersByZone[nextZone]?.forEach { layer ->
-                    layer.render(drawScope, cameraY, zoneProgress)
+                    layer.render(drawScope, cameraY, zoneProgress, gameTime)
                 }
             }
         }

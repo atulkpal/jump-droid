@@ -23,11 +23,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -96,6 +97,8 @@ fun GameScreen() {
     val altitudeManager = remember { AltitudeManager() }
     val backgroundRenderer = remember { ZoneBackgroundRenderer() }
     val ambientManager = remember { AmbientManager() }
+    val rocketRenderer = remember { RocketRenderer() }
+    val platformRenderer = remember { PlatformRenderer() }
     val platforms = remember { mutableStateListOf<Platform>() }
     val powerUps = remember { mutableStateListOf<PowerUp>() }
     val landingEffects = remember { mutableStateListOf<LandingEffect>() }
@@ -113,6 +116,8 @@ fun GameScreen() {
     var cameraY by remember { mutableFloatStateOf(0f) }
     var isThrusting by remember { mutableStateOf(false) }
     var thrustTarget by remember { mutableStateOf(Offset.Zero) }
+    var screenShake by remember { mutableFloatStateOf(0f) }
+    var impactFlashAlpha by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(gameState) {
         if (gameState != GameState.PLAYING) {
@@ -120,7 +125,7 @@ fun GameScreen() {
         }
     }
 
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) {
@@ -171,7 +176,7 @@ fun GameScreen() {
             if (!sharedPrefs.getBoolean("achievement_${achievement.id}", false)) {
                 if (achievement.unlockCondition(newScore, player.maxComboReached, player.totalOverheats)) {
                     sharedPrefs.edit { putBoolean("achievement_${achievement.id}", true) }
-                    floatingTexts.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = Color.Cyan))
+                    floatingTexts.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = Color.Cyan, isCritical = true))
                 }
             }
         }
@@ -182,7 +187,7 @@ fun GameScreen() {
             mission.progress += increment
             if (mission.progress >= mission.goal) {
                 mission.isCompleted = true
-                floatingTexts.add(FloatingText("MISSION COMPLETE!", player.x, player.y - 150f, color = Color.Green))
+                floatingTexts.add(FloatingText("MISSION COMPLETE!", player.x, player.y - 150f, color = Color.Green, isCritical = true))
             }
         }
     }
@@ -191,6 +196,18 @@ fun GameScreen() {
         if (newScore > highScore) {
             highScore = newScore
             sharedPrefs.edit { putInt("highScore", newScore) }
+        }
+    }
+
+    fun spawnBurst(x: Float, y: Float, count: Int, color: Color, speed: Float = 100f) {
+        repeat(count) {
+            val angle = Random.nextFloat() * 2f * PI.toFloat()
+            val s = Random.nextFloat() * speed
+            particles.add(Particle(
+                x = x, y = y, vx = cos(angle) * s, vy = sin(angle) * s,
+                life = 0.5f + Random.nextFloat() * 0.5f,
+                color = color, size = 5f + Random.nextFloat() * 5f
+            ))
         }
     }
 
@@ -224,21 +241,16 @@ fun GameScreen() {
         player.heat = 0f
         player.isOverheated = false
         player.lastPlatform = spawnPlatform
+        player.invulnerabilityTimer = 3.0f // 3 seconds of protection
+        
+        // Re-entry effect
+        spawnBurst(player.x, player.y - 100f, 40, Color.White, 300f)
+        screenShake = 15f
+        impactFlashAlpha = 1.0f
+        floatingTexts.add(FloatingText("SYSTEM REBOOTED", player.x, player.y - 150f, color = Color.Cyan))
         
         continuesUsed++
         gameState = GameState.PLAYING
-    }
-
-    fun spawnBurst(x: Float, y: Float, count: Int, color: Color, speed: Float = 100f) {
-        repeat(count) {
-            val angle = Random.nextFloat() * 2f * PI.toFloat()
-            val s = Random.nextFloat() * speed
-            particles.add(Particle(
-                x = x, y = y, vx = cos(angle) * s, vy = sin(angle) * s,
-                life = 0.5f + Random.nextFloat() * 0.5f,
-                color = color, size = 5f + Random.nextFloat() * 5f
-            ))
-        }
     }
 
     fun generatePlatform(lastY: Float): Platform {
@@ -321,6 +333,8 @@ fun GameScreen() {
                     if (gameState == GameState.PLAYING) {
                         isThrusting = true
                         thrustTarget = down.position
+                        player.squashStretch = 1.2f // Stretch on takeoff
+                        spawnBurst(player.x, player.y + ROCKET_HEIGHT / 2, 10, Color.LightGray, 50f)
                     }
                     while (true) {
                         val event = awaitPointerEvent()
@@ -357,6 +371,8 @@ fun GameScreen() {
                         discoveryManager.update(dt)
                         ambientManager.update(dt, cameraY, screenWidth, screenHeight, altitudeManager.currentZone)
                         gameTime += (dt * 1000).toLong()
+                        if (screenShake > 0) screenShake = max(0f, screenShake - dt * 30f)
+                        if (impactFlashAlpha > 0) impactFlashAlpha = max(0f, impactFlashAlpha - dt * 4f)
 
                         // Reset combo if window expires
                         if (player.combo > 0 && gameTime - player.lastLandingTime > 2000L) {
@@ -392,6 +408,10 @@ fun GameScreen() {
 
                         if (player.turboTimer > 0) player.turboTimer = max(0f, player.turboTimer - dt)
                         if (player.efficiencyTimer > 0) player.efficiencyTimer = max(0f, player.efficiencyTimer - dt)
+                        if (player.invulnerabilityTimer > 0) player.invulnerabilityTimer = max(0f, player.invulnerabilityTimer - dt)
+
+                        // Visual squash/stretch lerp back to 1.0
+                        player.squashStretch += (1.0f - player.squashStretch) * 10f * dt
 
                         if (player.isOverheated) {
                             player.overheatTimer -= dt
@@ -429,12 +449,27 @@ fun GameScreen() {
                                 
                                 player.fuel = max(0f, player.fuel - currentConsumption * sdt)
                                 player.heat = min(MAX_HEAT, player.heat + HEAT_GENERATION_RATE * player.rocketType.heatMult * sdt)
-                                
+
+                                // Thrust trail particles
+                                if (Random.nextFloat() < 0.4f) {
+                                    particles.add(Particle(
+                                        x = player.x + (Random.nextFloat() - 0.5f) * 15f,
+                                        y = player.y + ROCKET_HEIGHT / 2,
+                                        vx = (Random.nextFloat() - 0.5f) * 40f,
+                                        vy = 100f + Random.nextFloat() * 150f,
+                                        life = 0.3f + Random.nextFloat() * 0.3f,
+                                        color = if (player.turboTimer > 0) Color.Cyan else Color(0xFFFF9800),
+                                        size = 3f + Random.nextFloat() * 5f
+                                    ))
+                                }
+
                                 if (player.heat > MAX_HEAT * 0.7f) checkDiscovery(DiscoveryType.HEAT_SYSTEM)
-                                if (player.heat >= MAX_HEAT) {
+                                if (player.heat >= MAX_HEAT && !player.isOverheated) {
                                     player.isOverheated = true
                                     player.overheatTimer = OVERHEAT_COOLDOWN_TIME
                                     isThrusting = false
+                                    screenShake = 15f
+                                    impactFlashAlpha = 1.0f
                                     checkDiscovery(DiscoveryType.OVERHEAT_SYSTEM)
                                 }
                             } else if (!player.isOverheated) {
@@ -459,25 +494,42 @@ fun GameScreen() {
                                 val pTop = platform.y
                                 val pBottom = platform.y + PLATFORM_HEIGHT
 
-                                // Horizontal overlap check
-                                val horOverlap = player.x + rHalfW > pLeft && player.x - rHalfW < pRight
-                                val vertOverlap = player.y + rHalfH > pTop && player.y - rHalfH < pBottom
+                                val rLeft = player.x - rHalfW
+                                val rRight = player.x + rHalfW
+                                val rTop = player.y - rHalfH
+                                val rBottom = player.y + rHalfH
 
-                                if (horOverlap && vertOverlap) {
+                                // Check for overlap
+                                if (rRight > pLeft && rLeft < pRight && rBottom > pTop && rTop < pBottom) {
+                                    
                                     val prevBottom = oldY + rHalfH
                                     val prevTop = oldY - rHalfH
                                     val prevLeft = oldX - rHalfW
                                     val prevRight = oldX + rHalfW
 
-                                    // 1. Landing from above (priority)
-                                    if (prevBottom <= pTop + 5f && player.velocityY >= 0) {
+                                    // Resolve by the side that hit first (using state)
+                                    val wasAbove = prevBottom <= pTop + 5f
+                                    val wasBelow = prevTop >= pBottom - 5f
+                                    val wasLeft = prevRight <= pLeft + 5f
+                                    val wasRight = prevLeft >= pRight - 5f
+
+                                    if (wasAbove && player.velocityY >= 0) {
                                         player.y = pTop - rHalfH
+                                        if (player.velocityY > 0) player.velocityY = 0f
+                                        player.squashStretch = 0.8f // Squash on landing
+                                        
                                         when (platform.type) {
-                                            PlatformType.BOOST -> { player.velocityY = -600f; spawnBurst(player.x, pTop, 20, Color.Yellow, 300f); checkDiscovery(DiscoveryType.BOOST_PLATFORM) }
+                                            PlatformType.BOOST -> { 
+                                                player.velocityY = -600f
+                                                spawnBurst(player.x, pTop, 25, Color.Yellow, 400f)
+                                                screenShake = 10f
+                                                impactFlashAlpha = 0.5f
+                                                checkDiscovery(DiscoveryType.BOOST_PLATFORM) 
+                                            }
                                             PlatformType.ICE -> { player.velocityY = LANDING_BOUNCE_VELOCITY; player.velocityX *= 0.98f; checkDiscovery(DiscoveryType.ICE_PLATFORM) }
                                             PlatformType.MOVING -> { 
-                                                player.velocityY = LANDING_BOUNCE_VELOCITY; 
-                                                player.velocityX = platform.speed; 
+                                                player.velocityY = LANDING_BOUNCE_VELOCITY
+                                                player.velocityX = platform.speed
                                                 checkDiscovery(DiscoveryType.MOVING_PLATFORM)
                                                 updateMission("land10moving")
                                             }
@@ -487,65 +539,76 @@ fun GameScreen() {
                                         landingEffects.add(LandingEffect(player.x, pTop))
                                         
                                         // --- Combo Logic ---
-                                        val comboWindow = 2000L // 2 seconds to land next platform
+                                        val comboWindow = 2000L
                                         if (platform != player.lastPlatform) {
                                             if (gameTime - player.lastLandingTime < comboWindow) {
                                                 player.combo++
                                                 if (player.combo > player.maxComboReached) player.maxComboReached = player.combo
                                                 
-                                                // Rewards Scaling
                                                 val comboBonus = when {
-                                                    player.combo >= 10 -> {
+                                                    player.combo >= 10 -> { 
                                                         score += 500
                                                         player.fuel = min(player.maxFuel, player.fuel + 15f)
                                                         player.heat = max(0f, player.heat - MAX_HEAT * 0.15f)
-                                                        spawnBurst(player.x, pTop, 30, Color.Cyan, 400f)
-                                                        "MEGA COMBO! +500"
+                                                        spawnBurst(player.x, pTop, 40, Color.Cyan, 500f)
+                                                        screenShake = 15f
+                                                        impactFlashAlpha = 0.8f
+                                                        "MEGA COMBO! +500" 
                                                     }
-                                                    player.combo >= 5 -> {
+                                                    player.combo >= 5 -> { 
                                                         score += 200
                                                         player.fuel = min(player.maxFuel, player.fuel + 8f)
-                                                        spawnBurst(player.x, pTop, 20, Color.Yellow, 250f)
-                                                        "SUPER COMBO! +200"
+                                                        spawnBurst(player.x, pTop, 25, Color.Yellow, 300f)
+                                                        screenShake = 8f
+                                                        "SUPER COMBO! +200" 
                                                     }
-                                                    player.combo >= 3 -> {
+                                                    player.combo >= 3 -> { 
                                                         score += 100
-                                                        spawnBurst(player.x, pTop, 15, Color.White, 150f)
-                                                        "COMBO x${player.combo} +100"
+                                                        spawnBurst(player.x, pTop, 20, Color.White, 200f)
+                                                        "COMBO x${player.combo} +100" 
                                                     }
-                                                    else -> {
-                                                        score += 50
-                                                        "COMBO x${player.combo}"
-                                                    }
+                                                    else -> { score += 50; "COMBO x${player.combo}" }
                                                 }
-                                                
-                                                val textColor = when {
-                                                    player.combo >= 10 -> Color.Cyan
-                                                    player.combo >= 5 -> Color.Yellow
-                                                    else -> Color.White
-                                                }
-                                                floatingTexts.add(FloatingText(comboBonus, player.x, player.y - 120f, color = textColor))
-                                            } else {
-                                                player.combo = 1
-                                            }
+                                                val textColor = when { player.combo >= 10 -> Color.Cyan; player.combo >= 5 -> Color.Yellow; else -> Color.White }
+                                                floatingTexts.add(
+                                                    FloatingText(
+                                                        text = comboBonus, 
+                                                        x = player.x, 
+                                                        y = player.y - 120f, 
+                                                        color = textColor,
+                                                        isCritical = player.combo >= 5
+                                                    )
+                                                )
+                                            } else { player.combo = 1 }
                                             player.lastLandingTime = gameTime
                                             player.lastPlatform = platform
                                         }
-                                        
                                         spawnBurst(player.x, pTop, 10, Color.Gray, 100f)
                                     } 
-                                    // 2. Head bump from below
-                                    else if (prevTop >= pBottom - 5f && player.velocityY < 0) {
+                                    else if (wasBelow && player.velocityY < 0) {
                                         player.y = pBottom + rHalfH
                                         player.velocityY = -player.velocityY * 0.5f 
                                     } 
-                                    // 3. Side collisions
-                                    else if (prevRight <= pLeft + 2f) {
+                                    else if (wasLeft) {
                                         player.x = pLeft - rHalfW
                                         player.velocityX = -abs(player.velocityX) * 0.5f
-                                    } else if (prevLeft >= pRight - 2f) {
+                                    } 
+                                    else if (wasRight) {
                                         player.x = pRight + rHalfW
                                         player.velocityX = abs(player.velocityX) * 0.5f
+                                    } else {
+                                        // Final Fallback: Shallowest Penetration
+                                        val penL = rRight - pLeft
+                                        val penR = pRight - rLeft
+                                        val penT = rBottom - pTop
+                                        val penB = pBottom - rTop
+                                        val m = minOf(penL, penR, penT, penB)
+                                        when (m) {
+                                            penT -> { player.y = pTop - rHalfH; if (player.velocityY > 0) player.velocityY = 0f }
+                                            penB -> { player.y = pBottom + rHalfH; if (player.velocityY < 0) player.velocityY = -player.velocityY * 0.5f }
+                                            penL -> { player.x = pLeft - rHalfW; player.velocityX = -abs(player.velocityX) * 0.5f }
+                                            penR -> { player.x = pRight + rHalfW; player.velocityX = abs(player.velocityX) * 0.5f }
+                                        }
                                     }
                                 }
                             }
@@ -571,7 +634,14 @@ fun GameScreen() {
                         if (player.y - (ROCKET_HEIGHT / 2) > cameraY + screenHeight) { gameState = GameState.GAMEOVER; saveHighScore(score) }
 
                         // Cleanup broken platforms
-                        platforms.removeAll { it.isBreaking && it.crackTime > it.totalBreakTime }
+                        val platformIter = platforms.iterator()
+                        while (platformIter.hasNext()) {
+                            val p = platformIter.next()
+                            if (p.isBreaking && p.crackTime > p.totalBreakTime) {
+                                spawnBurst(p.x + p.width / 2, p.y, 25, Color(0xFFFF9800), 200f)
+                                platformIter.remove()
+                            }
+                        }
 
                         powerUpSpawnTimer += dt
                         if (powerUpSpawnTimer > 10f) {
@@ -592,30 +662,34 @@ fun GameScreen() {
                             if (abs(player.x - pu.x) < 50f && abs(player.y - pu.y) < 70f) {
                                 when (pu.type) {
                                     PowerUpType.FUEL_TANK -> { 
-                                        player.maxFuel = min(250f, player.maxFuel + 25f); 
-                                        player.fuel = player.maxFuel; 
-                                        spawnBurst(pu.x, pu.y, 20, Color.Yellow, 200f); 
-                                        floatingTexts.add(FloatingText("FUEL CAPACITY UP!", player.x, player.y - 150f, color = Color.Yellow))
+                                        player.maxFuel = min(250f, player.maxFuel + 25f)
+                                        player.fuel = player.maxFuel
+                                        spawnBurst(pu.x, pu.y, 30, Color.Yellow, 300f)
+                                        screenShake = 5f
+                                        floatingTexts.add(FloatingText("FUEL CAPACITY UP!", player.x, player.y - 150f, color = Color.Yellow, isCritical = true))
                                         checkDiscovery(DiscoveryType.FUEL_TANK)
                                         updateMission("collect5")
                                     }
                                     PowerUpType.TURBO_BOOSTER -> { 
-                                        player.turboTimer = 8f; 
-                                        spawnBurst(pu.x, pu.y, 20, Color.Cyan, 200f); 
-                                        floatingTexts.add(FloatingText("TURBO ACTIVE!", player.x, player.y - 150f, color = Color.Cyan))
+                                        player.turboTimer = 8f
+                                        spawnBurst(pu.x, pu.y, 30, Color.Cyan, 300f)
+                                        screenShake = 5f
+                                        floatingTexts.add(FloatingText("TURBO ACTIVE!", player.x, player.y - 150f, color = Color.Cyan, isCritical = true))
                                         checkDiscovery(DiscoveryType.TURBO_BOOSTER) 
                                     }
                                     PowerUpType.EFFICIENCY_MODULE -> { 
-                                        player.efficiencyTimer = 8f; 
-                                        spawnBurst(pu.x, pu.y, 20, Color.Green, 200f); 
-                                        floatingTexts.add(FloatingText("FUEL EFFICIENCY UP!", player.x, player.y - 150f, color = Color.Green))
+                                        player.efficiencyTimer = 8f
+                                        spawnBurst(pu.x, pu.y, 30, Color.Green, 300f)
+                                        screenShake = 5f
+                                        floatingTexts.add(FloatingText("FUEL EFFICIENCY UP!", player.x, player.y - 150f, color = Color.Green, isCritical = true))
                                         checkDiscovery(DiscoveryType.EFFICIENCY_MODULE) 
                                     }
                                     PowerUpType.HEAT_SINK -> {
                                         player.heat = max(0f, player.heat - MAX_HEAT * 0.5f)
                                         player.isOverheated = false
-                                        spawnBurst(pu.x, pu.y, 20, Color.White, 200f);
-                                        floatingTexts.add(FloatingText("ENGINES COOLED!", player.x, player.y - 150f, color = Color.White))
+                                        spawnBurst(pu.x, pu.y, 30, Color.White, 300f)
+                                        screenShake = 5f
+                                        floatingTexts.add(FloatingText("ENGINES COOLED!", player.x, player.y - 150f, color = Color.White, isCritical = true))
                                         checkDiscovery(DiscoveryType.HEAT_SINK)
                                     }
                                     PowerUpType.ARTIFACT -> {
@@ -624,10 +698,11 @@ fun GameScreen() {
                                             DiscoveryType.ART_BEACON, DiscoveryType.ART_DRONE
                                         ).random()
                                         checkDiscovery(artifact)
-                                        spawnBurst(pu.x, pu.y, 30, Color(0xFF9C27B0), 250f)
-                                        floatingTexts.add(FloatingText("ARTIFACT RECOVERED!", player.x, player.y - 150f, color = Color(0xFF9C27B0)))
+                                        spawnBurst(pu.x, pu.y, 50, Color(0xFF9C27B0), 400f)
+                                        screenShake = 10f
+                                        impactFlashAlpha = 0.6f
+                                        floatingTexts.add(FloatingText("ARTIFACT RECOVERED!", player.x, player.y - 150f, color = Color(0xFF9C27B0), isCritical = true))
                                     }
-                                    else -> {}
                                 }
                                 powerUpIterator.remove()
                             } else if (pu.y > cameraY + screenHeight + 200f) powerUpIterator.remove()
@@ -659,126 +734,94 @@ fun GameScreen() {
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            if (gameState == GameState.TITLE || gameState == GameState.MAIN_MENU || gameState == GameState.HANGAR || 
-                gameState == GameState.CODEX || gameState == GameState.SETTINGS || gameState == GameState.ABOUT || 
-                gameState == GameState.LEADERBOARD) {
-                backgroundRenderer.renderTitle(this)
-            } else {
-                backgroundRenderer.render(
-                    drawScope = this,
-                    altitude = score,
-                    currentZone = altitudeManager.currentZone,
-                    cameraY = cameraY
-                )
-                ambientManager.render(this, cameraY, gameTime)
+            val shakeX = if (screenShake > 0) (Random.nextFloat() - 0.5f) * screenShake else 0f
+            val shakeY = if (screenShake > 0) (Random.nextFloat() - 0.5f) * screenShake else 0f
+
+            translate(shakeX, shakeY) {
+                if (gameState == GameState.TITLE || gameState == GameState.MAIN_MENU || gameState == GameState.HANGAR || 
+                    gameState == GameState.CODEX || gameState == GameState.SETTINGS || gameState == GameState.ABOUT || 
+                    gameState == GameState.LEADERBOARD) {
+                    backgroundRenderer.renderTitle(this)
+                } else {
+                    backgroundRenderer.render(
+                        drawScope = this,
+                        altitude = score,
+                        currentZone = altitudeManager.currentZone,
+                        cameraY = cameraY,
+                        gameTime = gameTime
+                    )
+                    ambientManager.render(this, cameraY, gameTime)
+                }
+
+                // Speed lines
+                val speedRatio = (abs(player.velocityY) / 1200f).coerceIn(0f, 1f)
+                if (speedRatio > 0.4f) {
+                    repeat(8) {
+                        val rx = Random.nextFloat() * screenWidth
+                        val ry = Random.nextFloat() * screenHeight
+                        val alpha = (speedRatio - 0.4f) * 0.3f
+                        drawLine(
+                            Color.White.copy(alpha = alpha),
+                            start = Offset(rx, ry),
+                            end = Offset(rx, ry + 60f * speedRatio),
+                            strokeWidth = 1f + 1f * speedRatio
+                        )
+                    }
+                }
+
+                if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL || gameState == GameState.PAUSED || gameState == GameState.HELP || gameState == GameState.UNLOCK) {
+                    drawRect(Color(0xFF795548), topLeft = Offset(0f, groundY + (ROCKET_HEIGHT / 2) - cameraY), size = Size(screenWidth, screenHeight))
+
+                    particles.forEach { p -> drawCircle(p.color.copy(alpha = (p.life/1.0f).coerceIn(0f, 1f)), radius = p.size, center = Offset(p.x, p.y - cameraY)) }
+                    landingEffects.forEach { effect -> 
+                        val progress = 1f - (effect.life / 0.5f).coerceIn(0f, 1f)
+                        drawCircle(
+                            color = Color.White.copy(alpha = 0.4f * (1f - progress)),
+                            radius = 40f * progress,
+                            center = Offset(effect.x, effect.y - cameraY),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                        )
+                    }
+
+                    platforms.forEach { platform ->
+                        platformRenderer.render(
+                            drawScope = this,
+                            platform = platform,
+                            currentZone = altitudeManager.currentZone,
+                            cameraY = cameraY,
+                            gameTime = gameTime
+                        )
+                    }
+
+                    powerUps.forEach { pu ->
+                        val baseColor = when (pu.type) {
+                            PowerUpType.FUEL_TANK -> Color(0xFFE57373)
+                            PowerUpType.TURBO_BOOSTER -> Color.Cyan
+                            PowerUpType.EFFICIENCY_MODULE -> Color.Green
+                            PowerUpType.HEAT_SINK -> Color.White
+                            PowerUpType.ARTIFACT -> Color(0xFF9C27B0)
+                        }
+                        if (pu.type == PowerUpType.ARTIFACT) { drawCircle(baseColor, radius = 15f, center = Offset(pu.x, pu.y - cameraY)); drawCircle(Color.White, radius = 5f, center = Offset(pu.x, pu.y - cameraY)) }
+                        else { drawRect(baseColor, topLeft = Offset(pu.x - 12f, pu.y - cameraY - 15f), size = Size(24f, 30f)); drawRect(Color.DarkGray, topLeft = Offset(pu.x - 6f, pu.y - cameraY - 20f), size = Size(12f, 5f)) }
+                    }
+
+                    // Render Rocket via RocketRenderer
+                    rocketRenderer.render(
+                        drawScope = this,
+                        player = player,
+                        isThrusting = isThrusting,
+                        thrustTarget = thrustTarget,
+                        cameraY = cameraY,
+                        gameTime = gameTime
+                    )
+                }
             }
 
-            if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL || gameState == GameState.PAUSED) {
-                drawRect(Color(0xFF795548), topLeft = Offset(0f, groundY + (ROCKET_HEIGHT / 2) - cameraY), size = Size(screenWidth, screenHeight))
-
-                particles.forEach { p -> drawCircle(p.color.copy(alpha = (p.life/1.0f).coerceIn(0f, 1f)), radius = p.size, center = Offset(p.x, p.y - cameraY)) }
-                landingEffects.forEach { effect -> drawCircle(Color.Gray.copy(alpha = (effect.life/0.5f).coerceIn(0f, 0.5f)), radius = 30f * (1f - effect.life/0.5f), center = Offset(effect.x, effect.y - cameraY)) }
-
-                platforms.forEach { platform ->
-                    val color = when (platform.type) {
-                        PlatformType.NORMAL -> when (altitudeManager.currentZone) {
-                            AltitudeZone.EARTH -> Color(0xFF4CAF50)
-                            AltitudeZone.CLOUD_LAYER -> Color(0xFF81C784)
-                            AltitudeZone.UPPER_ATMOSPHERE -> Color(0xFFB0BEC5)
-                            AltitudeZone.ORBIT -> Color(0xFF90A4AE)
-                            AltitudeZone.DEEP_SPACE -> Color(0xFF607D8B)
-                            AltitudeZone.VOID -> Color(0xFF37474F)
-                        }
-                        PlatformType.MOVING -> Color(0xFF2196F3)
-                        PlatformType.BOOST -> Color(0xFFFFEB3B)
-                        PlatformType.ICE -> Color(0xFF00BCD4)
-                        PlatformType.BREAKABLE -> Color(0xFFFF9800)
-                    }
-                    drawRect(color, topLeft = Offset(platform.x, platform.y - cameraY), size = Size(platform.width, PLATFORM_HEIGHT))
-                    
-                    if (platform.type == PlatformType.BREAKABLE) {
-                        val progress = if (platform.isBreaking) (platform.crackTime / platform.totalBreakTime).coerceIn(0f, 1f) else 0f
-                        
-                        // Dynamic Cracks
-                        val crackCount = (progress * 5).toInt() + 1
-                        repeat(crackCount) { i ->
-                            val startX = platform.x + (platform.width / (crackCount + 1)) * (i + 1)
-                            drawLine(
-                                color = Color.Black.copy(alpha = 0.5f + progress * 0.5f),
-                                start = Offset(startX, platform.y - cameraY),
-                                end = Offset(startX + (if (i % 2 == 0) 10f else -10f), platform.y + PLATFORM_HEIGHT - cameraY),
-                                strokeWidth = 2f + progress * 2f
-                            )
-                        }
-
-                        // Countdown Text
-                        if (platform.isBreaking) {
-                            val remaining = ceil(platform.totalBreakTime - platform.crackTime).toInt()
-                            val text = if (remaining > 0) remaining.toString() else "!"
-                            
-                            drawContext.canvas.nativeCanvas.drawText(
-                                text,
-                                platform.x + platform.width / 2f,
-                                platform.y - cameraY - 10f,
-                                Paint().apply {
-                                    this.color = android.graphics.Color.RED
-                                    this.textSize = 40f
-                                    this.textAlign = Paint.Align.CENTER
-                                    this.typeface = Typeface.DEFAULT_BOLD
-                                }
-                            )
-                        } else {
-                            // Subtle "!" to indicate it's breakable before touch
-                             drawContext.canvas.nativeCanvas.drawText(
-                                "?",
-                                platform.x + platform.width / 2f,
-                                platform.y - cameraY - 10f,
-                                Paint().apply {
-                                    this.color = android.graphics.Color.YELLOW
-                                    this.textSize = 30f
-                                    this.textAlign = Paint.Align.CENTER
-                                }
-                            )
-                        }
-                    }
-
-                    if (platform.type == PlatformType.MOVING) { drawLine(Color.White.copy(alpha = 0.3f), start = Offset(0f, platform.y + PLATFORM_HEIGHT/2 - cameraY), end = Offset(screenWidth, platform.y + PLATFORM_HEIGHT/2 - cameraY), strokeWidth = 1f) }
-                }
-
-                powerUps.forEach { pu ->
-                    val baseColor = when (pu.type) {
-                        PowerUpType.FUEL_TANK -> Color(0xFFE57373)
-                        PowerUpType.TURBO_BOOSTER -> Color.Cyan
-                        PowerUpType.EFFICIENCY_MODULE -> Color.Green
-                        PowerUpType.HEAT_SINK -> Color.White
-                        PowerUpType.ARTIFACT -> Color(0xFF9C27B0)
-                    }
-                    if (pu.type == PowerUpType.ARTIFACT) { drawCircle(baseColor, radius = 15f, center = Offset(pu.x, pu.y - cameraY)); drawCircle(Color.White, radius = 5f, center = Offset(pu.x, pu.y - cameraY)) }
-                    else { drawRect(baseColor, topLeft = Offset(pu.x - 12f, pu.y - cameraY - 15f), size = Size(24f, 30f)); drawRect(Color.DarkGray, topLeft = Offset(pu.x - 6f, pu.y - cameraY - 20f), size = Size(12f, 5f)) }
-                }
-
-                val rocketX = player.x
-                val rocketY = player.y - cameraY
-                
-                if (isThrusting && player.fuel > 0 && gameState == GameState.PLAYING) {
-                    val flamePath = Path().apply { moveTo(rocketX - 10f, rocketY + (ROCKET_HEIGHT / 2)); lineTo(rocketX, rocketY + (ROCKET_HEIGHT / 2) + 40f + Random.nextFloat() * 20f); lineTo(rocketX + 10f, rocketY + (ROCKET_HEIGHT / 2)); close() }
-                    drawPath(flamePath, Color(0xFFFF9800))
-                    if (thrustTarget.x > rocketX + 10f) { val sideFlame = Path().apply { moveTo(rocketX - (ROCKET_WIDTH / 2), rocketY + 10f); lineTo(rocketX - (ROCKET_WIDTH / 2) - 20f, rocketY + 15f); lineTo(rocketX - (ROCKET_WIDTH / 2), rocketY + 20f); close() }; drawPath(sideFlame, Color(0xFFFF9800)) }
-                    else if (thrustTarget.x < rocketX - 10f) { val sideFlame = Path().apply { moveTo(rocketX + (ROCKET_WIDTH / 2), rocketY + 10f); lineTo(rocketX + (ROCKET_WIDTH / 2) + 20f, rocketY + 15f); lineTo(rocketX + (ROCKET_WIDTH / 2), rocketY + 20f); close() }; drawPath(sideFlame, Color(0xFFFF9800)) }
-                }
-
-                val heatRatio = player.heat / MAX_HEAT
-                val bodyColor = if (player.isOverheated) Color.Red else Color.Gray.copy(red = 0.5f + (heatRatio * 0.5f), green = 0.5f * (1f - heatRatio), blue = 0.5f * (1f - heatRatio))
-                if (player.turboTimer > 0) drawCircle(Color.Cyan.copy(alpha = 0.3f), radius = 60f, center = Offset(rocketX, rocketY))
-                if (player.efficiencyTimer > 0) drawCircle(Color.Green.copy(alpha = 0.3f), radius = 55f, center = Offset(rocketX, rocketY))
-                drawRect(bodyColor, topLeft = Offset(rocketX - (ROCKET_WIDTH / 2), rocketY - (ROCKET_HEIGHT / 2) + 5f), size = Size(ROCKET_WIDTH, ROCKET_HEIGHT - 5f))
-                drawCircle(Color.Cyan.copy(alpha = 0.8f), radius = 8f, center = Offset(rocketX, rocketY - 10f))
-                val nosePath = Path().apply { moveTo(rocketX - (ROCKET_WIDTH / 2), rocketY - (ROCKET_HEIGHT / 2) + 5f); lineTo(rocketX, rocketY - (ROCKET_HEIGHT / 2) - 25f); lineTo(rocketX + (ROCKET_WIDTH / 2), rocketY - (ROCKET_HEIGHT / 2) + 5f); close() }
-                drawPath(nosePath, Color.Red)
-                val leftFin = Path().apply { moveTo(rocketX - (ROCKET_WIDTH / 2), rocketY + 10f); lineTo(rocketX - (ROCKET_WIDTH / 2) - 20f, rocketY + (ROCKET_HEIGHT / 2)); lineTo(rocketX - (ROCKET_WIDTH / 2), rocketY + (ROCKET_HEIGHT / 2)); close() }
-                drawPath(leftFin, Color.Red)
-                val rightFin = Path().apply { moveTo(rocketX + (ROCKET_WIDTH / 2), rocketY + 10f); lineTo(rocketX + (ROCKET_WIDTH / 2) + 20f, rocketY + (ROCKET_HEIGHT / 2)); lineTo(rocketX + (ROCKET_WIDTH / 2), rocketY + (ROCKET_HEIGHT / 2)); close() }
-                drawPath(rightFin, Color.Red)
+            if (impactFlashAlpha > 0) {
+                drawRect(
+                    color = Color.White.copy(alpha = impactFlashAlpha),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 20f)
+                )
             }
         }
 
@@ -788,10 +831,10 @@ fun GameScreen() {
             GameState.TITLE -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
-                        val infiniteTransition = rememberInfiniteTransition()
-                        val glowAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse))
-                        val rocketOffset by infiniteTransition.animateFloat(0f, -20f, infiniteRepeatable(tween(2000), RepeatMode.Reverse))
-                        Canvas(Modifier.size(100.dp).offset(y = rocketOffset.dp)) {
+                        val infiniteTransition = rememberInfiniteTransition(label = "TitleTransition")
+                        val glowAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "GlowAlpha")
+                        val rocketOffset by infiniteTransition.animateFloat(0f, -20f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "RocketOffset")
+                        Canvas(Modifier.size(100.dp).offset { androidx.compose.ui.unit.IntOffset(0, rocketOffset.dp.roundToPx()) }) {
                             val rx = size.width/2; val ry = size.height/2
                             drawRect(Color.Gray, topLeft = Offset(rx-10f, ry-15f), size = Size(20f, 40f))
                             drawPath(Path().apply { moveTo(rx-10f, ry-15f); lineTo(rx, ry-30f); lineTo(rx+10f, ry-15f); close() }, Color.Red)
@@ -991,22 +1034,22 @@ fun GameScreen() {
                             ) {
                                 // Compact Fuel Bar
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Box(Modifier.width(70.dp).height(4.dp).background(Color.White.copy(alpha = 0.2f), shape = CircleShape)) { 
-                                        Box(Modifier.fillMaxHeight().fillMaxWidth(player.fuel / player.maxFuel).background(if (player.fuel > player.maxFuel * 0.2f) Color.Green else Color.Red, shape = CircleShape)) 
+                                    Box(Modifier.width(70.dp).height(4.dp).background(Color.White.copy(alpha = 0.2f), shape = CircleShape)) {
+                                        Box(Modifier.fillMaxHeight().fillMaxWidth(player.fuel / player.maxFuel).background(if (player.fuel > player.maxFuel * 0.2f) Color.Green else Color.Red, shape = CircleShape))
                                     }
                                     Text("FUEL", style = MaterialTheme.typography.labelSmall, fontSize = 7.sp, color = Color.White.copy(alpha = 0.5f))
                                 }
                                 
                                 // Compact Heat Bar
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Box(Modifier.width(70.dp).height(4.dp).background(Color.White.copy(alpha = 0.2f), shape = CircleShape)) { 
+                                    Box(Modifier.width(70.dp).height(4.dp).background(Color.White.copy(alpha = 0.2f), shape = CircleShape)) {
                                         val heatColor = when { player.isOverheated -> Color.Red; player.heat > MAX_HEAT * 0.8f -> Color.Red; player.heat > MAX_HEAT * 0.4f -> Color.Yellow; else -> Color.Green }
                                         Box(Modifier.fillMaxHeight().fillMaxWidth(player.heat / MAX_HEAT).background(heatColor, shape = CircleShape)) 
                                     }
                                     Text(if (player.isOverheated) "OVERHEAT" else "HEAT", style = MaterialTheme.typography.labelSmall, fontSize = 7.sp, color = if(player.isOverheated) Color.Red else Color.White.copy(alpha = 0.5f))
                                 }
                             }
-                            
+
                             // Compact Combo Display
                             if (player.combo > 0) {
                                 val comboRemaining = (2000L - (gameTime - player.lastLandingTime)).coerceAtLeast(0L) / 2000f
@@ -1042,19 +1085,24 @@ fun GameScreen() {
                     }
 
                     // Floating Combo Texts
-                    floatingTexts.forEach { ft -> 
+                    floatingTexts.forEach { ft ->
+                        val scale = if (ft.isCritical) 1.0f + (ft.life * 0.5f) else 1.0f
                         Text(
                             text = ft.text,
                             color = ft.color.copy(alpha = (ft.life/1.0f).coerceIn(0f, 1f)),
-                            modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset((ft.x - 50f).toInt(), (ft.y - cameraY).toInt()) },
-                            style = MaterialTheme.typography.labelLarge.copy(
+                            modifier = Modifier
+                                .offset { androidx.compose.ui.unit.IntOffset((ft.x - 50f).toInt(), (ft.y - cameraY).toInt()) }
+                                .graphicsLayer(scaleX = scale, scaleY = scale),
+                            style = if (ft.isCritical) MaterialTheme.typography.headlineSmall.copy(
+                                shadow = androidx.compose.ui.graphics.Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
+                            ) else MaterialTheme.typography.labelLarge.copy(
                                 shadow = androidx.compose.ui.graphics.Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
                             ),
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
-                
+
                 if (gameState == GameState.PAUSED) {
                     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)).pointerInput(Unit) {}, contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
@@ -1113,14 +1161,14 @@ fun GameScreen() {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
                             Text("GAME OVER", color = Color.White, style = MaterialTheme.typography.displayMedium)
                             Text("Score: $score", color = Color.White, style = MaterialTheme.typography.headlineSmall); Text("Best: $highScore", color = Color.Yellow, style = MaterialTheme.typography.headlineSmall)
-                            
+
                             Spacer(Modifier.height(32.dp))
-                            
+
                             if (continuesUsed < 1) {
                                 Button(onClick = { continueRun() }, Modifier.width(200.dp)) { Text("CONTINUE") }
                                 Spacer(Modifier.height(12.dp))
                             }
-                            
+
                             Button(onClick = { restartGame() }, Modifier.width(200.dp)) { Text("RESTART") }
                             Spacer(Modifier.height(12.dp))
                             Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.width(200.dp)) { Text("MAIN MENU") }
@@ -1131,8 +1179,8 @@ fun GameScreen() {
                 // Cinematic Area Discovery Title Card
                 AnimatedVisibility(
                     visible = discoveryManager.activeEvent is DiscoveryEvent.Zone,
-                    enter = fadeIn(tween(1000)) + expandVertically(tween(1000)),
-                    exit = fadeOut(tween(1000)) + shrinkVertically(tween(1000)),
+                    enter = fadeIn(tween(1500)) + expandVertically(tween(1000)) + scaleIn(tween(1000), initialScale = 0.8f),
+                    exit = fadeOut(tween(1000)) + shrinkVertically(tween(1000)) + scaleOut(tween(1000), targetScale = 1.2f),
                     modifier = Modifier.align(Alignment.Center)
                 ) {
                     val event = discoveryManager.activeEvent as? DiscoveryEvent.Zone

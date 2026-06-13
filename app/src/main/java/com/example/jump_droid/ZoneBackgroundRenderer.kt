@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import kotlin.math.*
 import kotlin.random.Random
 
 class ZoneBackgroundRenderer {
@@ -48,11 +49,12 @@ class ZoneBackgroundRenderer {
             zIndex = 3,
             density = 4,
             seed = 42,
-            renderElement = { x, y, opacity, random ->
+            renderElement = { x, y, opacity, random, gameTime ->
+                val drift = sin(gameTime / 2000f + random.nextInt(100)) * 50f
                 drawCircle(
                     color = Color.White.copy(alpha = 0.25f * opacity),
                     radius = 100f + random.nextFloat() * 150f,
-                    center = Offset(x, y)
+                    center = Offset(x + drift, y)
                 )
             }
         ))
@@ -65,11 +67,12 @@ class ZoneBackgroundRenderer {
             zIndex = 1,
             density = 6,
             seed = 101,
-            renderElement = { x, y, opacity, random ->
+            renderElement = { x, y, opacity, random, gameTime ->
+                val drift = sin(gameTime / 3000f + random.nextInt(100)) * 30f
                 drawCircle(
                     color = Color.White.copy(alpha = 0.2f * opacity),
                     radius = 150f + random.nextFloat() * 200f,
-                    center = Offset(x, y)
+                    center = Offset(x + drift, y)
                 )
             }
         ))
@@ -80,11 +83,12 @@ class ZoneBackgroundRenderer {
             zIndex = 2,
             density = 8,
             seed = 202,
-            renderElement = { x, y, opacity, random ->
+            renderElement = { x, y, opacity, random, gameTime ->
+                val drift = sin(gameTime / 2500f + random.nextInt(100)) * 40f
                 drawCircle(
                     color = Color.White.copy(alpha = 0.35f * opacity),
                     radius = 100f + random.nextFloat() * 150f,
-                    center = Offset(x, y)
+                    center = Offset(x + drift, y)
                 )
             }
         ))
@@ -95,11 +99,12 @@ class ZoneBackgroundRenderer {
             zIndex = 3,
             density = 5,
             seed = 303,
-            renderElement = { x, y, opacity, random ->
+            renderElement = { x, y, opacity, random, gameTime ->
+                val drift = sin(gameTime / 2000f + random.nextInt(100)) * 60f
                 drawCircle(
                     color = Color.White.copy(alpha = 0.5f * opacity),
                     radius = 80f + random.nextFloat() * 100f,
-                    center = Offset(x, y)
+                    center = Offset(x + drift, y)
                 )
             }
         ))
@@ -121,8 +126,9 @@ class ZoneBackgroundRenderer {
                 zIndex = 0,
                 density = starDensity,
                 seed = zone.ordinal,
-                renderElement = { x, y, opacity, random ->
-                    val brightness = (0.3f + random.nextFloat() * 0.7f) * opacity
+                renderElement = { x, y, opacity, random, gameTime ->
+                    val twinkle = (sin(gameTime / 500f + random.nextInt(100)) * 0.4f + 0.6f)
+                    val brightness = (0.3f + random.nextFloat() * 0.7f) * opacity * twinkle
                     drawCircle(Color.White.copy(alpha = brightness), radius = 0.8f + random.nextFloat() * 1.2f, center = Offset(x, y))
                 }
             ))
@@ -140,8 +146,9 @@ class ZoneBackgroundRenderer {
                     zIndex = -1, // Behind stars
                     density = 2,
                     seed = zone.ordinal + 50,
-                    renderElement = { x, y, opacity, random ->
+                    renderElement = { x, y, opacity, random, gameTime ->
                         val radius = 400f + random.nextFloat() * 400f
+                        val pulse = sin(gameTime / 4000f + random.nextInt(1000)) * 0.1f + 1.0f
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
@@ -149,9 +156,9 @@ class ZoneBackgroundRenderer {
                                     Color.Transparent
                                 ),
                                 center = Offset(x, y),
-                                radius = radius
+                                radius = radius * pulse
                             ),
-                            radius = radius,
+                            radius = radius * pulse,
                             center = Offset(x, y)
                         )
                     }
@@ -163,7 +170,7 @@ class ZoneBackgroundRenderer {
         parallaxManager.registerLayer(AltitudeZone.ORBIT, SingleObjectParallaxLayer(
             parallaxFactor = 0.02f,
             zIndex = -2,
-            renderElement = { opacity ->
+            renderElement = { opacity, gameTime ->
                 drawCircle(
                     color = Color(0xFF2196F3).copy(alpha = 0.2f * opacity),
                     radius = size.width * 2f,
@@ -177,7 +184,8 @@ class ZoneBackgroundRenderer {
         drawScope: DrawScope,
         altitude: Int,
         currentZone: AltitudeZone,
-        cameraY: Float
+        cameraY: Float,
+        gameTime: Long
     ) {
         with(drawScope) {
             val width = size.width
@@ -249,7 +257,7 @@ class ZoneBackgroundRenderer {
             }
 
             // Render Parallax Layers
-            parallaxManager.render(this, cameraY, currentZone, progress)
+            parallaxManager.render(this, cameraY, currentZone, progress, gameTime)
         }
     }
 

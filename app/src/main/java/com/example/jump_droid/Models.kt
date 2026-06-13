@@ -106,7 +106,8 @@ class FloatingText(
     var x: Float,
     var y: Float,
     var life: Float = 1.0f,
-    val color: Color = Color.White
+    val color: Color = Color.White,
+    val isCritical: Boolean = false
 )
 
 class Particle(
@@ -144,4 +145,8 @@ class Player(
     var maxComboReached by mutableIntStateOf(0)
     var lastLandingTime by mutableLongStateOf(0L)
     var lastPlatform: Platform? = null
+
+    // Visual Feedback State
+    var squashStretch by mutableFloatStateOf(1.0f)
+    var invulnerabilityTimer by mutableFloatStateOf(0f)
 }
