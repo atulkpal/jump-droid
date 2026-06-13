@@ -19,7 +19,8 @@ class Platform(
     val width: Float,
     val type: PlatformType = PlatformType.NORMAL,
     val isMoving: Boolean = false,
-    initialSpeed: Float = 0f
+    initialSpeed: Float = 0f,
+    val totalBreakTime: Float = 3f // Randomized between 2-4 in generator
 ) {
     var x by mutableFloatStateOf(initialX)
     var speed by mutableFloatStateOf(initialSpeed)

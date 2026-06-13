@@ -105,16 +105,16 @@ class AmbientManager {
         ))
     }
 
-    fun render(drawScope: DrawScope, cameraY: Float) {
+    fun render(drawScope: DrawScope, cameraY: Float, gameTime: Long) {
         activeObjects.forEach { obj ->
             val relY = obj.y - (cameraY * obj.parallaxFactor)
             drawScope.translate(left = obj.x, top = relY) {
-                drawAmbientType(this, obj)
+                drawAmbientType(this, obj, gameTime)
             }
         }
     }
 
-    private fun drawAmbientType(drawScope: DrawScope, obj: AmbientObject) {
+    private fun drawAmbientType(drawScope: DrawScope, obj: AmbientObject, gameTime: Long) {
         val s = obj.scale
         val c = obj.color
         val r = obj.seed
@@ -123,7 +123,7 @@ class AmbientManager {
             rotate(obj.rotation) {
                 when (obj.type) {
                     AmbientType.BIRD -> {
-                        val wingFold = sin(System.currentTimeMillis() / 100f) * 10f
+                        val wingFold = sin(gameTime / 100f) * 10f
                         val path = Path().apply {
                             moveTo(-10f * s, 0f)
                             quadraticTo(0f, - wingFold * s, 10f * s, 0f)
@@ -187,7 +187,7 @@ class AmbientManager {
                     }
                     AmbientType.ANOMALY, AmbientType.DISTORTED_SHAPE -> {
                         repeat(4) { i ->
-                            rotate(i * 45f + (System.currentTimeMillis() / 200f)) {
+                            rotate(i * 45f + (gameTime / 200f)) {
                                 drawRect(c.copy(alpha = 0.2f), topLeft = Offset(-15f * s, -15f * s), size = Size(30f * s, 30f * s))
                             }
                         }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -27,8 +28,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.nativeCanvas
+import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,10 +78,11 @@ fun GameScreen() {
     var highScore by remember { mutableIntStateOf(sharedPrefs.getInt("highScore", 0)) }
     var highestYReached by remember { mutableFloatStateOf(Float.MAX_VALUE) }
     var score by remember { mutableIntStateOf(0) }
+    var continuesUsed by remember { mutableIntStateOf(0) }
+    var breakableStreak by remember { mutableIntStateOf(0) }
     
     var gameState by remember { mutableStateOf(GameState.TITLE) }
     var activeDiscovery by remember { mutableStateOf<DiscoveryType?>(null) }
-    var showHelp by remember { mutableStateOf(false) }
     var unlockedRocket by remember { mutableStateOf<RocketType?>(null) }
     var codexNotification by remember { mutableStateOf<DiscoveryType?>(null) }
 
@@ -100,17 +108,39 @@ fun GameScreen() {
         Mission("land10moving", "Land on 10 moving platforms", 10)
     )}
 
+    var gameTime by remember { mutableLongStateOf(0L) }
+    var powerUpSpawnTimer by remember { mutableFloatStateOf(0f) }
     var cameraY by remember { mutableFloatStateOf(0f) }
     var isThrusting by remember { mutableStateOf(false) }
     var thrustTarget by remember { mutableStateOf(Offset.Zero) }
 
-    fun checkDiscovery(type: DiscoveryType) {
+    LaunchedEffect(gameState) {
+        if (gameState != GameState.PLAYING) {
+            isThrusting = false
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                if (gameState == GameState.PLAYING) {
+                    gameState = GameState.PAUSED
+                    isThrusting = false
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    fun checkDiscovery(type: DiscoveryType, forceTutorialState: Boolean = true) {
         if (discoveryManager.discover(type)) {
             codexNotification = type
-            if (type == DiscoveryType.HEAT_SYSTEM || type == DiscoveryType.OVERHEAT_SYSTEM || type.category == "PLATFORMS" || type.category == "POWERUPS" || type.category == "ARTIFACTS") {
-                activeDiscovery = type
-                gameState = GameState.TUTORIAL
-            }
+            activeDiscovery = type
+            if (forceTutorialState) gameState = GameState.TUTORIAL
         }
     }
 
@@ -124,7 +154,8 @@ fun GameScreen() {
         RocketType.entries.forEach { type ->
             if (newScore >= type.unlockScore && !sharedPrefs.getBoolean("unlock_${type.name}", false)) {
                 unlockedRocket = type
-                checkDiscovery(type.discovery)
+                gameState = GameState.UNLOCK
+                checkDiscovery(type.discovery, forceTutorialState = false)
                 sharedPrefs.edit { putBoolean("unlock_${type.name}", true) }
             }
         }
@@ -163,6 +194,41 @@ fun GameScreen() {
         }
     }
 
+    fun continueRun() {
+        if (continuesUsed >= 1) return
+        
+        // Find the lowest visible platform to respawn on
+        val visibleBottom = cameraY + screenHeight
+        val visibleTop = cameraY
+        val visiblePlatforms = platforms.filter { it.y in visibleTop..visibleBottom }
+        
+        val spawnPlatform = if (visiblePlatforms.isNotEmpty()) {
+            visiblePlatforms.maxByOrNull { it.y }
+        } else {
+            // Fallback: spawn on the ground if no platforms are visible (rare)
+            null
+        }
+
+        if (spawnPlatform != null) {
+            player.x = spawnPlatform.x + spawnPlatform.width / 2f
+            player.y = spawnPlatform.y - ROCKET_HEIGHT / 2f
+        } else {
+            player.x = screenWidth / 2f
+            player.y = groundY
+            cameraY = 0f // Reset camera if we went all the way back to ground
+        }
+
+        player.velocityX = 0f
+        player.velocityY = 0f
+        player.fuel = player.maxFuel * 0.5f // Restore 50% fuel
+        player.heat = 0f
+        player.isOverheated = false
+        player.lastPlatform = spawnPlatform
+        
+        continuesUsed++
+        gameState = GameState.PLAYING
+    }
+
     fun spawnBurst(x: Float, y: Float, count: Int, color: Color, speed: Float = 100f) {
         repeat(count) {
             val angle = Random.nextFloat() * 2f * PI.toFloat()
@@ -194,15 +260,18 @@ fun GameScreen() {
                 Random.nextFloat() < 0.2f -> PlatformType.MOVING
                 Random.nextFloat() < 0.4f -> PlatformType.ICE
                 Random.nextFloat() < 0.5f -> PlatformType.BOOST
-                Random.nextFloat() < 0.6f -> PlatformType.BREAKABLE
+                (Random.nextFloat() < 0.6f && breakableStreak < 3) -> PlatformType.BREAKABLE
                 else -> PlatformType.NORMAL
             }
         }
         
+        if (type == PlatformType.BREAKABLE) breakableStreak++ else breakableStreak = 0
+
         val isMoving = type == PlatformType.MOVING
         val speed = if (isMoving) (100f + (difficulty * 200f)) * (if (Random.nextBoolean()) 1f else -1f) else 0f
+        val totalBreakTime = if (type == PlatformType.BREAKABLE) 2f + Random.nextFloat() * 2f else 3f
         
-        return Platform(nextX, nextY, pWidth, type, isMoving, speed)
+        return Platform(nextX, nextY, pWidth, type, isMoving, speed, totalBreakTime)
     }
 
     fun restartGame() {
@@ -220,10 +289,14 @@ fun GameScreen() {
         player.turboTimer = 0f
         player.efficiencyTimer = 0f
         
+        gameTime = 0L
+        powerUpSpawnTimer = 0f
         score = 0
         altitudeManager.updateAltitude(0)
         highestYReached = groundY
         cameraY = 0f
+        continuesUsed = 0
+        breakableStreak = 0
         platforms.clear()
         powerUps.clear()
         landingEffects.clear()
@@ -273,7 +346,6 @@ fun GameScreen() {
         LaunchedEffect(gameState) {
             if (gameState == GameState.PLAYING) {
                 var lastFrameTime = 0L
-                var powerUpSpawnTimer = 0f
                 while (gameState == GameState.PLAYING) {
                     withFrameNanos { currentTime ->
                         if (lastFrameTime == 0L) { lastFrameTime = currentTime; return@withFrameNanos }
@@ -284,6 +356,15 @@ fun GameScreen() {
                         // Update systems
                         discoveryManager.update(dt)
                         ambientManager.update(dt, cameraY, screenWidth, screenHeight, altitudeManager.currentZone)
+                        gameTime += (dt * 1000).toLong()
+
+                        // Reset combo if window expires
+                        if (player.combo > 0 && gameTime - player.lastLandingTime > 2000L) {
+                            if (player.combo > 1) {
+                                floatingTexts.add(FloatingText("COMBO LOST", player.x, player.y - 100f, color = Color.Red))
+                            }
+                            player.combo = 0
+                        }
 
                         val textIterator = floatingTexts.iterator()
                         while (textIterator.hasNext()) {
@@ -309,20 +390,6 @@ fun GameScreen() {
                             }
                         }
 
-                        val platformIterator = platforms.iterator()
-                        while (platformIterator.hasNext()) {
-                            val p = platformIterator.next()
-                            if (p.isMoving) {
-                                p.x += p.speed * dt
-                                if (p.x < 0) { p.x = 0f; p.speed *= -1 }
-                                else if (p.x + p.width > screenWidth) { p.x = screenWidth - p.width; p.speed *= -1 }
-                            }
-                            if (p.isBreaking) {
-                                p.crackTime += dt
-                                if (p.crackTime > 0.3f) platformIterator.remove()
-                            }
-                        }
-
                         if (player.turboTimer > 0) player.turboTimer = max(0f, player.turboTimer - dt)
                         if (player.efficiencyTimer > 0) player.efficiencyTimer = max(0f, player.efficiencyTimer - dt)
 
@@ -335,115 +402,184 @@ fun GameScreen() {
                             }
                         }
 
-                        if (isThrusting && player.fuel > 0f && !player.isOverheated) {
-                            val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * (if (player.turboTimer > 0) 1.2f else 1.0f)
-                            val currentConsumption = BASE_FUEL_CONSUMPTION * player.rocketType.fuelMult * (if (player.efficiencyTimer > 0) 0.8f else 1.0f)
-                            
-                            // Vertical: Constant upward thrust while touching
-                            player.velocityY -= currentThrust * dt
-                            
-                            // Horizontal: Steering based on finger position relative to rocket
-                            val dx = thrustTarget.x - player.x
-                            val maxSteerDist = screenWidth / 3f 
-                            val steerForce = (dx / maxSteerDist).coerceIn(-1f, 1f)
-                            player.velocityX += steerForce * currentThrust * 0.7f * dt
-                            
-                            player.fuel = max(0f, player.fuel - currentConsumption * dt)
-                            
-                            player.heat = min(MAX_HEAT, player.heat + HEAT_GENERATION_RATE * player.rocketType.heatMult * dt)
-                            if (player.heat > MAX_HEAT * 0.7f) checkDiscovery(DiscoveryType.HEAT_SYSTEM)
-                            if (player.heat >= MAX_HEAT) {
-                                player.isOverheated = true
-                                player.overheatTimer = OVERHEAT_COOLDOWN_TIME
-                                isThrusting = false
-                                checkDiscovery(DiscoveryType.OVERHEAT_SYSTEM)
+                        // Sub-stepped physics for collision reliability
+                        val subSteps = 4
+                        val sdt = dt / subSteps
+                        repeat(subSteps) {
+                            // a. Update platforms
+                            platforms.forEach { p ->
+                                if (p.isMoving) {
+                                    p.x += p.speed * sdt
+                                    if (p.x < 0) { p.x = 0f; p.speed *= -1 }
+                                    else if (p.x + p.width > screenWidth) { p.x = screenWidth - p.width; p.speed *= -1 }
+                                }
+                                if (p.isBreaking) p.crackTime += sdt
                             }
-                        } else if (!player.isOverheated) {
-                            player.heat = max(0f, player.heat - COOLING_RATE * dt)
+
+                            // b. Player Physics
+                            if (isThrusting && player.fuel > 0f && !player.isOverheated) {
+                                val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * (if (player.turboTimer > 0) 1.2f else 1.0f)
+                                val currentConsumption = BASE_FUEL_CONSUMPTION * player.rocketType.fuelMult * (if (player.efficiencyTimer > 0) 0.8f else 1.0f)
+                                
+                                player.velocityY -= currentThrust * sdt
+                                val dx = thrustTarget.x - player.x
+                                val maxSteerDist = screenWidth / 3f 
+                                val steerForce = (dx / maxSteerDist).coerceIn(-1f, 1f)
+                                player.velocityX += steerForce * currentThrust * 0.7f * sdt
+                                
+                                player.fuel = max(0f, player.fuel - currentConsumption * sdt)
+                                player.heat = min(MAX_HEAT, player.heat + HEAT_GENERATION_RATE * player.rocketType.heatMult * sdt)
+                                
+                                if (player.heat > MAX_HEAT * 0.7f) checkDiscovery(DiscoveryType.HEAT_SYSTEM)
+                                if (player.heat >= MAX_HEAT) {
+                                    player.isOverheated = true
+                                    player.overheatTimer = OVERHEAT_COOLDOWN_TIME
+                                    isThrusting = false
+                                    checkDiscovery(DiscoveryType.OVERHEAT_SYSTEM)
+                                }
+                            } else if (!player.isOverheated) {
+                                player.heat = max(0f, player.heat - COOLING_RATE * sdt)
+                            }
+
+                            player.velocityY += BASE_GRAVITY * sdt
+                            val oldX = player.x
+                            val oldY = player.y
+                            player.x += player.velocityX * sdt
+                            player.y += player.velocityY * sdt
+
+                            // c. Collision Resolution
+                            val rHalfW = ROCKET_WIDTH / 2
+                            val rHalfH = ROCKET_HEIGHT / 2
+
+                            platforms.forEach { platform ->
+                                if (platform.isBreaking && platform.crackTime > platform.totalBreakTime) return@forEach
+                                
+                                val pLeft = platform.x
+                                val pRight = platform.x + platform.width
+                                val pTop = platform.y
+                                val pBottom = platform.y + PLATFORM_HEIGHT
+
+                                // Horizontal overlap check
+                                val horOverlap = player.x + rHalfW > pLeft && player.x - rHalfW < pRight
+                                val vertOverlap = player.y + rHalfH > pTop && player.y - rHalfH < pBottom
+
+                                if (horOverlap && vertOverlap) {
+                                    val prevBottom = oldY + rHalfH
+                                    val prevTop = oldY - rHalfH
+                                    val prevLeft = oldX - rHalfW
+                                    val prevRight = oldX + rHalfW
+
+                                    // 1. Landing from above (priority)
+                                    if (prevBottom <= pTop + 5f && player.velocityY >= 0) {
+                                        player.y = pTop - rHalfH
+                                        when (platform.type) {
+                                            PlatformType.BOOST -> { player.velocityY = -600f; spawnBurst(player.x, pTop, 20, Color.Yellow, 300f); checkDiscovery(DiscoveryType.BOOST_PLATFORM) }
+                                            PlatformType.ICE -> { player.velocityY = LANDING_BOUNCE_VELOCITY; player.velocityX *= 0.98f; checkDiscovery(DiscoveryType.ICE_PLATFORM) }
+                                            PlatformType.MOVING -> { 
+                                                player.velocityY = LANDING_BOUNCE_VELOCITY; 
+                                                player.velocityX = platform.speed; 
+                                                checkDiscovery(DiscoveryType.MOVING_PLATFORM)
+                                                updateMission("land10moving")
+                                            }
+                                            PlatformType.BREAKABLE -> { player.velocityY = LANDING_BOUNCE_VELOCITY; player.velocityX *= HORIZONTAL_DAMPING; platform.isBreaking = true; checkDiscovery(DiscoveryType.BREAKABLE_PLATFORM) }
+                                            else -> { player.velocityY = LANDING_BOUNCE_VELOCITY; player.velocityX *= HORIZONTAL_DAMPING; checkDiscovery(DiscoveryType.NORMAL_PLATFORM) }
+                                        }
+                                        landingEffects.add(LandingEffect(player.x, pTop))
+                                        
+                                        // --- Combo Logic ---
+                                        val comboWindow = 2000L // 2 seconds to land next platform
+                                        if (platform != player.lastPlatform) {
+                                            if (gameTime - player.lastLandingTime < comboWindow) {
+                                                player.combo++
+                                                if (player.combo > player.maxComboReached) player.maxComboReached = player.combo
+                                                
+                                                // Rewards Scaling
+                                                val comboBonus = when {
+                                                    player.combo >= 10 -> {
+                                                        score += 500
+                                                        player.fuel = min(player.maxFuel, player.fuel + 15f)
+                                                        player.heat = max(0f, player.heat - MAX_HEAT * 0.15f)
+                                                        spawnBurst(player.x, pTop, 30, Color.Cyan, 400f)
+                                                        "MEGA COMBO! +500"
+                                                    }
+                                                    player.combo >= 5 -> {
+                                                        score += 200
+                                                        player.fuel = min(player.maxFuel, player.fuel + 8f)
+                                                        spawnBurst(player.x, pTop, 20, Color.Yellow, 250f)
+                                                        "SUPER COMBO! +200"
+                                                    }
+                                                    player.combo >= 3 -> {
+                                                        score += 100
+                                                        spawnBurst(player.x, pTop, 15, Color.White, 150f)
+                                                        "COMBO x${player.combo} +100"
+                                                    }
+                                                    else -> {
+                                                        score += 50
+                                                        "COMBO x${player.combo}"
+                                                    }
+                                                }
+                                                
+                                                val textColor = when {
+                                                    player.combo >= 10 -> Color.Cyan
+                                                    player.combo >= 5 -> Color.Yellow
+                                                    else -> Color.White
+                                                }
+                                                floatingTexts.add(FloatingText(comboBonus, player.x, player.y - 120f, color = textColor))
+                                            } else {
+                                                player.combo = 1
+                                            }
+                                            player.lastLandingTime = gameTime
+                                            player.lastPlatform = platform
+                                        }
+                                        
+                                        spawnBurst(player.x, pTop, 10, Color.Gray, 100f)
+                                    } 
+                                    // 2. Head bump from below
+                                    else if (prevTop >= pBottom - 5f && player.velocityY < 0) {
+                                        player.y = pBottom + rHalfH
+                                        player.velocityY = -player.velocityY * 0.5f 
+                                    } 
+                                    // 3. Side collisions
+                                    else if (prevRight <= pLeft + 2f) {
+                                        player.x = pLeft - rHalfW
+                                        player.velocityX = -abs(player.velocityX) * 0.5f
+                                    } else if (prevLeft >= pRight - 2f) {
+                                        player.x = pRight + rHalfW
+                                        player.velocityX = abs(player.velocityX) * 0.5f
+                                    }
+                                }
+                            }
+
+                            // Ground collision
+                            if (player.y > groundY) {
+                                player.y = groundY
+                                player.velocityY = -player.velocityY * 0.2f
+                                if (abs(player.velocityY) < 50f) player.velocityY = 0f
+                                player.combo = 0
+                                player.lastLandingTime = 0L
+                                player.lastPlatform = null
+                            }
                         }
 
-                        player.velocityY += BASE_GRAVITY * dt
-                        player.x += player.velocityX * dt
-                        player.y += player.velocityY * dt
+                        // Post-physics friction and bounds
                         player.velocityX *= AIR_FRICTION
                         player.velocityY *= AIR_FRICTION
 
                         if (player.x < SCREEN_PADDING) { player.x = SCREEN_PADDING; player.velocityX = -player.velocityX * 0.5f }
                         if (player.x > screenWidth - SCREEN_PADDING) { player.x = screenWidth - SCREEN_PADDING; player.velocityX = -player.velocityX * 0.5f }
 
-                        val rHalfW = ROCKET_WIDTH / 2
-                        val rHalfH = ROCKET_HEIGHT / 2
-                        val rBottom = player.y + rHalfH
-
-                        platforms.forEach { platform ->
-                            val pLeft = platform.x
-                            val pRight = platform.x + platform.width
-                            val pTop = platform.y
-                            val pBottom = platform.y + PLATFORM_HEIGHT
-
-                            if (player.x + rHalfW > pLeft && player.x - rHalfW < pRight && rBottom > pTop && player.y - rHalfH < pBottom) {
-                                val prevX = player.x - player.velocityX * dt
-                                val prevY = player.y - player.velocityY * dt
-                                val prevBottom = prevY + rHalfH
-                                val prevTop = prevY - rHalfH
-                                val prevLeft = prevX - rHalfW
-                                val prevRight = prevX + rHalfW
-
-                                if (prevBottom <= pTop) {
-                                    player.y = pTop - rHalfH
-                                    when (platform.type) {
-                                        PlatformType.BOOST -> { player.velocityY = -600f; spawnBurst(player.x, pTop, 20, Color.Yellow, 300f); checkDiscovery(DiscoveryType.BOOST_PLATFORM) }
-                                        PlatformType.ICE -> { player.velocityY = LANDING_BOUNCE_VELOCITY; player.velocityX *= 0.98f; checkDiscovery(DiscoveryType.ICE_PLATFORM) }
-                                        PlatformType.MOVING -> { 
-                                            player.velocityY = LANDING_BOUNCE_VELOCITY; 
-                                            player.velocityX = platform.speed; 
-                                            checkDiscovery(DiscoveryType.MOVING_PLATFORM)
-                                            updateMission("land10moving")
-                                        }
-                                        PlatformType.BREAKABLE -> { player.velocityY = LANDING_BOUNCE_VELOCITY; player.velocityX *= HORIZONTAL_DAMPING; platform.isBreaking = true; checkDiscovery(DiscoveryType.BREAKABLE_PLATFORM) }
-                                        else -> { player.velocityY = LANDING_BOUNCE_VELOCITY; player.velocityX *= HORIZONTAL_DAMPING; checkDiscovery(DiscoveryType.NORMAL_PLATFORM) }
-                                    }
-                                    landingEffects.add(LandingEffect(player.x, pTop))
-                                    spawnBurst(player.x, pTop, 10, Color.Gray, 100f)
-                                    val now = System.currentTimeMillis()
-                                    if (platform != player.lastPlatform && now - player.lastLandingTime < 1500) {
-                                        player.combo++
-                                        if (player.combo > player.maxComboReached) player.maxComboReached = player.combo
-                                        if (player.combo > 1) {
-                                            floatingTexts.add(FloatingText("COMBO x${player.combo}", player.x, player.y - 100f, color = Color.Yellow))
-                                            score += 10 * player.combo
-                                        }
-                                    } else if (platform != player.lastPlatform) player.combo = 1
-                                    if (platform != player.lastPlatform) { player.lastLandingTime = now; player.lastPlatform = platform }
-                                } else if (prevTop >= pBottom) {
-                                    player.y = pBottom + rHalfH
-                                    if (player.velocityY < 0) player.velocityY = -player.velocityY * 0.5f 
-                                } else if (prevRight <= pLeft) {
-                                    player.x = pLeft - rHalfW
-                                    player.velocityX = -abs(player.velocityX) * 0.5f
-                                } else if (prevLeft >= pRight) {
-                                    player.x = pRight + rHalfW
-                                    player.velocityX = abs(player.velocityX) * 0.5f
-                                }
-                            }
-                        }
-
-                        if (player.y > groundY) {
-                            player.y = groundY
-                            player.velocityY = -player.velocityY * 0.2f
-                            if (abs(player.velocityY) < 50f) player.velocityY = 0f
-                            player.combo = 0; player.lastPlatform = null
-                        }
-
                         if (player.y - (ROCKET_HEIGHT / 2) > cameraY + screenHeight) { gameState = GameState.GAMEOVER; saveHighScore(score) }
+
+                        // Cleanup broken platforms
+                        platforms.removeAll { it.isBreaking && it.crackTime > it.totalBreakTime }
 
                         powerUpSpawnTimer += dt
                         if (powerUpSpawnTimer > 10f) {
-                            val types = PowerUpType.entries.filter { it != PowerUpType.REPAIR_KIT }
+                            val types = PowerUpType.entries.filter { it != PowerUpType.ARTIFACT }
                             val rand = Random.nextFloat()
                             val type = when {
                                 rand < 0.05f -> PowerUpType.ARTIFACT
-                                else -> types.filter { it != PowerUpType.ARTIFACT }.random()
+                                else -> types.random()
                             }
                             powerUps.add(PowerUp(Random.nextFloat() * (screenWidth - 60f) + 30f, cameraY - 200f, type))
                             powerUpSpawnTimer = 0f
@@ -459,11 +595,29 @@ fun GameScreen() {
                                         player.maxFuel = min(250f, player.maxFuel + 25f); 
                                         player.fuel = player.maxFuel; 
                                         spawnBurst(pu.x, pu.y, 20, Color.Yellow, 200f); 
+                                        floatingTexts.add(FloatingText("FUEL CAPACITY UP!", player.x, player.y - 150f, color = Color.Yellow))
                                         checkDiscovery(DiscoveryType.FUEL_TANK)
                                         updateMission("collect5")
                                     }
-                                    PowerUpType.TURBO_BOOSTER -> { player.turboTimer = 8f; spawnBurst(pu.x, pu.y, 20, Color.Cyan, 200f); checkDiscovery(DiscoveryType.TURBO_BOOSTER) }
-                                    PowerUpType.EFFICIENCY_MODULE -> { player.efficiencyTimer = 8f; spawnBurst(pu.x, pu.y, 20, Color.Green, 200f); checkDiscovery(DiscoveryType.EFFICIENCY_MODULE) }
+                                    PowerUpType.TURBO_BOOSTER -> { 
+                                        player.turboTimer = 8f; 
+                                        spawnBurst(pu.x, pu.y, 20, Color.Cyan, 200f); 
+                                        floatingTexts.add(FloatingText("TURBO ACTIVE!", player.x, player.y - 150f, color = Color.Cyan))
+                                        checkDiscovery(DiscoveryType.TURBO_BOOSTER) 
+                                    }
+                                    PowerUpType.EFFICIENCY_MODULE -> { 
+                                        player.efficiencyTimer = 8f; 
+                                        spawnBurst(pu.x, pu.y, 20, Color.Green, 200f); 
+                                        floatingTexts.add(FloatingText("FUEL EFFICIENCY UP!", player.x, player.y - 150f, color = Color.Green))
+                                        checkDiscovery(DiscoveryType.EFFICIENCY_MODULE) 
+                                    }
+                                    PowerUpType.HEAT_SINK -> {
+                                        player.heat = max(0f, player.heat - MAX_HEAT * 0.5f)
+                                        player.isOverheated = false
+                                        spawnBurst(pu.x, pu.y, 20, Color.White, 200f);
+                                        floatingTexts.add(FloatingText("ENGINES COOLED!", player.x, player.y - 150f, color = Color.White))
+                                        checkDiscovery(DiscoveryType.HEAT_SINK)
+                                    }
                                     PowerUpType.ARTIFACT -> {
                                         val artifact = listOf(
                                             DiscoveryType.ART_RECORDER, DiscoveryType.ART_ALLOY, 
@@ -516,10 +670,10 @@ fun GameScreen() {
                     currentZone = altitudeManager.currentZone,
                     cameraY = cameraY
                 )
-                ambientManager.render(this, cameraY)
+                ambientManager.render(this, cameraY, gameTime)
             }
 
-            if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL) {
+            if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL || gameState == GameState.PAUSED) {
                 drawRect(Color(0xFF795548), topLeft = Offset(0f, groundY + (ROCKET_HEIGHT / 2) - cameraY), size = Size(screenWidth, screenHeight))
 
                 particles.forEach { p -> drawCircle(p.color.copy(alpha = (p.life/1.0f).coerceIn(0f, 1f)), radius = p.size, center = Offset(p.x, p.y - cameraY)) }
@@ -541,13 +695,63 @@ fun GameScreen() {
                         PlatformType.BREAKABLE -> Color(0xFFFF9800)
                     }
                     drawRect(color, topLeft = Offset(platform.x, platform.y - cameraY), size = Size(platform.width, PLATFORM_HEIGHT))
-                    if (platform.isBreaking) drawLine(Color.Black, start = Offset(platform.x, platform.y - cameraY), end = Offset(platform.x + platform.width * (platform.crackTime / 0.3f), platform.y + PLATFORM_HEIGHT - cameraY), strokeWidth = 2f)
+                    
+                    if (platform.type == PlatformType.BREAKABLE) {
+                        val progress = if (platform.isBreaking) (platform.crackTime / platform.totalBreakTime).coerceIn(0f, 1f) else 0f
+                        
+                        // Dynamic Cracks
+                        val crackCount = (progress * 5).toInt() + 1
+                        repeat(crackCount) { i ->
+                            val startX = platform.x + (platform.width / (crackCount + 1)) * (i + 1)
+                            drawLine(
+                                color = Color.Black.copy(alpha = 0.5f + progress * 0.5f),
+                                start = Offset(startX, platform.y - cameraY),
+                                end = Offset(startX + (if (i % 2 == 0) 10f else -10f), platform.y + PLATFORM_HEIGHT - cameraY),
+                                strokeWidth = 2f + progress * 2f
+                            )
+                        }
+
+                        // Countdown Text
+                        if (platform.isBreaking) {
+                            val remaining = ceil(platform.totalBreakTime - platform.crackTime).toInt()
+                            val text = if (remaining > 0) remaining.toString() else "!"
+                            
+                            drawContext.canvas.nativeCanvas.drawText(
+                                text,
+                                platform.x + platform.width / 2f,
+                                platform.y - cameraY - 10f,
+                                Paint().apply {
+                                    this.color = android.graphics.Color.RED
+                                    this.textSize = 40f
+                                    this.textAlign = Paint.Align.CENTER
+                                    this.typeface = Typeface.DEFAULT_BOLD
+                                }
+                            )
+                        } else {
+                            // Subtle "!" to indicate it's breakable before touch
+                             drawContext.canvas.nativeCanvas.drawText(
+                                "?",
+                                platform.x + platform.width / 2f,
+                                platform.y - cameraY - 10f,
+                                Paint().apply {
+                                    this.color = android.graphics.Color.YELLOW
+                                    this.textSize = 30f
+                                    this.textAlign = Paint.Align.CENTER
+                                }
+                            )
+                        }
+                    }
+
                     if (platform.type == PlatformType.MOVING) { drawLine(Color.White.copy(alpha = 0.3f), start = Offset(0f, platform.y + PLATFORM_HEIGHT/2 - cameraY), end = Offset(screenWidth, platform.y + PLATFORM_HEIGHT/2 - cameraY), strokeWidth = 1f) }
                 }
 
                 powerUps.forEach { pu ->
                     val baseColor = when (pu.type) {
-                        PowerUpType.FUEL_TANK -> Color(0xFFE57373); PowerUpType.TURBO_BOOSTER -> Color.Cyan; PowerUpType.EFFICIENCY_MODULE -> Color.Green; PowerUpType.ARTIFACT -> Color(0xFF9C27B0); else -> Color.White
+                        PowerUpType.FUEL_TANK -> Color(0xFFE57373)
+                        PowerUpType.TURBO_BOOSTER -> Color.Cyan
+                        PowerUpType.EFFICIENCY_MODULE -> Color.Green
+                        PowerUpType.HEAT_SINK -> Color.White
+                        PowerUpType.ARTIFACT -> Color(0xFF9C27B0)
                     }
                     if (pu.type == PowerUpType.ARTIFACT) { drawCircle(baseColor, radius = 15f, center = Offset(pu.x, pu.y - cameraY)); drawCircle(Color.White, radius = 5f, center = Offset(pu.x, pu.y - cameraY)) }
                     else { drawRect(baseColor, topLeft = Offset(pu.x - 12f, pu.y - cameraY - 15f), size = Size(24f, 30f)); drawRect(Color.DarkGray, topLeft = Offset(pu.x - 6f, pu.y - cameraY - 20f), size = Size(12f, 5f)) }
@@ -583,7 +787,7 @@ fun GameScreen() {
         when (gameState) {
             GameState.TITLE -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
                         val infiniteTransition = rememberInfiniteTransition()
                         val glowAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse))
                         val rocketOffset by infiniteTransition.animateFloat(0f, -20f, infiniteRepeatable(tween(2000), RepeatMode.Reverse))
@@ -598,13 +802,15 @@ fun GameScreen() {
                         Spacer(Modifier.height(80.dp))
                         Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.width(220.dp)) { Text("ASCEND") }
                     }
-                    Text("The Ascension Program • Established 1984", Modifier.align(Alignment.BottomCenter).padding(32.dp), color = Color.White.copy(alpha = 0.5f))
-                    Text("Powered by AshwathAI", Modifier.align(Alignment.BottomCenter).padding(15.dp), color = Color.White.copy(alpha = 0.5f))
+                    Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("The Ascension Program • Established 1984", color = Color.White.copy(alpha = 0.5f))
+                        Text("Powered by AshwathAI", color = Color.White.copy(alpha = 0.5f))
+                    }
                 }
             }
             GameState.MAIN_MENU -> {
                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
                         Text("COMMAND CENTER", style = MaterialTheme.typography.headlineLarge, color = Color.White)
                         Spacer(Modifier.height(32.dp))
                         Button(onClick = { restartGame() }, Modifier.width(200.dp)) { Text("LAUNCH") }
@@ -625,7 +831,7 @@ fun GameScreen() {
             }
             GameState.HANGAR -> {
                 Surface(Modifier.fillMaxSize(), color = Color(0xFF0D001A)) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(Modifier.padding(16.dp).safeDrawingPadding()) {
                         Text("ROCKET HANGAR", style = MaterialTheme.typography.headlineMedium, color = Color.Cyan)
                         Spacer(Modifier.height(16.dp))
                         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -660,7 +866,7 @@ fun GameScreen() {
                 val categories = listOf("ROCKETS", "PLATFORMS", "POWERUPS", "AREAS", "THREATS", "ARTIFACTS", "LORE", "ACHIEVEMENTS")
                 var selectedCat by remember { mutableStateOf("ROCKETS") }
                 Surface(Modifier.fillMaxSize(), color = Color(0xFF0D001A)) {
-                    Column(Modifier.padding(16.dp)) {
+                    Column(Modifier.padding(16.dp).safeDrawingPadding()) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("CODEX", style = MaterialTheme.typography.headlineMedium, color = Color.Cyan)
                             val discovered = DiscoveryType.entries.count { sharedPrefs.getBoolean("discovery_$it", false) }
@@ -688,7 +894,7 @@ fun GameScreen() {
             }
             GameState.SETTINGS -> {
                 Surface(Modifier.fillMaxSize(), color = Color(0xFF0D001A)) {
-                    Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(Modifier.padding(32.dp).safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("SETTINGS", style = MaterialTheme.typography.headlineLarge, color = Color.Cyan)
                         Spacer(Modifier.height(48.dp))
                         Text("Master Volume", color = Color.White); Spacer(Modifier.height(8.dp)); Box(Modifier.width(200.dp).height(10.dp).background(Color.Gray))
@@ -701,7 +907,7 @@ fun GameScreen() {
             }
             GameState.ABOUT -> {
                 Surface(Modifier.fillMaxSize(), color = Color(0xFF0D001A)) {
-                    Column(Modifier.padding(32.dp).verticalScroll(rememberScrollState())) {
+                    Column(Modifier.padding(32.dp).verticalScroll(rememberScrollState()).safeDrawingPadding()) {
                         Text("MISSION DATA", style = MaterialTheme.typography.headlineMedium, color = Color.Cyan); Spacer(Modifier.height(24.dp))
                         Text("Jump Droid is a vertical exploration game focused on precision rocket control and discovery.", color = Color.White)
                         Spacer(Modifier.height(16.dp)); Text("Built using Android Studio and Jetpack Compose. Powered by Ashwath.AI.", color = Color.White)
@@ -713,7 +919,7 @@ fun GameScreen() {
                 }
             }
             GameState.LEADERBOARD -> {
-                Box(Modifier.fillMaxSize().background(Color(0xFF0D001A)), contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxSize().background(Color(0xFF0D001A)).safeDrawingPadding(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("TERMINAL", style = MaterialTheme.typography.headlineMedium, color = Color.Cyan); Spacer(Modifier.height(32.dp))
                         Text("Worldwide rankings coming soon.", color = Color.White); Spacer(Modifier.height(32.dp))
@@ -721,20 +927,151 @@ fun GameScreen() {
                     }
                 }
             }
-            GameState.PLAYING, GameState.GAMEOVER, GameState.TUTORIAL -> {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(verticalAlignment = Alignment.CenterVertically) { Text("Score: $score", style = MaterialTheme.typography.headlineMedium, color = Color.Black); Spacer(Modifier.width(16.dp)); Button(onClick = { showHelp = true }, modifier = Modifier.size(40.dp), contentPadding = PaddingValues(0.dp)) { Text("?") } }
-                    Text("Best: $highScore", style = MaterialTheme.typography.labelMedium, color = Color.DarkGray); Spacer(Modifier.height(8.dp))
-                    Box(Modifier.width(200.dp).height(20.dp).background(Color.LightGray, shape = RoundedCornerShape(4.dp))) { Box(Modifier.fillMaxHeight().fillMaxWidth(player.fuel / player.maxFuel).background(if (player.fuel > player.maxFuel * 0.2f) Color.Green else Color.Red, shape = RoundedCornerShape(4.dp))) }
-                    Text("Rocket Fuel (${player.maxFuel.toInt()}L)", style = MaterialTheme.typography.labelSmall, color = Color.DarkGray); Spacer(Modifier.height(8.dp))
-                    Box(Modifier.width(200.dp).height(10.dp).background(Color.LightGray, shape = RoundedCornerShape(4.dp))) { val heatColor = when { player.isOverheated -> Color.Red; player.heat > MAX_HEAT * 0.8f -> Color.Red; player.heat > MAX_HEAT * 0.4f -> Color.Yellow; else -> Color.Green }; Box(Modifier.fillMaxHeight().fillMaxWidth(player.heat / MAX_HEAT).background(heatColor, shape = RoundedCornerShape(4.dp))) }
-                    if (player.isOverheated) Text("OVERHEATED!", color = Color.Red, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    else Text("Engine Temperature", style = MaterialTheme.typography.labelSmall, color = Color.DarkGray)
+            GameState.PLAYING, GameState.GAMEOVER, GameState.TUTORIAL, GameState.PAUSED, GameState.HELP, GameState.UNLOCK -> {
+                Box(Modifier.fillMaxSize()) {
+                    // Top-Right Utility Buttons
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                            .statusBarsPadding(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { gameState = GameState.HELP; isThrusting = false },
+                            modifier = Modifier.size(36.dp),
+                            contentPadding = PaddingValues(0.dp),
+                            shape = CircleShape
+                        ) { Text("?", fontWeight = FontWeight.Bold) }
+                        
+                        if (gameState == GameState.PLAYING) {
+                            Button(
+                                onClick = { gameState = GameState.PAUSED; isThrusting = false },
+                                modifier = Modifier.size(36.dp),
+                                contentPadding = PaddingValues(0.dp),
+                                shape = CircleShape
+                            ) { Text("||", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                        }
+                    }
+
+                    // Modern Compact HUD Panel
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 12.dp)
+                            .statusBarsPadding(),
+                        color = Color.Black.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = score.toString(),
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp,
+                                    shadow = androidx.compose.ui.graphics.Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
+                                ),
+                                color = Color.White
+                            )
+                            Text(
+                                text = "BEST: $highScore",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.LightGray.copy(alpha = 0.7f),
+                                fontSize = 9.sp
+                            )
+                            
+                            Spacer(Modifier.height(6.dp))
+                            
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                // Compact Fuel Bar
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(Modifier.width(70.dp).height(4.dp).background(Color.White.copy(alpha = 0.2f), shape = CircleShape)) { 
+                                        Box(Modifier.fillMaxHeight().fillMaxWidth(player.fuel / player.maxFuel).background(if (player.fuel > player.maxFuel * 0.2f) Color.Green else Color.Red, shape = CircleShape)) 
+                                    }
+                                    Text("FUEL", style = MaterialTheme.typography.labelSmall, fontSize = 7.sp, color = Color.White.copy(alpha = 0.5f))
+                                }
+                                
+                                // Compact Heat Bar
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(Modifier.width(70.dp).height(4.dp).background(Color.White.copy(alpha = 0.2f), shape = CircleShape)) { 
+                                        val heatColor = when { player.isOverheated -> Color.Red; player.heat > MAX_HEAT * 0.8f -> Color.Red; player.heat > MAX_HEAT * 0.4f -> Color.Yellow; else -> Color.Green }
+                                        Box(Modifier.fillMaxHeight().fillMaxWidth(player.heat / MAX_HEAT).background(heatColor, shape = CircleShape)) 
+                                    }
+                                    Text(if (player.isOverheated) "OVERHEAT" else "HEAT", style = MaterialTheme.typography.labelSmall, fontSize = 7.sp, color = if(player.isOverheated) Color.Red else Color.White.copy(alpha = 0.5f))
+                                }
+                            }
+                            
+                            // Compact Combo Display
+                            if (player.combo > 0) {
+                                val comboRemaining = (2000L - (gameTime - player.lastLandingTime)).coerceAtLeast(0L) / 2000f
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "COMBO x${player.combo}",
+                                    color = if (player.combo >= 10) Color.Cyan else if (player.combo >= 5) Color.Yellow else Color.White,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 10.sp
+                                )
+                                Box(Modifier.width(60.dp).height(2.dp).background(Color.White.copy(alpha = 0.1f), shape = CircleShape)) {
+                                    Box(Modifier.fillMaxHeight().fillMaxWidth(comboRemaining).background(Color.White))
+                                }
+                            }
+                        }
+                    }
+
+                    // HUD-independent Active Powerup Indicators (Top Left)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(16.dp)
+                            .statusBarsPadding(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        if (player.turboTimer > 0) {
+                            PowerupBadge("TURBO", Color.Cyan, player.turboTimer.toInt())
+                        }
+                        if (player.efficiencyTimer > 0) {
+                            PowerupBadge("EFFICIENCY", Color.Green, player.efficiencyTimer.toInt())
+                        }
+                    }
+
+                    // Floating Combo Texts
+                    floatingTexts.forEach { ft -> 
+                        Text(
+                            text = ft.text,
+                            color = ft.color.copy(alpha = (ft.life/1.0f).coerceIn(0f, 1f)),
+                            modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset((ft.x - 50f).toInt(), (ft.y - cameraY).toInt()) },
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                shadow = androidx.compose.ui.graphics.Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
+                            ),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-                floatingTexts.forEach { ft -> Text(ft.text, color = ft.color.copy(alpha = (ft.life/1.0f).coerceIn(0f, 1f)), modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset((ft.x - 50f).toInt(), (ft.y - cameraY).toInt()) }, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold) }
+                
+                if (gameState == GameState.PAUSED) {
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)).pointerInput(Unit) {}, contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
+                            Text("SYSTEM PAUSED", color = Color.White, style = MaterialTheme.typography.displayMedium)
+                            Spacer(Modifier.height(32.dp))
+                            Button(onClick = { gameState = GameState.PLAYING }, Modifier.width(200.dp)) { Text("RESUME") }
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = { restartGame() }, Modifier.width(200.dp)) { Text("RESTART RUN") }
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.width(200.dp)) { Text("MAIN MENU") }
+                        }
+                    }
+                }
+
                 if (gameState == GameState.TUTORIAL && activeDiscovery != null) {
                     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable {}, contentAlignment = Alignment.Center) {
-                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, modifier = Modifier.padding(32.dp)) {
+                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, modifier = Modifier.padding(32.dp).safeDrawingPadding()) {
                             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 val isLore = activeDiscovery!!.category == "LORE" || activeDiscovery!!.category == "ARTIFACTS"
                                 Text(if (isLore) "INTEL RECOVERED" else "NEW DISCOVERY!", color = if (isLore) Color(0xFF9C27B0) else Color.Blue, fontWeight = FontWeight.Bold)
@@ -745,39 +1082,48 @@ fun GameScreen() {
                         }
                     }
                 }
-                if (showHelp) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { showHelp = false }, contentAlignment = Alignment.Center) {
-                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, modifier = Modifier.padding(32.dp)) {
+                if (gameState == GameState.HELP) {
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { gameState = GameState.PLAYING }, contentAlignment = Alignment.Center) {
+                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, modifier = Modifier.padding(32.dp).safeDrawingPadding()) {
                             Column(Modifier.padding(24.dp)) {
                                 Text("Legend", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(16.dp)); Text("Platforms", fontWeight = FontWeight.Bold)
                                 Text("Green: Normal", color = Color(0xFF4CAF50)); Text("Blue: Moving", color = Color(0xFF2196F3)); Text("Yellow: Boost", color = Color(0xFFFBC02D)); Text("Cyan: Ice", color = Color(0xFF00BCD4)); Text("Orange: Breakable", color = Color(0xFFFF9800))
                                 Spacer(Modifier.height(16.dp)); Text("Powerups", fontWeight = FontWeight.Bold)
                                 Text("Red: Fuel Tank", color = Color(0xFFE57373)); Text("Cyan: Turbo Booster", color = Color(0xFF00BCD4)); Text("Green: Efficiency Module", color = Color(0xFF4CAF50)); Text("Purple: Artifact", color = Color(0xFF9C27B0))
-                                Spacer(Modifier.height(24.dp)); Button(onClick = { showHelp = false }, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Close") }
+                                Spacer(Modifier.height(24.dp)); Button(onClick = { gameState = GameState.PLAYING }, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Close") }
                             }
                         }
                     }
                 }
-                if (unlockedRocket != null) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { unlockedRocket = null }, contentAlignment = Alignment.Center) {
-                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, modifier = Modifier.padding(32.dp)) {
+                if (gameState == GameState.UNLOCK && unlockedRocket != null) {
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { gameState = GameState.PLAYING; unlockedRocket = null }, contentAlignment = Alignment.Center) {
+                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, modifier = Modifier.padding(32.dp).safeDrawingPadding()) {
                             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("New Rocket Unlocked!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                                 Spacer(Modifier.height(8.dp)); Text(unlockedRocket!!.title, style = MaterialTheme.typography.headlineMedium, color = Color.Red, fontWeight = FontWeight.ExtraBold)
                                 Spacer(Modifier.height(16.dp)); Text("Available in the Hangar.", style = MaterialTheme.typography.bodyMedium)
-                                Spacer(Modifier.height(24.dp)); Button(onClick = { unlockedRocket = null }) { Text("Awesome") }
+                                Spacer(Modifier.height(24.dp)); Button(onClick = { gameState = GameState.PLAYING; unlockedRocket = null }) { Text("Awesome") }
                             }
                         }
                     }
                 }
                 if (gameState == GameState.GAMEOVER) {
                     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
                             Text("GAME OVER", color = Color.White, style = MaterialTheme.typography.displayMedium)
                             Text("Score: $score", color = Color.White, style = MaterialTheme.typography.headlineSmall); Text("Best: $highScore", color = Color.Yellow, style = MaterialTheme.typography.headlineSmall)
-                            Spacer(Modifier.height(24.dp)); Button(onClick = { restartGame() }) { Text("RESTART") }
-                            Spacer(Modifier.height(16.dp)); Button(onClick = { gameState = GameState.MAIN_MENU }) { Text("MAIN MENU") }
+                            
+                            Spacer(Modifier.height(32.dp))
+                            
+                            if (continuesUsed < 1) {
+                                Button(onClick = { continueRun() }, Modifier.width(200.dp)) { Text("CONTINUE") }
+                                Spacer(Modifier.height(12.dp))
+                            }
+                            
+                            Button(onClick = { restartGame() }, Modifier.width(200.dp)) { Text("RESTART") }
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.width(200.dp)) { Text("MAIN MENU") }
                         }
                     }
                 }
@@ -828,6 +1174,30 @@ fun GameScreen() {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun PowerupBadge(label: String, color: Color, seconds: Int) {
+    Surface(
+        color = color.copy(alpha = 0.2f),
+        shape = RoundedCornerShape(4.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Box(Modifier.size(6.dp).background(color, CircleShape))
+            Text(
+                text = "$label: ${seconds}s",
+                color = color,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                fontSize = 8.sp
+            )
         }
     }
 }
