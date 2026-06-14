@@ -47,9 +47,11 @@ class DiscoveryManager(private val sharedPrefs: SharedPreferences) {
             AltitudeZone.VOID -> DiscoveryType.AREA_VOID
         }
         
-        if (discover(discoveryType)) {
-            triggerEvent(DiscoveryEvent.Zone(zone))
-        }
+        // Persist discovery
+        discover(discoveryType)
+        
+        // Always trigger event for visual feedback (celebration)
+        triggerEvent(DiscoveryEvent.Zone(zone))
     }
 
     /**

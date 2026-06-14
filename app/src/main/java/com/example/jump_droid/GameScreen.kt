@@ -29,7 +29,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.nativeCanvas
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.ui.input.pointer.pointerInput
@@ -149,9 +148,15 @@ fun GameScreen() {
         }
     }
 
-    LaunchedEffect(Unit) {
-        altitudeManager.onZoneChanged = { newZone ->
-            discoveryManager.discoverZone(newZone)
+    fun spawnBurst(x: Float, y: Float, count: Int, color: Color, speed: Float = 100f) {
+        repeat(count) {
+            val angle = Random.nextFloat() * 2f * PI.toFloat()
+            val s = Random.nextFloat() * speed
+            particles.add(Particle(
+                x = x, y = y, vx = cos(angle) * s, vy = sin(angle) * s,
+                life = 0.5f + Random.nextFloat() * 0.5f,
+                color = color, size = 5f + Random.nextFloat() * 5f
+            ))
         }
     }
 
@@ -199,15 +204,34 @@ fun GameScreen() {
         }
     }
 
-    fun spawnBurst(x: Float, y: Float, count: Int, color: Color, speed: Float = 100f) {
-        repeat(count) {
-            val angle = Random.nextFloat() * 2f * PI.toFloat()
-            val s = Random.nextFloat() * speed
-            particles.add(Particle(
-                x = x, y = y, vx = cos(angle) * s, vy = sin(angle) * s,
-                life = 0.5f + Random.nextFloat() * 0.5f,
-                color = color, size = 5f + Random.nextFloat() * 5f
-            ))
+    LaunchedEffect(Unit) {
+        altitudeManager.onZoneChanged = { newZone ->
+            discoveryManager.discoverZone(newZone)
+            
+            // Task 1: Zone Progression Celebration Effects
+            when (newZone) {
+                AltitudeZone.CLOUD_LAYER -> {
+                    spawnBurst(player.x, player.y, 50, Color.Cyan, 600f)
+                    screenShake = 10f
+                }
+                AltitudeZone.UPPER_ATMOSPHERE -> {
+                    impactFlashAlpha = 0.4f
+                }
+                AltitudeZone.ORBIT -> {
+                    impactFlashAlpha = 1.0f
+                    screenShake = 20f
+                    spawnBurst(player.x, player.y, 100, Color.Cyan, 800f)
+                }
+                AltitudeZone.DEEP_SPACE -> {
+                    impactFlashAlpha = 0.6f
+                    spawnBurst(player.x, player.y, 60, Color(0xFF9C27B0), 500f)
+                }
+                AltitudeZone.VOID -> {
+                    impactFlashAlpha = 0.8f // High impact flash
+                    screenShake = 15f
+                }
+                else -> {}
+            }
         }
     }
 
@@ -413,6 +437,7 @@ fun GameScreen() {
                         // Visual squash/stretch lerp back to 1.0
                         player.squashStretch += (1.0f - player.squashStretch) * 10f * dt
 
+                        val wasOverheatedBefore = player.isOverheated
                         if (player.isOverheated) {
                             player.overheatTimer -= dt
                             if (player.overheatTimer <= 0) { 
@@ -468,9 +493,6 @@ fun GameScreen() {
                                     player.isOverheated = true
                                     player.overheatTimer = OVERHEAT_COOLDOWN_TIME
                                     isThrusting = false
-                                    screenShake = 15f
-                                    impactFlashAlpha = 1.0f
-                                    checkDiscovery(DiscoveryType.OVERHEAT_SYSTEM)
                                 }
                             } else if (!player.isOverheated) {
                                 player.heat = max(0f, player.heat - COOLING_RATE * sdt)
@@ -523,8 +545,6 @@ fun GameScreen() {
                                                 player.velocityY = -600f
                                                 spawnBurst(player.x, pTop, 25, Color.Yellow, 400f)
                                                 screenShake = 10f
-                                                impactFlashAlpha = 0.5f
-                                                checkDiscovery(DiscoveryType.BOOST_PLATFORM) 
                                             }
                                             PlatformType.ICE -> { player.velocityY = LANDING_BOUNCE_VELOCITY; player.velocityX *= 0.98f; checkDiscovery(DiscoveryType.ICE_PLATFORM) }
                                             PlatformType.MOVING -> { 
@@ -622,6 +642,13 @@ fun GameScreen() {
                                 player.lastLandingTime = 0L
                                 player.lastPlatform = null
                             }
+                        }
+
+                        // Trigger Overheat Visuals if it just happened
+                        if (player.isOverheated && !wasOverheatedBefore) {
+                            screenShake = 15f
+                            impactFlashAlpha = 1.0f
+                            checkDiscovery(DiscoveryType.OVERHEAT_SYSTEM)
                         }
 
                         // Post-physics friction and bounds
@@ -776,7 +803,7 @@ fun GameScreen() {
                     landingEffects.forEach { effect -> 
                         val progress = 1f - (effect.life / 0.5f).coerceIn(0f, 1f)
                         drawCircle(
-                            color = Color.White.copy(alpha = 0.4f * (1f - progress)),
+                            color = Color.Cyan.copy(alpha = 0.3f * (1f - progress)),
                             radius = 40f * progress,
                             center = Offset(effect.x, effect.y - cameraY),
                             style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
@@ -1138,7 +1165,7 @@ fun GameScreen() {
                                 Spacer(Modifier.height(16.dp)); Text("Platforms", fontWeight = FontWeight.Bold)
                                 Text("Green: Normal", color = Color(0xFF4CAF50)); Text("Blue: Moving", color = Color(0xFF2196F3)); Text("Yellow: Boost", color = Color(0xFFFBC02D)); Text("Cyan: Ice", color = Color(0xFF00BCD4)); Text("Orange: Breakable", color = Color(0xFFFF9800))
                                 Spacer(Modifier.height(16.dp)); Text("Powerups", fontWeight = FontWeight.Bold)
-                                Text("Red: Fuel Tank", color = Color(0xFFE57373)); Text("Cyan: Turbo Booster", color = Color(0xFF00BCD4)); Text("Green: Efficiency Module", color = Color(0xFF4CAF50)); Text("Purple: Artifact", color = Color(0xFF9C27B0))
+                                Text("Red: Fuel Tank", color = Color(0xFFE57373)); Text("Cyan: Turbo Booster", color = Color(0xFF00BCD4)); Text("Green: Efficiency Module", color = Color(0xFF4CAF50)); Text("White: Heat Sink", color = Color.White); Text("Purple: Artifact", color = Color(0xFF9C27B0))
                                 Spacer(Modifier.height(24.dp)); Button(onClick = { gameState = GameState.PLAYING }, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Close") }
                             }
                         }
@@ -1179,45 +1206,70 @@ fun GameScreen() {
                 // Cinematic Area Discovery Title Card
                 AnimatedVisibility(
                     visible = discoveryManager.activeEvent is DiscoveryEvent.Zone,
-                    enter = fadeIn(tween(1500)) + expandVertically(tween(1000)) + scaleIn(tween(1000), initialScale = 0.8f),
-                    exit = fadeOut(tween(1000)) + shrinkVertically(tween(1000)) + scaleOut(tween(1000), targetScale = 1.2f),
+                    enter = fadeIn(tween(1000)) + expandVertically(tween(800)) + scaleIn(tween(800), initialScale = 0.9f),
+                    exit = fadeOut(tween(800)) + shrinkVertically(tween(800)) + scaleOut(tween(800), targetScale = 1.1f),
                     modifier = Modifier.align(Alignment.Center)
                 ) {
                     val event = discoveryManager.activeEvent as? DiscoveryEvent.Zone
                     event?.let { zoneEvent ->
                         val zone = zoneEvent.zone
+                        val titleText = when(zone) {
+                            AltitudeZone.CLOUD_LAYER -> "CLOUD LAYER REACHED"
+                            AltitudeZone.ORBIT -> "SPACE REACHED"
+                            AltitudeZone.VOID -> "VOID ENTERED"
+                            else -> zone.zoneName.uppercase()
+                        }
+                        
+                        val accentColor = when(zone) {
+                            AltitudeZone.ORBIT -> Color.Yellow
+                            AltitudeZone.VOID -> Color.Red
+                            AltitudeZone.DEEP_SPACE -> Color(0xFF9C27B0)
+                            else -> Color.Cyan
+                        }
+
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                                .padding(32.dp)
+                                .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+                                .padding(40.dp)
                         ) {
                             Text(
-                                text = zone.zoneName.uppercase(),
-                                style = MaterialTheme.typography.displayMedium,
+                                text = titleText,
+                                style = if (zone == AltitudeZone.ORBIT) 
+                                    MaterialTheme.typography.displayMedium.copy(shadow = androidx.compose.ui.graphics.Shadow(Color.Yellow, blurRadius = 20f))
+                                    else MaterialTheme.typography.displayMedium,
                                 color = Color.White,
                                 fontWeight = FontWeight.Black,
                                 textAlign = TextAlign.Center
                             )
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(12.dp))
                             Text(
-                                text = zone.subtitle,
+                                text = zone.subtitle.uppercase(),
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color.Cyan.copy(alpha = 0.9f),
-                                letterSpacing = 2.sp,
-                                fontWeight = FontWeight.Medium
+                                color = accentColor.copy(alpha = 0.9f),
+                                letterSpacing = 4.sp,
+                                fontWeight = FontWeight.Bold
                             )
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(24.dp))
                             Box(
                                 Modifier
-                                    .width(150.dp)
-                                    .height(1.dp)
+                                    .width(200.dp)
+                                    .height(2.dp)
                                     .background(
                                         brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                            listOf(Color.Transparent, Color.Cyan, Color.Transparent)
+                                            listOf(Color.Transparent, accentColor, Color.Transparent)
                                         )
                                     )
                             )
+                            if (zone == AltitudeZone.VOID) {
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    "CAUTION: UNKNOWN ANOMALIES",
+                                    color = Color.Red,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
