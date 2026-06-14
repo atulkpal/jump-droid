@@ -208,9 +208,9 @@ Current priorities identified through physical-device testing:
 
 ## Screenshots
 
-Add screenshots here as development progresses.
+Screenshots will be posted here as development progresses.
 
-Suggested screenshots:
+Screenshots:
 
 1. Title Screen
 2. Cloud Layer
