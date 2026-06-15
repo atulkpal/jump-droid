@@ -28,4 +28,8 @@ class Platform(
     // For BREAKABLE platforms
     var isBreaking by mutableStateOf(false)
     var crackTime by mutableFloatStateOf(0f)
+
+    // For Boss interactions
+    var isJammed by mutableStateOf(false)
+    var jamTimer by mutableFloatStateOf(0f)
 }

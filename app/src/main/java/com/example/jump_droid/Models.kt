@@ -90,7 +90,7 @@ data class Achievement(
 )
 
 class PowerUp(
-    val x: Float,
+    var x: Float,
     var y: Float,
     val type: PowerUpType = PowerUpType.FUEL_TANK
 )
@@ -145,6 +145,7 @@ class Player(
     var maxComboReached by mutableIntStateOf(0)
     var lastLandingTime by mutableLongStateOf(0L)
     var lastPlatform: Platform? = null
+    var comboFreezeTimer by mutableFloatStateOf(0f)
 
     // Visual Feedback State
     var squashStretch by mutableFloatStateOf(1.0f)

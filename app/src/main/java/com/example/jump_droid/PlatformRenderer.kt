@@ -30,16 +30,36 @@ class PlatformRenderer {
         
         with(drawScope) {
             when (platform.type) {
-                PlatformType.NORMAL -> drawNormalPlatform(this, px, py, platform.width, currentZone)
+                PlatformType.NORMAL -> {
+                    val isGhost = platform.isBreaking && platform.totalBreakTime < 0.5f
+                    drawNormalPlatform(this, px, py, platform.width, currentZone, isGhost, gameTime)
+                }
                 PlatformType.MOVING -> drawMovingPlatform(this, px, py, platform.width, platform.speed, gameTime)
                 PlatformType.BOOST -> drawBoostPlatform(this, px, py, platform.width, gameTime)
                 PlatformType.ICE -> drawIcePlatform(this, px, py, platform.width)
                 PlatformType.BREAKABLE -> drawBreakablePlatform(this, platform, py, gameTime)
             }
+
+            if (platform.isJammed) {
+                drawJammedEffect(this, px, py, platform.width, gameTime)
+            }
         }
     }
 
-    private fun drawNormalPlatform(drawScope: DrawScope, x: Float, y: Float, width: Float, zone: AltitudeZone) {
+    private fun drawJammedEffect(drawScope: DrawScope, x: Float, y: Float, width: Float, gameTime: Long) {
+        val flash = (gameTime / 150) % 2 == 0L
+        val color = if (flash) Color.Red.copy(alpha = 0.4f) else Color.Transparent
+        drawScope.drawRect(color, Offset(x, y), Size(width, PLATFORM_HEIGHT))
+        
+        // Static glitches
+        repeat(3) { i ->
+            val rx = x + (kotlin.random.Random(gameTime + i).nextFloat() * width)
+            val ry = y + (kotlin.random.Random(gameTime + i + 10).nextFloat() * PLATFORM_HEIGHT)
+            drawScope.drawRect(Color.White.copy(alpha = 0.5f), Offset(rx, ry), Size(10f, 2f))
+        }
+    }
+
+    private fun drawNormalPlatform(drawScope: DrawScope, x: Float, y: Float, width: Float, zone: AltitudeZone, isGhost: Boolean = false, gameTime: Long = 0) {
         val baseColor = when (zone) {
             AltitudeZone.EARTH -> Color(0xFF4CAF50)
             AltitudeZone.CLOUD_LAYER -> Color(0xFF81C784)
@@ -48,7 +68,13 @@ class PlatformRenderer {
             AltitudeZone.DEEP_SPACE -> Color(0xFF607D8B)
             AltitudeZone.VOID -> Color(0xFF37474F)
         }
-        drawBase(drawScope, x, y, width, baseColor)
+        
+        val color = if (isGhost) {
+            val alpha = (0.3f + (kotlin.math.sin(gameTime / 50f) * 0.2f)).coerceIn(0f, 1f)
+            Color.White.copy(alpha = alpha)
+        } else baseColor
+        
+        drawBase(drawScope, x, y, width, color)
     }
 
     private fun drawMovingPlatform(drawScope: DrawScope, x: Float, y: Float, width: Float, speed: Float, gameTime: Long) {
