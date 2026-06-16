@@ -8,7 +8,7 @@ enum class GameState {
 }
 
 enum class PowerUpType {
-    FUEL_TANK, TURBO_BOOSTER, EFFICIENCY_MODULE, HEAT_SINK, ARTIFACT
+    FUEL_TANK, TURBO_BOOSTER, EFFICIENCY_MODULE, HEAT_SINK, ARTIFACT, ALTITUDE_BOOSTER
 }
 
 enum class DiscoveryType(val title: String, val description: String, val lore: String, val category: String) {
@@ -74,14 +74,6 @@ enum class RocketType(
     EXPERIMENTAL("Experimental", 1.5f, 1.0f, 1.4f, 10000, DiscoveryType.ROCKET_EXPERIMENTAL)
 }
 
-data class Mission(
-    val id: String,
-    val title: String,
-    val goal: Int,
-    var progress: Int = 0,
-    var isCompleted: Boolean = false
-)
-
 data class Achievement(
     val id: String,
     val title: String,
@@ -92,7 +84,8 @@ data class Achievement(
 class PowerUp(
     var x: Float,
     var y: Float,
-    val type: PowerUpType = PowerUpType.FUEL_TANK
+    val type: PowerUpType = PowerUpType.FUEL_TANK,
+    val isMissionReward: Boolean = false
 )
 
 class LandingEffect(
@@ -150,4 +143,5 @@ class Player(
     // Visual Feedback State
     var squashStretch by mutableFloatStateOf(1.0f)
     var invulnerabilityTimer by mutableFloatStateOf(0f)
+    var isOnPlatform by mutableStateOf(false)
 }

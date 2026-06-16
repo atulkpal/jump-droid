@@ -32,4 +32,7 @@ class Platform(
     // For Boss interactions
     var isJammed by mutableStateOf(false)
     var jamTimer by mutableFloatStateOf(0f)
+
+    // For mission/combo reliability
+    var hasBeenLandedOn by mutableStateOf(false)
 }

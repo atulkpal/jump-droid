@@ -27,7 +27,7 @@ object ThreatRegistry {
             description = "Unpredictable air currents that push the rocket downwards.",
             type = ThreatType.HAZARD,
             tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.EARTH), spawnChance = 0.4f)
+            spawnRules = ThreatSpawnRules(allowedZones = emptyList(), spawnChance = 0.4f)
         ))
 
         register(ThreatDefinition(
@@ -36,7 +36,7 @@ object ThreatRegistry {
             description = "Strong lateral winds that drift the rocket sideways.",
             type = ThreatType.HAZARD,
             tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.EARTH), spawnChance = 0.4f)
+            spawnRules = ThreatSpawnRules(allowedZones = emptyList(), spawnChance = 0.4f)
         ))
 
         register(ThreatDefinition(
@@ -45,7 +45,7 @@ object ThreatRegistry {
             description = "Rising warm air that provides a helpful upward lift.",
             type = ThreatType.HAZARD,
             tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.EARTH), spawnChance = 0.4f)
+            spawnRules = ThreatSpawnRules(allowedZones = emptyList(), spawnChance = 0.4f)
         ))
 
         register(ThreatDefinition(
