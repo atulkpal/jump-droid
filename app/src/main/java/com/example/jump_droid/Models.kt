@@ -13,12 +13,17 @@ enum class PowerUpType {
 
 enum class DiscoveryType(val title: String, val description: String, val lore: String, val category: String) {
     // Platforms
-    NORMAL_PLATFORM("Standard Platform", "Reliable landing platform.", "The backbone of the Ascension Program's infrastructure.", "PLATFORMS"),
-    MOVING_PLATFORM("Moving Platform", "Moves horizontally.", "Early prototypes often malfunctioned, leading to their current oscillating behavior.", "PLATFORMS"),
+    NORMAL_PLATFORM("Standard Platform", "Safe landing zone. Recover and plan your next move.", "The backbone of the Ascension Program's infrastructure.", "PLATFORMS"),
+    MOVING_PLATFORM("Moving Platform", "Moves horizontally. Ride carefully.", "Early prototypes often malfunctioned, leading to their current oscillating behavior.", "PLATFORMS"),
     ICE_PLATFORM("Ice Platform", "Very slippery.", "Condensation from high-altitude clouds flash-freezes on these surfaces.", "PLATFORMS"),
-    BOOST_PLATFORM("Boost Platform", "Launches your rocket higher.", "Utilizes kinetic energy recovery systems to provide an extra push.", "PLATFORMS"),
+    BOOST_PLATFORM("Boost Platform", "Launches you upward. Use for rapid altitude gain.", "Utilizes kinetic energy recovery systems to provide an extra push.", "PLATFORMS"),
     BREAKABLE_PLATFORM("Breakable Platform", "Collapses shortly after landing.", "Constructed from lightweight, temporary alloys meant for rapid deployment.", "PLATFORMS"),
-    
+    PHASE_PLATFORM("Phase Platform", "Appears and disappears. Time your landing carefully.", "Time your landing carefully.", "PLATFORMS"),
+    FUEL_PLATFORM("Fuel Platform", "Restores fuel reserves.", "Equipped with automated refueling nozzles.", "PLATFORMS"),
+    COOLING_PLATFORM("Cooling Platform", "Reduces engine heat. Useful during long climbs.", "Advanced liquid nitrogen heat exchangers.", "PLATFORMS"),
+    STABILITY_PLATFORM("Stability Platform", "Improves flight control. Reduces environmental influence.", "Emits a dampening field that stabilizes rocket trajectory.", "PLATFORMS"),
+    MAGNETIC_PLATFORM("Magnetic Platform", "Generates a gravity field. Movement is influenced inside the field.", "Movement is influenced inside the field.", "PLATFORMS"),
+
     // Powerups
     FUEL_TANK("Fuel Tank", "Increases maximum fuel capacity.", "Standardized liquid oxygen tanks recovered from previous expeditions.", "POWERUPS"),
     TURBO_BOOSTER("Turbo Booster", "Increases thrust power.", "An experimental injector that temporarily overrides engine safety limits.", "POWERUPS"),
@@ -85,7 +90,10 @@ class PowerUp(
     var x: Float,
     var y: Float,
     val type: PowerUpType = PowerUpType.FUEL_TANK,
-    val isMissionReward: Boolean = false
+    val isMissionReward: Boolean = false,
+    var hoverTimer: Float = 2.0f, // Task 0: Brief hover before descent
+    var life: Float = 25.0f,      // Task 1: Increased world lifetime to prevent mid-screen despawn
+    var velocityY: Float = 0f     // Task 1: Support for accelerated descent
 )
 
 class LandingEffect(
@@ -133,6 +141,7 @@ class Player(
     
     var turboTimer by mutableFloatStateOf(0f)
     var efficiencyTimer by mutableFloatStateOf(0f)
+    var stabilityTimer by mutableFloatStateOf(0f) // Task 2: Flight stabilization
     
     var combo by mutableIntStateOf(0)
     var maxComboReached by mutableIntStateOf(0)

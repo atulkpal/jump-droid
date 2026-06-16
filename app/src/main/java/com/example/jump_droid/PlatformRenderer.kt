@@ -38,6 +38,11 @@ class PlatformRenderer {
                 PlatformType.BOOST -> drawBoostPlatform(this, px, py, platform.width, gameTime)
                 PlatformType.ICE -> drawIcePlatform(this, px, py, platform.width)
                 PlatformType.BREAKABLE -> drawBreakablePlatform(this, platform, py, gameTime)
+                PlatformType.PHASE -> drawPhasePlatform(this, px, py, platform.width, gameTime)
+                PlatformType.FUEL -> drawEnergyPlatform(this, px, py, platform.width, Color(0xFF4CAF50), "FUEL")
+                PlatformType.COOLING -> drawEnergyPlatform(this, px, py, platform.width, Color(0xFF2196F3), "COOL")
+                PlatformType.STABILITY -> drawEnergyPlatform(this, px, py, platform.width, Color(0xFFEEEEEE), "STAB")
+                PlatformType.MAGNETIC -> drawMagneticPlatform(this, platform, py, gameTime)
             }
 
             if (platform.isJammed) {
@@ -60,14 +65,7 @@ class PlatformRenderer {
     }
 
     private fun drawNormalPlatform(drawScope: DrawScope, x: Float, y: Float, width: Float, zone: AltitudeZone, isGhost: Boolean = false, gameTime: Long = 0) {
-        val baseColor = when (zone) {
-            AltitudeZone.EARTH -> Color(0xFF4CAF50)
-            AltitudeZone.CLOUD_LAYER -> Color(0xFF81C784)
-            AltitudeZone.UPPER_ATMOSPHERE -> Color(0xFFB0BEC5)
-            AltitudeZone.ORBIT -> Color(0xFF90A4AE)
-            AltitudeZone.DEEP_SPACE -> Color(0xFF607D8B)
-            AltitudeZone.VOID -> Color(0xFF37474F)
-        }
+        val baseColor = Color(0xFF9E9E9E) // Task 5: Gray
         
         val color = if (isGhost) {
             val alpha = (0.3f + (kotlin.math.sin(gameTime / 50f) * 0.2f)).coerceIn(0f, 1f)
@@ -78,10 +76,10 @@ class PlatformRenderer {
     }
 
     private fun drawMovingPlatform(drawScope: DrawScope, x: Float, y: Float, width: Float, speed: Float, gameTime: Long) {
-        val baseColor = Color(0xFF546E7A) // Industrial Steel
+        val baseColor = Color(0xFFFFEB3B) // Task 5: Yellow
         drawBase(drawScope, x, y, width, baseColor)
         
-        // Animated Chevrons indicating motion
+        // Animated Chevrons
         drawScope.clipRect(left = x, top = y, right = x + width, bottom = y + PLATFORM_HEIGHT) {
             val spacing = 40f
             val offset = (gameTime / 10f * (if (speed > 0) 1 else -1)) % spacing
@@ -93,14 +91,14 @@ class PlatformRenderer {
                     lineTo(curX + (if (speed > 0) 10f else -10f), y + PLATFORM_HEIGHT / 2)
                     lineTo(curX, y + PLATFORM_HEIGHT - 5f)
                 }
-                drawScope.drawPath(path, Color.White.copy(alpha = 0.3f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f))
+                drawScope.drawPath(path, Color.Black.copy(alpha = 0.2f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f))
                 curX += spacing
             }
         }
     }
 
     private fun drawBoostPlatform(drawScope: DrawScope, x: Float, y: Float, width: Float, gameTime: Long) {
-        val baseColor = Color(0xFFFFC107) // Amber/Gold
+        val baseColor = Color(0xFFFF9800) // Task 5: Orange
         drawBase(drawScope, x, y, width, baseColor)
         
         // Upward Pulsing Arrows
@@ -130,7 +128,7 @@ class PlatformRenderer {
         val width = platform.width
         val progress = if (platform.isBreaking) (platform.crackTime / platform.totalBreakTime).coerceIn(0f, 1f) else 0f
         
-        val baseColor = Color(0xFFFF9800) // Hazard Orange
+        val baseColor = Color(0xFFF44336) // Task 5: Red
         drawBase(drawScope, px, py, width, baseColor)
         
         // Structural Damage (Cracks)
@@ -149,33 +147,76 @@ class PlatformRenderer {
         if (platform.isBreaking) {
             val flash = (gameTime / 150) % 2 == 0L
             if (flash) {
-                drawScope.drawRect(Color.Red.copy(alpha = 0.2f), Offset(px, py), Size(width, PLATFORM_HEIGHT))
+                drawScope.drawRect(Color.White.copy(alpha = 0.2f), Offset(px, py), Size(width, PLATFORM_HEIGHT))
             }
         }
+    }
 
-        // Countdown Text
-        val remaining = ceil(platform.totalBreakTime - platform.crackTime).toInt()
-        val text = if (platform.isBreaking) {
-            if (remaining > 0) remaining.toString() else "!"
-        } else {
-            "?"
+    private fun drawPhasePlatform(drawScope: DrawScope, x: Float, y: Float, width: Float, gameTime: Long) {
+        val cycle = 4000L
+        val progress = (gameTime % cycle) / cycle.toFloat()
+        
+        val alpha = when {
+            progress < 0.4f -> 1.0f
+            progress < 0.5f -> 1.0f - (progress - 0.4f) * 10f
+            progress < 0.9f -> 0.0f
+            else -> (progress - 0.9f) * 10f
         }
         
-        val textColor = if (platform.isBreaking) android.graphics.Color.RED else android.graphics.Color.YELLOW
-        val textSize = if (platform.isBreaking) 40f else 30f
+        val baseColor = Color(0xFF9C27B0) // Task 5: Purple
+        drawBase(drawScope, x, y, width, baseColor.copy(alpha = alpha.coerceAtLeast(0.1f)))
         
+        if (alpha > 0.1f) {
+            repeat(2) { i ->
+                val rand = kotlin.random.Random(gameTime / 200 + i)
+                val sx = x + rand.nextFloat() * width
+                val sy = y + rand.nextFloat() * PLATFORM_HEIGHT
+                drawScope.drawCircle(Color.White.copy(alpha = 0.4f * alpha), radius = 3f, center = Offset(sx, sy))
+            }
+        }
+    }
+
+    private fun drawEnergyPlatform(drawScope: DrawScope, x: Float, y: Float, width: Float, color: Color, label: String) {
+        drawBase(drawScope, x, y, width, color)
+        
+        // Inner Glow
+        drawScope.drawRect(
+            color = Color.White.copy(alpha = 0.2f),
+            topLeft = Offset(x + 5f, y + 5f),
+            size = Size(width - 10f, PLATFORM_HEIGHT - 10f)
+        )
+
         drawScope.drawContext.canvas.nativeCanvas.drawText(
-            text,
-            px + width / 2f,
-            py - 10f,
+            label,
+            x + width / 2f,
+            y + PLATFORM_HEIGHT / 2f + 10f,
             Paint().apply {
-                this.color = textColor
-                this.textSize = textSize
+                this.color = android.graphics.Color.WHITE
+                this.textSize = 24f
                 this.textAlign = Paint.Align.CENTER
                 this.typeface = Typeface.DEFAULT_BOLD
-                if (platform.isBreaking) this.setShadowLayer(5f, 0f, 0f, android.graphics.Color.BLACK)
             }
         )
+    }
+
+    private fun drawMagneticPlatform(drawScope: DrawScope, platform: Platform, py: Float, gameTime: Long) {
+        val px = platform.x
+        val width = platform.width
+        val baseColor = Color(0xFF00BCD4) // Task 5: Cyan
+        drawBase(drawScope, px, py, width, baseColor)
+        
+        // Magnetic Field Visual (Energy Rings)
+        val pulse = (gameTime % 2000) / 2000f
+        repeat(3) { i ->
+            val ringProgress = (pulse + i * 0.33f) % 1f
+            val radius = 100f + ringProgress * 150f
+            drawScope.drawCircle(
+                color = baseColor.copy(alpha = 0.2f * (1f - ringProgress)),
+                radius = radius,
+                center = Offset(px + width / 2, py + PLATFORM_HEIGHT / 2),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+            )
+        }
     }
 
     /**

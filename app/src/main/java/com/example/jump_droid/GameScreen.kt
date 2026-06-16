@@ -79,6 +79,8 @@ fun GameScreen() {
     var score by remember { mutableIntStateOf(0) }
     var continuesUsed by remember { mutableIntStateOf(0) }
     var breakableStreak by remember { mutableIntStateOf(0) }
+    var phaseStreak by remember { mutableIntStateOf(0) }
+    var magneticStreak by remember { mutableIntStateOf(0) }
     
     var runDurationTimer by remember { mutableFloatStateOf(0f) }
     var airborneTimer by remember { mutableFloatStateOf(0f) }
@@ -257,6 +259,7 @@ fun GameScreen() {
             when (platform.type) {
                 PlatformType.BOOST -> { 
                     player.velocityY = -600f
+                    checkDiscovery(DiscoveryType.BOOST_PLATFORM)
                     if (!alreadyLanded) {
                         spawnBurst(player.x, yTop, 25, Color.Yellow, 400f)
                         screenShake = 10f
@@ -277,6 +280,36 @@ fun GameScreen() {
                         // Task 1: Moving specific mission audit
                         missionManager.updateProgress(MissionType.PLATFORMING) { it.id == "plat_moving" }
                     }
+                }
+                PlatformType.FUEL -> {
+                    player.velocityY = LANDING_BOUNCE_VELOCITY
+                    player.fuel = min(player.maxFuel, player.fuel + 50f)
+                    spawnBurst(player.x, yTop, 20, Color.Green, 200f)
+                    floatingTexts.add(FloatingText("FUEL RECHARGE", player.x, player.y - 100f, color = Color.Green))
+                    checkDiscovery(DiscoveryType.FUEL_PLATFORM)
+                }
+                PlatformType.COOLING -> {
+                    player.velocityY = LANDING_BOUNCE_VELOCITY
+                    player.heat = max(0f, player.heat - 30f)
+                    spawnBurst(player.x, yTop, 20, Color.Cyan, 200f)
+                    floatingTexts.add(FloatingText("ENGINES COOLED", player.x, player.y - 100f, color = Color.Cyan))
+                    checkDiscovery(DiscoveryType.COOLING_PLATFORM)
+                }
+                PlatformType.STABILITY -> {
+                    player.velocityY = LANDING_BOUNCE_VELOCITY
+                    player.stabilityTimer = 10f
+                    spawnBurst(player.x, yTop, 20, Color.White, 200f)
+                    floatingTexts.add(FloatingText("FLIGHT STABILIZED", player.x, player.y - 100f, color = Color.White))
+                    checkDiscovery(DiscoveryType.STABILITY_PLATFORM)
+                }
+                PlatformType.MAGNETIC -> {
+                    player.velocityY = LANDING_BOUNCE_VELOCITY
+                    checkDiscovery(DiscoveryType.MAGNETIC_PLATFORM)
+                }
+                PlatformType.PHASE -> {
+                    player.velocityY = LANDING_BOUNCE_VELOCITY
+                    player.velocityX *= HORIZONTAL_DAMPING
+                    checkDiscovery(DiscoveryType.PHASE_PLATFORM)
                 }
                 PlatformType.BREAKABLE -> { 
                     player.velocityY = LANDING_BOUNCE_VELOCITY
@@ -380,10 +413,12 @@ fun GameScreen() {
     fun continueRun() {
         if (continuesUsed >= 1) return
 
-        // Find the lowest visible platform to respawn on
+        // Find the lowest visible platform to respawn on (Excluding Phase Platforms for safety)
         val visibleBottom = cameraY + screenHeight
         val visibleTop = cameraY
-        val visiblePlatforms = platforms.filter { it.y in visibleTop..visibleBottom }
+        val visiblePlatforms = platforms.filter { 
+            it.y in visibleTop..visibleBottom && it.type != PlatformType.PHASE 
+        }
 
         val spawnPlatform = if (visiblePlatforms.isNotEmpty()) {
             visiblePlatforms.maxByOrNull { it.y }
@@ -425,24 +460,29 @@ fun GameScreen() {
         val nextY = lastY - gapY
         val nextX = Random.nextFloat() * (screenWidth - pWidth)
 
+        // Task 2: Learning zone (0-500m) only has Normal and Moving platforms
         val type = when {
             score < 500 -> if (Random.nextFloat() < 0.2f) PlatformType.MOVING else PlatformType.NORMAL
-            score < 1500 -> when {
-                Random.nextFloat() < 0.2f -> PlatformType.MOVING
-                Random.nextFloat() < 0.3f -> PlatformType.ICE
-                Random.nextFloat() < 0.4f -> PlatformType.BOOST
-                else -> PlatformType.NORMAL
-            }
-            else -> when {
-                Random.nextFloat() < 0.2f -> PlatformType.MOVING
-                Random.nextFloat() < 0.4f -> PlatformType.ICE
-                Random.nextFloat() < 0.5f -> PlatformType.BOOST
-                (Random.nextFloat() < 0.6f && breakableStreak < 3) -> PlatformType.BREAKABLE
-                else -> PlatformType.NORMAL
+            else -> {
+                val rand = Random.nextFloat()
+                when {
+                    rand < 0.12f -> PlatformType.MOVING
+                    rand < 0.22f -> PlatformType.ICE
+                    rand < 0.32f -> PlatformType.BOOST
+                    rand < 0.40f && phaseStreak < 2 -> PlatformType.PHASE 
+                    rand < 0.46f -> PlatformType.FUEL
+                    rand < 0.52f -> PlatformType.COOLING
+                    rand < 0.58f -> PlatformType.STABILITY
+                    rand < 0.66f && magneticStreak < 2 -> PlatformType.MAGNETIC
+                    (rand < 0.76f && breakableStreak < 3) -> PlatformType.BREAKABLE
+                    else -> PlatformType.NORMAL
+                }
             }
         }
 
         if (type == PlatformType.BREAKABLE) breakableStreak++ else breakableStreak = 0
+        if (type == PlatformType.PHASE) phaseStreak++ else phaseStreak = 0
+        if (type == PlatformType.MAGNETIC) magneticStreak++ else magneticStreak = 0
 
         val isMoving = type == PlatformType.MOVING
         val speed = if (isMoving) (100f + (difficulty * 200f)) * (if (Random.nextBoolean()) 1f else -1f) else 0f
@@ -521,6 +561,7 @@ fun GameScreen() {
         player.combo = 0
         player.turboTimer = 0f
         player.efficiencyTimer = 0f
+        player.stabilityTimer = 0f
 
         gameTime = 0L
         runDurationTimer = 0f
@@ -534,6 +575,8 @@ fun GameScreen() {
         cameraY = 0f
         continuesUsed = 0
         breakableStreak = 0
+        phaseStreak = 0
+        magneticStreak = 0
         platforms.clear()
         powerUps.clear()
         landingEffects.clear()
@@ -879,6 +922,7 @@ fun GameScreen() {
 
                         if (player.turboTimer > 0) player.turboTimer = max(0f, player.turboTimer - dt)
                         if (player.efficiencyTimer > 0) player.efficiencyTimer = max(0f, player.efficiencyTimer - dt)
+                        if (player.stabilityTimer > 0) player.stabilityTimer = max(0f, player.stabilityTimer - dt)
                         if (player.invulnerabilityTimer > 0) player.invulnerabilityTimer = max(0f, player.invulnerabilityTimer - dt)
                         if (player.comboFreezeTimer > 0) player.comboFreezeTimer = max(0f, player.comboFreezeTimer - dt)
 
@@ -927,9 +971,10 @@ fun GameScreen() {
                             }
                             
                             activeWind?.let { wind ->
+                                val envMult = if (player.stabilityTimer > 0) 0.3f else 1.0f
                                 when (wind.definition.id) {
                                     "HAZ_GUST" -> {
-                                        player.velocityY += 1500f * sdt
+                                        player.velocityY += 1500f * sdt * envMult
                                         if (Random.nextFloat() < 0.15f) {
                                             particles.add(Particle(
                                                 x = player.x + (Random.nextFloat() - 0.5f) * 60f,
@@ -944,7 +989,7 @@ fun GameScreen() {
                                     }
                                     "HAZ_CROSSWIND" -> {
                                         val windDir = if (Random(wind.instanceId.hashCode()).nextBoolean()) 1f else -1f
-                                        player.velocityX += 800f * windDir * sdt
+                                        player.velocityX += 800f * windDir * sdt * envMult
                                         if (Random.nextFloat() < 0.1f) {
                                             particles.add(Particle(
                                                 x = player.x - 100f * windDir,
@@ -958,7 +1003,7 @@ fun GameScreen() {
                                         }
                                     }
                                     "HAZ_THERMAL" -> {
-                                        player.velocityY -= 1000f * sdt
+                                        player.velocityY -= 1000f * sdt * envMult
                                         if (Random.nextFloat() < 0.15f) {
                                             particles.add(Particle(
                                                 x = player.x + (Random.nextFloat() - 0.5f) * 60f,
@@ -1271,6 +1316,27 @@ fun GameScreen() {
                                 }
                             }
 
+                            // Task 3: Magnetic Platforms (Proximity Gravity)
+                            platforms.forEach { platform ->
+                                if (platform.type == PlatformType.MAGNETIC) {
+                                    val dx = player.x - (platform.x + platform.width / 2f)
+                                    val dy = player.y - (platform.y + PLATFORM_HEIGHT / 2f)
+                                    val distSq = dx*dx + dy*dy
+                                    val radius = 250f
+                                    if (distSq < radius * radius) {
+                                        val dist = sqrt(distSq)
+                                        val force = (1f - dist / radius) * 1200f
+                                        player.velocityX -= (dx / dist) * force * sdt
+                                        player.velocityY -= (dy / dist) * force * sdt
+                                        
+                                        // Heavy Feel (Damping)
+                                        val damp = 1f - 0.15f * (1f - dist / radius)
+                                        player.velocityX *= damp
+                                        player.velocityY *= damp
+                                    }
+                                }
+                            }
+
                             // d. Player Physics
                             if (isThrusting && (player.fuel > 0f || infiniteFuel) && !player.isOverheated) {
                                 val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * (if (player.turboTimer > 0) 1.2f else 1.0f)
@@ -1279,8 +1345,9 @@ fun GameScreen() {
                                 player.velocityY -= currentThrust * sdt
                                 val dx = thrustTarget.x - player.x
                                 val maxSteerDist = screenWidth / 3f
+                                val steerMult = if (player.stabilityTimer > 0) 1.2f else 0.7f
                                 val steerForce = (dx / maxSteerDist).coerceIn(-1f, 1f)
-                                player.velocityX += steerForce * currentThrust * 0.7f * sdt
+                                player.velocityX += steerForce * currentThrust * steerMult * sdt
 
                                 player.fuel = max(0f, player.fuel - currentConsumption * sdt)
                                 if (!disableHeat) {
@@ -1322,6 +1389,14 @@ fun GameScreen() {
 
                             platforms.forEach { platform ->
                                 if (platform.isBreaking && platform.crackTime > platform.totalBreakTime) return@forEach
+
+                                // Task 1: Phase Platform collision gating
+                                if (platform.type == PlatformType.PHASE) {
+                                    val cycle = 4000L
+                                    val progress = (gameTime % cycle) / cycle.toFloat()
+                                    // 0.42 to 0.92 is considered "passed through"
+                                    if (progress > 0.42f && progress < 0.92f) return@forEach
+                                }
 
                                 val pLeft = platform.x
                                 val pRight = platform.x + platform.width
@@ -1435,20 +1510,22 @@ fun GameScreen() {
                         }
 
                         powerUpSpawnTimer += dt
-                        if (powerUpSpawnTimer > 10f) {
+                        if (powerUpSpawnTimer > 20f) { // Task 0: Reduced frequency
                             val types = PowerUpType.entries.filter { it != PowerUpType.ARTIFACT }
                             val rand = Random.nextFloat()
                             val type = when {
                                 rand < 0.05f -> PowerUpType.ARTIFACT
                                 else -> types.random()
                             }
-                            powerUps.add(PowerUp(Random.nextFloat() * (screenWidth - 60f) + 30f, cameraY - 200f, type))
+                            // Task 0: Higher spawn for visibility
+                            powerUps.add(PowerUp(Random.nextFloat() * (screenWidth - 60f) + 30f, cameraY - 100f, type))
                             powerUpSpawnTimer = 0f
                         }
 
                         val powerUpIterator = powerUps.iterator()
                         while (powerUpIterator.hasNext()) {
                             val pu = powerUpIterator.next()
+                            pu.life -= dt
 
                             if (pu.isMissionReward) {
                                 // Mission Reward: Magnetic and fast
@@ -1460,11 +1537,35 @@ fun GameScreen() {
                                 pu.x += (dx / dist) * pull
                                 pu.y += (dy / dist) * pull
                             } else {
-                                // Normal Powerup: Drifts down, no attraction
-                                pu.y += 200f * dt
+                                // Normal Powerup: Task 1 logic
+                                if (pu.hoverTimer > 0) {
+                                    pu.hoverTimer -= dt
+                                    // Slight hover bobbing
+                                    pu.y += sin(gameTime / 200f) * 0.5f 
+                                } else {
+                                    // Task 1: Restore descent speed (200f) and add acceleration
+                                    pu.velocityY += 300f * dt 
+                                    pu.y += (200f + pu.velocityY) * dt
+                                }
+
+                                // Task 4: Magnetic Reward Interaction
+                                platforms.forEach { plat ->
+                                    if (plat.type == PlatformType.MAGNETIC) {
+                                        val dx = pu.x - (plat.x + plat.width / 2f)
+                                        val dy = pu.y - (plat.y + PLATFORM_HEIGHT / 2f)
+                                        val distSq = dx * dx + dy * dy
+                                        val radius = 250f
+                                        if (distSq < radius * radius) {
+                                            val dist = sqrt(distSq)
+                                            val pull = 400f * dt * (1f - dist / radius)
+                                            pu.x -= (dx / dist) * pull
+                                            pu.y -= (dy / dist) * pull
+                                        }
+                                    }
+                                }
                             }
 
-                            if (abs(player.x - pu.x) < 50f && abs(player.y - pu.y) < 70f) {
+                            if (abs(player.x - pu.x) < 80f && abs(player.y - pu.y) < 100f) { // Task 0: Increased radius
                                 when (pu.type) {
                                     PowerUpType.FUEL_TANK -> {
                                         player.maxFuel = min(250f, player.maxFuel + 25f)
@@ -1521,7 +1622,7 @@ fun GameScreen() {
                                 }
 
                                 powerUpIterator.remove()
-                            } else if (pu.y > cameraY + screenHeight + 200f) powerUpIterator.remove()
+                            } else if (pu.y > cameraY + screenHeight + 200f || pu.life <= 0f) powerUpIterator.remove()
                         }
 
                         if (platforms.isNotEmpty()) {
@@ -1642,7 +1743,7 @@ fun GameScreen() {
                                             }
                                             particles.add(Particle(
                                                 x = cardX + (Random.nextFloat() - 0.5f) * 110f,
-                                                y = cardY + (Random.nextFloat() - 0.5f) * 65f,
+                                                y = (cardY + cameraY) + (Random.nextFloat() - 0.5f) * 65f, // Account for cameraY when spawning from HUD
                                                 vx = (Random.nextFloat() - 0.5f) * 80f,
                                                 vy = (Random.nextFloat() - 0.5f) * 80f + 30f,
                                                 life = 1.2f,
@@ -1658,6 +1759,27 @@ fun GameScreen() {
                             if (prevTime < 1.0f && newTime >= 1.0f) {
                                 m.ceremonyStage = CeremonyStage.COMPLETED_TEXT
                                 
+                                val missionIdx = missionManager.activeMissions.indexOf(m)
+                                if (missionIdx >= 0) {
+                                    val totalMissions = missionManager.activeMissions.size
+                                    val startX = (screenWidth - (totalMissions * 110f)) / 2f
+                                    val cardX = startX + (missionIdx * 110f) + 55f
+                                    val cardY = 100f * densityValue
+                                    
+                                    // Task 4: Restore star/sparkle burst on mission completion
+                                    repeat(25) {
+                                        val angle = Random.nextFloat() * 2f * PI.toFloat()
+                                        val speed = 150f + Random.nextFloat() * 250f
+                                        particles.add(Particle(
+                                            x = cardX, y = cardY + cameraY, // Account for cameraY when spawning from HUD
+                                            vx = cos(angle) * speed, vy = sin(angle) * speed,
+                                            life = 1.0f + Random.nextFloat() * 0.8f,
+                                            color = if (Random.nextBoolean()) Color.White else Color.Yellow,
+                                            size = 4f + Random.nextFloat() * 4f // Larger size triggers star rendering
+                                        ))
+                                    }
+                                }
+
                                 // Task 5: Hierarchy
                                 val isSignificant = m.type == MissionType.DISCOVERY || m.type == MissionType.BOSS || m.id.contains("exp_void") || m.id == "surv_cool_2"
                                 if (isSignificant) {
@@ -1786,7 +1908,19 @@ fun GameScreen() {
                 if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL || gameState == GameState.PAUSED || gameState == GameState.HELP || gameState == GameState.UNLOCK) {
                     drawRect(Color(0xFF795548), topLeft = Offset(0f, groundY + (ROCKET_HEIGHT / 2) - cameraY), size = Size(screenWidth, screenHeight))
 
-                    particles.forEach { p -> drawCircle(p.color.copy(alpha = (p.life/1.0f).coerceIn(0f, 1f)), radius = p.size, center = Offset(p.x, p.y - cameraY)) }
+                    particles.forEach { p -> 
+                        val alpha = (p.life / 1.0f).coerceIn(0f, 1f)
+                        // Task 4: Render larger particles as stars for sparkle effect
+                        if (p.size > 6f && (gameTime / 100) % 2L == 0L) {
+                            val centerX = p.x
+                            val centerY = p.y - cameraY
+                            val s = p.size * 1.2f
+                            drawLine(p.color.copy(alpha = alpha), Offset(centerX - s, centerY), Offset(centerX + s, centerY), strokeWidth = 2f)
+                            drawLine(p.color.copy(alpha = alpha), Offset(centerX, centerY - s), Offset(centerX, centerY + s), strokeWidth = 2f)
+                        } else {
+                            drawCircle(p.color.copy(alpha = alpha), radius = p.size, center = Offset(p.x, p.y - cameraY)) 
+                        }
+                    }
                     landingEffects.forEach { effect ->
                         val progress = 1f - (effect.life / 0.5f).coerceIn(0f, 1f)
                         drawCircle(

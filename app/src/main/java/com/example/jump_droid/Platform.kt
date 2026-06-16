@@ -10,7 +10,12 @@ enum class PlatformType {
     MOVING,
     BOOST,
     ICE,
-    BREAKABLE
+    BREAKABLE,
+    PHASE,     // Task 1: Timing challenge
+    FUEL,      // Task 2: Energy variants
+    COOLING,   // Task 2
+    STABILITY, // Task 2
+    MAGNETIC   // Task 3: Gravity influence
 }
 
 class Platform(
