@@ -30,6 +30,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -70,6 +71,7 @@ val AchievementsList = listOf(
 @Composable
 fun GameScreen() {
     val context = LocalContext.current
+    val densityValue = androidx.compose.ui.platform.LocalDensity.current.density
     val sharedPrefs = remember { context.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE) }
     
     var highScore by remember { mutableIntStateOf(sharedPrefs.getInt("highScore", 0)) }
@@ -90,6 +92,8 @@ fun GameScreen() {
     val discoveryManager = remember { DiscoveryManager(sharedPrefs) }
     val missionManager = remember { MissionManager() }
     val threatManager = remember { ThreatManager() }
+    val comboManager = remember { ComboManager() }
+    val flyingRewards = remember { mutableStateListOf<FlyingReward>() }
 
     var screenWidth by remember { mutableFloatStateOf(0f) }
     var screenHeight by remember { mutableFloatStateOf(0f) }
@@ -162,16 +166,6 @@ fun GameScreen() {
         }
     }
 
-    fun comboWindow(combo: Int): Long {
-        return when {
-            combo >= 20 -> 2000L
-            combo >= 15 -> 2500L
-            combo >= 10 -> 3000L
-            combo >= 5 -> 3500L
-            else -> 4000L
-        }
-    }
-
     fun checkDiscovery(type: DiscoveryType, forceTutorialState: Boolean = true) {
         if (discoveryManager.discover(type)) {
             codexNotification = type
@@ -190,6 +184,32 @@ fun GameScreen() {
                     else -> false
                 }
                 if (match) missionManager.completeMission(active.id)
+            }
+        }
+    }
+
+    fun handleRewardCollection(reward: ComboReward) {
+        when (reward) {
+            is ComboReward.Fuel -> {
+                player.fuel = min(player.maxFuel, player.fuel + reward.amount)
+                notificationQueue.add("FUEL RECOVERED")
+                spawnBurst(player.x, player.y, 20, Color.Green, 200f)
+            }
+            is ComboReward.PowerUp -> {
+                powerUps.add(PowerUp(player.x, player.y - 100f, reward.type, isMissionReward = true))
+                notificationQueue.add("${reward.type.name} EARNED")
+            }
+            is ComboReward.AltitudeBoost -> {
+                player.velocityY = -2500f
+                notificationQueue.add("ALTITUDE BOOST")
+                spawnBurst(player.x, player.y + 50f, 40, Color.White, 500f)
+                screenShake = 20f
+            }
+            is ComboReward.Artifact -> {
+                checkDiscovery(reward.discoveryType)
+                notificationQueue.add("ARTIFACT DISCOVERED")
+                spawnBurst(player.x, player.y, 30, Color.Magenta, 300f)
+                impactFlashAlpha = 0.6f
             }
         }
     }
@@ -253,49 +273,25 @@ fun GameScreen() {
         
         // Combo Logic
         if (platform != null && platform != player.lastPlatform) {
-            val window = comboWindow(player.combo)
-            if (gameTime - player.lastLandingTime < window) {
-                if (player.comboFreezeTimer <= 0f) {
-                    // Task 2: No combo on reused platform
-                    if (!alreadyLanded) {
-                        player.combo++
-                        if (player.combo > player.maxComboReached) player.maxComboReached = player.combo
-                    }
-                }
-
-                // Task 2: Milestone Rewards only on fresh landing
+            if (player.comboFreezeTimer <= 0f) {
                 if (!alreadyLanded) {
-                    val comboBonus = when {
-                        player.combo == 20 -> {
-                            powerUps.add(PowerUp(player.x, player.y - 100f, PowerUpType.ARTIFACT, isMissionReward = true))
-                            "COMBO LEGEND! ARTIFACT DROP"
-                        }
-                        player.combo == 15 -> {
-                            powerUps.add(PowerUp(player.x, player.y - 100f, PowerUpType.ALTITUDE_BOOSTER, isMissionReward = true))
-                            "COMBO ELITE! ALTITUDE DROP"
-                        }
-                        player.combo == 10 -> {
-                            powerUps.add(PowerUp(player.x, player.y - 100f, PowerUpType.TURBO_BOOSTER, isMissionReward = true))
-                            "MEGA COMBO! POWERUP DROP"
-                        }
-                        player.combo == 5 -> {
-                            player.fuel = min(player.maxFuel, player.fuel + 50f)
-                            "SUPER COMBO! FUEL BURST"
-                        }
-                        else -> "COMBO x${player.combo}"
+                    val prevBest = comboManager.bestComboThisRun
+                    comboManager.onLanding()
+                    player.combo = comboManager.currentCombo // Keep synced if needed by other systems
+                    
+                    if (comboManager.currentCombo > prevBest && prevBest >= 5) {
+                        // NEW COMBO HIGH CELEBRATION
+                        floatingTexts.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = Color.Yellow, isCritical = true))
+                        screenShake = max(screenShake, 10f)
+                        impactFlashAlpha = max(impactFlashAlpha, 0.3f)
                     }
-
-                    if (player.combo % 5 == 0) {
+                    
+                    if (comboManager.currentCombo % 5 == 0) {
                         spawnBurst(player.x, yTop, 30, Color.Cyan, 400f)
-                        screenShake = 10f
+                        screenShake = 15f
                         impactFlashAlpha = 0.4f
                     }
-
-                    val textColor = when { player.combo >= 20 -> Color(0xFF9C27B0); player.combo >= 10 -> Color.Cyan; player.combo >= 5 -> Color.Yellow; else -> Color.White }
-                    floatingTexts.add(FloatingText(text = comboBonus, x = player.x, y = player.y - 120f, color = textColor, isCritical = player.combo >= 5))
                 }
-            } else {
-                player.combo = 1
             }
             player.lastLandingTime = gameTime
             player.lastPlatform = platform
@@ -535,6 +531,9 @@ fun GameScreen() {
         notificationQueue.clear()
         activeNotification = null
 
+        comboManager.reset()
+        flyingRewards.clear()
+
         missionManager.selectNextMission()
 
         var lastY = groundY - 250f
@@ -594,6 +593,35 @@ fun GameScreen() {
                         discoveryManager.update(dt)
                         threatManager.update(dt, cameraY, screenHeight, screenWidth, player.x, player.y)
                         ambientManager.update(dt, cameraY, screenWidth, screenHeight, altitudeManager.currentZone)
+
+                        // --- COMBO SYSTEM UPDATE ---
+                        val prevPending = comboManager.pendingReward
+                        comboManager.update(dt)
+                        if (comboManager.pendingReward != null && comboManager.pendingReward != prevPending) {
+                            // Combo Ended with Reward
+                            flyingRewards.add(FlyingReward(
+                                type = comboManager.pendingReward!!,
+                                x = screenWidth - 60f,
+                                y = screenHeight / 2f + (120f * densityValue)
+                            ))
+                            notificationQueue.add("COMBO COMPLETE: x${comboManager.lastFinalStreak}")
+                        }
+
+                        // Update flying rewards
+                        val rewardIter = flyingRewards.iterator()
+                        while (rewardIter.hasNext()) {
+                            val fr = rewardIter.next()
+                            fr.progress += dt * 1.0f // 1 second flight
+                            if (fr.progress >= 1.0f) {
+                                handleRewardCollection(fr.type)
+                                rewardIter.remove()
+                            } else {
+                                fr.scale = 2.0f * (1.0f - fr.progress) + 1.0f * fr.progress
+                                fr.targetX = player.x
+                                fr.targetY = player.y - cameraY
+                            }
+                        }
+
                         gameTime += (dt * 1000).toLong()
                         if (screenShake > 0) screenShake = max(0f, screenShake - dt * 30f)
                         if (impactFlashAlpha > 0) impactFlashAlpha = max(0f, impactFlashAlpha - dt * 4f)
@@ -778,13 +806,7 @@ fun GameScreen() {
                             }
                         }
 
-                        // Reset combo if window expires
-                        if (player.combo > 0 && gameTime - player.lastLandingTime > 2000L) {
-                            if (player.combo > 1) {
-                                floatingTexts.add(FloatingText("COMBO LOST", player.x, player.y - 100f, color = Color.Red))
-                            }
-                            player.combo = 0
-                        }
+                        // (Legacy combo reset logic removed - now handled by ComboManager)
 
                         val textIterator = floatingTexts.iterator()
                         while (textIterator.hasNext()) {
@@ -2279,6 +2301,24 @@ fun GameScreen() {
                         else { drawRect(baseColor, topLeft = Offset(pu.x - 12f, pu.y - cameraY - 15f), size = Size(24f, 30f)); drawRect(Color.DarkGray, topLeft = Offset(pu.x - 6f, pu.y - cameraY - 20f), size = Size(12f, 5f)) }
                     }
 
+                    // Render Flying Rewards
+                    flyingRewards.forEach { fr ->
+                        val curX = fr.x * (1f - fr.progress) + fr.targetX * fr.progress
+                        val curY = fr.y * (1f - fr.progress) + fr.targetY * fr.progress
+
+                        val baseColor = when (fr.type) {
+                            is ComboReward.Fuel -> Color.Green
+                            is ComboReward.PowerUp -> Color.Cyan
+                            is ComboReward.AltitudeBoost -> Color.White
+                            is ComboReward.Artifact -> Color(0xFF9C27B0)
+                        }
+
+                        scale(fr.scale, pivot = Offset(curX, curY)) {
+                            drawCircle(baseColor, radius = 15f, center = Offset(curX, curY))
+                            drawCircle(Color.White, radius = 5f, center = Offset(curX, curY))
+                        }
+                    }
+
                     // Render Rocket via RocketRenderer
                     rocketRenderer.render(
                         drawScope = this,
@@ -2556,7 +2596,7 @@ fun GameScreen() {
                         )
                     }
 
-                    // 4. CENTER BELOW ALTITUDE: Horizontal Mission Row
+                    // 4. CENTER BELOW ALTITUDE: Progression HUD Layer
                     val isZoneCardVisible = discoveryManager.activeEvent is DiscoveryEvent.Zone
                     AnimatedVisibility(
                         visible = !isZoneCardVisible,
@@ -2567,62 +2607,127 @@ fun GameScreen() {
                         enter = fadeIn() + expandVertically(),
                         exit = fadeOut() + shrinkVertically()
                     ) {
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            missionManager.activeMissions.filter { !it.isCompleted }.take(3).forEach { activeMission ->
-                                Surface(
-                                    color = Color.Black.copy(alpha = 0.4f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.weight(1f, fill = false)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
+                            // Mission Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+                            ) {
+                                missionManager.activeMissions.filter { !it.isCompleted }.take(3).forEach { activeMission ->
+                                    Surface(
+                                        color = Color.Black.copy(alpha = 0.4f),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f, fill = false)
                                     ) {
-                                        Text(
-                                            activeMission.name.uppercase(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = when(activeMission.type) {
-                                                MissionType.EXPLORATION -> Color.Cyan
-                                                MissionType.PLATFORMING -> Color.Yellow
-                                                else -> Color.White
-                                            },
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 8.sp,
-                                            maxLines = 1
-                                        )
-
-                                        val progressText = when(activeMission.type) {
-                                            MissionType.EXPLORATION -> "${(activeMission.currentProgress.toFloat() / activeMission.targetValue * 100).toInt()}%"
-                                            MissionType.SURVIVAL -> "${activeMission.currentProgress}s"
-                                            else -> "${activeMission.currentProgress}/${activeMission.targetValue}"
-                                        }
-
-                                        Text(
-                                            progressText,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color.White.copy(alpha = 0.9f),
-                                            fontSize = 9.sp
-                                        )
-
-                                        Spacer(Modifier.height(3.dp))
-                                        Box(Modifier.width(45.dp).height(2.dp).background(Color.White.copy(alpha = 0.1f), CircleShape)) {
-                                            Box(
-                                                Modifier.fillMaxHeight()
-                                                    .fillMaxWidth((activeMission.currentProgress.toFloat() / activeMission.targetValue).coerceIn(0f, 1f))
-                                                    .background(
-                                                        when(activeMission.type) {
-                                                            MissionType.EXPLORATION -> Color.Cyan
-                                                            MissionType.PLATFORMING -> Color.Yellow
-                                                            else -> Color.White
-                                                        },
-                                                        CircleShape
-                                                    )
+                                        Column(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                activeMission.name.uppercase(),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = when(activeMission.type) {
+                                                    MissionType.EXPLORATION -> Color.Cyan
+                                                    MissionType.PLATFORMING -> Color.Yellow
+                                                    else -> Color.White
+                                                },
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 8.sp,
+                                                maxLines = 1
                                             )
+
+                                            val progressText = when(activeMission.type) {
+                                                MissionType.EXPLORATION -> "${(activeMission.currentProgress.toFloat() / activeMission.targetValue * 100).toInt()}%"
+                                                MissionType.SURVIVAL -> "${activeMission.currentProgress}s"
+                                                else -> "${activeMission.currentProgress}/${activeMission.targetValue}"
+                                            }
+
+                                            Text(
+                                                progressText,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = Color.White.copy(alpha = 0.9f),
+                                                fontSize = 9.sp
+                                            )
+
+                                            Spacer(Modifier.height(3.dp))
+                                            Box(Modifier.width(45.dp).height(2.dp).background(Color.White.copy(alpha = 0.1f), CircleShape)) {
+                                                Box(
+                                                    Modifier.fillMaxHeight()
+                                                        .fillMaxWidth((activeMission.currentProgress.toFloat() / activeMission.targetValue).coerceIn(0f, 1f))
+                                                        .background(
+                                                            when(activeMission.type) {
+                                                                MissionType.EXPLORATION -> Color.Cyan
+                                                                MissionType.PLATFORMING -> Color.Yellow
+                                                                else -> Color.White
+                                                            },
+                                                            CircleShape
+                                                        )
+                                                )
+                                            }
                                         }
                                     }
+                                }
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            // --- INTEGRATED COMBO HUD ---
+                            Surface(
+                                color = Color.Black.copy(alpha = 0.4f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Column(horizontalAlignment = Alignment.Start) {
+                                        Text(
+                                            "BEST THIS RUN: x${comboManager.bestComboThisRun}",
+                                            color = Color.LightGray.copy(alpha = 0.8f),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 7.sp
+                                        )
+                                        Text(
+                                            "COMBO x${comboManager.currentCombo}",
+                                            color = if (comboManager.currentCombo >= comboManager.comboTarget) Color.Yellow else Color.White,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+
+                                    // Timer Bar (Visual Emphasis)
+                                    val timerRatio = if (comboManager.currentCombo > 0)
+                                        (comboManager.comboTimeRemaining.toFloat() / comboManager.getWindowForCombo(comboManager.currentCombo)).coerceIn(0f, 1f)
+                                        else 0f
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(8.dp)
+                                            .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                    ) {
+                                        val barColor = if (timerRatio > 0.3f) Color.Cyan else Color.Red
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(timerRatio)
+                                                .fillMaxHeight()
+                                                .background(barColor, CircleShape)
+                                        )
+                                    }
+
+                                    Text(
+                                        "TARGET: x${comboManager.comboTarget}",
+                                        color = Color.White.copy(alpha = 0.9f),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    )
                                 }
                             }
                         }
@@ -2650,22 +2755,10 @@ fun GameScreen() {
                                     textAlign = TextAlign.Center
                                 )
                             }
-
-                            // Combo Display (Floating near notification layer)
-                            if (player.combo > 1) {
-                                        val window = comboWindow(player.combo)
-                                        val comboRemaining = (window - (gameTime - player.lastLandingTime)).coerceAtLeast(0L).toFloat() / window
-                                        if (comboRemaining > 0f) {
-                                            Text(
-                                                text = "COMBO x${player.combo}",
-                                                color = if (player.combo >= 10) Color.Cyan else Color.Yellow,
-                                                style = MaterialTheme.typography.headlineMedium,
-                                                fontWeight = FontWeight.Black
-                                            )
-                                        }
-                            }
                         }
                     }
+
+                    // (Legacy combo HUD removed - now integrated above)
 
                     // Floating Combo Texts
                     floatingTexts.forEach { ft ->
