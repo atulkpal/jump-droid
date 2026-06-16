@@ -93,6 +93,7 @@ fun GameScreen() {
     val missionManager = remember { MissionManager() }
     val threatManager = remember { ThreatManager() }
     val comboManager = remember { ComboManager() }
+    val missionCeremonies = remember { mutableStateMapOf<String, Float>() }
     val flyingRewards = remember { mutableStateListOf<FlyingReward>() }
 
     var screenWidth by remember { mutableFloatStateOf(0f) }
@@ -110,6 +111,11 @@ fun GameScreen() {
     val landingEffects = remember { mutableStateListOf<LandingEffect>() }
     val particles = remember { mutableStateListOf<Particle>() }
     val floatingTexts = remember { mutableStateListOf<FloatingText>() }
+
+    var missionHintRotationTimer by remember { mutableFloatStateOf(0f) }
+    var globalShowObjective by remember { mutableStateOf(false) }
+    var newMissionOverlay by remember { mutableStateOf<Mission?>(null) }
+    var newMissionOverlayTimer by remember { mutableFloatStateOf(0f) }
 
     var gameTime by remember { mutableLongStateOf(0L) }
     var powerUpSpawnTimer by remember { mutableFloatStateOf(0f) }
@@ -172,8 +178,10 @@ fun GameScreen() {
             activeDiscovery = type
             if (forceTutorialState) gameState = GameState.TUTORIAL
 
-            // Mission Hook - General Discovery
-            missionManager.updateProgress(MissionType.DISCOVERY)
+            // Mission Hook - General Discovery (Only count if it's an ARTIFACT discovery for generic goals)
+            if (type.category == "ARTIFACTS") {
+                missionManager.updateProgress(MissionType.DISCOVERY) { it.id.contains("art_find") }
+            }
 
             // Mission Hook - Specific Discoveries
             missionManager.activeMissions.find { !it.isCompleted && it.type == MissionType.DISCOVERY }?.let { active ->
@@ -189,25 +197,37 @@ fun GameScreen() {
     }
 
     fun handleRewardCollection(reward: ComboReward) {
+        val rewardColor = when (reward) {
+            is ComboReward.Fuel -> Color.Green
+            is ComboReward.PowerUp -> Color.Cyan
+            is ComboReward.AltitudeBoost -> Color.White
+            is ComboReward.Artifact -> Color.Magenta
+        }
+        val rewardName = when (reward) {
+            is ComboReward.Fuel -> "FUEL RECOVERED"
+            is ComboReward.PowerUp -> "${reward.type.name.replace("_", " ")}"
+            is ComboReward.AltitudeBoost -> "ALTITUDE BOOST"
+            is ComboReward.Artifact -> "ARTIFACT DISCOVERED"
+        }
+
+        // Task 4: Reward notifications near rocket
+        floatingTexts.add(FloatingText(rewardName, player.x, player.y - 100f, color = rewardColor, isCritical = reward is ComboReward.Artifact))
+
         when (reward) {
             is ComboReward.Fuel -> {
                 player.fuel = min(player.maxFuel, player.fuel + reward.amount)
-                notificationQueue.add("FUEL RECOVERED")
                 spawnBurst(player.x, player.y, 20, Color.Green, 200f)
             }
             is ComboReward.PowerUp -> {
                 powerUps.add(PowerUp(player.x, player.y - 100f, reward.type, isMissionReward = true))
-                notificationQueue.add("${reward.type.name} EARNED")
             }
             is ComboReward.AltitudeBoost -> {
                 player.velocityY = -2500f
-                notificationQueue.add("ALTITUDE BOOST")
                 spawnBurst(player.x, player.y + 50f, 40, Color.White, 500f)
                 screenShake = 20f
             }
             is ComboReward.Artifact -> {
                 checkDiscovery(reward.discoveryType)
-                notificationQueue.add("ARTIFACT DISCOVERED")
                 spawnBurst(player.x, player.y, 30, Color.Magenta, 300f)
                 impactFlashAlpha = 0.6f
             }
@@ -229,13 +249,19 @@ fun GameScreen() {
         }
 
         if (platform != null) {
+            if (!alreadyLanded) {
+                // Task 1: Generic landing missions audit
+                missionManager.updateProgress(MissionType.PLATFORMING) { it.id.startsWith("plat_land_") }
+            }
+
             when (platform.type) {
                 PlatformType.BOOST -> { 
                     player.velocityY = -600f
                     if (!alreadyLanded) {
                         spawnBurst(player.x, yTop, 25, Color.Yellow, 400f)
                         screenShake = 10f
-                        missionManager.updateProgress(MissionType.PLATFORMING)
+                        // Task 1: Boost specific mission audit
+                        missionManager.updateProgress(MissionType.PLATFORMING) { it.id == "plat_boost" }
                     }
                 }
                 PlatformType.ICE -> { 
@@ -247,7 +273,10 @@ fun GameScreen() {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.velocityX = platform.speed
                     checkDiscovery(DiscoveryType.MOVING_PLATFORM)
-                    if (!alreadyLanded) missionManager.updateProgress(MissionType.PLATFORMING)
+                    if (!alreadyLanded) {
+                        // Task 1: Moving specific mission audit
+                        missionManager.updateProgress(MissionType.PLATFORMING) { it.id == "plat_moving" }
+                    }
                 }
                 PlatformType.BREAKABLE -> { 
                     player.velocityY = LANDING_BOUNCE_VELOCITY
@@ -259,7 +288,6 @@ fun GameScreen() {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.velocityX *= HORIZONTAL_DAMPING
                     checkDiscovery(DiscoveryType.NORMAL_PLATFORM)
-                    if (!alreadyLanded) missionManager.updateProgress(MissionType.PLATFORMING)
                 }
             }
         } else {
@@ -275,22 +303,8 @@ fun GameScreen() {
         if (platform != null && platform != player.lastPlatform) {
             if (player.comboFreezeTimer <= 0f) {
                 if (!alreadyLanded) {
-                    val prevBest = comboManager.bestComboThisRun
                     comboManager.onLanding()
                     player.combo = comboManager.currentCombo // Keep synced if needed by other systems
-                    
-                    if (comboManager.currentCombo > prevBest && prevBest >= 5) {
-                        // NEW COMBO HIGH CELEBRATION
-                        floatingTexts.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = Color.Yellow, isCritical = true))
-                        screenShake = max(screenShake, 10f)
-                        impactFlashAlpha = max(impactFlashAlpha, 0.3f)
-                    }
-                    
-                    if (comboManager.currentCombo % 5 == 0) {
-                        spawnBurst(player.x, yTop, 30, Color.Cyan, 400f)
-                        screenShake = 15f
-                        impactFlashAlpha = 0.4f
-                    }
                 }
             }
             player.lastLandingTime = gameTime
@@ -598,13 +612,44 @@ fun GameScreen() {
                         val prevPending = comboManager.pendingReward
                         comboManager.update(dt)
                         if (comboManager.pendingReward != null && comboManager.pendingReward != prevPending) {
-                            // Combo Ended with Reward
+                            // Combo Ended with Reward (Task 5: Tier 3)
+                            
+                            // NEW COMBO HIGH CELEBRATION (Task 3: Now only on completion)
+                            if (comboManager.isNewHighReached) {
+                                floatingTexts.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = Color.Yellow, isCritical = true))
+                                screenShake = max(screenShake, 25f)
+                                impactFlashAlpha = max(impactFlashAlpha, 0.5f)
+                                
+                                // Large energy burst
+                                repeat(30) {
+                                    val angle = Random.nextFloat() * 2f * PI.toFloat()
+                                    val s = 300f + Random.nextFloat() * 300f
+                                    particles.add(Particle(
+                                        x = player.x, y = player.y, vx = cos(angle) * s, vy = sin(angle) * s,
+                                        life = 1.2f, color = Color.Yellow, size = 6f
+                                    ))
+                                }
+                            }
+
                             flyingRewards.add(FlyingReward(
                                 type = comboManager.pendingReward!!,
                                 x = screenWidth - 60f,
-                                y = screenHeight / 2f + (120f * densityValue)
+                                y = screenHeight / 2f + (120f * densityValue),
+                                scale = 3.5f // Task 2: Increased scale
                             ))
                             notificationQueue.add("COMBO COMPLETE: x${comboManager.lastFinalStreak}")
+                            
+                            // Visual pay-off for combo completion
+                            screenShake = max(screenShake, 20f)
+                            impactFlashAlpha = max(impactFlashAlpha, 0.4f)
+                            repeat(20) {
+                                val angle = Random.nextFloat() * 2f * PI.toFloat()
+                                particles.add(Particle(
+                                    x = screenWidth - 60f, y = screenHeight / 2f + (120f * densityValue),
+                                    vx = cos(angle) * 400f, vy = sin(angle) * 400f,
+                                    life = 1.0f, color = Color.Cyan, size = 5f
+                                ))
+                            }
                         }
 
                         // Update flying rewards
@@ -1199,7 +1244,7 @@ fun GameScreen() {
                                             }
                                         }
 
-                                        // End encounter reward (ULTRA OBVIOUS)
+                                        // End encounter reward (ULTRA OBVIOUS) - Task 5: Tier 4
                                         if (threat.phase == 5 && !threat.hasInteracted) {
                                             threat.hasInteracted = true
                                             powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
@@ -1209,6 +1254,13 @@ fun GameScreen() {
                                             screenShake = 60f
                                             impactFlashAlpha = 1.0f
                                             spawnBurst(player.x, cameraY + 200f, 100, Color(0xFF9C27B0), 1000f) // Massive purple burst
+                                            
+                                            // Task 5: Tier 4 Major Event Visuals
+                                            repeat(5) {
+                                                spawnBurst(player.x + (Random.nextFloat() - 0.5f) * 200f, 
+                                                           player.y + (Random.nextFloat() - 0.5f) * 200f, 
+                                                           50, Color.White, 800f)
+                                            }
 
                                             // Mission Hook
                                             if (threat.definition.id == "MINI_BOSS_COMMANDER") {
@@ -1513,45 +1565,150 @@ fun GameScreen() {
 
                         missionManager.updateProgress(MissionType.EXPLORATION, absoluteValue = score)
 
+                        // --- Mission UX System Per-Frame ---
+                        missionHintRotationTimer += dt
+                        if (missionHintRotationTimer > 5f) {
+                            missionHintRotationTimer = 0f
+                            globalShowObjective = !globalShowObjective
+                        }
+
+                        if (newMissionOverlayTimer > 0f) {
+                            newMissionOverlayTimer -= dt
+                            if (newMissionOverlayTimer <= 0f) newMissionOverlay = null
+                        }
+
+                        // Intro Card Trigger
+                        missionManager.activeMissions.find { it.isNew }?.let {
+                            it.isNew = false
+                            newMissionOverlay = it
+                            newMissionOverlayTimer = 3.0f
+                        }
+
                         // Handle Completed Missions (Ceremony & Rewards)
-                        missionManager.activeMissions.filter { it.isCompleted }.forEach { mission ->
-                            // Grant Reward
-                            val rewardText = when (val r = mission.reward) {
-                                is MissionReward.PowerUp -> {
-                                    repeat(r.amount) {
-                                        powerUps.add(PowerUp(player.x, cameraY - 100f, r.type, isMissionReward = true))
+                        missionManager.activeMissions.forEach { mission ->
+                            if (mission.isCompleted) {
+                                when (mission.ceremonyStage) {
+                                    CeremonyStage.GLOW -> {
+                                        // Wait a brief moment or start immediately
+                                        mission.ceremonyStage = CeremonyStage.COMPLETED_TEXT
+                                        screenShake = max(screenShake, 10f)
                                     }
-                                    r.type.name.replace("_", " ")
-                                }
-                                is MissionReward.Artifact -> {
-                                    checkDiscovery(r.discoveryType, forceTutorialState = false)
-                                    "NEW ARTIFACT"
-                                }
-                                else -> "COMPLETED"
-                            }
-
-                            // Visual Celebration
-                            notificationQueue.add("MISSION COMPLETE")
-                            notificationQueue.add(mission.name.uppercase())
-                            notificationQueue.add("+ $rewardText")
-
-                            spawnBurst(player.x, player.y - 100f, 50, Color(0xFFFFD700), 500f) // Gold burst
-                            screenShake = 25f
-                            impactFlashAlpha = 0.5f
-
-                            // Mission Synergy Bonus: Small progress to other active tracks
-                            missionManager.activeMissions.filter { !it.isCompleted && it.id != mission.id }.forEach { other ->
-                                when (other.type) {
-                                    MissionType.PLATFORMING -> {
-                                        other.currentProgress = min(other.targetValue, other.currentProgress + 1)
-                                        if (other.currentProgress >= other.targetValue) other.isCompleted = true
+                                    CeremonyStage.COMPLETED_TEXT -> {
+                                        // Transition handled by UI but we can add logic here if needed
+                                        // For now, move to spawn reward after a delay
+                                        // We can use a dedicated timer per mission for precise stages if needed
                                     }
-                                    MissionType.SURVIVAL -> {
-                                        val bonus = if (other.id.startsWith("surv_air")) 2f else 5f
-                                        if (other.id.startsWith("surv_air")) airborneTimer += bonus
-                                        else noOverheatTimer += bonus
+                                    CeremonyStage.REWARD_SPAWNED -> {
+                                        // Reward is already in flyingRewards, waiting for it to finish
                                     }
                                     else -> {}
+                                }
+                            }
+                        }
+
+                        missionManager.activeMissions.filter { it.isCompleted && missionCeremonies[it.id] == null }.forEach { mission ->
+                             missionCeremonies[mission.id] = 0f // Start ceremony
+                        }
+
+                        val ceremonyKeys = missionCeremonies.keys.toList()
+                        ceremonyKeys.forEach { mid ->
+                            val m = missionManager.activeMissions.find { it.id == mid }
+                            if (m == null) { missionCeremonies.remove(mid); return@forEach }
+
+                            val prevTime = missionCeremonies[mid] ?: 0f
+                            val newTime = prevTime + dt
+                            missionCeremonies[mid] = newTime
+
+                            // Task 3 & 6: Card disintegration and Category Personality
+                            if (newTime < 2.0f) {
+                                val missionIdx = missionManager.activeMissions.indexOf(m)
+                                if (missionIdx >= 0) {
+                                    val totalMissions = missionManager.activeMissions.size
+                                    val startX = (screenWidth - (totalMissions * 110f)) / 2f
+                                    val cardX = startX + (missionIdx * 110f) + 55f
+                                    val cardY = 100f * densityValue
+                                    
+                                    // Task 1: Increased density for visible fracturing
+                                    val particleChance = if (newTime < 1.0f) 0.4f else 0.8f
+                                    if (Random.nextFloat() < particleChance) {
+                                        repeat(if (newTime > 1.5f) 5 else 2) {
+                                            val pColor = when(m.type) {
+                                                MissionType.EXPLORATION -> Color(0xFFFFD700) // Gold
+                                                MissionType.PLATFORMING -> Color(0xFFFF5722) // Sparks/Orange
+                                                MissionType.SURVIVAL -> Color(0xFF03A9F4) // Energy/Cyan
+                                                MissionType.DISCOVERY -> Color(0xFF9C27B0) // Artifact/Purple
+                                                MissionType.BOSS -> Color(0xFFFFC107) // Yellow/Shock
+                                                else -> Color.White
+                                            }
+                                            particles.add(Particle(
+                                                x = cardX + (Random.nextFloat() - 0.5f) * 110f,
+                                                y = cardY + (Random.nextFloat() - 0.5f) * 65f,
+                                                vx = (Random.nextFloat() - 0.5f) * 80f,
+                                                vy = (Random.nextFloat() - 0.5f) * 80f + 30f,
+                                                life = 1.2f,
+                                                color = pColor,
+                                                size = 3f + Random.nextFloat() * 4f
+                                            ))
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Stage transitions
+                            if (prevTime < 1.0f && newTime >= 1.0f) {
+                                m.ceremonyStage = CeremonyStage.COMPLETED_TEXT
+                                
+                                // Task 5: Hierarchy
+                                val isSignificant = m.type == MissionType.DISCOVERY || m.type == MissionType.BOSS || m.id.contains("exp_void") || m.id == "surv_cool_2"
+                                if (isSignificant) {
+                                    screenShake = max(screenShake, 15f)
+                                    impactFlashAlpha = max(impactFlashAlpha, 0.3f)
+                                } else {
+                                    screenShake = max(screenShake, 8f)
+                                }
+                            }
+                            if (prevTime < 2.0f && newTime >= 2.0f) {
+                                // Spawn Reward
+                                val missionIdx = missionManager.activeMissions.indexOf(m)
+                                val cardX = if (missionIdx >= 0) {
+                                    val totalMissions = missionManager.activeMissions.size
+                                    val startX = (screenWidth - (totalMissions * 110f)) / 2f
+                                    startX + (missionIdx * 110f) + 55f
+                                } else screenWidth / 2f
+
+                                val comboReward = when (val r = m.reward) {
+                                    is MissionReward.PowerUp -> ComboReward.PowerUp(r.type)
+                                    is MissionReward.Artifact -> ComboReward.Artifact(r.discoveryType)
+                                    else -> ComboReward.Fuel(50f)
+                                }
+
+                                flyingRewards.add(FlyingReward(
+                                    type = comboReward,
+                                    x = cardX,
+                                    y = 100f * densityValue, // top area
+                                    scale = 3.5f // Task 2: Increased scale
+                                ))
+                                m.ceremonyStage = CeremonyStage.REWARD_SPAWNED
+                                spawnBurst(cardX, 100f * densityValue, 30, Color.Yellow, 300f)
+                            }
+                            if (prevTime < 3.5f && newTime >= 3.5f) {
+                                m.ceremonyStage = CeremonyStage.REPLACING
+                                missionCeremonies.remove(mid)
+                                
+                                // Mission Synergy Bonus: Small progress to other active tracks
+                                missionManager.activeMissions.filter { !it.isCompleted && it.id != m.id }.forEach { other ->
+                                    when (other.type) {
+                                        MissionType.PLATFORMING -> {
+                                            other.currentProgress = min(other.targetValue, other.currentProgress + 1)
+                                            other.checkCompletion()
+                                        }
+                                        MissionType.SURVIVAL -> {
+                                            val bonus = if (other.id.startsWith("surv_air")) 2f else 5f
+                                            if (other.id.startsWith("surv_air")) airborneTimer += bonus
+                                            else noOverheatTimer += bonus
+                                        }
+                                        else -> {}
+                                    }
                                 }
                             }
                         }
@@ -2616,56 +2773,98 @@ fun GameScreen() {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
                             ) {
-                                missionManager.activeMissions.filter { !it.isCompleted }.take(3).forEach { activeMission ->
-                                    Surface(
-                                        color = Color.Black.copy(alpha = 0.4f),
-                                        shape = RoundedCornerShape(8.dp),
+                                missionManager.activeMissions.forEach { activeMission ->
+                                    val cardColor = when (activeMission.ceremonyStage) {
+                                        CeremonyStage.GLOW -> Color.Cyan.copy(alpha = 0.6f)
+                                        else -> Color.Black.copy(alpha = 0.4f)
+                                    }
+
+                                    AnimatedVisibility(
+                                        visible = activeMission.ceremonyStage != CeremonyStage.REPLACING && 
+                                                 activeMission.ceremonyStage != CeremonyStage.REWARD_SPAWNED,
+                                        enter = slideInVertically { -it } + fadeIn(),
+                                        exit = fadeOut(tween(300)) + scaleOut(targetScale = 0.8f), // Dissolve feel
                                         modifier = Modifier.weight(1f, fill = false)
                                     ) {
-                                        Column(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        Surface(
+                                            color = cardColor,
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.width(110.dp).height(65.dp), // Task 2: Fixed Dimensions
+                                            border = if (activeMission.ceremonyStage == CeremonyStage.GLOW) 
+                                                androidx.compose.foundation.BorderStroke(1.dp, Color.White) else null
                                         ) {
-                                            Text(
-                                                activeMission.name.uppercase(),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = when(activeMission.type) {
-                                                    MissionType.EXPLORATION -> Color.Cyan
-                                                    MissionType.PLATFORMING -> Color.Yellow
-                                                    else -> Color.White
-                                                },
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 8.sp,
-                                                maxLines = 1
-                                            )
-
-                                            val progressText = when(activeMission.type) {
-                                                MissionType.EXPLORATION -> "${(activeMission.currentProgress.toFloat() / activeMission.targetValue * 100).toInt()}%"
-                                                MissionType.SURVIVAL -> "${activeMission.currentProgress}s"
-                                                else -> "${activeMission.currentProgress}/${activeMission.targetValue}"
-                                            }
-
-                                            Text(
-                                                progressText,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = Color.White.copy(alpha = 0.9f),
-                                                fontSize = 9.sp
-                                            )
-
-                                            Spacer(Modifier.height(3.dp))
-                                            Box(Modifier.width(45.dp).height(2.dp).background(Color.White.copy(alpha = 0.1f), CircleShape)) {
-                                                Box(
-                                                    Modifier.fillMaxHeight()
-                                                        .fillMaxWidth((activeMission.currentProgress.toFloat() / activeMission.targetValue).coerceIn(0f, 1f))
-                                                        .background(
-                                                            when(activeMission.type) {
-                                                                MissionType.EXPLORATION -> Color.Cyan
-                                                                MissionType.PLATFORMING -> Color.Yellow
-                                                                else -> Color.White
-                                                            },
-                                                            CircleShape
+                                            Column(
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                if (activeMission.ceremonyStage == CeremonyStage.COMPLETED_TEXT || 
+                                                    activeMission.ceremonyStage == CeremonyStage.REWARD_SPAWNED) {
+                                                    Text(
+                                                        "MISSION COMPLETE",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = Color.Green,
+                                                        fontWeight = FontWeight.Black,
+                                                        fontSize = 8.sp
+                                                    )
+                                                } else {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(
+                                                            text = activeMission.type.toIcon(),
+                                                            fontSize = 8.sp,
+                                                            modifier = Modifier.padding(end = 4.dp)
                                                         )
+                                                        
+                                                        // Task 2: Hint Rotation
+                                                        AnimatedContent(
+                                                            targetState = globalShowObjective,
+                                                            transitionSpec = { fadeIn(tween(500)) togetherWith fadeOut(tween(500)) },
+                                                            label = "MissionTextRotation"
+                                                        ) { showObj ->
+                                                            Text(
+                                                                if (showObj) activeMission.description.uppercase() else activeMission.name.uppercase(),
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = when(activeMission.type) {
+                                                                    MissionType.EXPLORATION -> Color.Cyan
+                                                                    MissionType.PLATFORMING -> Color.Yellow
+                                                                    else -> Color.White
+                                                                },
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 8.sp,
+                                                                maxLines = 1,
+                                                                textAlign = TextAlign.Center
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                val progressText = when(activeMission.type) {
+                                                    MissionType.EXPLORATION -> "${(activeMission.currentProgress.toFloat() / activeMission.targetValue * 100).toInt()}%"
+                                                    MissionType.SURVIVAL -> "${activeMission.currentProgress}s"
+                                                    else -> "${activeMission.currentProgress}/${activeMission.targetValue}"
+                                                }
+
+                                                Text(
+                                                    progressText,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Color.White.copy(alpha = 0.9f),
+                                                    fontSize = 9.sp
                                                 )
+
+                                                Spacer(Modifier.height(3.dp))
+                                                Box(Modifier.width(45.dp).height(2.dp).background(Color.White.copy(alpha = 0.1f), CircleShape)) {
+                                                    Box(
+                                                        Modifier.fillMaxHeight()
+                                                            .fillMaxWidth((activeMission.currentProgress.toFloat() / activeMission.targetValue).coerceIn(0f, 1f))
+                                                            .background(
+                                                                when(activeMission.type) {
+                                                                    MissionType.EXPLORATION -> Color.Cyan
+                                                                    MissionType.PLATFORMING -> Color.Yellow
+                                                                    else -> Color.White
+                                                                },
+                                                                CircleShape
+                                                            )
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -2935,6 +3134,15 @@ fun GameScreen() {
             }
         }
     }
+}
+
+fun MissionType.toIcon(): String = when(this) {
+    MissionType.EXPLORATION -> "🚀"
+    MissionType.PLATFORMING -> "🧱"
+    MissionType.SURVIVAL -> "❄️"
+    MissionType.DISCOVERY -> "📡"
+    MissionType.BOSS -> "⚠️"
+    MissionType.COMBO -> "🔥"
 }
 
 @Composable

@@ -89,8 +89,8 @@ class MissionManager {
      * Strictly maintains one mission from each core track.
      */
     fun selectNextMission() {
-        // 1. Remove missions flagged as completed (after rewards are handled in GameScreen)
-        activeMissions.removeAll { it.isCompleted }
+        // 1. Remove missions only after they finished their replacement ceremony stage
+        activeMissions.removeAll { it.ceremonyStage == CeremonyStage.REPLACING }
 
         // 2. Ensure each track is filled
         val coreTracks = listOf(MissionType.EXPLORATION, MissionType.PLATFORMING, MissionType.SURVIVAL)

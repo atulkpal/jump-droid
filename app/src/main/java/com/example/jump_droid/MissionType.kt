@@ -8,5 +8,6 @@ enum class MissionType {
     PLATFORMING, // e.g., Land on X moving platforms
     SURVIVAL,    // e.g., Recover from overheating X times
     DISCOVERY,   // e.g., Find X artifacts
-    BOSS         // e.g., Defeat a specific boss
+    BOSS,        // e.g., Defeat a specific boss
+    COMBO        // used for UI/Icons
 }

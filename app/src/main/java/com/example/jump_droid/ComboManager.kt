@@ -24,7 +24,7 @@ data class FlyingReward(
     var y: Float,
     var targetX: Float = 0f,
     var targetY: Float = 0f,
-    var scale: Float = 2.0f,
+    var scale: Float = 3.5f,
     var progress: Float = 0f // 0.0 to 1.0
 )
 
@@ -39,6 +39,7 @@ class ComboManager {
     var lastFinalStreak by mutableIntStateOf(0)
     var showComboComplete by mutableStateOf(false)
     var comboCompleteTimer by mutableFloatStateOf(0f)
+    var isNewHighReached by mutableStateOf(false)
 
     private val tiers = listOf(
         ComboTier(1, 5, 7, "BASIC", listOf(ComboReward.Fuel(50f))),
@@ -51,16 +52,6 @@ class ComboManager {
     fun onLanding() {
         currentCombo++
         refreshTimer()
-        
-        if (currentCombo > bestComboThisRun) {
-            bestComboThisRun = currentCombo
-            // New combo high reached
-        }
-        
-        if (currentCombo >= comboTarget) {
-            // Target reached
-            comboTarget = bestComboThisRun + 1
-        }
     }
 
     private fun refreshTimer() {
@@ -84,16 +75,18 @@ class ComboManager {
     }
 
     private fun breakCombo() {
-        if (currentCombo >= 5) {
+        isNewHighReached = false
+        if (currentCombo > bestComboThisRun && currentCombo >= 5) {
+            isNewHighReached = true
             lastFinalStreak = currentCombo
             showComboComplete = true
             comboCompleteTimer = 3.0f
             pendingReward = calculateReward(currentCombo)
+            
+            bestComboThisRun = currentCombo
+            comboTarget = bestComboThisRun + 1
         }
         currentCombo = 0
-        // Reset target if it was missed? The instructions say:
-        // "Once the player reaches Combo x5: Target changes. The new target becomes: Beat your current combo high."
-        // So target stays at best + 1 until hit.
     }
 
     private fun calculateReward(streak: Int): ComboReward? {
