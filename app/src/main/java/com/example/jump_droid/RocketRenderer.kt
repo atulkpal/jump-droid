@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import com.example.jump_droid.Constants.ROCKET_HEIGHT
 import com.example.jump_droid.Constants.ROCKET_WIDTH
+import com.example.jump_droid.ui.theme.*
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -68,7 +69,7 @@ class RocketRenderer {
                 // Extra Re-entry/Spawn Protection Shield
                 if (player.invulnerabilityTimer > 0) {
                     drawCircle(
-                        color = Color.White.copy(alpha = 0.2f),
+                        color = SciFiWhite.copy(alpha = 0.3f),
                         radius = 50f,
                         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
                     )
@@ -90,7 +91,7 @@ class RocketRenderer {
         drawScope.drawPath(
             path = flamePath,
             brush = Brush.verticalGradient(
-                colors = listOf(Color(0xFFFF9800), Color(0xFFFF5722).copy(alpha = 0f)),
+                colors = listOf(SciFiGold, SciFiRed.copy(alpha = 0f)),
                 startY = ROCKET_HEIGHT / 2,
                 endY = ROCKET_HEIGHT / 2 + 60f
             )
@@ -100,7 +101,7 @@ class RocketRenderer {
             moveTo(-5f, ROCKET_HEIGHT / 2)
             quadraticTo(0f, ROCKET_HEIGHT / 2 + 20f + flicker * 0.5f, 5f, ROCKET_HEIGHT / 2)
             close()
-        }, Color.White.copy(alpha = 0.8f))
+        }, SciFiWhite.copy(alpha = 0.8f))
     }
 
     private fun drawSideThruster(drawScope: DrawScope, isRight: Boolean, gameTime: Long) {
@@ -115,7 +116,7 @@ class RocketRenderer {
             close()
         }
         
-        drawScope.drawPath(path, Color(0xFF03A9F4).copy(alpha = 0.6f))
+        drawScope.drawPath(path, SciFiCyan.copy(alpha = 0.6f))
     }
 
     private fun drawRocketBody(drawScope: DrawScope, player: Player) {
@@ -124,14 +125,14 @@ class RocketRenderer {
         
         val heatRatio = (player.heat / Constants.MAX_HEAT).coerceIn(0f, 1f)
         val bodyBaseColor = when (player.rocketType) {
-            RocketType.BALANCED -> Color(0xFFB0BEC5)
-            RocketType.SCOUT -> Color(0xFFFFF176)
+            RocketType.BALANCED -> SciFiWhite
+            RocketType.SCOUT -> SciFiGold
             RocketType.TANK -> Color(0xFF455A64)
-            RocketType.EXPERIMENTAL -> Color(0xFFE91E63)
+            RocketType.EXPERIMENTAL -> SciFiPurple
         }
         
-        val currentColor = if (player.isOverheated) Color.Red 
-                          else lerpColor(bodyBaseColor, Color.Red, heatRatio * 0.7f)
+        val currentColor = if (player.isOverheated) SciFiRed 
+                          else lerpColor(bodyBaseColor, SciFiRed, heatRatio * 0.7f)
 
         with(drawScope) {
             // Main Fuselage (fits exactly in hitbox)
@@ -142,7 +143,7 @@ class RocketRenderer {
             )
             
             // Cockpit
-            drawCircle(Color.Cyan.copy(alpha = 0.8f), radius = 7f, center = Offset(0f, -5f))
+            drawCircle(SciFiCyan.copy(alpha = 0.8f), radius = 7f, center = Offset(0f, -5f))
 
             // Nose Cone (fits exactly in hitbox)
             val nosePath = Path().apply {
@@ -166,18 +167,18 @@ class RocketRenderer {
                 lineTo(halfW - 5f, halfH)
                 close()
             }
-            drawPath(leftFin, Color.Red)
-            drawPath(rightFin, Color.Red)
+            drawPath(leftFin, SciFiRed)
+            drawPath(rightFin, SciFiRed)
         }
     }
 
     private fun drawAuras(drawScope: DrawScope, player: Player, gameTime: Long) {
         val pulse = (kotlin.math.sin(gameTime / 150f) * 0.1f) + 0.9f
         if (player.turboTimer > 0) {
-            drawScope.drawCircle(Color.Cyan.copy(alpha = 0.2f), radius = 55f * pulse, center = Offset.Zero)
+            drawScope.drawCircle(SciFiCyan.copy(alpha = 0.2f), radius = 55f * pulse, center = Offset.Zero)
         }
         if (player.efficiencyTimer > 0) {
-            drawScope.drawCircle(Color.Green.copy(alpha = 0.2f), radius = 55f * pulse, center = Offset.Zero)
+            drawScope.drawCircle(SciFiGreen.copy(alpha = 0.2f), radius = 55f * pulse, center = Offset.Zero)
         }
     }
 

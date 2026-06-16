@@ -25,7 +25,7 @@ class Platform(
     val type: PlatformType = PlatformType.NORMAL,
     val isMoving: Boolean = false,
     initialSpeed: Float = 0f,
-    val totalBreakTime: Float = 3f // Randomized between 2-4 in generator
+    val totalBreakTime: Float = 2.4f // Sprint E Tuning: 20% faster than previous 3s default
 ) {
     var x by mutableFloatStateOf(initialX)
     var speed by mutableFloatStateOf(initialSpeed)

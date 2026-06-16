@@ -6,6 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -24,11 +25,13 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
@@ -58,6 +61,7 @@ import com.example.jump_droid.Constants.MAX_HEAT
 import com.example.jump_droid.Constants.HEAT_GENERATION_RATE
 import com.example.jump_droid.Constants.COOLING_RATE
 import com.example.jump_droid.Constants.OVERHEAT_COOLDOWN_TIME
+import com.example.jump_droid.ui.theme.*
 
 val AchievementsList = listOf(
     Achievement("first_launch", "First Launch", "Reach 100 score.") { s, _, _ -> s >= 100 },
@@ -200,10 +204,10 @@ fun GameScreen() {
 
     fun handleRewardCollection(reward: ComboReward) {
         val rewardColor = when (reward) {
-            is ComboReward.Fuel -> Color.Green
-            is ComboReward.PowerUp -> Color.Cyan
-            is ComboReward.AltitudeBoost -> Color.White
-            is ComboReward.Artifact -> Color.Magenta
+            is ComboReward.Fuel -> SciFiGreen
+            is ComboReward.PowerUp -> SciFiCyan
+            is ComboReward.AltitudeBoost -> SciFiWhite
+            is ComboReward.Artifact -> SciFiPurple
         }
         val rewardName = when (reward) {
             is ComboReward.Fuel -> "FUEL RECOVERED"
@@ -218,19 +222,19 @@ fun GameScreen() {
         when (reward) {
             is ComboReward.Fuel -> {
                 player.fuel = min(player.maxFuel, player.fuel + reward.amount)
-                spawnBurst(player.x, player.y, 20, Color.Green, 200f)
+                spawnBurst(player.x, player.y, 20, SciFiGreen, 200f)
             }
             is ComboReward.PowerUp -> {
                 powerUps.add(PowerUp(player.x, player.y - 100f, reward.type, isMissionReward = true))
             }
             is ComboReward.AltitudeBoost -> {
                 player.velocityY = -2500f
-                spawnBurst(player.x, player.y + 50f, 40, Color.White, 500f)
+                spawnBurst(player.x, player.y + 50f, 40, SciFiWhite, 500f)
                 screenShake = 20f
             }
             is ComboReward.Artifact -> {
                 checkDiscovery(reward.discoveryType)
-                spawnBurst(player.x, player.y, 30, Color.Magenta, 300f)
+                spawnBurst(player.x, player.y, 30, SciFiPurple, 300f)
                 impactFlashAlpha = 0.6f
             }
         }
@@ -246,7 +250,7 @@ fun GameScreen() {
         if (!alreadyLanded) {
             player.squashStretch = 0.8f // Squash on landing
             landingEffects.add(LandingEffect(player.x, yTop))
-            spawnBurst(player.x, yTop, 15, Color.Gray, 120f)
+            spawnBurst(player.x, yTop, 15, SciFiBorder, 120f)
             platform?.hasBeenLandedOn = true
         }
 
@@ -261,7 +265,7 @@ fun GameScreen() {
                     player.velocityY = -600f
                     checkDiscovery(DiscoveryType.BOOST_PLATFORM)
                     if (!alreadyLanded) {
-                        spawnBurst(player.x, yTop, 25, Color.Yellow, 400f)
+                        spawnBurst(player.x, yTop, 25, SciFiGold, 400f)
                         screenShake = 10f
                         // Task 1: Boost specific mission audit
                         missionManager.updateProgress(MissionType.PLATFORMING) { it.id == "plat_boost" }
@@ -284,22 +288,22 @@ fun GameScreen() {
                 PlatformType.FUEL -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.fuel = min(player.maxFuel, player.fuel + 50f)
-                    spawnBurst(player.x, yTop, 20, Color.Green, 200f)
-                    floatingTexts.add(FloatingText("FUEL RECHARGE", player.x, player.y - 100f, color = Color.Green))
+                    spawnBurst(player.x, yTop, 20, SciFiGreen, 200f)
+                    floatingTexts.add(FloatingText("FUEL RECHARGE", player.x, player.y - 100f, color = SciFiGreen))
                     checkDiscovery(DiscoveryType.FUEL_PLATFORM)
                 }
                 PlatformType.COOLING -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.heat = max(0f, player.heat - 30f)
-                    spawnBurst(player.x, yTop, 20, Color.Cyan, 200f)
-                    floatingTexts.add(FloatingText("ENGINES COOLED", player.x, player.y - 100f, color = Color.Cyan))
+                    spawnBurst(player.x, yTop, 20, SciFiCyan, 200f)
+                    floatingTexts.add(FloatingText("ENGINES COOLED", player.x, player.y - 100f, color = SciFiCyan))
                     checkDiscovery(DiscoveryType.COOLING_PLATFORM)
                 }
                 PlatformType.STABILITY -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.stabilityTimer = 10f
-                    spawnBurst(player.x, yTop, 20, Color.White, 200f)
-                    floatingTexts.add(FloatingText("FLIGHT STABILIZED", player.x, player.y - 100f, color = Color.White))
+                    spawnBurst(player.x, yTop, 20, SciFiWhite, 200f)
+                    floatingTexts.add(FloatingText("FLIGHT STABILIZED", player.x, player.y - 100f, color = SciFiWhite))
                     checkDiscovery(DiscoveryType.STABILITY_PLATFORM)
                 }
                 PlatformType.MAGNETIC -> {
@@ -366,7 +370,7 @@ fun GameScreen() {
             if (!sharedPrefs.getBoolean("achievement_${achievement.id}", false)) {
                 if (achievement.unlockCondition(newScore, player.maxComboReached, player.totalOverheats)) {
                     sharedPrefs.edit { putBoolean("achievement_${achievement.id}", true) }
-                    floatingTexts.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = Color.Cyan, isCritical = true))
+                    floatingTexts.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = SciFiGold, isCritical = true))
                 }
             }
         }
@@ -386,7 +390,7 @@ fun GameScreen() {
             // Task 1: Zone Progression Celebration Effects
             when (newZone) {
                 AltitudeZone.CLOUD_LAYER -> {
-                    spawnBurst(player.x, player.y, 50, Color.Cyan, 600f)
+                    spawnBurst(player.x, player.y, 50, SciFiCyan, 600f)
                     screenShake = 10f
                 }
                 AltitudeZone.UPPER_ATMOSPHERE -> {
@@ -395,11 +399,11 @@ fun GameScreen() {
                 AltitudeZone.ORBIT -> {
                     impactFlashAlpha = 1.0f
                     screenShake = 20f
-                    spawnBurst(player.x, player.y, 100, Color.Cyan, 800f)
+                    spawnBurst(player.x, player.y, 100, SciFiCyan, 800f)
                 }
                 AltitudeZone.DEEP_SPACE -> {
                     impactFlashAlpha = 0.6f
-                    spawnBurst(player.x, player.y, 60, Color(0xFF9C27B0), 500f)
+                    spawnBurst(player.x, player.y, 60, SciFiPurple, 500f)
                 }
                 AltitudeZone.VOID -> {
                     impactFlashAlpha = 0.8f // High impact flash
@@ -444,10 +448,10 @@ fun GameScreen() {
         player.invulnerabilityTimer = 3.0f // 3 seconds of protection
 
         // Re-entry effect
-        spawnBurst(player.x, player.y - 100f, 40, Color.White, 300f)
+        spawnBurst(player.x, player.y - 100f, 40, SciFiWhite, 300f)
         screenShake = 15f
         impactFlashAlpha = 1.0f
-        floatingTexts.add(FloatingText("SYSTEM REBOOTED", player.x, player.y - 150f, color = Color.Cyan))
+        floatingTexts.add(FloatingText("SYSTEM REBOOTED", player.x, player.y - 150f, color = SciFiCyan))
 
         continuesUsed++
         gameState = GameState.PLAYING
@@ -460,21 +464,21 @@ fun GameScreen() {
         val nextY = lastY - gapY
         val nextX = Random.nextFloat() * (screenWidth - pWidth)
 
-        // Task 2: Learning zone (0-500m) only has Normal and Moving platforms
+        // Task 3: Adjusted Spawn Hierarchy for Sprint E Closure
         val type = when {
             score < 500 -> if (Random.nextFloat() < 0.2f) PlatformType.MOVING else PlatformType.NORMAL
             else -> {
                 val rand = Random.nextFloat()
                 when {
-                    rand < 0.12f -> PlatformType.MOVING
+                    rand < 0.10f -> PlatformType.MOVING
                     rand < 0.22f -> PlatformType.ICE
-                    rand < 0.32f -> PlatformType.BOOST
-                    rand < 0.40f && phaseStreak < 2 -> PlatformType.PHASE 
-                    rand < 0.46f -> PlatformType.FUEL
-                    rand < 0.52f -> PlatformType.COOLING
-                    rand < 0.58f -> PlatformType.STABILITY
-                    rand < 0.66f && magneticStreak < 2 -> PlatformType.MAGNETIC
-                    (rand < 0.76f && breakableStreak < 3) -> PlatformType.BREAKABLE
+                    rand < 0.35f -> PlatformType.BOOST
+                    rand < 0.48f -> PlatformType.BREAKABLE
+                    rand < 0.60f && phaseStreak < 2 -> PlatformType.PHASE 
+                    rand < 0.70f && magneticStreak < 2 -> PlatformType.MAGNETIC
+                    rand < 0.78f -> PlatformType.STABILITY
+                    rand < 0.82f -> PlatformType.FUEL
+                    rand < 0.86f -> PlatformType.COOLING
                     else -> PlatformType.NORMAL
                 }
             }
@@ -486,7 +490,8 @@ fun GameScreen() {
 
         val isMoving = type == PlatformType.MOVING
         val speed = if (isMoving) (100f + (difficulty * 200f)) * (if (Random.nextBoolean()) 1f else -1f) else 0f
-        val totalBreakTime = if (type == PlatformType.BREAKABLE) 2f + Random.nextFloat() * 2f else 3f
+        // Task 4: Breakable Platform Tension Pass (20% faster)
+        val totalBreakTime = if (type == PlatformType.BREAKABLE) 1.5f + Random.nextFloat() * 1.5f else 3f
 
         return Platform(nextX, nextY, pWidth, type, isMoving, speed, totalBreakTime)
     }
@@ -541,8 +546,8 @@ fun GameScreen() {
             }
 
             // Visuals
-            floatingTexts.add(FloatingText("MISSION COMPLETE!", player.x, player.y - 150f, color = Color.Green, isCritical = true))
-            spawnBurst(player.x, player.y - 100f, 30, Color.Green, 400f)
+            floatingTexts.add(FloatingText("MISSION COMPLETE!", player.x, player.y - 150f, color = SciFiGreen, isCritical = true))
+            spawnBurst(player.x, player.y - 100f, 30, SciFiGreen, 400f)
         }
         missionManager.selectNextMission()
     }
@@ -613,7 +618,7 @@ fun GameScreen() {
                         isThrusting = true
                         thrustTarget = down.position
                         player.squashStretch = 1.2f // Stretch on takeoff
-                        spawnBurst(player.x, player.y + ROCKET_HEIGHT / 2, 10, Color.LightGray, 50f)
+                        spawnBurst(player.x, player.y + ROCKET_HEIGHT / 2, 10, SciFiWhite.copy(alpha = 0.5f), 50f)
                     }
                     while (true) {
                         val event = awaitPointerEvent()
@@ -657,19 +662,19 @@ fun GameScreen() {
                         if (comboManager.pendingReward != null && comboManager.pendingReward != prevPending) {
                             // Combo Ended with Reward (Task 5: Tier 3)
                             
-                            // NEW COMBO HIGH CELEBRATION (Task 3: Now only on completion)
+                            // NEW COMBO HIGH CELEBRATION (Sprint E: Polish)
                             if (comboManager.isNewHighReached) {
-                                floatingTexts.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = Color.Yellow, isCritical = true))
-                                screenShake = max(screenShake, 25f)
-                                impactFlashAlpha = max(impactFlashAlpha, 0.5f)
+                                floatingTexts.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = SciFiGold, isCritical = true))
+                                screenShake = max(screenShake, 35f)
+                                impactFlashAlpha = max(impactFlashAlpha, 0.7f)
                                 
                                 // Large energy burst
-                                repeat(30) {
+                                repeat(50) {
                                     val angle = Random.nextFloat() * 2f * PI.toFloat()
-                                    val s = 300f + Random.nextFloat() * 300f
+                                    val s = 400f + Random.nextFloat() * 400f
                                     particles.add(Particle(
                                         x = player.x, y = player.y, vx = cos(angle) * s, vy = sin(angle) * s,
-                                        life = 1.2f, color = Color.Yellow, size = 6f
+                                        life = 1.5f, color = SciFiGold, size = 6f
                                     ))
                                 }
                             }
@@ -683,14 +688,14 @@ fun GameScreen() {
                             notificationQueue.add("COMBO COMPLETE: x${comboManager.lastFinalStreak}")
                             
                             // Visual pay-off for combo completion
-                            screenShake = max(screenShake, 20f)
-                            impactFlashAlpha = max(impactFlashAlpha, 0.4f)
-                            repeat(20) {
+                            screenShake = max(screenShake, 25f)
+                            impactFlashAlpha = max(impactFlashAlpha, 0.5f)
+                            repeat(30) {
                                 val angle = Random.nextFloat() * 2f * PI.toFloat()
                                 particles.add(Particle(
                                     x = screenWidth - 60f, y = screenHeight / 2f + (120f * densityValue),
-                                    vx = cos(angle) * 400f, vy = sin(angle) * 400f,
-                                    life = 1.0f, color = Color.Cyan, size = 5f
+                                    vx = cos(angle) * 450f, vy = sin(angle) * 450f,
+                                    life = 1.2f, color = SciFiCyan, size = 5f
                                 ))
                             }
                         }
@@ -1146,14 +1151,14 @@ fun GameScreen() {
                                                         threat.activeWeakPoints--
                                                         player.invulnerabilityTimer = 0.5f
                                                         player.velocityY = -400f // Bounce off
-                                                        spawnBurst(wx, wy, 25, Color.Magenta, 300f)
+                                                        spawnBurst(wx, wy, 25, SciFiPurple, 300f)
                                                         screenShake = 20f
-                                                        floatingTexts.add(FloatingText("WEAK POINT DESTROYED", player.x, player.y - 120f, color = Color.Magenta, isCritical = true))
+                                                        floatingTexts.add(FloatingText("WEAK POINT DESTROYED", player.x, player.y - 120f, color = SciFiPurple, isCritical = true))
 
                                                         if (threat.activeWeakPoints <= 0) {
                                                             threat.phase = 5 // Force retreat/destruction phase
                                                             score += 1000
-                                                            floatingTexts.add(FloatingText("BOSS CRITICAL - RETREATING", player.x, player.y - 150f, color = Color.Cyan, isCritical = true))
+                                                            floatingTexts.add(FloatingText("BOSS CRITICAL - RETREATING", player.x, player.y - 150f, color = SciFiCyan, isCritical = true))
                                                         }
                                                     }
                                                 }
@@ -1243,7 +1248,7 @@ fun GameScreen() {
                                                     if (sdx*sdx + sdy*sdy < 200f * 200f && sdy > 20f) {
                                                         player.velocityY -= 4500f * sdt // MASSIVE BOOST
                                                         if (Random.nextFloat() < 0.4f) {
-                                                            spawnBurst(player.x, player.y + 50f, 10, Color.Cyan, 300f)
+                                                            spawnBurst(player.x, player.y + 50f, 10, SciFiCyan, 300f)
                                                         }
                                                     }
                                                 }
@@ -1293,18 +1298,18 @@ fun GameScreen() {
                                         if (threat.phase == 5 && !threat.hasInteracted) {
                                             threat.hasInteracted = true
                                             powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
-                                            floatingTexts.add(FloatingText("!!! ${threat.definition.name.uppercase()} DEFEATED !!!", player.x, player.y - 200f, color = Color.Cyan, isCritical = true))
+                                            floatingTexts.add(FloatingText("!!! ${threat.definition.name.uppercase()} DEFEATED !!!", player.x, player.y - 200f, color = SciFiCyan, isCritical = true))
                                             activeNotification = ">>> MISSION DATA RECOVERED <<<"
                                             notificationAlpha = 5.0f
-                                            screenShake = 60f
+                                            screenShake = 70f
                                             impactFlashAlpha = 1.0f
-                                            spawnBurst(player.x, cameraY + 200f, 100, Color(0xFF9C27B0), 1000f) // Massive purple burst
+                                            spawnBurst(player.x, cameraY + 200f, 100, SciFiPurple, 1200f) // Massive purple burst
                                             
                                             // Task 5: Tier 4 Major Event Visuals
-                                            repeat(5) {
+                                            repeat(8) {
                                                 spawnBurst(player.x + (Random.nextFloat() - 0.5f) * 200f, 
                                                            player.y + (Random.nextFloat() - 0.5f) * 200f, 
-                                                           50, Color.White, 800f)
+                                                           50, SciFiWhite, 800f)
                                             }
 
                                             // Mission Hook
@@ -1436,7 +1441,7 @@ fun GameScreen() {
                                             player.y = pTop - rHalfH
                                             if (player.velocityY > 0) player.velocityY = 0f
                                         }
-                                        spawnBurst(player.x, pTop, 10, Color.Gray, 100f)
+                                        spawnBurst(player.x, pTop, 10, SciFiBorder, 100f)
                                     }
                                     else if (wasBelow && player.velocityY < 0) {
                                         player.y = pBottom + rHalfH
@@ -1568,23 +1573,28 @@ fun GameScreen() {
                             if (abs(player.x - pu.x) < 80f && abs(player.y - pu.y) < 100f) { // Task 0: Increased radius
                                 when (pu.type) {
                                     PowerUpType.FUEL_TANK -> {
-                                        player.maxFuel = min(250f, player.maxFuel + 25f)
-                                        player.fuel = player.maxFuel
-                                        spawnBurst(pu.x, pu.y, 30, Color.Yellow, 300f)
+                                        if (player.maxFuel < Constants.MAX_FUEL_CAPACITY_LIMIT) {
+                                            player.maxFuel = min(Constants.MAX_FUEL_CAPACITY_LIMIT, player.maxFuel + 25f)
+                                            player.fuel = player.maxFuel
+                                            notificationQueue.add("FUEL CAPACITY UP!")
+                                        } else {
+                                            player.fuel = player.maxFuel
+                                            notificationQueue.add("FUEL REFILLED")
+                                        }
+                                        spawnBurst(pu.x, pu.y, 30, SciFiGold, 300f)
                                         screenShake = 5f
-                                        notificationQueue.add("FUEL CAPACITY UP!")
                                         checkDiscovery(DiscoveryType.FUEL_TANK)
                                     }
                                     PowerUpType.TURBO_BOOSTER -> {
                                         player.turboTimer = 8f
-                                        spawnBurst(pu.x, pu.y, 30, Color.Cyan, 300f)
+                                        spawnBurst(pu.x, pu.y, 30, SciFiCyan, 300f)
                                         screenShake = 5f
                                         notificationQueue.add("TURBO ACTIVE!")
                                         checkDiscovery(DiscoveryType.TURBO_BOOSTER)
                                     }
                                     PowerUpType.EFFICIENCY_MODULE -> {
                                         player.efficiencyTimer = 8f
-                                        spawnBurst(pu.x, pu.y, 30, Color.Green, 300f)
+                                        spawnBurst(pu.x, pu.y, 30, SciFiGreen, 300f)
                                         screenShake = 5f
                                         notificationQueue.add("FUEL EFFICIENCY UP!")
                                         checkDiscovery(DiscoveryType.EFFICIENCY_MODULE)
@@ -1592,7 +1602,7 @@ fun GameScreen() {
                                     PowerUpType.HEAT_SINK -> {
                                         player.heat = max(0f, player.heat - MAX_HEAT * 0.5f)
                                         player.isOverheated = false
-                                        spawnBurst(pu.x, pu.y, 30, Color.White, 300f)
+                                        spawnBurst(pu.x, pu.y, 30, SciFiWhite, 300f)
                                         screenShake = 5f
                                         notificationQueue.add("ENGINES COOLED!")
                                         checkDiscovery(DiscoveryType.HEAT_SINK)
@@ -1603,14 +1613,14 @@ fun GameScreen() {
                                             DiscoveryType.ART_BEACON, DiscoveryType.ART_DRONE
                                         ).random()
                                         checkDiscovery(artifact)
-                                        spawnBurst(pu.x, pu.y, 50, Color(0xFF9C27B0), 400f)
+                                        spawnBurst(pu.x, pu.y, 50, SciFiPurple, 400f)
                                         screenShake = 10f
                                         impactFlashAlpha = 0.6f
                                         notificationQueue.add("ARTIFACT RECOVERED!")
                                     }
                                     PowerUpType.ALTITUDE_BOOSTER -> {
                                         player.velocityY = -2500f // Massive boost
-                                        spawnBurst(pu.x, pu.y, 40, Color.White, 400f)
+                                        spawnBurst(pu.x, pu.y, 40, SciFiWhite, 400f)
                                         screenShake = 10f
                                         notificationQueue.add("ALTITUDE BOOST!")
                                     }
@@ -1618,7 +1628,7 @@ fun GameScreen() {
 
                                 if (pu.isMissionReward) {
                                     // Secondary celebration burst for mission rewards
-                                    spawnBurst(player.x, player.y, 40, Color(0xFFFFD700), 400f)
+                                    spawnBurst(player.x, player.y, 40, SciFiGold, 400f)
                                 }
 
                                 powerUpIterator.remove()
@@ -1746,9 +1756,9 @@ fun GameScreen() {
                                                 y = (cardY + cameraY) + (Random.nextFloat() - 0.5f) * 65f, // Account for cameraY when spawning from HUD
                                                 vx = (Random.nextFloat() - 0.5f) * 80f,
                                                 vy = (Random.nextFloat() - 0.5f) * 80f + 30f,
-                                                life = 1.2f,
+                                                life = 1.5f,
                                                 color = pColor,
-                                                size = 3f + Random.nextFloat() * 4f
+                                                size = 3f + Random.nextFloat() * 5f
                                             ))
                                         }
                                     }
@@ -1767,15 +1777,15 @@ fun GameScreen() {
                                     val cardY = 100f * densityValue
                                     
                                     // Task 4: Restore star/sparkle burst on mission completion
-                                    repeat(25) {
+                                    repeat(40) {
                                         val angle = Random.nextFloat() * 2f * PI.toFloat()
-                                        val speed = 150f + Random.nextFloat() * 250f
+                                        val speed = 150f + Random.nextFloat() * 300f
                                         particles.add(Particle(
                                             x = cardX, y = cardY + cameraY, // Account for cameraY when spawning from HUD
                                             vx = cos(angle) * speed, vy = sin(angle) * speed,
-                                            life = 1.0f + Random.nextFloat() * 0.8f,
-                                            color = if (Random.nextBoolean()) Color.White else Color.Yellow,
-                                            size = 4f + Random.nextFloat() * 4f // Larger size triggers star rendering
+                                            life = 1.2f + Random.nextFloat() * 1.0f,
+                                            color = if (Random.nextBoolean()) SciFiWhite else SciFiGold,
+                                            size = 4f + Random.nextFloat() * 5f // Larger size triggers star rendering
                                         ))
                                     }
                                 }
@@ -1808,10 +1818,10 @@ fun GameScreen() {
                                     type = comboReward,
                                     x = cardX,
                                     y = 100f * densityValue, // top area
-                                    scale = 3.5f // Task 2: Increased scale
+                                    scale = 4.0f // Task 2: Increased scale
                                 ))
                                 m.ceremonyStage = CeremonyStage.REWARD_SPAWNED
-                                spawnBurst(cardX, 100f * densityValue, 30, Color.Yellow, 300f)
+                                spawnBurst(cardX, 100f * densityValue, 40, SciFiGold, 350f)
                             }
                             if (prevTime < 3.5f && newTime >= 3.5f) {
                                 m.ceremonyStage = CeremonyStage.REPLACING
@@ -1911,12 +1921,16 @@ fun GameScreen() {
                     particles.forEach { p -> 
                         val alpha = (p.life / 1.0f).coerceIn(0f, 1f)
                         // Task 4: Render larger particles as stars for sparkle effect
-                        if (p.size > 6f && (gameTime / 100) % 2L == 0L) {
+                        if (p.size > 5f && (gameTime / 150) % 2L == 0L) {
                             val centerX = p.x
                             val centerY = p.y - cameraY
-                            val s = p.size * 1.2f
-                            drawLine(p.color.copy(alpha = alpha), Offset(centerX - s, centerY), Offset(centerX + s, centerY), strokeWidth = 2f)
-                            drawLine(p.color.copy(alpha = alpha), Offset(centerX, centerY - s), Offset(centerX, centerY + s), strokeWidth = 2f)
+                            val s = p.size * 1.5f
+                            drawLine(p.color.copy(alpha = alpha), Offset(centerX - s, centerY), Offset(centerX + s, centerY), strokeWidth = 2.5f)
+                            drawLine(p.color.copy(alpha = alpha), Offset(centerX, centerY - s), Offset(centerX, centerY + s), strokeWidth = 2.5f)
+                            // Diagonal sparkle bits for premium feel
+                            val ds = s * 0.5f
+                            drawLine(p.color.copy(alpha = alpha * 0.5f), Offset(centerX - ds, centerY - ds), Offset(centerX + ds, centerY + ds), strokeWidth = 1.5f)
+                            drawLine(p.color.copy(alpha = alpha * 0.5f), Offset(centerX + ds, centerY - ds), Offset(centerX - ds, centerY + ds), strokeWidth = 1.5f)
                         } else {
                             drawCircle(p.color.copy(alpha = alpha), radius = p.size, center = Offset(p.x, p.y - cameraY)) 
                         }
@@ -2330,7 +2344,7 @@ fun GameScreen() {
                                         } else {
                                             // Destroyed state debris
                                             if (Random.nextFloat() < 0.1f) {
-                                                spawnBurst(wx, wy + cameraY, 5, Color.Gray, 50f)
+                                                spawnBurst(wx, wy + cameraY, 5, SciFiBorder, 50f)
                                             }
                                         }
                                     }
@@ -2640,137 +2654,288 @@ fun GameScreen() {
                         val rocketOffset by infiniteTransition.animateFloat(0f, -20f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "RocketOffset")
                         Canvas(Modifier.size(100.dp).offset { androidx.compose.ui.unit.IntOffset(0, rocketOffset.dp.roundToPx()) }) {
                             val rx = size.width/2; val ry = size.height/2
-                            drawRect(Color.Gray, topLeft = Offset(rx-10f, ry-15f), size = Size(20f, 40f))
-                            drawPath(Path().apply { moveTo(rx-10f, ry-15f); lineTo(rx, ry-30f); lineTo(rx+10f, ry-15f); close() }, Color.Red)
-                            drawPath(Path().apply { moveTo(rx-5f, ry+25f); lineTo(rx, ry+40f+Random.nextFloat()*10f); lineTo(rx+5f, ry+25f); close() }, Color.Yellow)
+                            drawRect(SciFiWhite.copy(alpha = 0.8f), topLeft = Offset(rx-10f, ry-15f), size = Size(20f, 40f))
+                            drawPath(Path().apply { moveTo(rx-10f, ry-15f); lineTo(rx, ry-30f); lineTo(rx+10f, ry-15f); close() }, SciFiRed)
+                            drawPath(Path().apply { moveTo(rx-5f, ry+25f); lineTo(rx, ry+40f+Random.nextFloat()*10f); lineTo(rx+5f, ry+25f); close() }, SciFiGold)
                         }
                         Spacer(Modifier.height(20.dp))
-                        Text("JUMP DROID", style = MaterialTheme.typography.displayLarge.copy( shadow = androidx.compose.ui.graphics.Shadow(Color.Cyan.copy(alpha = glowAlpha), Offset(0f, 0f), 20f) ), color = Color.White, fontWeight = FontWeight.ExtraBold)
+                        Text(
+                            text = "JUMP DROID",
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                shadow = androidx.compose.ui.graphics.Shadow(SciFiCyan.copy(alpha = glowAlpha), Offset(0f, 0f), 20f),
+                                letterSpacing = 8.sp
+                            ),
+                            color = SciFiWhite,
+                            fontWeight = FontWeight.Black
+                        )
                         Spacer(Modifier.height(80.dp))
-                        Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.width(220.dp)) { Text("ASCEND") }
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.width(240.dp).height(56.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                        ) {
+                            Text("INITIATE ASCENT", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                        }
                     }
-                    Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("The Ascension Program • Established 1984", color = Color.White.copy(alpha = 0.5f))
-                        Text("Powered by AshwathAI", color = Color.White.copy(alpha = 0.5f))
+                    Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("THE ASCENSION PROGRAM // EST. 1984", color = SciFiWhite.copy(alpha = 0.3f), letterSpacing = 1.sp, fontSize = 10.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text("POWERED BY ASHWATH.AI // V1.2.0", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp)
                     }
                 }
             }
             GameState.MAIN_MENU -> {
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
-                        Text("COMMAND CENTER", style = MaterialTheme.typography.headlineLarge, color = Color.White)
-                        Spacer(Modifier.height(32.dp))
-                        Button(onClick = { restartGame() }, Modifier.width(200.dp)) { Text("LAUNCH") }
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = { gameState = GameState.HANGAR }, Modifier.width(200.dp)) { Text("HANGAR") }
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = { gameState = GameState.CODEX }, Modifier.width(200.dp)) { Text("CODEX") }
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = { gameState = GameState.LEADERBOARD }, Modifier.width(200.dp)) { Text("TERMINAL") }
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = { gameState = GameState.ABOUT }, Modifier.width(200.dp)) { Text("MISSION DATA") }
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = { gameState = GameState.SETTINGS }, Modifier.width(200.dp)) { Text("SETTINGS") }
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = { (context as? android.app.Activity)?.finish() }, Modifier.width(200.dp)) { Text("ABORT") }
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)), contentAlignment = Alignment.Center) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.safeDrawingPadding().width(280.dp)
+                    ) {
+                        Text(
+                            text = "COMMAND CENTER",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = SciFiWhite,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 4.sp
+                        )
+                        Spacer(Modifier.height(48.dp))
+                        
+                        val menuButtons = listOf(
+                            "LAUNCH" to { restartGame() },
+                            "HANGAR" to { gameState = GameState.HANGAR },
+                            "CODEX" to { gameState = GameState.CODEX },
+                            "TERMINAL" to { gameState = GameState.LEADERBOARD },
+                            "MISSION DATA" to { gameState = GameState.ABOUT },
+                            "SETTINGS" to { gameState = GameState.SETTINGS }
+                        )
+
+                        menuButtons.forEach { (label, action) ->
+                            Button(
+                                onClick = action,
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(4.dp), // Sharper corners for modern look
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = SciFiSurface,
+                                    contentColor = SciFiWhite
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                            ) {
+                                Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        }
+                        
+                        Spacer(Modifier.height(24.dp))
+                        
+                        Button(
+                            onClick = { (context as? android.app.Activity)?.finish() },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = SciFiRed.copy(alpha = 0.2f),
+                                contentColor = SciFiRed
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiRed.copy(alpha = 0.5f))
+                        ) {
+                            Text("ABORT MISSION", fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                        }
                     }
                 }
             }
             GameState.HANGAR -> {
-                Surface(Modifier.fillMaxSize(), color = Color(0xFF0D001A)) {
+                Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
                     Column(Modifier.padding(16.dp).safeDrawingPadding()) {
-                        Text("ROCKET HANGAR", style = MaterialTheme.typography.headlineMedium, color = Color.Cyan)
-                        Spacer(Modifier.height(16.dp))
+                        Text("ROCKET HANGAR", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Spacer(Modifier.height(24.dp))
                         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                             RocketType.entries.forEach { type ->
                                 val unlocked = highScore >= type.unlockScore || sharedPrefs.getBoolean("unlock_${type.name}", false)
                                 Surface(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(enabled = unlocked) { player.rocketType = type; gameState = GameState.MAIN_MENU },
-                                    color = if (player.rocketType == type) Color(0xFF1A237E) else if (unlocked) Color.DarkGray else Color.Black.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = if (player.rocketType == type) androidx.compose.foundation.BorderStroke(2.dp, Color.Cyan) else null
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp)
+                                        .clickable(enabled = unlocked) { player.rocketType = type; gameState = GameState.MAIN_MENU }
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (player.rocketType == type) SciFiCyan else if (unlocked) SciFiBorder else SciFiBorder.copy(alpha = 0.05f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        ),
+                                    color = if (player.rocketType == type) SciFiCyan.copy(alpha = 0.1f) else if (unlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.1f),
+                                    shape = RoundedCornerShape(12.dp)
                                 ) {
-                                    Column(Modifier.padding(16.dp)) {
-                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text(type.title, style = MaterialTheme.typography.titleLarge, color = if (unlocked) Color.White else Color.Gray)
-                                            if (!unlocked) Text("Locked: ${type.unlockScore}m", color = Color.Red, style = MaterialTheme.typography.labelSmall)
-                                            else if (player.rocketType == type) Text("ACTIVE", color = Color.Cyan, fontWeight = FontWeight.Bold)
+                                    Column(Modifier.padding(20.dp)) {
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                            Text(type.title.uppercase(), style = MaterialTheme.typography.titleLarge, color = if (unlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.3f), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                            if (!unlocked) Text("THRESHOLD: ${type.unlockScore}m", color = SciFiRed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            else if (player.rocketType == type) Text("ACTIVE", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 2.sp)
                                         }
                                         if (unlocked) {
-                                            Spacer(Modifier.height(8.dp))
-                                            Text("Fuel: ${(type.fuelMult * 100).toInt()}% • Thrust: ${(type.thrustMult * 100).toInt()}% • Heat: ${(type.heatMult * 100).toInt()}%", color = Color.LightGray, style = MaterialTheme.typography.bodySmall)
-                                            Text(type.discovery.description, color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                                            Spacer(Modifier.height(12.dp))
+                                            Text("THRUST: ${(type.thrustMult * 100).toInt()}% // FUEL: ${(type.fuelMult * 100).toInt()}% // THERMAL: ${(type.heatMult * 100).toInt()}%", color = SciFiCyan.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(type.discovery.description, color = SciFiWhite.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
                                         }
                                     }
                                 }
                             }
                         }
-                        Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.fillMaxWidth()) { Text("BACK") }
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("BACK", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
             GameState.CODEX -> {
                 val categories = listOf("ROCKETS", "PLATFORMS", "POWERUPS", "AREAS", "THREATS", "ARTIFACTS", "LORE", "ACHIEVEMENTS")
                 var selectedCat by remember { mutableStateOf("ROCKETS") }
-                Surface(Modifier.fillMaxSize(), color = Color(0xFF0D001A)) {
+                Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
                     Column(Modifier.padding(16.dp).safeDrawingPadding()) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("CODEX", style = MaterialTheme.typography.headlineMedium, color = Color.Cyan)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("DATA ARCHIVE", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                             val discovered = DiscoveryType.entries.count { sharedPrefs.getBoolean("discovery_$it", false) }
-                            Text("$discovered Found", color = Color.Gray)
+                            Text("$discovered RECORDS FOUND", color = SciFiWhite.copy(alpha = 0.4f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                         }
-                        Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
-                            categories.forEach { cat -> Text(cat, Modifier.clickable { selectedCat = cat }.padding(8.dp), color = if (selectedCat == cat) Color.Yellow else Color.Gray) }
+                        Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 16.dp)) {
+                            categories.forEach { cat -> 
+                                Text(
+                                    text = cat,
+                                    modifier = Modifier
+                                        .clickable { selectedCat = cat }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        .background(if (selectedCat == cat) SciFiCyan.copy(alpha = 0.1f) else Color.Transparent, RoundedCornerShape(4.dp)),
+                                    color = if (selectedCat == cat) SciFiCyan else SciFiWhite.copy(alpha = 0.4f),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                            }
                         }
                         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                             if (selectedCat == "ACHIEVEMENTS") {
-                                AchievementsList.forEach { ach -> val unlocked = sharedPrefs.getBoolean("achievement_${ach.id}", false); CodexCard(ach.title, if (unlocked) ach.description else "???", "", unlocked) }
+                                AchievementsList.forEach { ach -> 
+                                    val unlocked = sharedPrefs.getBoolean("achievement_${ach.id}", false)
+                                    CodexCard(ach.title, if (unlocked) ach.description else "DATA ENCRYPTED: REACH OBJECTIVE TO UNLOCK.", "", unlocked) 
+                                }
                             } else {
                                 DiscoveryType.entries.filter { it.category == selectedCat }.forEach { entry ->
                                     val unlocked = discoveryManager.isDiscovered(entry)
                                     val title = if (unlocked || selectedCat != "THREATS") entry.title else "UNKNOWN SIGNAL"
-                                    val desc = if (unlocked) entry.description else "Locked: Encounter during expedition to unlock."
+                                    val desc = if (unlocked) entry.description else "DATA CORRUPTED: RECOVER DURING NEXT EXPEDITION."
                                     val lore = if (unlocked) entry.lore else ""
                                     CodexCard(title, desc, lore, unlocked)
                                 }
                             }
                         }
-                        Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.fillMaxWidth()) { Text("BACK") }
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("BACK", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
             GameState.SETTINGS -> {
-                Surface(Modifier.fillMaxSize(), color = Color(0xFF0D001A)) {
+                Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
                     Column(Modifier.padding(32.dp).safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("SETTINGS", style = MaterialTheme.typography.headlineLarge, color = Color.Cyan)
+                        Text("SYSTEM SETTINGS", style = MaterialTheme.typography.headlineLarge, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                         Spacer(Modifier.height(48.dp))
-                        Text("Master Volume", color = Color.White); Spacer(Modifier.height(8.dp)); Box(Modifier.width(200.dp).height(10.dp).background(Color.Gray))
-                        Spacer(Modifier.height(32.dp))
-                        Button(onClick = { sharedPrefs.edit { clear() }; highScore = 0; player.rocketType = RocketType.BALANCED; gameState = GameState.TITLE }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("RESET ALL PROGRESS") }
+                        Text("MASTER AUDIO", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 1.sp)
+                        Spacer(Modifier.height(16.dp))
+                        Box(Modifier.width(200.dp).height(4.dp).background(SciFiSurface, CircleShape)) {
+                            Box(Modifier.fillMaxWidth(0.8f).fillMaxHeight().background(SciFiCyan, CircleShape))
+                        }
+                        Spacer(Modifier.height(64.dp))
+                        Button(
+                            onClick = { sharedPrefs.edit { clear() }; highScore = 0; player.rocketType = RocketType.BALANCED; gameState = GameState.TITLE },
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiRed.copy(alpha = 0.2f), contentColor = SciFiRed),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiRed.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("WIPE TELEMETRY DATA", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        }
                         Spacer(Modifier.weight(1f))
-                        Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.fillMaxWidth()) { Text("BACK") }
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("RETURN", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
             GameState.ABOUT -> {
-                Surface(Modifier.fillMaxSize(), color = Color(0xFF0D001A)) {
+                Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
                     Column(Modifier.padding(32.dp).verticalScroll(rememberScrollState()).safeDrawingPadding()) {
-                        Text("MISSION DATA", style = MaterialTheme.typography.headlineMedium, color = Color.Cyan); Spacer(Modifier.height(24.dp))
-                        Text("Jump Droid is a vertical exploration game focused on precision rocket control and discovery.", color = Color.White)
-                        Spacer(Modifier.height(16.dp)); Text("Built using Android Studio and Jetpack Compose. Powered by Ashwath.AI.", color = Color.White)
-                        Spacer(Modifier.height(24.dp)); Text("Version: 1.1.0 (Ascension Update)", color = Color.Gray)
-                        Spacer(Modifier.height(24.dp)); Text("ROADMAP", style = MaterialTheme.typography.titleLarge, color = Color.Yellow)
-                        Text("• Hostile Entities & Hazards\n• Deep Space Boss Encounters\n• Global Leaderboards", color = Color.Gray)
-                        Spacer(Modifier.height(32.dp)); Button(onClick = { gameState = GameState.MAIN_MENU }) { Text("BACK") }
+                        Text("MISSION DATA", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Spacer(Modifier.height(32.dp))
+                        Text(
+                            text = "Jump Droid is an advanced vertical exploration simulator focusing on precision propulsion control and multi-layered atmospheric discovery.",
+                            color = SciFiWhite.copy(alpha = 0.8f),
+                            lineHeight = 24.sp
+                        )
+                        Spacer(Modifier.height(24.dp))
+                        Text("SYSTEM ARCHITECTURE: JETPACK COMPOSE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+                        Text("CORE ENGINE: ASHWATH.AI PROTOTYPE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+                        Spacer(Modifier.height(32.dp))
+                        Text("PROTOCOL VERSION", style = MaterialTheme.typography.titleLarge, color = SciFiGold, fontWeight = FontWeight.Bold)
+                        Text("V1.2.0 // ASCENSION EXPANSION", color = SciFiWhite.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(32.dp))
+                        Text("PROJECT ROADMAP", style = MaterialTheme.typography.titleLarge, color = SciFiGold, fontWeight = FontWeight.Bold)
+                        Text("• ADVANCED ENTITY AI\n• DEEP SPACE ANOMALIES\n• INTERSTELLAR TERMINAL", color = SciFiWhite.copy(alpha = 0.6f), lineHeight = 24.sp)
+                        Spacer(Modifier.height(48.dp))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("DISMISS", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
             GameState.LEADERBOARD -> {
-                Box(Modifier.fillMaxSize().background(Color(0xFF0D001A)).safeDrawingPadding(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("TERMINAL", style = MaterialTheme.typography.headlineMedium, color = Color.Cyan); Spacer(Modifier.height(32.dp))
-                        Text("Worldwide rankings coming soon.", color = Color.White); Spacer(Modifier.height(32.dp))
-                        Button(onClick = { gameState = GameState.MAIN_MENU }) { Text("BACK") }
+                Box(Modifier.fillMaxSize().background(SciFiBackground).safeDrawingPadding(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(300.dp)) {
+                        Text("GLOBAL TERMINAL", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Spacer(Modifier.height(48.dp))
+                        Surface(
+                            color = SciFiSurface,
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("CONNECTION STATUS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                                Spacer(Modifier.height(12.dp))
+                                Text("OFFLINE", color = SciFiRed, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+                                Spacer(Modifier.height(24.dp))
+                                Text("Worldwide rankings currently unavailable due to atmospheric interference.", color = SciFiWhite.copy(alpha = 0.6f), textAlign = TextAlign.Center, fontSize = 12.sp)
+                            }
+                        }
+                        Spacer(Modifier.height(48.dp))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("DISCONNECT", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
@@ -2815,76 +2980,126 @@ fun GameScreen() {
                             text = score.toString(),
                             style = MaterialTheme.typography.displaySmall.copy(
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 2.sp,
-                                shadow = androidx.compose.ui.graphics.Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 8f)
+                                letterSpacing = 4.sp,
+                                shadow = androidx.compose.ui.graphics.Shadow(SciFiCyan.copy(alpha = 0.3f), blurRadius = 15f)
                             ),
-                            color = Color.White
+                            color = SciFiWhite
                         )
                         Text(
-                            text = "BEST: $highScore",
+                            text = "ASCENSION DATA: BEST $highScore",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.LightGray.copy(alpha = 0.7f),
-                            fontSize = 10.sp
+                            color = SciFiWhite.copy(alpha = 0.5f),
+                            fontSize = 10.sp,
+                            letterSpacing = 2.sp
                         )
                     }
 
                     // 2. LEFT EDGE: Vertical Fuel Bar
-                    Box(
+                    val fuelGaugeHeight = (150f + (player.maxFuel - 100f) * 0.8f).coerceIn(150f, 350f).dp
+                    Column(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
-                            .padding(start = 12.dp)
-                            .width(20.dp)
-                            .height(200.dp)
-                            .background(Color.Black.copy(alpha = 0.3f), CircleShape),
-                        contentAlignment = Alignment.BottomCenter
+                            .padding(start = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight((player.fuel / player.maxFuel).coerceIn(0f, 1f))
-                                .background(if (player.fuel > player.maxFuel * 0.25f) Color.Green else Color.Red, CircleShape)
-                        )
-                        // Icon instead of Text
                         Text(
                             "⛽",
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .offset(y = (-25).dp),
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(bottom = 6.dp).graphicsLayer(alpha = if (player.fuel < 20f) (gameTime / 200 % 2).toFloat() else 1f)
                         )
+                        Box(
+                            modifier = Modifier
+                                .width(14.dp) // Slightly wider for premium tank feel
+                                .height(fuelGaugeHeight)
+                                .shadow(8.dp, RoundedCornerShape(4.dp))
+                                .background(SciFiSurface, RoundedCornerShape(4.dp))
+                                .border(1.dp, SciFiBorder, RoundedCornerShape(4.dp)),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            val fuelRatio = (player.fuel / player.maxFuel).coerceIn(0f, 1f)
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                clipPath(Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(androidx.compose.ui.geometry.Rect(Offset.Zero, size), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))) }) {
+                                    val fillHeight = size.height * fuelRatio
+                                    // Liquid surface wave
+                                    val waveHeight = 3f
+                                    val waveOffset = (gameTime / 300f) % (2 * PI.toFloat())
+                                    val path = Path().apply {
+                                        moveTo(0f, size.height - fillHeight)
+                                        for (x in 0..size.width.toInt()) {
+                                            val y = (size.height - fillHeight) + sin(x / 4f + waveOffset) * waveHeight
+                                            lineTo(x.toFloat(), y)
+                                        }
+                                        lineTo(size.width, size.height)
+                                        lineTo(0f, size.height)
+                                        close()
+                                    }
+                                    drawPath(
+                                        path = path,
+                                        color = if (player.fuel > player.maxFuel * 0.25f) SciFiGreen else SciFiRed
+                                    )
+                                    // Subtle shimmer
+                                    if (fuelRatio > 0) {
+                                        drawRect(
+                                            color = Color.White.copy(alpha = 0.15f),
+                                            topLeft = Offset(size.width * 0.15f, size.height - fillHeight),
+                                            size = Size(2f, fillHeight)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // 3. RIGHT EDGE: Vertical Heat Bar
-                    Box(
+                    val heatGaugeHeight = (150f + (player.maxHeat - 100f) * 0.8f).coerceIn(150f, 350f).dp
+                    Column(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
-                            .padding(end = 12.dp)
-                            .width(20.dp)
-                            .height(200.dp)
-                            .background(Color.Black.copy(alpha = 0.3f), CircleShape),
-                        contentAlignment = Alignment.BottomCenter
+                            .padding(end = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        val heatRatio = (player.heat / MAX_HEAT).coerceIn(0f, 1f)
-                        val heatColor = when {
-                            player.isOverheated -> Color.Red
-                            heatRatio > 0.8f -> Color.Red
-                            heatRatio > 0.5f -> Color.Yellow
-                            else -> Color.Cyan
-                        }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight(heatRatio)
-                                .background(heatColor, CircleShape)
-                        )
-                        // Icon instead of Text
                         Text(
                             if (player.isOverheated) "⚠️" else "🔥",
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .offset(y = (-25).dp),
-                            fontSize = 14.sp
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(bottom = 6.dp).graphicsLayer(alpha = if (player.isOverheated) (gameTime / 150 % 2).toFloat() else 1f)
                         )
+                        Box(
+                            modifier = Modifier
+                                .width(14.dp)
+                                .height(heatGaugeHeight)
+                                .shadow(8.dp, RoundedCornerShape(4.dp))
+                                .background(SciFiSurface, RoundedCornerShape(4.dp))
+                                .border(1.dp, SciFiBorder, RoundedCornerShape(4.dp)),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            val heatRatio = (player.heat / player.maxHeat).coerceIn(0f, 1f)
+                            val heatColor = when {
+                                player.isOverheated -> SciFiRed
+                                heatRatio > 0.8f -> SciFiRed
+                                heatRatio > 0.5f -> SciFiGold
+                                else -> SciFiCyan
+                            }
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                clipPath(Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(androidx.compose.ui.geometry.Rect(Offset.Zero, size), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))) }) {
+                                    val fillHeight = size.height * heatRatio
+                                    drawRect(
+                                        color = heatColor,
+                                        topLeft = Offset(0f, size.height - fillHeight),
+                                        size = Size(size.width, fillHeight)
+                                    )
+                                    // Heat shimmer / Ember effect
+                                    if (heatRatio > 0.1f) {
+                                        repeat(4) { i ->
+                                            val r = Random(gameTime / 120 + i)
+                                            val rx = r.nextFloat() * size.width
+                                            val ry = (size.height - fillHeight) + r.nextFloat() * fillHeight
+                                            val pAlpha = (0.3f + 0.3f * sin(gameTime / 100f + i)).coerceIn(0f, 0.6f)
+                                            drawCircle(Color.White.copy(alpha = pAlpha), radius = 1.5f, center = Offset(rx, ry))
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // 4. CENTER BELOW ALTITUDE: Progression HUD Layer
@@ -2909,8 +3124,8 @@ fun GameScreen() {
                             ) {
                                 missionManager.activeMissions.forEach { activeMission ->
                                     val cardColor = when (activeMission.ceremonyStage) {
-                                        CeremonyStage.GLOW -> Color.Cyan.copy(alpha = 0.6f)
-                                        else -> Color.Black.copy(alpha = 0.4f)
+                                        CeremonyStage.GLOW -> SciFiCyan.copy(alpha = 0.6f)
+                                        else -> SciFiSurface
                                     }
 
                                     AnimatedVisibility(
@@ -2922,13 +3137,15 @@ fun GameScreen() {
                                     ) {
                                         Surface(
                                             color = cardColor,
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.width(110.dp).height(65.dp), // Task 2: Fixed Dimensions
-                                            border = if (activeMission.ceremonyStage == CeremonyStage.GLOW) 
-                                                androidx.compose.foundation.BorderStroke(1.dp, Color.White) else null
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier.width(115.dp).height(65.dp).shadow(4.dp, RoundedCornerShape(12.dp)),
+                                            border = androidx.compose.foundation.BorderStroke(
+                                                width = 1.dp,
+                                                color = if (activeMission.ceremonyStage == CeremonyStage.GLOW) SciFiWhite else SciFiBorder
+                                            )
                                         ) {
                                             Column(
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                                                 horizontalAlignment = Alignment.CenterHorizontally
                                             ) {
                                                 if (activeMission.ceremonyStage == CeremonyStage.COMPLETED_TEXT || 
@@ -2936,9 +3153,10 @@ fun GameScreen() {
                                                     Text(
                                                         "MISSION COMPLETE",
                                                         style = MaterialTheme.typography.labelSmall,
-                                                        color = Color.Green,
+                                                        color = SciFiGreen,
                                                         fontWeight = FontWeight.Black,
-                                                        fontSize = 8.sp
+                                                        fontSize = 8.sp,
+                                                        letterSpacing = 1.sp
                                                     )
                                                 } else {
                                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2948,7 +3166,7 @@ fun GameScreen() {
                                                             modifier = Modifier.padding(end = 4.dp)
                                                         )
                                                         
-                                                        // Task 2: Hint Rotation
+                                                        // Task 1: Prevent Overflow
                                                         AnimatedContent(
                                                             targetState = globalShowObjective,
                                                             transitionSpec = { fadeIn(tween(500)) togetherWith fadeOut(tween(500)) },
@@ -2958,14 +3176,16 @@ fun GameScreen() {
                                                                 if (showObj) activeMission.description.uppercase() else activeMission.name.uppercase(),
                                                                 style = MaterialTheme.typography.labelSmall,
                                                                 color = when(activeMission.type) {
-                                                                    MissionType.EXPLORATION -> Color.Cyan
-                                                                    MissionType.PLATFORMING -> Color.Yellow
-                                                                    else -> Color.White
+                                                                    MissionType.EXPLORATION -> SciFiCyan
+                                                                    MissionType.PLATFORMING -> SciFiGold
+                                                                    else -> SciFiWhite
                                                                 },
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 8.sp,
                                                                 maxLines = 1,
-                                                                textAlign = TextAlign.Center
+                                                                textAlign = TextAlign.Center,
+                                                                letterSpacing = 0.5.sp,
+                                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                                             )
                                                         }
                                                     }
@@ -2980,20 +3200,21 @@ fun GameScreen() {
                                                 Text(
                                                     progressText,
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    color = Color.White.copy(alpha = 0.9f),
-                                                    fontSize = 9.sp
+                                                    color = SciFiWhite.copy(alpha = 0.7f),
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Medium
                                                 )
 
-                                                Spacer(Modifier.height(3.dp))
-                                                Box(Modifier.width(45.dp).height(2.dp).background(Color.White.copy(alpha = 0.1f), CircleShape)) {
+                                                Spacer(Modifier.height(4.dp))
+                                                Box(Modifier.width(50.dp).height(2.dp).background(SciFiWhite.copy(alpha = 0.1f), CircleShape)) {
                                                     Box(
                                                         Modifier.fillMaxHeight()
                                                             .fillMaxWidth((activeMission.currentProgress.toFloat() / activeMission.targetValue).coerceIn(0f, 1f))
                                                             .background(
                                                                 when(activeMission.type) {
-                                                                    MissionType.EXPLORATION -> Color.Cyan
-                                                                    MissionType.PLATFORMING -> Color.Yellow
-                                                                    else -> Color.White
+                                                                    MissionType.EXPLORATION -> SciFiCyan
+                                                                    MissionType.PLATFORMING -> SciFiGold
+                                                                    else -> SciFiWhite
                                                                 },
                                                                 CircleShape
                                                             )
@@ -3009,28 +3230,31 @@ fun GameScreen() {
 
                             // --- INTEGRATED COMBO HUD ---
                             Surface(
-                                color = Color.Black.copy(alpha = 0.4f),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.fillMaxWidth(0.9f)
+                                color = SciFiSurface,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth(0.9f).shadow(6.dp, RoundedCornerShape(12.dp)),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
                                     Column(horizontalAlignment = Alignment.Start) {
                                         Text(
                                             "BEST THIS RUN: x${comboManager.bestComboThisRun}",
-                                            color = Color.LightGray.copy(alpha = 0.8f),
+                                            color = SciFiWhite.copy(alpha = 0.5f),
                                             style = MaterialTheme.typography.labelSmall,
-                                            fontSize = 7.sp
+                                            fontSize = 7.sp,
+                                            letterSpacing = 1.sp
                                         )
                                         Text(
                                             "COMBO x${comboManager.currentCombo}",
-                                            color = if (comboManager.currentCombo >= comboManager.comboTarget) Color.Yellow else Color.White,
+                                            color = if (comboManager.currentCombo >= comboManager.comboTarget) SciFiGold else SciFiWhite,
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.Black,
-                                            fontSize = 11.sp
+                                            fontSize = 12.sp,
+                                            letterSpacing = 0.5.sp
                                         )
                                     }
 
@@ -3042,10 +3266,10 @@ fun GameScreen() {
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
-                                            .height(8.dp)
-                                            .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                            .height(6.dp)
+                                            .background(SciFiWhite.copy(alpha = 0.1f), CircleShape)
                                     ) {
-                                        val barColor = if (timerRatio > 0.3f) Color.Cyan else Color.Red
+                                        val barColor = if (timerRatio > 0.3f) SciFiCyan else SciFiRed
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth(timerRatio)
@@ -3056,10 +3280,11 @@ fun GameScreen() {
 
                                     Text(
                                         "TARGET: x${comboManager.comboTarget}",
-                                        color = Color.White.copy(alpha = 0.9f),
+                                        color = SciFiWhite.copy(alpha = 0.8f),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp
+                                        fontSize = 10.sp,
+                                        letterSpacing = 0.5.sp
                                     )
                                 }
                             }
@@ -3076,16 +3301,19 @@ fun GameScreen() {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             // Threat Notifications
                             if (activeNotification != null) {
+                                val isHighAlert = activeNotification!!.contains("!!!") || activeNotification!!.contains(">>>")
                                 Text(
                                     text = activeNotification!!,
-                                    modifier = Modifier.graphicsLayer(alpha = notificationAlpha),
+                                    modifier = Modifier.graphicsLayer(alpha = notificationAlpha).widthIn(max = screenWidth.dp * 0.9f),
                                     style = MaterialTheme.typography.headlineSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 2.sp,
-                                        shadow = androidx.compose.ui.graphics.Shadow(Color.Black, blurRadius = 10f)
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 4.sp,
+                                        shadow = androidx.compose.ui.graphics.Shadow(if (isHighAlert) SciFiRed.copy(alpha = 0.5f) else Color.Black, blurRadius = 15f)
                                     ),
-                                    color = Color.White,
-                                    textAlign = TextAlign.Center
+                                    color = if (isHighAlert) SciFiRed else SciFiWhite,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -3129,33 +3357,35 @@ fun GameScreen() {
                             }
 
                             val accentColor = when(zone) {
-                                AltitudeZone.ORBIT -> Color.Yellow
-                                AltitudeZone.VOID -> Color.Red
-                                AltitudeZone.DEEP_SPACE -> Color(0xFF9C27B0)
-                                else -> Color.Cyan
+                                AltitudeZone.ORBIT -> SciFiGold
+                                AltitudeZone.VOID -> SciFiRed
+                                AltitudeZone.DEEP_SPACE -> SciFiPurple
+                                else -> SciFiCyan
                             }
 
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
-                                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                                    .padding(24.dp)
+                                    .background(SciFiSurface, RoundedCornerShape(16.dp))
+                                    .padding(horizontal = 32.dp, vertical = 24.dp)
+                                    .border(1.dp, SciFiBorder, RoundedCornerShape(16.dp))
                             ) {
                                 Text(
                                     text = titleText,
-                                    style = if (zone == AltitudeZone.ORBIT)
-                                        MaterialTheme.typography.headlineMedium.copy(shadow = androidx.compose.ui.graphics.Shadow(Color.Yellow, blurRadius = 15f))
-                                        else MaterialTheme.typography.headlineMedium,
-                                    color = Color.White.copy(alpha = 0.9f),
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        shadow = androidx.compose.ui.graphics.Shadow(accentColor.copy(alpha = 0.5f), blurRadius = 20f),
+                                        letterSpacing = 4.sp
+                                    ),
+                                    color = SciFiWhite,
                                     fontWeight = FontWeight.Black,
                                     textAlign = TextAlign.Center
                                 )
-                                Spacer(Modifier.height(8.dp))
+                                Spacer(Modifier.height(12.dp))
                                 Text(
                                     text = zone.subtitle.uppercase(),
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelLarge,
                                     color = accentColor.copy(alpha = 0.8f),
-                                    letterSpacing = 3.sp,
+                                    letterSpacing = 6.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -3164,43 +3394,75 @@ fun GameScreen() {
                 }
 
                 if (gameState == GameState.PAUSED) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)).pointerInput(Unit) {}, contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).pointerInput(Unit) {}, contentAlignment = Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.safeDrawingPadding().width(280.dp)
+                        ) {
                             if (showDevMenu && DevConfig.CHEATS_ENABLED) {
-                                Text("DEVELOPER MENU", color = Color.Yellow, style = MaterialTheme.typography.headlineMedium)
-                                Spacer(Modifier.height(16.dp))
+                                Text("DEVELOPER OVERRIDE", color = SciFiGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                                Spacer(Modifier.height(24.dp))
                                 Row(Modifier.horizontalScroll(rememberScrollState())) {
                                     AltitudeZone.entries.forEach { zone ->
-                                        Button(onClick = { jumpToZone(zone) }, Modifier.padding(4.dp)) { Text(zone.name) }
+                                        Button(onClick = { jumpToZone(zone) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)) { Text(zone.name, fontSize = 10.sp) }
                                     }
                                 }
-                                Spacer(Modifier.height(8.dp))
+                                Spacer(Modifier.height(12.dp))
                                 Row(Modifier.horizontalScroll(rememberScrollState())) {
                                     listOf("ENT_SCOUT_DRONE", "ENT_SWARM_BOTS", "ENT_CLOUD_SKIMMER", "ENT_ORBITAL_SENTRY", "ENT_CORRUPTED_HULL", "HAZ_VOID_ANOMALY", "MINI_BOSS_COMMANDER", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL").forEach { id ->
-                                        Button(onClick = { spawnDevThreat(id) }, Modifier.padding(4.dp)) { Text(id.substringAfterLast("_")) }
+                                        Button(onClick = { spawnDevThreat(id) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)) { Text(id.substringAfterLast("_"), fontSize = 10.sp) }
                                     }
                                 }
-                                Spacer(Modifier.height(8.dp))
+                                Spacer(Modifier.height(12.dp))
                                 Row {
-                                    Button(onClick = { infiniteFuel = !infiniteFuel }, colors = ButtonDefaults.buttonColors(containerColor = if(infiniteFuel) Color.Green else Color.Gray)) { Text("INF FUEL") }
+                                    Button(onClick = { infiniteFuel = !infiniteFuel }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if(infiniteFuel) SciFiGreen.copy(alpha = 0.3f) else SciFiSurface, contentColor = if(infiniteFuel) SciFiGreen else SciFiWhite)) { Text("INF FUEL", fontSize = 10.sp) }
                                     Spacer(Modifier.width(8.dp))
-                                    Button(onClick = { disableHeat = !disableHeat }, colors = ButtonDefaults.buttonColors(containerColor = if(disableHeat) Color.Green else Color.Gray)) { Text("NO HEAT") }
+                                    Button(onClick = { disableHeat = !disableHeat }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if(disableHeat) SciFiGreen.copy(alpha = 0.3f) else SciFiSurface, contentColor = if(disableHeat) SciFiGreen else SciFiWhite)) { Text("NO HEAT", fontSize = 10.sp) }
                                     Spacer(Modifier.width(8.dp))
-                                    Button(onClick = { unlockAll() }) { Text("UNLOCK ALL") }
+                                    Button(onClick = { unlockAll() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)) { Text("UNLOCK", fontSize = 10.sp) }
                                 }
-                                Spacer(Modifier.height(16.dp))
-                                Button(onClick = { showDevMenu = false }) { Text("BACK TO PAUSE") }
-                            } else {
-                                Text("SYSTEM PAUSED", color = Color.White, style = MaterialTheme.typography.displayMedium)
                                 Spacer(Modifier.height(32.dp))
-                                Button(onClick = { gameState = GameState.PLAYING }, Modifier.width(200.dp)) { Text("RESUME") }
-                                Spacer(Modifier.height(16.dp))
-                                Button(onClick = { restartGame() }, Modifier.width(200.dp)) { Text("RESTART RUN") }
-                                Spacer(Modifier.height(16.dp))
-                                Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.width(200.dp)) { Text("MAIN MENU") }
+                                Button(onClick = { showDevMenu = false }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)) { Text("RETURN TO PAUSE", color = Color.Black, fontWeight = FontWeight.Bold) }
+                            } else {
+                                Text(
+                                    text = "SYSTEMS STANDBY",
+                                    color = SciFiWhite,
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 2.sp,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(Modifier.height(48.dp))
+                                
+                                val pauseButtons = listOf(
+                                    "RESUME" to { gameState = GameState.PLAYING },
+                                    "RESTART RUN" to { restartGame() },
+                                    "MAIN MENU" to { gameState = GameState.MAIN_MENU }
+                                )
+
+                                pauseButtons.forEach { (label, action) ->
+                                    Button(
+                                        onClick = action,
+                                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                                    ) {
+                                        Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                                    }
+                                    Spacer(Modifier.height(12.dp))
+                                }
+
                                 if (DevConfig.CHEATS_ENABLED) {
-                                    Spacer(Modifier.height(32.dp))
-                                    Button(onClick = { showDevMenu = true }, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) { Text("DEV MENU") }
+                                    Spacer(Modifier.height(24.dp))
+                                    Button(
+                                        onClick = { showDevMenu = true },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = SciFiGold.copy(alpha = 0.5f))
+                                    ) {
+                                        Text("DEV OVERRIDE", fontSize = 12.sp, letterSpacing = 2.sp)
+                                    }
                                 }
                             }
                         }
@@ -3208,60 +3470,218 @@ fun GameScreen() {
                 }
 
                 if (gameState == GameState.TUTORIAL && activeDiscovery != null) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable {}, contentAlignment = Alignment.Center) {
-                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, modifier = Modifier.padding(32.dp).safeDrawingPadding()) {
-                            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).clickable {}, contentAlignment = Alignment.Center) {
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = SciFiSurface,
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .widthIn(max = 400.dp)
+                                .safeDrawingPadding()
+                                .shadow(20.dp, RoundedCornerShape(20.dp), spotColor = SciFiCyan)
+                                .border(1.dp, SciFiBorder, RoundedCornerShape(20.dp))
+                        ) {
+                            Column(
+                                Modifier.padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 val isLore = activeDiscovery!!.category == "LORE" || activeDiscovery!!.category == "ARTIFACTS"
-                                Text(if (isLore) "INTEL RECOVERED" else "NEW DISCOVERY!", color = if (isLore) Color(0xFF9C27B0) else Color.Blue, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.height(8.dp)); Text(activeDiscovery!!.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.height(8.dp)); Text(activeDiscovery!!.description, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
-                                Spacer(Modifier.height(24.dp)); Button(onClick = { gameState = GameState.PLAYING; activeDiscovery = null }) { Text("Got It") }
+                                Text(
+                                    text = if (isLore) "INTEL RECOVERED" else "SYSTEM DISCOVERY",
+                                    color = if (isLore) SciFiPurple else SciFiCyan,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 3.sp,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(20.dp))
+                                Text(
+                                    text = activeDiscovery!!.title.uppercase(),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = SciFiWhite,
+                                    letterSpacing = 1.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    text = activeDiscovery!!.description,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = SciFiWhite.copy(alpha = 0.9f),
+                                    lineHeight = 22.sp,
+                                    maxLines = 4,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                Spacer(Modifier.height(32.dp))
+                                Button(
+                                    onClick = { gameState = GameState.PLAYING; activeDiscovery = null },
+                                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                                ) {
+                                    Text("ACKNOWLEDGE", fontWeight = FontWeight.Bold, color = Color.Black, letterSpacing = 1.sp)
+                                }
                             }
                         }
                     }
                 }
                 if (gameState == GameState.HELP) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { gameState = GameState.PLAYING }, contentAlignment = Alignment.Center) {
-                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, modifier = Modifier.padding(32.dp).safeDrawingPadding()) {
-                            Column(Modifier.padding(24.dp)) {
-                                Text("Legend", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.height(16.dp)); Text("Platforms", fontWeight = FontWeight.Bold)
-                                Text("Green: Normal", color = Color(0xFF4CAF50)); Text("Blue: Moving", color = Color(0xFF2196F3)); Text("Yellow: Boost", color = Color(0xFFFBC02D)); Text("Cyan: Ice", color = Color(0xFF00BCD4)); Text("Orange: Breakable", color = Color(0xFFFF9800))
-                                Spacer(Modifier.height(16.dp)); Text("Powerups", fontWeight = FontWeight.Bold)
-                                Text("Red: Fuel Tank", color = Color(0xFFE57373)); Text("Cyan: Turbo Booster", color = Color(0xFF00BCD4)); Text("Green: Efficiency Module", color = Color(0xFF4CAF50)); Text("White: Heat Sink", color = Color.White); Text("Purple: Artifact", color = Color(0xFF9C27B0))
-                                Spacer(Modifier.height(24.dp)); Button(onClick = { gameState = GameState.PLAYING }, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Close") }
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable { gameState = GameState.PLAYING }, contentAlignment = Alignment.Center) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = SciFiSurface,
+                            modifier = Modifier.padding(32.dp).safeDrawingPadding().border(1.dp, SciFiBorder, RoundedCornerShape(16.dp))
+                        ) {
+                            Column(Modifier.padding(32.dp).verticalScroll(rememberScrollState())) {
+                                Text("SYSTEM LEGEND", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = SciFiCyan, letterSpacing = 2.sp)
+                                
+                                Spacer(Modifier.height(24.dp))
+                                Text("PLATFORM TYPES", fontWeight = FontWeight.Bold, color = SciFiWhite, letterSpacing = 1.sp)
+                                Spacer(Modifier.height(8.dp))
+                                val pTypes = listOf("NORMAL" to SciFiGreen, "MOVING" to SciFiCyan, "BOOST" to SciFiGold, "ICE" to SciFiCyan, "BREAKABLE" to SciFiRed, "MAGNETIC" to SciFiPurple, "PHASE" to SciFiWhite)
+                                pTypes.forEach { (label, color) ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(8.dp).background(color, CircleShape))
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(label, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                }
+
+                                Spacer(Modifier.height(24.dp))
+                                Text("RESOURCE MODULES", fontWeight = FontWeight.Bold, color = SciFiWhite, letterSpacing = 1.sp)
+                                Spacer(Modifier.height(8.dp))
+                                val powerTypes = listOf("FUEL" to SciFiGreen, "TURBO" to SciFiCyan, "EFFICIENCY" to SciFiGreen, "HEAT SINK" to SciFiWhite, "ARTIFACT" to SciFiPurple)
+                                powerTypes.forEach { (label, color) ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(8.dp).background(color, RoundedCornerShape(2.dp)))
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(label, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                }
+                                
+                                Spacer(Modifier.height(32.dp))
+                                Button(
+                                    onClick = { gameState = GameState.PLAYING },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                                ) {
+                                    Text("CLOSE ARCHIVE", color = Color.Black, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
                 }
                 if (gameState == GameState.UNLOCK && unlockedRocket != null) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable { gameState = GameState.PLAYING; unlockedRocket = null }, contentAlignment = Alignment.Center) {
-                        Surface(shape = RoundedCornerShape(16.dp), color = Color.White, modifier = Modifier.padding(32.dp).safeDrawingPadding()) {
-                            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("New Rocket Unlocked!", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.height(8.dp)); Text(unlockedRocket!!.title, style = MaterialTheme.typography.headlineMedium, color = Color.Red, fontWeight = FontWeight.ExtraBold)
-                                Spacer(Modifier.height(16.dp)); Text("Available in the Hangar.", style = MaterialTheme.typography.bodyMedium)
-                                Spacer(Modifier.height(24.dp)); Button(onClick = { gameState = GameState.PLAYING; unlockedRocket = null }) { Text("Awesome") }
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable { gameState = GameState.PLAYING; unlockedRocket = null }, contentAlignment = Alignment.Center) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = SciFiSurface,
+                            modifier = Modifier.padding(32.dp).safeDrawingPadding().border(1.dp, SciFiBorder, RoundedCornerShape(16.dp))
+                        ) {
+                            Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("NEW ASSET UNLOCKED", color = SciFiGold, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 12.sp)
+                                Spacer(Modifier.height(16.dp))
+                                Text(unlockedRocket!!.title.uppercase(), style = MaterialTheme.typography.headlineMedium, color = SciFiWhite, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp)
+                                Spacer(Modifier.height(16.dp))
+                                Text("Craft available for immediate deployment in the Hangar.", style = MaterialTheme.typography.bodyMedium, color = SciFiWhite.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                                Spacer(Modifier.height(32.dp))
+                                Button(
+                                    onClick = { gameState = GameState.PLAYING; unlockedRocket = null },
+                                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                                ) {
+                                    Text("CONFIRM", color = Color.Black, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
                 }
                 if (gameState == GameState.GAMEOVER) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
-                            Text("GAME OVER", color = Color.White, style = MaterialTheme.typography.displayMedium)
-                            Text("Score: $score", color = Color.White, style = MaterialTheme.typography.headlineSmall); Text("Best: $highScore", color = Color.Yellow, style = MaterialTheme.typography.headlineSmall)
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .safeDrawingPadding()
+                                .fillMaxWidth()
+                                .padding(24.dp)
+                        ) {
+                            Text(
+                                text = "COMMUNICATION LOST",
+                                color = SciFiRed,
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontSize = 28.sp, // Responsive adjust: specific size for guaranteed fit
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
+                                ),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = "TELEMETRY DATA ENDED",
+                                color = SciFiRed.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.labelMedium,
+                                letterSpacing = 4.sp,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1
+                            )
+                            
+                            Spacer(Modifier.height(48.dp))
+                            
+                            Surface(
+                                color = SciFiSurface,
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("FINAL ALTITUDE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                                    Text("$score", color = SciFiWhite, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
+                                    Spacer(Modifier.height(16.dp))
+                                    Text("RECORD ALTITUDE", color = SciFiGold.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                                    Text("$highScore", color = SciFiGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                                }
+                            }
 
-                            Spacer(Modifier.height(32.dp))
+                            Spacer(Modifier.height(48.dp))
 
                             if (continuesUsed < 1) {
-                                Button(onClick = { continueRun() }, Modifier.width(200.dp)) { Text("CONTINUE") }
+                                Button(
+                                    onClick = { continueRun() },
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                                ) {
+                                    Text("RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                }
                                 Spacer(Modifier.height(12.dp))
                             }
 
-                            Button(onClick = { restartGame() }, Modifier.width(200.dp)) { Text("RESTART") }
+                            Button(
+                                onClick = { restartGame() },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                            ) {
+                                Text("NEW EXPEDITION", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            }
+                            
                             Spacer(Modifier.height(12.dp))
-                            Button(onClick = { gameState = GameState.MAIN_MENU }, Modifier.width(200.dp)) { Text("MAIN MENU") }
+                            
+                            Button(
+                                onClick = { gameState = GameState.MAIN_MENU },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = SciFiWhite.copy(alpha = 0.5f))
+                            ) {
+                                Text("RETURN TO BASE", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
+                            }
                         }
                     }
                 }
@@ -3306,17 +3726,42 @@ fun PowerupBadge(label: String, color: Color, seconds: Int) {
 @Composable
 fun CodexCard(title: String, description: String, lore: String, unlocked: Boolean) {
     Surface(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        color = if (unlocked) Color.DarkGray else Color.DarkGray.copy(alpha = 0.3f),
-        shape = RoundedCornerShape(8.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .border(
+                width = 1.dp,
+                color = if (unlocked) SciFiBorder else SciFiBorder.copy(alpha = 0.05f),
+                shape = RoundedCornerShape(12.dp)
+            ),
+        color = if (unlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = if (unlocked) Color.Yellow else Color.Gray)
-            Spacer(Modifier.height(4.dp))
-            Text(description, style = MaterialTheme.typography.bodySmall, color = Color.LightGray, textAlign = TextAlign.Start)
+            Text(
+                text = title.uppercase(),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (unlocked) SciFiCyan else SciFiWhite.copy(alpha = 0.3f),
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (unlocked) SciFiWhite.copy(alpha = 0.8f) else SciFiWhite.copy(alpha = 0.2f),
+                textAlign = TextAlign.Start,
+                lineHeight = 16.sp
+            )
             if (unlocked && lore.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text(lore, style = MaterialTheme.typography.bodySmall, color = Color.Cyan.copy(alpha = 0.7f), fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = lore,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SciFiGold.copy(alpha = 0.6f),
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    lineHeight = 16.sp
+                )
             }
         }
     }

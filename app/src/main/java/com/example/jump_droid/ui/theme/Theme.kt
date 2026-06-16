@@ -52,7 +52,7 @@ fun Jump_droidTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = TypographyConfig.AppTypography,
         content = content
     )
 }

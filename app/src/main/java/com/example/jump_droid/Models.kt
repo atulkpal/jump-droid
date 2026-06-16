@@ -133,6 +133,7 @@ class Player(
     
     var rocketType by mutableStateOf(RocketType.BALANCED)
     var maxFuel by mutableFloatStateOf(100f)
+    var maxHeat by mutableFloatStateOf(100f) // Sprint E: Dynamic scaling support
     
     var heat by mutableFloatStateOf(0f)
     var isOverheated by mutableStateOf(false)
