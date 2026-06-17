@@ -4,7 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 
 enum class GameState {
-    TITLE, MAIN_MENU, HANGAR, CODEX, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK
+    TITLE, MAIN_MENU, HANGAR, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK
 }
 
 enum class PowerUpType {
@@ -62,7 +62,11 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
 
     // Threats
     THREAT_SENTINEL("The Sentinel", "Autonomous defense platform.", "A relic of an unknown civilization tasked with guarding the orbit.", "THREATS"),
-    THREAT_VOID_ENGINE("The Void Engine", "An impossible object.", "A massive structure drifting in the Void that seems to warp space around it.", "THREATS")
+    THREAT_VOID_ENGINE("The Void Engine", "An impossible object.", "A massive structure drifting in the Void that seems to warp space around it.", "THREATS"),
+    THREAT_GATEKEEPER("The Gatekeeper", "Ancient orbital defense platform.", "It guards the transition to Deep Space with absolute precision.", "THREATS"),
+    THREAT_STAR_EATER("Star-Eater", "Massive cosmic organism.", "A creature that consumes light itself, leaving only darkness in its wake.", "THREATS"),
+    THREAT_LEVIATHAN("The Leviathan", "Gigantic living creature.", "A beast of the outer reaches that moves through the vacuum as if it were water.", "THREATS"),
+    THREAT_SIGNAL("The Signal", "Unknown intelligence.", "The source of the transmissions that started the Ascension Program.", "THREATS")
 }
 
 enum class RocketType(

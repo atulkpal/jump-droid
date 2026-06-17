@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -96,6 +98,7 @@ fun GameScreen() {
     var codexNotification by remember { mutableStateOf<DiscoveryType?>(null) }
 
     val discoveryManager = remember { DiscoveryManager(sharedPrefs) }
+    val progressionManager = remember { ProgressionManager(sharedPrefs) }
     val missionManager = remember { MissionManager() }
     val threatManager = remember { ThreatManager() }
     val comboManager = remember { ComboManager() }
@@ -179,7 +182,14 @@ fun GameScreen() {
     }
 
     fun checkDiscovery(type: DiscoveryType, forceTutorialState: Boolean = true) {
-        if (discoveryManager.discover(type)) {
+        val isNew = discoveryManager.discover(type)
+        
+        if (type.category == "ARTIFACTS") {
+            progressionManager.recordArtifactDiscovery(type, score, altitudeManager.currentZone)
+        }
+
+        if (isNew) {
+            progressionManager.updateRank()
             codexNotification = type
             activeDiscovery = type
             if (forceTutorialState) gameState = GameState.TUTORIAL
@@ -755,6 +765,17 @@ fun GameScreen() {
                                     notificationQueue.add("!!! ${def.name.uppercase()} ARRIVING !!!")
                                     screenShake = 50f
                                     impactFlashAlpha = 1.0f
+                                    
+                                    val discovery = when(id) {
+                                        "MINI_BOSS_COMMANDER" -> DiscoveryType.THREAT_SENTINEL
+                                        "BOSS_GATEKEEPER" -> DiscoveryType.THREAT_GATEKEEPER
+                                        "BOSS_LEVIATHAN" -> DiscoveryType.THREAT_LEVIATHAN
+                                        "BOSS_STAR_EATER" -> DiscoveryType.THREAT_STAR_EATER
+                                        "BOSS_VOID_ENGINE" -> DiscoveryType.THREAT_VOID_ENGINE
+                                        "BOSS_SIGNAL" -> DiscoveryType.THREAT_SIGNAL
+                                        else -> null
+                                    }
+                                    discovery?.let { checkDiscovery(it) }
                                 }
                             }
                         }
@@ -873,6 +894,7 @@ fun GameScreen() {
                                         threatManager.spawnThreat(bossDef, screenWidth / 2f, cameraY - 600f)
                                         notificationQueue.add("COMMAND CRUISER INBOUND")
                                         screenShake = 20f
+                                        checkDiscovery(DiscoveryType.THREAT_SENTINEL)
                                     }
                                 }
                             }
@@ -1870,7 +1892,7 @@ fun GameScreen() {
 
             translate(shakeX, shakeY) {
                 if (gameState == GameState.TITLE || gameState == GameState.MAIN_MENU || gameState == GameState.HANGAR ||
-                    gameState == GameState.CODEX || gameState == GameState.SETTINGS || gameState == GameState.ABOUT ||
+                    gameState == GameState.ARCHIVE || gameState == GameState.SETTINGS || gameState == GameState.ABOUT ||
                     gameState == GameState.LEADERBOARD) {
                     backgroundRenderer.renderTitle(this)
                 } else {
@@ -2703,7 +2725,7 @@ fun GameScreen() {
                         val menuButtons = listOf(
                             "LAUNCH" to { restartGame() },
                             "HANGAR" to { gameState = GameState.HANGAR },
-                            "CODEX" to { gameState = GameState.CODEX },
+                            "ARCHIVE" to { gameState = GameState.ARCHIVE },
                             "TERMINAL" to { gameState = GameState.LEADERBOARD },
                             "MISSION DATA" to { gameState = GameState.ABOUT },
                             "SETTINGS" to { gameState = GameState.SETTINGS }
@@ -2745,8 +2767,53 @@ fun GameScreen() {
             GameState.HANGAR -> {
                 Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
                     Column(Modifier.padding(16.dp).safeDrawingPadding()) {
-                        Text("ROCKET HANGAR", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                            Column {
+                                Text("ROCKET HANGAR", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                                Text(progressionManager.currentRank.title, color = SciFiGold, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                val totalComp = progressionManager.getTotalCompletionPercentage()
+                                Text("$totalComp% ARCHIVE COMPLETION", color = SciFiWhite.copy(alpha = 0.4f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text("${progressionManager.artifactsCollected.size} ARTIFACTS RECOVERED", color = SciFiPurple, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(16.dp))
+                        
+                        // New: Hangar Progression Summary
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(SciFiSurface, RoundedCornerShape(8.dp))
+                                .border(1.dp, SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            val (pFound, pTotal) = progressionManager.getCompletionStats("PLATFORMS")
+                            val (zFound, zTotal) = progressionManager.getCompletionStats("AREAS")
+                            val (aFound, aTotal) = progressionManager.getCompletionStats("ARTIFACTS")
+                            
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("PLATFORMS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                Text("$pFound/$pTotal", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("ZONES", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                Text("$zFound/$zTotal", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("ARTIFACTS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                Text("$aFound/$aTotal", color = SciFiPurple, fontWeight = FontWeight.Bold)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { gameState = GameState.ARCHIVE }) {
+                                Text("ARCHIVE", color = SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                                Text("VIEW >", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        
                         Spacer(Modifier.height(24.dp))
+                        
                         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                             RocketType.entries.forEach { type ->
                                 val unlocked = highScore >= type.unlockScore || sharedPrefs.getBoolean("unlock_${type.name}", false)
@@ -2792,7 +2859,7 @@ fun GameScreen() {
                     }
                 }
             }
-            GameState.CODEX -> {
+            GameState.ARCHIVE -> {
                 val categories = listOf("ROCKETS", "PLATFORMS", "POWERUPS", "AREAS", "THREATS", "ARTIFACTS", "LORE", "ACHIEVEMENTS")
                 var selectedCat by remember { mutableStateOf("ROCKETS") }
                 Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
@@ -2829,10 +2896,46 @@ fun GameScreen() {
                                     val title = if (unlocked || selectedCat != "THREATS") entry.title else "UNKNOWN SIGNAL"
                                     val desc = if (unlocked) entry.description else "DATA CORRUPTED: RECOVER DURING NEXT EXPEDITION."
                                     val lore = if (unlocked) entry.lore else ""
-                                    CodexCard(title, desc, lore, unlocked)
+                                    
+                                    if (unlocked && selectedCat == "ARTIFACTS") {
+                                        val record = progressionManager.artifactsCollected[entry.name]
+                                        val extraInfo = if (record != null) {
+                                            "\n\nFIRST DISCOVERY: ${record.firstDiscoveryDate}\nRECOVERED: ${record.timesFound} TIMES\nHIGHEST ALT: ${record.highestAltitude}m\nZONE: ${record.zoneFound}"
+                                        } else ""
+                                        CodexCard(title, desc, lore + extraInfo, unlocked)
+                                    } else {
+                                        CodexCard(title, desc, lore, unlocked)
+                                    }
                                 }
                             }
                         }
+                        
+                        // Completion Summary
+                        if (selectedCat != "ACHIEVEMENTS") {
+                            val (found, total) = progressionManager.getCompletionStats(selectedCat)
+                            val percent = if (total > 0) (found * 100) / total else 0
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                color = SciFiSurface.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(4.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.2f))
+                            ) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("$selectedCat DATABASE", style = MaterialTheme.typography.labelSmall, color = SciFiCyan)
+                                        Text("$found / $total", style = MaterialTheme.typography.labelSmall, color = SciFiWhite)
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                    LinearProgressIndicator(
+                                        progress = percent / 100f,
+                                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                                        color = SciFiCyan,
+                                        trackColor = SciFiSurface
+                                    )
+                                }
+                            }
+                        }
+
                         Spacer(Modifier.height(16.dp))
                         Button(
                             onClick = { gameState = GameState.MAIN_MENU },
@@ -3471,6 +3574,12 @@ fun GameScreen() {
 
                 if (gameState == GameState.TUTORIAL && activeDiscovery != null) {
                     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).clickable {}, contentAlignment = Alignment.Center) {
+                        if (activeDiscovery!!.category == "ARTIFACTS") {
+                            val infiniteTransition = rememberInfiniteTransition(label = "ArtifactGlow")
+                            val glowScale by infiniteTransition.animateFloat(1f, 1.5f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "GlowScale")
+                            Box(Modifier.size(300.dp).graphicsLayer(scaleX = glowScale, scaleY = glowScale).background(SciFiPurple.copy(alpha = 0.1f), CircleShape))
+                        }
+                        
                         Surface(
                             shape = RoundedCornerShape(20.dp),
                             color = SciFiSurface,
@@ -3478,21 +3587,29 @@ fun GameScreen() {
                                 .padding(24.dp)
                                 .widthIn(max = 400.dp)
                                 .safeDrawingPadding()
-                                .shadow(20.dp, RoundedCornerShape(20.dp), spotColor = SciFiCyan)
-                                .border(1.dp, SciFiBorder, RoundedCornerShape(20.dp))
+                                .shadow(20.dp, RoundedCornerShape(20.dp), spotColor = if (activeDiscovery!!.category == "ARTIFACTS") SciFiPurple else SciFiCyan)
+                                .border(1.dp, if (activeDiscovery!!.category == "ARTIFACTS") SciFiPurple.copy(alpha = 0.5f) else SciFiBorder, RoundedCornerShape(20.dp))
                         ) {
                             Column(
                                 Modifier.padding(32.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 val isLore = activeDiscovery!!.category == "LORE" || activeDiscovery!!.category == "ARTIFACTS"
+                                val isArtifact = activeDiscovery!!.category == "ARTIFACTS"
                                 Text(
-                                    text = if (isLore) "INTEL RECOVERED" else "SYSTEM DISCOVERY",
-                                    color = if (isLore) SciFiPurple else SciFiCyan,
+                                    text = if (isArtifact) "ARTIFACT RECOVERED" else if (isLore) "INTEL RECOVERED" else "NEW DISCOVERY",
+                                    color = if (isArtifact) SciFiPurple else if (isLore) SciFiPurple else SciFiCyan,
                                     fontWeight = FontWeight.Black,
                                     letterSpacing = 3.sp,
                                     fontSize = 12.sp,
                                     textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = "DATABASE UPDATED",
+                                    color = SciFiWhite.copy(alpha = 0.4f),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    letterSpacing = 2.sp
                                 )
                                 Spacer(Modifier.height(20.dp))
                                 Text(
@@ -3515,14 +3632,25 @@ fun GameScreen() {
                                     maxLines = 4,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
+                                
+                                if (isArtifact) {
+                                    Spacer(Modifier.height(24.dp))
+                                    Text(
+                                        "PERMANENT PROGRESS RECORDED",
+                                        color = SciFiGold,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                
                                 Spacer(Modifier.height(32.dp))
                                 Button(
                                     onClick = { gameState = GameState.PLAYING; activeDiscovery = null },
                                     modifier = Modifier.fillMaxWidth().height(50.dp),
                                     shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (isArtifact) SciFiPurple else SciFiCyan)
                                 ) {
-                                    Text("ACKNOWLEDGE", fontWeight = FontWeight.Bold, color = Color.Black, letterSpacing = 1.sp)
+                                    Text("ACKNOWLEDGE", fontWeight = FontWeight.Bold, color = if (isArtifact) Color.White else Color.Black, letterSpacing = 1.sp)
                                 }
                             }
                         }
@@ -3645,6 +3773,27 @@ fun GameScreen() {
                                     Spacer(Modifier.height(16.dp))
                                     Text("RECORD ALTITUDE", color = SciFiGold.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
                                     Text("$highScore", color = SciFiGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                                    
+                                    // New: Run Progression Summary
+                                    Spacer(Modifier.height(24.dp))
+                                    HorizontalDivider(color = SciFiBorder.copy(alpha = 0.3f), thickness = 1.dp)
+                                    Spacer(Modifier.height(16.dp))
+                                    
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("RANK", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                            Text(progressionManager.currentRank.title.split(" ").last(), color = SciFiGold, fontWeight = FontWeight.Bold)
+                                        }
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("COLLECTION", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                            Text("${progressionManager.getTotalCompletionPercentage()}%", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                                        }
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            val (found, _) = progressionManager.getCompletionStats("AREAS")
+                                            Text("ZONES", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                            Text("$found", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
                                 }
                             }
 
