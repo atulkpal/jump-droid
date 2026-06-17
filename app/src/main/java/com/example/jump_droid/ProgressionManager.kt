@@ -2,6 +2,7 @@ package com.example.jump_droid
 
 import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
@@ -36,6 +37,12 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
     var currentRank by mutableStateOf(AscensionRank.EXPLORER_I)
         private set
 
+    var permanentMaxIntegrity by mutableFloatStateOf(Constants.BASE_INTEGRITY)
+        private set
+
+    var permanentMaxShield by mutableFloatStateOf(Constants.BASE_SHIELD)
+        private set
+
     init {
         loadProgression()
     }
@@ -57,6 +64,10 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
             }
         }
         artifactsCollected = loadedArtifacts
+        
+        permanentMaxIntegrity = sharedPrefs.getFloat("max_integrity", Constants.BASE_INTEGRITY)
+        permanentMaxShield = sharedPrefs.getFloat("max_shield", Constants.BASE_SHIELD)
+
         updateRank()
     }
 

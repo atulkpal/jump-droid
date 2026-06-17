@@ -21,6 +21,13 @@ object Constants {
     const val COOLING_RATE = 20f
     const val OVERHEAT_COOLDOWN_TIME = 2.0f
 
+    // EPIC 5: Survival System Constants
+    const val BASE_INTEGRITY = 100f
+    const val BASE_SHIELD = 50f
+    const val SHIELD_REGEN_RATE = 1.0f // Reduced further to 1.0 (was 1.6)
+    const val SHIELD_REGEN_DELAY = 4f // Seconds to wait after damage
+    const val SURVIVAL_CRITICAL_THRESHOLD = 0.25f
+
     // --- Altitude Zones ---
     const val ZONE_THRESHOLD_EARTH = 0
     const val ZONE_THRESHOLD_CLOUD_LAYER = 500

@@ -8,7 +8,8 @@ enum class GameState {
 }
 
 enum class PowerUpType {
-    FUEL_TANK, TURBO_BOOSTER, EFFICIENCY_MODULE, HEAT_SINK, ARTIFACT, ALTITUDE_BOOSTER
+    FUEL_TANK, TURBO_BOOSTER, EFFICIENCY_MODULE, HEAT_SINK, ARTIFACT, ALTITUDE_BOOSTER,
+    SHIELD_CAPSULE, HULL_REPAIR
 }
 
 enum class DiscoveryType(val title: String, val description: String, val lore: String, val category: String) {
@@ -59,6 +60,18 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     ART_ALLOY("Unknown Alloy", "A fragment of material.", "Its molecular structure suggests it was grown, not forged.", "ARTIFACTS"),
     ART_BEACON("Encrypted Beacon", "A signaling device.", "Found drifting in orbit, it continuously broadcasts a single prime number.", "ARTIFACTS"),
     ART_DRONE("Drone Core", "An automated survey unit.", "The AI within seems to be stuck in a loop, repeating 'The Void calls'.", "ARTIFACTS"),
+
+    // Environmental Threats (Sprint B)
+    HAZARD_LIGHTNING("Lightning Storm", "Electrical buildup and strikes.", "Static discharge in the high clouds creates lethal arcs of energy.", "THREATS"),
+    HAZARD_DEBRIS("Debris Field", "Floating space wreckage.", "Centuries of orbital junk form a hazardous belt around the planet.", "THREATS"),
+    HAZARD_RADIATION("Radiation Zone", "Intense cosmic energy.", "High-energy particles that penetrate hulls and drain energy systems.", "THREATS"),
+    HAZARD_SOLAR_FLARE("Solar Flare", "Massive plasma wave.", "Eruptions from the star that wash the system in extreme heat.", "THREATS"),
+    HAZARD_TURBULENCE("Turbulence Front", "Violent atmospheric currents.", "Unstable air masses that challenge even the most experienced pilots.", "THREATS"),
+    HAZARD_GRAVITY("Gravity Distortion", "Localized spatial warping.", "Anomalies that increase gravitational pull and fuel consumption.", "THREATS"),
+    HAZARD_EMP("EMP Pulse", "Electromagnetic shockwave.", "Bursts of energy that temporarily scramble shield regeneration systems.", "THREATS"),
+
+    // Survival Mechanics (Sprint B Adjustments)
+    EFFICIENCY_SURVIVAL("Combat Efficiency", "Combos generate supplies.", "Maintaining peak flight efficiency can trigger emergency survival supply drops.", "MECHANICS"),
 
     // Threats
     THREAT_SENTINEL("The Sentinel", "Autonomous defense platform.", "A relic of an unknown civilization tasked with guarding the orbit.", "THREATS"),
@@ -138,6 +151,13 @@ class Player(
     var rocketType by mutableStateOf(RocketType.BALANCED)
     var maxFuel by mutableFloatStateOf(100f)
     var maxHeat by mutableFloatStateOf(100f) // Sprint E: Dynamic scaling support
+
+    // EPIC 5: Survival System
+    var integrity by mutableFloatStateOf(100f)
+    var maxIntegrity by mutableFloatStateOf(100f)
+    var shield by mutableFloatStateOf(50f)
+    var maxShield by mutableFloatStateOf(50f)
+    var shieldRegenPauseTimer by mutableFloatStateOf(0f)
     
     var heat by mutableFloatStateOf(0f)
     var isOverheated by mutableStateOf(false)
@@ -158,4 +178,5 @@ class Player(
     var squashStretch by mutableFloatStateOf(1.0f)
     var invulnerabilityTimer by mutableFloatStateOf(0f)
     var isOnPlatform by mutableStateOf(false)
+    var destructionTimer by mutableFloatStateOf(0f) // Task 3: Destruction sequence
 }

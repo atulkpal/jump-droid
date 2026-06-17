@@ -19,105 +19,97 @@ object ThreatRegistry {
     }
 
     private fun populateCatalog() {
-        // --- ENVIRONMENTAL HAZARDS ---
+        // --- ENVIRONMENTAL HAZARDS (SPRINT B) ---
 
         register(ThreatDefinition(
-            id = "HAZ_GUST",
-            name = "Sudden Downdraft",
-            description = "Unpredictable air currents that push the rocket downwards.",
-            type = ThreatType.HAZARD,
-            tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = emptyList(), spawnChance = 0.4f)
-        ))
-
-        register(ThreatDefinition(
-            id = "HAZ_CROSSWIND",
-            name = "Crosswind",
-            description = "Strong lateral winds that drift the rocket sideways.",
-            type = ThreatType.HAZARD,
-            tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = emptyList(), spawnChance = 0.4f)
-        ))
-
-        register(ThreatDefinition(
-            id = "HAZ_THERMAL",
-            name = "Thermal Updraft",
-            description = "Rising warm air that provides a helpful upward lift.",
-            type = ThreatType.HAZARD,
-            tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = emptyList(), spawnChance = 0.4f)
-        ))
-
-        register(ThreatDefinition(
-            id = "HAZ_STORM",
-            name = "Static Discharge",
-            description = "Highly charged cloud pockets that interfere with engine electronics.",
+            id = "HAZ_LIGHTNING",
+            name = "Lightning Storm",
+            description = "Electrical buildup and strikes that damage shields.",
             type = ThreatType.HAZARD,
             tier = ThreatTier.TIER_2,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER), spawnChance = 0.2f)
+            discoveryType = DiscoveryType.HAZARD_LIGHTNING,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.VOID),
+                spawnChance = 0.3f
+            )
         ))
 
         register(ThreatDefinition(
-            id = "HAZ_ICE_STORM",
-            name = "Flash Freeze",
-            description = "Supercooled moisture that can rapidly encase the hull in ice.",
-            type = ThreatType.HAZARD,
-            tier = ThreatTier.TIER_2,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE), spawnChance = 0.1f)
-        ))
-
-        register(ThreatDefinition(
-            id = "HAZ_OXYGEN_DEPLETION",
-            name = "Low Density Pocket",
-            description = "Areas of extreme vacuum that reduce thruster efficiency.",
+            id = "HAZ_TURBULENCE",
+            name = "Turbulence Front",
+            description = "Violent atmospheric currents that disrupt flight control.",
             type = ThreatType.HAZARD,
             tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.UPPER_ATMOSPHERE), spawnChance = 0.15f)
+            discoveryType = DiscoveryType.HAZARD_TURBULENCE,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.VOID),
+                spawnChance = 0.3f
+            )
+        ))
+
+        register(ThreatDefinition(
+            id = "HAZ_DEBRIS",
+            name = "Debris Field",
+            description = "Floating wreckage that causes collision damage.",
+            type = ThreatType.HAZARD,
+            tier = ThreatTier.TIER_2,
+            discoveryType = DiscoveryType.HAZARD_DEBRIS,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID),
+                spawnChance = 0.2f
+            )
+        ))
+
+        register(ThreatDefinition(
+            id = "HAZ_RADIATION",
+            name = "Radiation Zone",
+            description = "Intense cosmic energy that drains energy shields.",
+            type = ThreatType.HAZARD,
+            tier = ThreatTier.TIER_3,
+            discoveryType = DiscoveryType.HAZARD_RADIATION,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID),
+                spawnChance = 0.3f
+            )
         ))
 
         register(ThreatDefinition(
             id = "HAZ_SOLAR_FLARE",
-            name = "Radiation Wave",
-            description = "Bursts of solar energy that cause internal heat build-up.",
+            name = "Solar Flare",
+            description = "Massive plasma wave that rapidly increases heat.",
             type = ThreatType.HAZARD,
             tier = ThreatTier.TIER_3,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ORBIT), spawnChance = 0.05f)
+            discoveryType = DiscoveryType.HAZARD_SOLAR_FLARE,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID),
+                spawnChance = 0.3f
+            )
         ))
 
         register(ThreatDefinition(
-            id = "HAZ_METEOR",
-            name = "Debris Field",
-            description = "A cloud of high-velocity micro-meteorites and orbital trash.",
-            type = ThreatType.HAZARD,
-            tier = ThreatTier.TIER_2,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE), spawnChance = 0.15f)
-        ))
-
-        register(ThreatDefinition(
-            id = "HAZ_GRAVITY_WELL",
-            name = "Event Horizon",
-            description = "Localized gravity anomalies that warp the flight path.",
+            id = "HAZ_EMP",
+            name = "EMP Pulse",
+            description = "Energy ring that disables shield regeneration.",
             type = ThreatType.HAZARD,
             tier = ThreatTier.TIER_3,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.1f)
+            discoveryType = DiscoveryType.HAZARD_EMP,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID),
+                spawnChance = 0.2f
+            )
         ))
 
         register(ThreatDefinition(
-            id = "HAZ_VOID_ANOMALY",
-            name = "Void Anomaly",
-            description = "Unnatural distortions in the fabric of space that pulse with an eerie light.",
-            type = ThreatType.HAZARD,
-            tier = ThreatTier.TIER_3,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.08f)
-        ))
-
-        register(ThreatDefinition(
-            id = "HAZ_VOID_TEAR",
-            name = "Singularity Fragment",
-            description = "Unstable rifts in space-time that threaten to consume the vessel.",
+            id = "HAZ_GRAVITY",
+            name = "Gravity Distortion",
+            description = "Spatial warping that increases gravity and fuel usage.",
             type = ThreatType.HAZARD,
             tier = ThreatTier.TIER_4,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.03f)
+            discoveryType = DiscoveryType.HAZARD_GRAVITY,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID),
+                spawnChance = 0.2f
+            )
         ))
 
         // --- HOSTILE ENTITIES ---

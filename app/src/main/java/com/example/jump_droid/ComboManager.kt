@@ -40,6 +40,9 @@ class ComboManager {
     var showComboComplete by mutableStateOf(false)
     var comboCompleteTimer by mutableFloatStateOf(0f)
     var isNewHighReached by mutableStateOf(false)
+    
+    // Task 6: Survival Rewards
+    val immediateSurvivalRewards = mutableListOf<ComboReward>()
 
     private val tiers = listOf(
         ComboTier(1, 5, 7, "BASIC", listOf(ComboReward.Fuel(50f))),
@@ -51,6 +54,18 @@ class ComboManager {
 
     fun onLanding() {
         currentCombo++
+        
+        // Task 6: Immediate Survival Rewards
+        when (currentCombo) {
+            5 -> immediateSurvivalRewards.add(ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE))
+            10 -> immediateSurvivalRewards.add(ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE)) // Larger could be 2x or a diff type if we had it, but following spec
+            15 -> immediateSurvivalRewards.add(ComboReward.PowerUp(PowerUpType.HULL_REPAIR))
+            20 -> immediateSurvivalRewards.add(ComboReward.PowerUp(PowerUpType.HULL_REPAIR))
+            else -> if (currentCombo >= 25 && currentCombo % 5 == 0) {
+                calculateReward(currentCombo)?.let { immediateSurvivalRewards.add(it) }
+            }
+        }
+
         refreshTimer()
     }
 

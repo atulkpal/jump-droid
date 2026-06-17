@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlin.math.abs
+import kotlin.random.Random
 
 /**
  * Represents a live instance of a threat during gameplay.
@@ -26,7 +27,7 @@ class ActiveThreat(
     var state by mutableStateOf(ThreatState.SPAWNING)
     var lifetime by mutableFloatStateOf(0f)
     var health by mutableFloatStateOf(definition.baseHealth)
-    var duration by mutableFloatStateOf(5f) // Default duration for temporary threats
+    var duration by mutableFloatStateOf(10f) // Default duration for temporary threats
     var patrolTimer by mutableFloatStateOf(0f)
     
     // Tracking/Awareness State
@@ -60,8 +61,33 @@ class ActiveThreat(
     fun update(dt: Float, screenWidth: Float = 1000f, targetX: Float = 0f, targetY: Float = 0f) {
         lifetime += dt
         
+        // --- Life Cycle Calculation (Adjustment Run 1) ---
+        val lifeRatio = (lifetime / duration).coerceIn(0f, 1f)
+        // Note: phase is used here for Life Cycle (1: Formation, 2: Active, 3: Dissipation)
+        // For hazards, we use this 1-3 cycle. For enemies/bosses, they have their own phase logic.
+        if (definition.type == ThreatType.HAZARD) {
+            phase = when {
+                lifeRatio < 0.15f -> 1 
+                lifeRatio < 0.85f -> 2
+                else -> 3
+            }
+        }
+
         if (state == ThreatState.SPAWNING && lifetime > 0.5f) {
             state = ThreatState.ACTIVE
+            
+            // Initialize threat-specific durations (Adjustment Run 1)
+            duration = when (definition.id) {
+                "HAZ_LIGHTNING" -> 8f + (Random.nextFloat() * 4f)
+                "HAZ_DEBRIS" -> 25f
+                "HAZ_RADIATION" -> 20f
+                "HAZ_SOLAR_FLARE" -> 15f
+                "HAZ_TURBULENCE" -> 18f
+                "HAZ_GRAVITY" -> 22f
+                "HAZ_EMP" -> 15f
+                else -> duration
+            }
+
             // Initialize boss-specific stats
             if (definition.type == ThreatType.MINI_BOSS || definition.type == ThreatType.BOSS) {
                 maxWeakPoints = when (definition.id) {
@@ -87,19 +113,65 @@ class ActiveThreat(
         if (state == ThreatState.ACTIVE) {
             when (definition.type) {
                 ThreatType.HAZARD -> {
+                    localTimer += dt
+                    
+                    // Cleanup based on duration
                     if (lifetime > duration) {
                         state = ThreatState.DESTROYED
                     }
 
-                    if (definition.id == "HAZ_STORM") {
-                        // Static Discharge: slow drifting storm pocket
-                        x += vx * 0.5f * dt
-                        y += vy * 0.5f * dt
-                    }
-
-                    if (definition.id == "HAZ_VOID_ANOMALY" || definition.id == "HAZ_VOID_TEAR") {
-                        // Void Anomaly: slow pulsing drift
-                        scanPulse = (scanPulse + dt * 0.5f) % 1.0f
+                    when (definition.id) {
+                        "HAZ_LIGHTNING" -> {
+                            // Strike cycle: Telegraph -> Strike -> Wait
+                            val cycleTime = 4f
+                            val telegraphTime = 1.5f
+                            val strikeTime = 0.5f
+                            val t = lifetime % cycleTime
+                            
+                            // Visual Sub-Phase (within the Active phase)
+                            val subPhase = if (t < telegraphTime) 1 else if (t < telegraphTime + strikeTime) 2 else 3
+                            scanPulse = if (subPhase == 1) t / telegraphTime else if (subPhase == 2) 1.0f else 0f
+                            
+                            // Limited Pursuit Behavior (Adjustment Run 1)
+                            // Drift toward player horizontal and follow altitude slightly
+                            val dx = targetX - x
+                            val dy = targetY - y
+                            x += dx * 0.4f * dt
+                            y += dy * 0.15f * dt // Lazy follow vertical
+                        }
+                        "HAZ_SOLAR_FLARE" -> {
+                            // Moving wave from top to bottom
+                            y += 400f * dt
+                            if (y > targetY + 1500f) state = ThreatState.DESTROYED
+                        }
+                        "HAZ_EMP" -> {
+                            // Expanding ring
+                            scanPulse += dt * 0.8f
+                            if (scanPulse > 3.0f) state = ThreatState.DESTROYED
+                        }
+                        "HAZ_RADIATION" -> {
+                            // Pulsing area
+                            scanPulse = (kotlin.math.sin(lifetime * 2f) * 0.5f + 0.5f)
+                        }
+                        "HAZ_TURBULENCE" -> {
+                            // Drifting front (Weather-like movement)
+                            scanPulse = (scanPulse + dt * 1.5f) % 1.0f
+                            x += vx * dt
+                            y += vy * dt
+                        }
+                        "HAZ_DEBRIS" -> {
+                            // Tumble and drift (Natural drifting only)
+                            rotation += 60f * dt
+                            x += vx * dt
+                            y += vy * dt
+                            if (y > targetY + 2000f) state = ThreatState.DESTROYED
+                        }
+                        "HAZ_GRAVITY" -> {
+                            // Slow drifting anomaly
+                            scanPulse = (scanPulse + dt * 0.5f) % 1.0f
+                            x += (screenWidth / 2f - x) * 0.05f * dt // Drift toward center
+                            y += vy * 0.5f * dt
+                        }
                     }
                 }
                 ThreatType.ENEMY -> {

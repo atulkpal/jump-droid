@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -63,6 +65,9 @@ import com.example.jump_droid.Constants.MAX_HEAT
 import com.example.jump_droid.Constants.HEAT_GENERATION_RATE
 import com.example.jump_droid.Constants.COOLING_RATE
 import com.example.jump_droid.Constants.OVERHEAT_COOLDOWN_TIME
+import com.example.jump_droid.Constants.SHIELD_REGEN_RATE
+import com.example.jump_droid.Constants.SHIELD_REGEN_DELAY
+import com.example.jump_droid.Constants.SURVIVAL_CRITICAL_THRESHOLD
 import com.example.jump_droid.ui.theme.*
 
 val AchievementsList = listOf(
@@ -213,9 +218,12 @@ fun GameScreen() {
     }
 
     fun handleRewardCollection(reward: ComboReward) {
-        val rewardColor = when (reward) {
+        val rewardColor = when (val r = reward) {
             is ComboReward.Fuel -> SciFiGreen
-            is ComboReward.PowerUp -> SciFiCyan
+            is ComboReward.PowerUp -> when(r.type) {
+                PowerUpType.HULL_REPAIR -> SciFiGreen
+                else -> SciFiCyan
+            }
             is ComboReward.AltitudeBoost -> SciFiWhite
             is ComboReward.Artifact -> SciFiPurple
         }
@@ -533,6 +541,45 @@ fun GameScreen() {
         gameState = GameState.PLAYING
     }
 
+    fun applyDamage(amount: Float) {
+        if (amount <= 0 || gameState != GameState.PLAYING) return
+
+        // Visual Feedback
+        screenShake = (12f + amount * 0.5f).coerceAtMost(40f)
+        impactFlashAlpha = 0.7f
+
+        var remainingDamage = amount
+
+        // 1. Shield Absorption
+        if (player.shield > 0) {
+            val shieldDamage = min(player.shield, remainingDamage)
+            player.shield -= shieldDamage
+            remainingDamage -= shieldDamage
+
+            // Shield Hit Feedback (Cyan)
+            spawnBurst(player.x, player.y, 12, SciFiCyan, 450f)
+            // Hook for sound: playShieldHitSound()
+        }
+
+        // 2. Integrity Damage
+        if (remainingDamage > 0) {
+            player.integrity = max(0f, player.integrity - remainingDamage)
+
+            // Hull Hit Feedback (Red/Gold sparks)
+            spawnBurst(player.x, player.y, 18, SciFiRed, 650f)
+            spawnBurst(player.x, player.y, 8, SciFiGold, 400f)
+            // Hook for sound: playHullHitSound()
+
+            if (player.integrity <= 0) {
+                gameState = GameState.GAMEOVER
+                saveHighScore(score)
+            }
+        }
+
+        // Pause Regen
+        player.shieldRegenPauseTimer = Constants.SHIELD_REGEN_DELAY
+    }
+
     fun unlockAll() {
         RocketType.entries.forEach { sharedPrefs.edit { putBoolean("unlock_${it.name}", true) } }
         DiscoveryType.entries.forEach { sharedPrefs.edit { putBoolean("discovery_$it", true) } }
@@ -570,6 +617,14 @@ fun GameScreen() {
         player.velocityY = 0f
         player.maxFuel = BASE_FUEL_CAPACITY * player.rocketType.fuelMult
         player.fuel = player.maxFuel
+        
+        // EPIC 5: Survival Initialization
+        player.maxIntegrity = progressionManager.permanentMaxIntegrity
+        player.integrity = player.maxIntegrity
+        player.maxShield = progressionManager.permanentMaxShield
+        player.shield = player.maxShield
+        player.shieldRegenPauseTimer = 0f
+
         player.heat = 0f
         player.isOverheated = false
         player.lastPlatform = null
@@ -669,6 +724,24 @@ fun GameScreen() {
                         // --- COMBO SYSTEM UPDATE ---
                         val prevPending = comboManager.pendingReward
                         comboManager.update(dt)
+                        
+                        // Task 6: Survival Rewards Milestones
+                        if (comboManager.immediateSurvivalRewards.isNotEmpty()) {
+                            comboManager.immediateSurvivalRewards.forEach { reward ->
+                                flyingRewards.add(FlyingReward(
+                                    type = reward,
+                                    x = player.x,
+                                    y = player.y - cameraY,
+                                    targetX = screenWidth - 60f,
+                                    targetY = screenHeight / 2f,
+                                    scale = 4.0f
+                                ))
+                                notificationQueue.add("COMBO MILESTONE: SURVIVAL DROP")
+                                checkDiscovery(DiscoveryType.EFFICIENCY_SURVIVAL)
+                            }
+                            comboManager.immediateSurvivalRewards.clear()
+                        }
+
                         if (comboManager.pendingReward != null && comboManager.pendingReward != prevPending) {
                             // Combo Ended with Reward (Task 5: Tier 3)
                             
@@ -788,85 +861,56 @@ fun GameScreen() {
                             val eligible = ThreatRegistry.getEligibleThreats(score, altitudeManager.currentZone)
 
                             // Slow down spawning if boss is present
-                            val bossPresent = activeThreats.any { it.definition.id == "MINI_BOSS_COMMANDER" }
+                            val bossPresent = activeThreats.any { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }
                             val spawnChanceMod = if (bossPresent) 0.3f else 1.0f
 
-                            // 1. Air Instability (Wind) - Active in all zones with rebalanced frequency
-                            if (activeThreats.none { it.definition.id in listOf("HAZ_GUST", "HAZ_CROSSWIND", "HAZ_THERMAL") }) {
-                                val instabilityIds = listOf("HAZ_GUST", "HAZ_CROSSWIND", "HAZ_THERMAL")
-                                val instabilityDef = eligible.filter { it.id in instabilityIds }.randomOrNull()
+                            val currentZone = altitudeManager.currentZone
 
-                                val zoneMult = when (altitudeManager.currentZone) {
-                                    AltitudeZone.EARTH -> 0.2f // Significantly reduced
-                                    AltitudeZone.CLOUD_LAYER -> 0.6f // Moderate
-                                    else -> 1.0f // Current/Standard
-                                }
-
-                                instabilityDef?.let { def ->
-                                    if (Random.nextFloat() < def.spawnRules.spawnChance * spawnChanceMod * zoneMult) {
-                                        threatManager.spawnThreat(def, 0f, cameraY + 200f)
-                                        val msg = when (def.id) {
-                                            "HAZ_GUST" -> "DOWNWARD DRAFT"
-                                            "HAZ_THERMAL" -> "UPWARD DRAFT"
-                                            "HAZ_CROSSWIND" -> if (Random.nextBoolean()) { "LEFTWARD CROSSWIND" } else { "RIGHTWARD CROSSWIND" }
-                                            else -> "AIR INSTABILITY DETECTED"
+                            // 1. Environmental Hazards (Sprint B)
+                            if (activeThreats.none { it.definition.type == ThreatType.HAZARD }) {
+                                // Attempt to spawn one eligible hazard
+                                val hazards = eligible.filter { it.type == ThreatType.HAZARD }.shuffled()
+                                for (hazard in hazards) {
+                                    // Apply weighting based on zone
+                                    val weight = when (currentZone) {
+                                        AltitudeZone.CLOUD_LAYER -> when (hazard.id) {
+                                            "HAZ_LIGHTNING", "HAZ_TURBULENCE" -> 1.5f
+                                            else -> 1.0f
                                         }
-                                        notificationQueue.add(msg)
-                                    }
-                                }
-                            }
-
-                            // 2. Cloud Layer Elements
-                            if (altitudeManager.currentZone == AltitudeZone.CLOUD_LAYER) {
-                                // Sky Ray
-                                if (activeThreats.none { it.definition.id == "ENT_CLOUD_SKIMMER" }) {
-                                    eligible.find { it.id == "ENT_CLOUD_SKIMMER" }?.let { rayDef ->
-                                        if (Random.nextFloat() < rayDef.spawnRules.spawnChance * spawnChanceMod) {
-                                            val dir = if (Random.nextBoolean()) 1f else -1f
-                                            val spawnX = if (dir > 0) -200f else screenWidth + 200f
-                                            threatManager.spawnThreat(rayDef, spawnX, cameraY + Random.nextFloat() * screenHeight, vx = dir * 50f)
+                                        AltitudeZone.UPPER_ATMOSPHERE -> 1.0f
+                                        AltitudeZone.ORBIT -> when (hazard.id) {
+                                            "HAZ_RADIATION", "HAZ_SOLAR_FLARE" -> 1.5f
+                                            "HAZ_LIGHTNING" -> 0.3f
+                                            else -> 1.0f
                                         }
-                                    }
-                                }
-                                // Static Discharge
-                                if (activeThreats.none { it.definition.id == "HAZ_STORM" }) {
-                                    eligible.find { it.id == "HAZ_STORM" }?.let { stormDef ->
-                                        if (Random.nextFloat() < stormDef.spawnRules.spawnChance * spawnChanceMod) {
-                                            threatManager.spawnThreat(stormDef, Random.nextFloat() * screenWidth, cameraY - 100f, vx = (Random.nextFloat() - 0.5f) * 40f)
+                                        AltitudeZone.DEEP_SPACE -> when (hazard.id) {
+                                            "HAZ_RADIATION", "HAZ_SOLAR_FLARE", "HAZ_EMP" -> 1.5f
+                                            else -> 1.0f
                                         }
+                                        AltitudeZone.VOID -> 2.0f
+                                        else -> 1.0f
+                                    }
+
+                                    if (Random.nextFloat() < hazard.spawnRules.spawnChance * spawnChanceMod * weight) {
+                                        val spawnX = Random.nextFloat() * screenWidth
+                                        val spawnY = when (hazard.id) {
+                                            "HAZ_SOLAR_FLARE" -> cameraY - 400f // Comes from above
+                                            "HAZ_DEBRIS" -> cameraY - 200f
+                                            else -> cameraY + Random.nextFloat() * screenHeight
+                                        }
+                                        
+                                        // Specific init for some threats
+                                        val vx = if (hazard.id == "HAZ_DEBRIS") (Random.nextFloat() - 0.5f) * 100f else 0f
+                                        val vy = if (hazard.id == "HAZ_DEBRIS") 100f + Random.nextFloat() * 200f else 0f
+                                        
+                                        threatManager.spawnThreat(hazard, spawnX, spawnY, vx, vy)
+                                        notificationQueue.add("${hazard.name.uppercase()} DETECTED")
+                                        break // Only one major threat active in a local area
                                     }
                                 }
                             }
 
-                            // 3. Space Elements (Orbital Sentry)
-                            if (altitudeManager.currentZone == AltitudeZone.ORBIT && activeThreats.none { it.definition.id == "ENT_ORBITAL_SENTRY" }) {
-                                eligible.find { it.id == "ENT_ORBITAL_SENTRY" }?.let { sentryDef ->
-                                    if (Random.nextFloat() < sentryDef.spawnRules.spawnChance * spawnChanceMod) {
-                                        threatManager.spawnThreat(sentryDef, Random.nextFloat() * screenWidth, cameraY + 200f)
-                                    }
-                                }
-                            }
-
-                            // 4. Deep Space Elements (Derelict Echo)
-                            if (altitudeManager.currentZone == AltitudeZone.DEEP_SPACE && activeThreats.none { it.definition.id == "ENT_CORRUPTED_HULL" }) {
-                                eligible.find { it.id == "ENT_CORRUPTED_HULL" }?.let { echoDef ->
-                                    if (Random.nextFloat() < echoDef.spawnRules.spawnChance * spawnChanceMod) {
-                                        threatManager.spawnThreat(echoDef, Random.nextFloat() * screenWidth, cameraY - 100f, vx = (Random.nextFloat() - 0.5f) * 30f, vy = 20f + Random.nextFloat() * 30f)
-                                    }
-                                }
-                            }
-
-                            // 5. Void Elements (Void Anomaly)
-                            if (altitudeManager.currentZone == AltitudeZone.VOID && activeThreats.none { it.definition.id == "HAZ_VOID_ANOMALY" }) {
-                                eligible.find { it.id == "HAZ_VOID_ANOMALY" }?.let { anomalyDef ->
-                                    if (Random.nextFloat() < anomalyDef.spawnRules.spawnChance * spawnChanceMod) {
-                                        threatManager.spawnThreat(anomalyDef, Random.nextFloat() * screenWidth, cameraY + screenHeight * 0.3f)
-                                    }
-                                }
-                            }
-
-                            // 6. Generic Enemies (Surveyor Probe, Swarm)
-                            // Surveyor Probe
+                            // 2. Generic Enemies (Surveyor Probe, Swarm)
                             if (activeThreats.count { it.definition.id == "ENT_SCOUT_DRONE" } < 2) {
                                 eligible.find { it.id == "ENT_SCOUT_DRONE" }?.let { probeDef ->
                                     if (Random.nextFloat() < probeDef.spawnRules.spawnChance * spawnChanceMod) {
@@ -877,7 +921,6 @@ fun GameScreen() {
                                     }
                                 }
                             }
-                            // Swarm
                             if (activeThreats.none { it.definition.id == "ENT_SWARM_BOTS" }) {
                                 eligible.find { it.id == "ENT_SWARM_BOTS" }?.let { swarmDef ->
                                     if (Random.nextFloat() < swarmDef.spawnRules.spawnChance * spawnChanceMod) {
@@ -887,7 +930,32 @@ fun GameScreen() {
                                 }
                             }
 
-                            // 7. Mini-Boss: Command Cruiser
+                            // 3. Zone-Specific Entities
+                            if (currentZone == AltitudeZone.CLOUD_LAYER && activeThreats.none { it.definition.id == "ENT_CLOUD_SKIMMER" }) {
+                                eligible.find { it.id == "ENT_CLOUD_SKIMMER" }?.let { rayDef ->
+                                    if (Random.nextFloat() < rayDef.spawnRules.spawnChance * spawnChanceMod) {
+                                        val dir = if (Random.nextBoolean()) 1f else -1f
+                                        val spawnX = if (dir > 0) -200f else screenWidth + 200f
+                                        threatManager.spawnThreat(rayDef, spawnX, cameraY + Random.nextFloat() * screenHeight, vx = dir * 50f)
+                                    }
+                                }
+                            }
+                            if (currentZone == AltitudeZone.ORBIT && activeThreats.none { it.definition.id == "ENT_ORBITAL_SENTRY" }) {
+                                eligible.find { it.id == "ENT_ORBITAL_SENTRY" }?.let { sentryDef ->
+                                    if (Random.nextFloat() < sentryDef.spawnRules.spawnChance * spawnChanceMod) {
+                                        threatManager.spawnThreat(sentryDef, Random.nextFloat() * screenWidth, cameraY + 200f)
+                                    }
+                                }
+                            }
+                            if (currentZone == AltitudeZone.DEEP_SPACE && activeThreats.none { it.definition.id == "ENT_CORRUPTED_HULL" }) {
+                                eligible.find { it.id == "ENT_CORRUPTED_HULL" }?.let { echoDef ->
+                                    if (Random.nextFloat() < echoDef.spawnRules.spawnChance * spawnChanceMod) {
+                                        threatManager.spawnThreat(echoDef, Random.nextFloat() * screenWidth, cameraY - 100f, vx = (Random.nextFloat() - 0.5f) * 30f, vy = 20f + Random.nextFloat() * 30f)
+                                    }
+                                }
+                            }
+
+                            // 4. Mini-Boss & Boss Spawning
                             if (activeThreats.none { it.definition.id == "MINI_BOSS_COMMANDER" }) {
                                 eligible.find { it.id == "MINI_BOSS_COMMANDER" }?.let { bossDef ->
                                     if (Random.nextFloat() < bossDef.spawnRules.spawnChance) {
@@ -898,6 +966,7 @@ fun GameScreen() {
                                     }
                                 }
                             }
+
 
                             // Phase 3 Support: Boss Spawns reinforcements & Hazards
                             activeThreats.find { it.definition.id == "MINI_BOSS_COMMANDER" }?.let { boss ->
@@ -914,7 +983,7 @@ fun GameScreen() {
                                     }
                                     // Boss-generated hazards
                                     if (Random.nextFloat() < 0.15f) {
-                                        val id = if (Random.nextBoolean()) "HAZ_GUST" else "HAZ_CROSSWIND"
+                                        val id = "HAZ_TURBULENCE"
                                         ThreatRegistry.getById(id)?.let { threatManager.spawnThreat(it, boss.x, boss.y + 100f) }
                                     }
                                 }
@@ -992,59 +1061,6 @@ fun GameScreen() {
                             // (remnants removed)
 
                             // ... (Wait, I need to make sure I don't break the wind/threat code)
-                            val activeWind = threatManager.activeThreats.find {
-                                it.definition.id in listOf("HAZ_GUST", "HAZ_CROSSWIND", "HAZ_THERMAL") &&
-                                it.state == ThreatState.ACTIVE
-                            }
-                            
-                            activeWind?.let { wind ->
-                                val envMult = if (player.stabilityTimer > 0) 0.3f else 1.0f
-                                when (wind.definition.id) {
-                                    "HAZ_GUST" -> {
-                                        player.velocityY += 1500f * sdt * envMult
-                                        if (Random.nextFloat() < 0.15f) {
-                                            particles.add(Particle(
-                                                x = player.x + (Random.nextFloat() - 0.5f) * 60f,
-                                                y = player.y - 100f,
-                                                vx = (Random.nextFloat() - 0.5f) * 20f,
-                                                vy = 500f + Random.nextFloat() * 500f,
-                                                life = 0.5f,
-                                                color = Color.White.copy(alpha = 0.3f),
-                                                size = 2f
-                                            ))
-                                        }
-                                    }
-                                    "HAZ_CROSSWIND" -> {
-                                        val windDir = if (Random(wind.instanceId.hashCode()).nextBoolean()) 1f else -1f
-                                        player.velocityX += 800f * windDir * sdt * envMult
-                                        if (Random.nextFloat() < 0.1f) {
-                                            particles.add(Particle(
-                                                x = player.x - 100f * windDir,
-                                                y = player.y + (Random.nextFloat() - 0.5f) * 60f,
-                                                vx = 400f * windDir,
-                                                vy = (Random.nextFloat() - 0.5f) * 20f,
-                                                life = 0.5f,
-                                                color = Color.White.copy(alpha = 0.3f),
-                                                size = 2f
-                                            ))
-                                        }
-                                    }
-                                    "HAZ_THERMAL" -> {
-                                        player.velocityY -= 1000f * sdt * envMult
-                                        if (Random.nextFloat() < 0.15f) {
-                                            particles.add(Particle(
-                                                x = player.x + (Random.nextFloat() - 0.5f) * 60f,
-                                                y = player.y + 100f,
-                                                vx = (Random.nextFloat() - 0.5f) * 20f,
-                                                vy = -400f - Random.nextFloat() * 400f,
-                                                life = 0.5f,
-                                                color = Color.White.copy(alpha = 0.3f),
-                                                size = 2f
-                                            ))
-                                        }
-                                    }
-                                }
-                            }
 
                             // c. Threat Interactions (Proximity Effects)
                             threatManager.activeThreats.filter { it.state == ThreatState.ACTIVE }.forEach { threat ->
@@ -1053,21 +1069,92 @@ fun GameScreen() {
                                 val distSq = dx * dx + dy * dy
 
                                 when (threat.definition.id) {
+                                    "HAZ_LIGHTNING" -> {
+                                        if (distSq < 200f * 200f) {
+                                            if (threat.phase == 2) { // Striking
+                                                if (player.invulnerabilityTimer <= 0f) {
+                                                    if (player.shield > 0) {
+                                                        player.shield = max(0f, player.shield - 25f)
+                                                        player.shieldRegenPauseTimer = 2f
+                                                    } else {
+                                                        player.integrity = max(0f, player.integrity - 10f)
+                                                    }
+                                                    player.invulnerabilityTimer = 0.5f
+                                                    screenShake = 20f
+                                                    impactFlashAlpha = 0.8f
+                                                }
+                                            }
+                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
+                                        }
+                                    }
+                                    "HAZ_DEBRIS" -> {
+                                        // Task 4: Physical Wreckage Collision (Hull Focus)
+                                        if (distSq < 80f * 80f) {
+                                            if (player.invulnerabilityTimer <= 0f) {
+                                                // Debris deals more hull damage than energy damage
+                                                if (player.shield > 0) {
+                                                    player.shield = max(0f, player.shield - 10f)
+                                                    player.integrity = max(0f, player.integrity - 5f)
+                                                } else {
+                                                    player.integrity = max(0f, player.integrity - 25f)
+                                                }
+                                                player.invulnerabilityTimer = 0.8f
+                                                screenShake = 20f
+                                                floatingTexts.add(FloatingText("HULL IMPACT", player.x, player.y - 100f, color = SciFiRed))
+                                            }
+                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
+                                        }
+                                    }
+                                    "HAZ_RADIATION" -> {
+                                        if (distSq < 300f * 300f) {
+                                            player.shield = max(0f, player.shield - 15f * sdt)
+                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
+                                        }
+                                    }
+                                    "HAZ_SOLAR_FLARE" -> {
+                                        if (abs(player.y - threat.y) < 100f) {
+                                            player.heat = min(MAX_HEAT, player.heat + 120f * sdt)
+                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
+                                        }
+                                    }
+                                    "HAZ_TURBULENCE" -> {
+                                        // Task 4: Flight Control Force (No Direct Damage)
+                                        if (distSq < 450f * 450f) {
+                                            val dist = sqrt(distSq)
+                                            val strength = (1f - dist / 450f)
+                                            val windDir = if (threat.instanceId.hashCode() % 2 == 0) 1f else -1f
+                                            player.velocityX += windDir * 1200f * strength * sdt
+                                            player.velocityY += (Random.nextFloat() - 0.5f) * 600f * strength * sdt
+                                            
+                                            if (gameTime % 200 < 50) {
+                                                particles.add(Particle(player.x, player.y, (Random.nextFloat()-0.5f)*100f, (Random.nextFloat()-0.5f)*100f, 0.5f, Color.White.copy(alpha=0.3f), 2f))
+                                            }
+                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
+                                        }
+                                    }
+                                    "HAZ_GRAVITY" -> {
+                                        if (distSq < 500f * 500f) {
+                                            val dist = sqrt(distSq)
+                                            val strength = (1f - dist / 500f)
+                                            player.velocityY += 1500f * strength * sdt 
+                                            if (isThrusting) {
+                                                player.fuel = max(0f, player.fuel - 10f * strength * sdt)
+                                                player.velocityY += 500f * strength * sdt 
+                                            }
+                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
+                                        }
+                                    }
+                                    "HAZ_EMP" -> {
+                                        val ringRadius = threat.scanPulse * 400f
+                                        val dist = sqrt(distSq)
+                                        if (abs(dist - ringRadius) < 50f) {
+                                            player.shieldRegenPauseTimer = max(player.shieldRegenPauseTimer, 5f)
+                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
+                                        }
+                                    }
                                     "ENT_CLOUD_SKIMMER" -> { // Sky Ray: Lift Current
                                         if (distSq < 250f * 250f) {
                                             player.velocityY -= 1000f * sdt // "Ride the Ray"
-                                        }
-                                    }
-                                    "HAZ_STORM" -> { // Static Discharge: Heat Induction
-                                        if (distSq < 150f * 150f) {
-                                            player.heat = min(MAX_HEAT, player.heat + 70f * sdt)
-                                            // Lightning Flash
-                                            if (threat.localTimer <= 0f && Random.nextFloat() < 0.005f) {
-                                                threat.localTimer = 1.0f
-                                                impactFlashAlpha = 1.0f
-                                                screenShake = 15f
-                                                player.velocityY += 300f // Thrust instability
-                                            }
                                         }
                                     }
                                     "ENT_ORBITAL_SENTRY" -> { // Orbital Sentry: Combo Freeze & Fuel Interference
@@ -1629,6 +1716,18 @@ fun GameScreen() {
                                         notificationQueue.add("ENGINES COOLED!")
                                         checkDiscovery(DiscoveryType.HEAT_SINK)
                                     }
+                                    PowerUpType.SHIELD_CAPSULE -> {
+                                        player.shield = min(player.maxShield, player.shield + 25f)
+                                        spawnBurst(pu.x, pu.y, 30, SciFiCyan, 400f)
+                                        notificationQueue.add("SHIELD RECHARGE")
+                                        floatingTexts.add(FloatingText("+25 SHIELD", player.x, player.y - 120f, color = SciFiCyan))
+                                    }
+                                    PowerUpType.HULL_REPAIR -> {
+                                        player.integrity = min(player.maxIntegrity, player.integrity + 20f)
+                                        spawnBurst(pu.x, pu.y, 30, SciFiGreen, 400f)
+                                        notificationQueue.add("HULL REPAIRED")
+                                        floatingTexts.add(FloatingText("+20 HULL", player.x, player.y - 120f, color = SciFiGreen))
+                                    }
                                     PowerUpType.ARTIFACT -> {
                                         val artifact = listOf(
                                             DiscoveryType.ART_RECORDER, DiscoveryType.ART_ALLOY,
@@ -1870,6 +1969,42 @@ fun GameScreen() {
                         // Cycle tracks: removes completed and adds new ones
                         missionManager.selectNextMission()
 
+                        // EPIC 5: Survival System Updates
+                        if (player.shieldRegenPauseTimer > 0) {
+                            player.shieldRegenPauseTimer = max(0f, player.shieldRegenPauseTimer - dt)
+                        } else if (player.shield < player.maxShield) {
+                            player.shield = min(player.maxShield, player.shield + Constants.SHIELD_REGEN_RATE * dt)
+                        }
+
+                        // Task 3: Hull Failure & Destruction Sequence
+                        if (player.integrity <= 0 && player.destructionTimer <= 0) {
+                            player.destructionTimer = 0.01f // Start sequence
+                            screenShake = 30f
+                        }
+                        
+                        if (player.destructionTimer > 0) {
+                            player.destructionTimer += dt
+                            player.velocityX *= 0.95f
+                            player.velocityY += 500f * dt // Loss of control, falling
+                            
+                            if (player.destructionTimer > 2.0f) {
+                                gameState = GameState.GAMEOVER
+                                saveHighScore(score)
+                            }
+                        }
+
+                        // Emergency Warnings
+                        if (player.shield > 0 && player.shield < player.maxShield * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
+                            if (gameTime % 3000 < 50) { // Throttled notification
+                                notificationQueue.add("!!! SHIELD CRITICAL !!!")
+                            }
+                        }
+                        if (player.integrity < player.maxIntegrity * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
+                            if (gameTime % 3000 < 50) { // Throttled notification
+                                notificationQueue.add("!!! HULL CRITICAL !!!")
+                            }
+                        }
+
                         if (!isThrusting) player.fuel = min(player.maxFuel, player.fuel + FUEL_RECHARGE_RATE * dt)
                         if (player.y < highestYReached) {
                             highestYReached = player.y
@@ -1981,82 +2116,272 @@ fun GameScreen() {
                     threatManager.activeThreats.forEach { threat ->
                         if (threat.state == ThreatState.ACTIVE) {
                             val random = Random(threat.instanceId.hashCode())
+                            val lifeCycleAlpha = when (threat.phase) {
+                                1 -> (threat.lifetime / (threat.duration * 0.15f)).coerceIn(0f, 1f)
+                                3 -> (1f - (threat.lifetime - threat.duration * 0.85f) / (threat.duration * 0.15f)).coerceIn(0f, 1f)
+                                else -> 1.0f
+                            }
+                            
+                            val tx = threat.x
+                            val ty = threat.y - cameraY
+
                             when (threat.definition.id) {
-                                "HAZ_GUST" -> {
-                                    // Render wind streaks for downdraft (Amplified visibility)
-                                    val tint = Color.White.copy(alpha = 0.3f)
-                                    repeat(8) { i ->
-                                        val rx = random.nextFloat() * screenWidth
-                                        val ry = (gameTime / 1.5f + random.nextFloat() * screenHeight) % screenHeight
-                                        drawLine(
-                                            color = tint,
-                                            start = Offset(rx, ry),
-                                            end = Offset(rx, ry + 200f),
-                                            strokeWidth = 3f
+                                "HAZ_LIGHTNING" -> {
+                                    val alpha = lifeCycleAlpha
+                                    // Massive Storm Cloud (Multiple layers for depth)
+                                    repeat(3) { i ->
+                                        val offX = (i - 1) * 80f
+                                        val offY = if (i == 1) -20f else 20f
+                                        drawCircle(
+                                            color = Color.DarkGray.copy(alpha = 0.9f * alpha),
+                                            radius = 160f - i * 20f,
+                                            center = Offset(tx + offX, ty + offY)
                                         )
-                                        if (i % 2 == 0) {
-                                            // Direction indicator arrow
-                                            drawPath(
-                                                path = Path().apply {
-                                                    moveTo(rx - 5f, ry + 180f)
-                                                    lineTo(rx, ry + 200f)
-                                                    lineTo(rx + 5f, ry + 180f)
-                                                },
-                                                color = tint
-                                            )
+                                    }
+                                    // Internal Glow
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(Color.Yellow.copy(alpha = 0.3f * alpha), Color.Transparent),
+                                            center = Offset(tx, ty),
+                                            radius = 200f
+                                        ),
+                                        radius = 200f,
+                                        center = Offset(tx, ty)
+                                    )
+
+                                    // Strike logic (using scanPulse as sub-phase)
+                                    if (threat.scanPulse > 0 && threat.scanPulse < 1.0f && threat.phase == 2) {
+                                        // Telegraph: Pulse
+                                        val tAlpha = (kotlin.math.sin(gameTime / 100f) * 0.3f + 0.4f) * alpha
+                                        drawCircle(
+                                            color = Color.Yellow.copy(alpha = tAlpha),
+                                            radius = 180f * threat.scanPulse,
+                                            center = Offset(tx, ty),
+                                            style = Stroke(width = 4f)
+                                        )
+                                    } else if (threat.scanPulse == 1.0f && threat.phase == 2) {
+                                        // Striking: Jagged Bolt
+                                        val boltPath = Path().apply {
+                                            moveTo(tx, ty)
+                                            var curY = ty
+                                            var curX = tx
+                                            repeat(5) {
+                                                val nextY = curY + 60f
+                                                val nextX = curX + (Random.nextFloat() - 0.5f) * 100f
+                                                lineTo(nextX, nextY)
+                                                curX = nextX
+                                                curY = nextY
+                                            }
+                                        }
+                                        drawPath(boltPath, Color.Yellow.copy(alpha = alpha), style = Stroke(width = 12f, cap = StrokeCap.Round))
+                                        drawPath(boltPath, Color.White.copy(alpha = alpha), style = Stroke(width = 4f, cap = StrokeCap.Round))
+                                        
+                                        // Impact Flash
+                                        drawCircle(
+                                            color = Color.White.copy(alpha = 0.6f * alpha),
+                                            radius = 100f,
+                                            center = Offset(tx, ty + 250f)
+                                        )
+                                    }
+                                }
+                                "HAZ_DEBRIS" -> {
+                                    val alpha = lifeCycleAlpha
+                                    val sizeMult = 2.0f // Task 4: Larger physical wreckage
+                                    rotate(threat.rotation, pivot = Offset(tx, ty)) {
+                                        val debrisColor = if (random.nextBoolean()) Color(0xFF757575) else Color(0xFF424242)
+                                        
+                                        // Task 4: Specific wreckage shapes (Satellite Panels, broken antennas)
+                                        when (threat.instanceId.hashCode() % 3) {
+                                            0 -> { // Solar Array Wing
+                                                drawRect(Color.DarkGray.copy(alpha = alpha), Offset(tx - 60f, ty - 20f), Size(120f, 40f))
+                                                drawRect(Color(0xFF3F51B5).copy(alpha = 0.4f * alpha), Offset(tx - 55f, ty - 15f), Size(110f, 30f), style = Stroke(width = 2f))
+                                                drawLine(Color.White.copy(alpha = 0.2f * alpha), Offset(tx - 60f, ty), Offset(tx + 60f, ty))
+                                            }
+                                            1 -> { // Hull Plating
+                                                val path = Path().apply {
+                                                    moveTo(tx - 40f, ty - 40f)
+                                                    lineTo(tx + 50f, ty - 30f)
+                                                    lineTo(tx + 40f, ty + 50f)
+                                                    lineTo(tx - 30f, ty + 40f)
+                                                    close()
+                                                }
+                                                drawPath(path, debrisColor.copy(alpha = alpha))
+                                                drawPath(path, Color.White.copy(alpha = 0.1f * alpha), style = Stroke(width = 2f))
+                                            }
+                                            else -> { // Structural Truss
+                                                drawRect(debrisColor.copy(alpha = alpha), Offset(tx - 10f, ty - 60f), Size(20f, 120f))
+                                                repeat(4) { j ->
+                                                    drawLine(Color.White.copy(alpha = 0.3f * alpha), Offset(tx-10f, ty-60f+j*30f), Offset(tx+10f, ty-30f+j*30f))
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                                "HAZ_CROSSWIND" -> {
-                                    // Render horizontal streaks for crosswind (Amplified visibility)
-                                    val windDir = if (random.nextBoolean()) 1f else -1f
-                                    val tint = Color.White.copy(alpha = 0.3f)
+                                "HAZ_RADIATION" -> {
+                                    val alpha = lifeCycleAlpha
+                                    val pulse = threat.scanPulse
+                                    // Task 7: Move part of radiation to background feel
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(Color(0xFF4A148C).copy(alpha = 0.15f * alpha), Color.Transparent),
+                                            center = Offset(tx, ty),
+                                            radius = 800f
+                                        ),
+                                        radius = 800f,
+                                        center = Offset(tx, ty)
+                                    )
+                                    // Distortion Boundary
+                                    drawCircle(
+                                        color = Color(0xFF4A148C).copy(alpha = 0.2f * alpha),
+                                        radius = 350f + pulse * 20f,
+                                        center = Offset(tx, ty),
+                                        style = Stroke(width = 20f)
+                                    )
+                                    // Pulsing Core
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(
+                                                Color(0xFF6A1B9A).copy(alpha = 0.6f * alpha), 
+                                                Color(0xFF2E7D32).copy(alpha = 0.3f * alpha), 
+                                                Color.Transparent
+                                            ),
+                                            center = Offset(tx, ty),
+                                            radius = 400f
+                                        ),
+                                        radius = 400f,
+                                        center = Offset(tx, ty)
+                                    )
+                                    // Floating particles (Radiation)
                                     repeat(8) { i ->
-                                        val rx = (gameTime * (windDir * 0.7f) + random.nextFloat() * screenWidth) % screenWidth
-                                        val finalX = if (rx < 0) rx + screenWidth else rx
-                                        val ry = random.nextFloat() * screenHeight
-                                        drawLine(
-                                            color = tint,
-                                            start = Offset(finalX, ry),
-                                            end = Offset(finalX + (200f * windDir), ry),
-                                            strokeWidth = 3f
+                                        val pRandom = Random(threat.instanceId.hashCode() + i + (gameTime / 100).toInt())
+                                        val angle = (gameTime / 1000f) + i * (2f * PI / 8f)
+                                        val px = tx + kotlin.math.cos(angle).toFloat() * (150f + pRandom.nextFloat() * 150f)
+                                        val py = ty + kotlin.math.sin(angle).toFloat() * (150f + pRandom.nextFloat() * 150f)
+                                        drawCircle(Color.Green.copy(alpha = 0.6f * alpha), 4f, Offset(px, py))
+                                    }
+                                }
+                                "HAZ_SOLAR_FLARE" -> {
+                                    val alpha = lifeCycleAlpha
+                                    // Massive Plasma Front
+                                    val flareHeight = 600f // Task 3: Increased scale
+                                    drawRect(
+                                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Transparent, 
+                                                Color(0xFFFFEA00).copy(alpha = 0.9f * alpha), 
+                                                Color(0xFFFF3D00).copy(alpha = 0.6f * alpha), 
+                                                Color.Transparent
+                                            ),
+                                            startY = ty - flareHeight / 2,
+                                            endY = ty + flareHeight / 2
+                                        ),
+                                        topLeft = Offset(0f, ty - flareHeight / 2),
+                                        size = Size(screenWidth, flareHeight)
+                                    )
+                                    // Arcs within flare
+                                    repeat(8) { i ->
+                                        val rx = (gameTime / 1.5f + i * 200f) % screenWidth
+                                        drawArc(
+                                            color = Color.White.copy(alpha = 0.3f * alpha),
+                                            startAngle = 0f,
+                                            sweepAngle = 180f,
+                                            useCenter = false,
+                                            topLeft = Offset(rx - 150f, ty - 80f),
+                                            size = Size(300f, 160f),
+                                            style = Stroke(width = 6f)
                                         )
-                                        if (i % 2 == 0) {
-                                            drawPath(
-                                                path = Path().apply {
-                                                    moveTo(finalX + (180f * windDir), ry - 5f)
-                                                    lineTo(finalX + (200f * windDir), ry)
-                                                    lineTo(finalX + (180f * windDir), ry + 5f)
-                                                },
-                                                color = tint
-                                            )
+                                    }
+                                }
+                                "HAZ_TURBULENCE" -> {
+                                    val alpha = lifeCycleAlpha
+                                    // Task 4: Atmospheric Distortion (Wind streaks - Force Focus)
+                                    val windDir = if (threat.instanceId.hashCode() % 2 == 0) 1f else -1f
+                                    
+                                    // Background Pressure Waves (Task 7)
+                                    repeat(3) { i ->
+                                        val p = (threat.scanPulse + i * 0.33f) % 1.0f
+                                        drawCircle(
+                                            color = Color.White.copy(alpha = 0.05f * (1f - p) * alpha),
+                                            radius = 500f * p,
+                                            center = Offset(tx, ty),
+                                            style = Stroke(width = 2f)
+                                        )
+                                    }
+
+                                    repeat(25) { i ->
+                                        val r = Random(threat.instanceId.hashCode() + i)
+                                        val rx = tx + (r.nextFloat() - 0.5f) * 800f
+                                        val ry = ty + (r.nextFloat() - 0.5f) * 800f
+                                        val progress = (threat.scanPulse + r.nextFloat()) % 1.0f
+                                        val lx = rx + (progress * 500f * windDir)
+                                        
+                                        drawLine(
+                                            color = Color.White.copy(alpha = 0.3f * (1f - progress) * alpha),
+                                            start = Offset(lx, ry),
+                                            end = Offset(lx + 120f * windDir, ry),
+                                            strokeWidth = 8f, // Thicker, softer wind
+                                            cap = StrokeCap.Round
+                                        )
+                                    }
+                                }
+                                "HAZ_GRAVITY" -> {
+                                    val alpha = lifeCycleAlpha
+                                    val pulse = threat.scanPulse
+                                    // Lensing Effect (Simulated with circles)
+                                    repeat(4) { i ->
+                                        val radius = (100f + i * 150f + pulse * 100f)
+                                        drawCircle(
+                                            color = Color.White.copy(alpha = 0.15f * (1f - pulse) * alpha),
+                                            radius = radius,
+                                            center = Offset(tx, ty),
+                                            style = Stroke(width = 2f + i)
+                                        )
+                                    }
+                                    // Black Hole Core
+                                    drawCircle(
+                                        color = Color.Black.copy(alpha = 0.8f * alpha),
+                                        radius = 60f,
+                                        center = Offset(tx, ty)
+                                    )
+                                    // Space Warping (Inner Ring)
+                                    drawCircle(
+                                        color = Color.Cyan.copy(alpha = 0.4f * alpha),
+                                        radius = 70f + (kotlin.math.sin(gameTime / 100f) * 10f),
+                                        center = Offset(tx, ty),
+                                        style = Stroke(width = 4f)
+                                    )
+                                }
+                                "HAZ_EMP" -> {
+                                    val alpha = lifeCycleAlpha
+                                    val ringRadius = threat.scanPulse * 600f // Larger shockwave
+                                    val ringAlpha = (1f - (threat.scanPulse / 3.0f)).coerceIn(0f, 1f) * alpha
+                                    
+                                    // Main Shockwave
+                                    drawCircle(
+                                        color = Color.Cyan.copy(alpha = ringAlpha),
+                                        radius = ringRadius,
+                                        center = Offset(tx, ty),
+                                        style = Stroke(width = 15f)
+                                    )
+                                    // Secondary Echoes
+                                    drawCircle(
+                                        color = Color.White.copy(alpha = ringAlpha * 0.5f),
+                                        radius = ringRadius * 0.9f,
+                                        center = Offset(tx, ty),
+                                        style = Stroke(width = 5f)
+                                    )
+                                    // Electronic Interference (Glitches)
+                                    repeat(5) { i ->
+                                        val r = Random(gameTime / 100 + i)
+                                        if (r.nextFloat() > 0.5f) {
+                                            val gx = tx + (r.nextFloat() - 0.5f) * ringRadius * 2
+                                            val gy = ty + (r.nextFloat() - 0.5f) * ringRadius * 2
+                                            drawRect(Color.Cyan.copy(alpha = 0.4f * ringAlpha), Offset(gx, gy), Size(30f, 2f))
                                         }
                                     }
                                 }
-                                "HAZ_THERMAL" -> {
-                                    // Render upward streaks for thermal (Amplified visibility)
-                                    val tint = Color.Cyan.copy(alpha = 0.35f)
-                                    repeat(8) { i ->
-                                        val rx = random.nextFloat() * screenWidth
-                                        val ry = (-gameTime / 1.5f + random.nextFloat() * screenHeight) % screenHeight
-                                        val finalY = if (ry < 0) ry + screenHeight else ry
-                                        drawLine(
-                                            color = tint,
-                                            start = Offset(rx, finalY),
-                                            end = Offset(rx, finalY + 200f),
-                                            strokeWidth = 3f
-                                        )
-                                        if (i % 2 == 0) {
-                                            drawPath(
-                                                path = Path().apply {
-                                                    moveTo(rx - 5f, finalY + 20f)
-                                                    lineTo(rx, finalY)
-                                                    lineTo(rx + 5f, finalY + 20f)
-                                                },
-                                                color = tint
-                                            )
-                                        }
-                                    }
+                                "HAZ_GUST", "HAZ_CROSSWIND", "HAZ_THERMAL" -> {
+                                    // Compatibility
                                 }
                                 "ENT_SCOUT_DRONE" -> {
                                     // Render Surveyor Probe
@@ -2623,8 +2948,18 @@ fun GameScreen() {
                             PowerUpType.HEAT_SINK -> Color.White
                             PowerUpType.ARTIFACT -> Color(0xFF9C27B0)
                             PowerUpType.ALTITUDE_BOOSTER -> Color.White
+                            PowerUpType.SHIELD_CAPSULE -> SciFiCyan
+                            PowerUpType.HULL_REPAIR -> SciFiGreen
                         }
                         if (pu.type == PowerUpType.ARTIFACT) { drawCircle(baseColor, radius = 15f, center = Offset(pu.x, pu.y - cameraY)); drawCircle(Color.White, radius = 5f, center = Offset(pu.x, pu.y - cameraY)) }
+                        else if (pu.type == PowerUpType.SHIELD_CAPSULE || pu.type == PowerUpType.HULL_REPAIR) {
+                            // Survival Capsules
+                            drawCircle(baseColor, radius = 18f, center = Offset(pu.x, pu.y - cameraY))
+                            drawCircle(Color.White.copy(alpha = 0.6f), radius = 22f, center = Offset(pu.x, pu.y - cameraY), style = Stroke(width = 2f))
+                            if ((gameTime / 200) % 2 == 0L) {
+                                drawCircle(Color.White, radius = 5f, center = Offset(pu.x, pu.y - cameraY))
+                            }
+                        }
                         else { drawRect(baseColor, topLeft = Offset(pu.x - 12f, pu.y - cameraY - 15f), size = Size(24f, 30f)); drawRect(Color.DarkGray, topLeft = Offset(pu.x - 6f, pu.y - cameraY - 20f), size = Size(12f, 5f)) }
                     }
 
@@ -2633,9 +2968,13 @@ fun GameScreen() {
                         val curX = fr.x * (1f - fr.progress) + fr.targetX * fr.progress
                         val curY = fr.y * (1f - fr.progress) + fr.targetY * fr.progress
 
-                        val baseColor = when (fr.type) {
+                        val baseColor = when (val t = fr.type) {
                             is ComboReward.Fuel -> Color.Green
-                            is ComboReward.PowerUp -> Color.Cyan
+                            is ComboReward.PowerUp -> when(t.type) {
+                                PowerUpType.HULL_REPAIR -> SciFiGreen
+                                PowerUpType.SHIELD_CAPSULE -> SciFiCyan
+                                else -> SciFiCyan
+                            }
                             is ComboReward.AltitudeBoost -> Color.White
                             is ComboReward.Artifact -> Color(0xFF9C27B0)
                         }
@@ -2809,6 +3148,31 @@ fun GameScreen() {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { gameState = GameState.ARCHIVE }) {
                                 Text("ARCHIVE", color = SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
                                 Text("VIEW >", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(8.dp))
+
+                        // EPIC 5: Survival Specs (Read-only for now)
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(SciFiSurface.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .border(1.dp, SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("MAX HULL", color = SciFiGreen.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                Text("${progressionManager.permanentMaxIntegrity.toInt()}", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("MAX SHIELD", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                Text("${progressionManager.permanentMaxShield.toInt()}", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("REGEN RATE", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                Text("${Constants.SHIELD_REGEN_RATE.toInt()} U/S", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
                             }
                         }
                         
@@ -3097,109 +3461,172 @@ fun GameScreen() {
                         )
                     }
 
-                    // 2. LEFT EDGE: Vertical Fuel Bar
-                    val fuelGaugeHeight = (150f + (player.maxFuel - 100f) * 0.8f).coerceIn(150f, 350f).dp
+                    // --- REFACTORED HUD (Adjustment Run 1) ---
+
+                    // 1. TOP CENTER: Altitude
                     Column(
                         modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = 16.dp),
+                            .align(Alignment.TopCenter)
+                            .statusBarsPadding()
+                            .padding(top = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            "⛽",
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(bottom = 6.dp).graphicsLayer(alpha = if (player.fuel < 20f) (gameTime / 200 % 2).toFloat() else 1f)
+                            text = score.toString(),
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 4.sp,
+                                shadow = androidx.compose.ui.graphics.Shadow(SciFiCyan.copy(alpha = 0.3f), blurRadius = 15f)
+                            ),
+                            color = SciFiWhite
                         )
-                        Box(
-                            modifier = Modifier
-                                .width(14.dp) // Slightly wider for premium tank feel
-                                .height(fuelGaugeHeight)
-                                .shadow(8.dp, RoundedCornerShape(4.dp))
-                                .background(SciFiSurface, RoundedCornerShape(4.dp))
-                                .border(1.dp, SciFiBorder, RoundedCornerShape(4.dp)),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            val fuelRatio = (player.fuel / player.maxFuel).coerceIn(0f, 1f)
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                clipPath(Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(androidx.compose.ui.geometry.Rect(Offset.Zero, size), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))) }) {
-                                    val fillHeight = size.height * fuelRatio
-                                    // Liquid surface wave
-                                    val waveHeight = 3f
-                                    val waveOffset = (gameTime / 300f) % (2 * PI.toFloat())
-                                    val path = Path().apply {
-                                        moveTo(0f, size.height - fillHeight)
-                                        for (x in 0..size.width.toInt()) {
-                                            val y = (size.height - fillHeight) + sin(x / 4f + waveOffset) * waveHeight
-                                            lineTo(x.toFloat(), y)
+                        Text(
+                            text = "ASCENSION DATA: BEST $highScore",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = SciFiWhite.copy(alpha = 0.5f),
+                            fontSize = 10.sp,
+                            letterSpacing = 2.sp
+                        )
+                    }
+
+                    // 2. LEFT SIDE: Resource Cluster (Stacked Vertically)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 16.dp)
+                            .graphicsLayer(alpha = 0.85f), // Overall transparency
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // Fuel Meter
+                        val fuelGaugeHeight = (120f + (player.maxFuel - 100f) * 0.6f).coerceIn(100f, 250f).dp
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "⛽",
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (player.fuel < 20f) (gameTime / 200 % 2).toFloat() else 0.8f)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp) // Narrowed by 50%
+                                    .height(fuelGaugeHeight)
+                                    .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                                    .border(0.5.dp, SciFiBorder.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                val fuelRatio = (player.fuel / player.maxFuel).coerceIn(0f, 1f)
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    clipPath(Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(androidx.compose.ui.geometry.Rect(Offset.Zero, size), androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()))) }) {
+                                        val fillHeight = size.height * fuelRatio
+                                        val waveOffset = (gameTime / 300f) % (2 * PI.toFloat())
+                                        val path = Path().apply {
+                                            moveTo(0f, size.height - fillHeight)
+                                            for (x in 0..size.width.toInt()) {
+                                                val y = (size.height - fillHeight) + sin(x / 4f + waveOffset) * 2f
+                                                lineTo(x.toFloat(), y)
+                                            }
+                                            lineTo(size.width, size.height)
+                                            lineTo(0f, size.height)
+                                            close()
                                         }
-                                        lineTo(size.width, size.height)
-                                        lineTo(0f, size.height)
-                                        close()
+                                        drawPath(path = path, color = (if (player.fuel > player.maxFuel * 0.25f) SciFiGreen else SciFiRed).copy(alpha = 0.9f))
                                     }
-                                    drawPath(
-                                        path = path,
-                                        color = if (player.fuel > player.maxFuel * 0.25f) SciFiGreen else SciFiRed
-                                    )
-                                    // Subtle shimmer
-                                    if (fuelRatio > 0) {
-                                        drawRect(
-                                            color = Color.White.copy(alpha = 0.15f),
-                                            topLeft = Offset(size.width * 0.15f, size.height - fillHeight),
-                                            size = Size(2f, fillHeight)
-                                        )
-                                    }
+                                }
+                            }
+                        }
+
+                        // Heat Meter
+                        val heatGaugeHeight = (120f + (player.maxHeat - 100f) * 0.6f).coerceIn(100f, 250f).dp
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                if (player.isOverheated) "⚠️" else "🔥",
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (player.isOverheated) (gameTime / 150 % 2).toFloat() else 0.8f)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp) // Narrowed by 50%
+                                    .height(heatGaugeHeight)
+                                    .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                                    .border(0.5.dp, SciFiBorder.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                val heatRatio = (player.heat / player.maxHeat).coerceIn(0f, 1f)
+                                val heatColor = when {
+                                    player.isOverheated -> SciFiRed
+                                    heatRatio > 0.8f -> SciFiRed
+                                    heatRatio > 0.5f -> SciFiGold
+                                    else -> SciFiCyan
+                                }
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    val fillHeight = size.height * heatRatio
+                                    drawRect(color = heatColor.copy(alpha = 0.9f), topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
                                 }
                             }
                         }
                     }
 
-                    // 3. RIGHT EDGE: Vertical Heat Bar
-                    val heatGaugeHeight = (150f + (player.maxHeat - 100f) * 0.8f).coerceIn(150f, 350f).dp
+                    // 3. RIGHT SIDE: Survival Cluster (Stacked Vertically)
                     Column(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
-                            .padding(end = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(end = 16.dp)
+                            .graphicsLayer(alpha = 0.85f), // Overall transparency
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        Text(
-                            if (player.isOverheated) "⚠️" else "🔥",
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(bottom = 6.dp).graphicsLayer(alpha = if (player.isOverheated) (gameTime / 150 % 2).toFloat() else 1f)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .width(14.dp)
-                                .height(heatGaugeHeight)
-                                .shadow(8.dp, RoundedCornerShape(4.dp))
-                                .background(SciFiSurface, RoundedCornerShape(4.dp))
-                                .border(1.dp, SciFiBorder, RoundedCornerShape(4.dp)),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            val heatRatio = (player.heat / player.maxHeat).coerceIn(0f, 1f)
-                            val heatColor = when {
-                                player.isOverheated -> SciFiRed
-                                heatRatio > 0.8f -> SciFiRed
-                                heatRatio > 0.5f -> SciFiGold
-                                else -> SciFiCyan
-                            }
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                clipPath(Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(androidx.compose.ui.geometry.Rect(Offset.Zero, size), androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()))) }) {
-                                    val fillHeight = size.height * heatRatio
+                        // Shield Meter
+                        val shieldGaugeHeight = (120f + (player.maxShield - 50f) * 1.2f).coerceIn(100f, 250f).dp
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val isShieldCritical = player.shield < player.maxShield * 0.25f
+                            Text(
+                                "🛡️",
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isShieldCritical) (gameTime / 200 % 2).toFloat() else 0.8f)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp) // Narrowed by 50%
+                                    .height(shieldGaugeHeight)
+                                    .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                                    .border(0.5.dp, (if (isShieldCritical) SciFiRed else SciFiBorder).copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                val shieldRatio = (player.shield / player.maxShield).coerceIn(0f, 1f)
+                                Canvas(modifier = Modifier.fillMaxSize()) {
                                     drawRect(
-                                        color = heatColor,
-                                        topLeft = Offset(0f, size.height - fillHeight),
-                                        size = Size(size.width, fillHeight)
+                                        color = SciFiCyan.copy(alpha = 0.9f),
+                                        topLeft = Offset(0f, size.height * (1f - shieldRatio)),
+                                        size = Size(size.width, size.height * shieldRatio)
                                     )
-                                    // Heat shimmer / Ember effect
-                                    if (heatRatio > 0.1f) {
-                                        repeat(4) { i ->
-                                            val r = Random(gameTime / 120 + i)
-                                            val rx = r.nextFloat() * size.width
-                                            val ry = (size.height - fillHeight) + r.nextFloat() * fillHeight
-                                            val pAlpha = (0.3f + 0.3f * sin(gameTime / 100f + i)).coerceIn(0f, 0.6f)
-                                            drawCircle(Color.White.copy(alpha = pAlpha), radius = 1.5f, center = Offset(rx, ry))
-                                        }
-                                    }
+                                }
+                            }
+                        }
+
+                        // Integrity Meter (Hull)
+                        val integrityGaugeHeight = (120f + (player.maxIntegrity - 100f) * 0.6f).coerceIn(100f, 250f).dp
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val isHullCritical = player.integrity < player.maxIntegrity * 0.25f
+                            Text(
+                                "❤️",
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isHullCritical) (gameTime / 200 % 2).toFloat() else 0.8f)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp) // Narrowed by 50%
+                                    .height(integrityGaugeHeight)
+                                    .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                                    .border(0.5.dp, (if (isHullCritical) SciFiRed else SciFiBorder).copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                val integrityRatio = (player.integrity / player.maxIntegrity).coerceIn(0f, 1f)
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    drawRect(
+                                        color = SciFiGreen.copy(alpha = 0.9f),
+                                        topLeft = Offset(0f, size.height * (1f - integrityRatio)),
+                                        size = Size(size.width, size.height * integrityRatio)
+                                    )
                                 }
                             }
                         }
