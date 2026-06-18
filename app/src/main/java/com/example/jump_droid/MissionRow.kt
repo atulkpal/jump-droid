@@ -35,7 +35,7 @@ fun MissionRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
     ) {
-        missions.forEach { activeMission ->
+        missions.toList().forEach { activeMission ->
             val cardColor = when (activeMission.ceremonyStage) {
                 CeremonyStage.GLOW -> SciFiCyan.copy(alpha = 0.6f)
                 else -> SciFiSurface
