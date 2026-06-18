@@ -14,10 +14,11 @@ Jump Droid is an Android game built with Jetpack Compose. The player pilots a ro
 
 | Branch | Purpose |
 |--------|---------|
-| `refactor/ui-extraction` | **Active** — Sprint T1 UI extraction from monolithic `GameScreen.kt` |
+| `refactor/ui-extraction` | **Active** — Sprint T1 + T2 UI extraction from monolithic `GameScreen.kt` |
+| `development` | Integration branch (merged from `refactor/ui-extraction`) |
 | `main` | Base branch; contains pre-refactor code |
 
-All Phase 1 and Phase 2 extraction work lives on `refactor/ui-extraction`. Ready to merge to `main`.
+All Phase 1, Phase 2, and T2A extraction work lives on `refactor/ui-extraction`. Merged into `development`.
 
 Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`
 
@@ -29,6 +30,9 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`
 | `docs/architecture/Refactor_T1_Phase1.md` | Phase 1 extraction report (completed) |
 | `docs/architecture/Refactor_T1_Phase2_Plan.md` | Phase 2 implementation plan |
 | `docs/architecture/Refactor_T1_Phase2_Report.md` | Phase 2 completion report (completed) |
+| `docs/architecture/Refactor_T2_Plan.md` | T2 plan (T2A low risk + T2B medium risk) |
+| `docs/architecture/Refactor_T2A_Report.md` | T2A completion report (completed) |
+| `docs/architecture/Refactor_T2B_Report.md` | T2B completion report (completed) |
 | `OPENCODE.md` | This file — session context |
 
 ## Current Active EPIC
@@ -37,12 +41,14 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`
 
 ## Current Refactor Status
 
-**Sprint T1 — Tidying:** Fully complete. Both Phase 1 and Phase 2 delivered.
+**Sprint T1 + T2 — Tidying:** Fully complete.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| Phase 1 | ✅ Done | Extracted 15 UI files; fixed imports; resolved conflicts; build passing |
-| Phase 2 | ✅ Done | Replaced all inline screens/HUD/overlays with extracted composable calls |
+| T1 Phase 1 | ✅ Done | Extracted 15 UI files; fixed imports; resolved conflicts; build passing |
+| T1 Phase 2 | ✅ Done | Replaced all inline screens/HUD/overlays with extracted composable calls |
+| T2 Phase A | ✅ Done | Extracted 4 low-risk inline composables (TopRightUtilityButtons, MissionRow, FloatingTextsLayer, GaugeWrappers) |
+| T2 Phase B | ✅ Done | Extracted 8 Canvas effects into `CanvasEffects.kt` (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion) |
 
 ## Completed Refactor Phases
 
@@ -59,10 +65,19 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`
 - ✅ `PowerupBadge` removed (unused, zero call sites)
 - ✅ Phase 2 completion report (`Refactor_T1_Phase2_Report.md`) committed
 - ✅ Git tags `refactor-t1-phase1` and `refactor-t1-phase2` created
+- ✅ T2 plan (`Refactor_T2_Plan.md`) created
+- ✅ `TopRightUtilityButtons.kt` extracted (help + pause buttons)
+- ✅ `MissionRow.kt` extracted (mission card row, 108 lines saved)
+- ✅ `FloatingTextsLayer.kt` extracted (floating text overlay, 16 lines saved)
+- ✅ `LeftGauges` / `RightGauges` appended to `HudWidgets.kt` (22 lines saved)
+- ✅ GameScreen.kt reduced from 3,326 → 3,179 lines (−147, −4.4%)
+- ✅ `CanvasEffects.kt` created with 8 `DrawScope` extension functions
+- ✅ All 8 Canvas effects extracted from GameScreen.kt (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion)
+- ✅ GameScreen.kt reduced from 3,179 → 3,109 lines (−70, −2.2%)
+- ✅ Cumulative game loop reduction: 4,344 → 3,109 lines (−28.4%)
 
 ## Open Refactor Tasks
 
-- [ ] Future: Extract mission row cards (~124 lines) and floating texts (~17 lines) from HUD
 - [ ] Future: Add package structure (separate `screens/`, `overlays/`, `hud/` packages)
 
 ## Coding Standards
@@ -93,25 +108,21 @@ Every notable engineering event gets a dated entry in `docs/CHANGELOG.md` with: 
 
 | File | Reason |
 |------|--------|
-| `GameScreen.kt` | Core game loop + all state management. Phase 2 complete (3,326 lines). Do not touch lines 82–2500 (game loop, managers, physics). |
+| `GameScreen.kt` | Core game loop + all state management. T1+T2 complete (3,109 lines). Do not touch lines 82–2500 (game loop, managers, physics). |
 | `RocketRenderer.kt` | EPIC 5 visual redesign in progress (destruction sequence, shield plates). Pre-existing uncommitted changes. |
 | Any `Threat*.kt`, `Mission*.kt`, `ComboManager.kt`, `ProgressionManager.kt`, `DiscoveryManager.kt` | Core gameplay managers. Not part of UI extraction scope. |
 
 ## Current Known Technical Debt
 
-1. **GameScreen.kt at 3,326 lines** — Down from 4,344 (-23.4%). Still large; future sprints may further decompose.
+1. **GameScreen.kt at 3,109 lines** — Down from 4,344 (-28.4%). Still large; future sprints may further decompose.
 2. **Deprecated `LinearProgressIndicator`** — Used in `GameScreen.kt:3284` and `ArchiveScreen.kt:116`. Should migrate to lambda-based overload.
-3. **Mission row cards inline** — 124-line animated mission UI still embedded in `GameScreen.kt`. Deferred past Phase 2.
-4. **Floating combo texts inline** — 17-line per-frame rendering inside game loop. Deferred past Phase 2.
-5. **`PowerupBadge` deleted** — Was unused with zero call sites. Removed in Phase 2.
-6. **Flat package structure** — All `.kt` files in `com.example.jump_droid`. Future: sub-packages for screens/overlays/hud/managers.
-7. **No automated UI tests** — All verification is manual. Extracted composables make future test addition feasible.
+3. **Threat entity rendering inline** — ~826 lines of Canvas draw code. Deferred indefinitely.
+4. **`PowerupBadge` deleted** — Was unused with zero call sites. Removed in Phase 2.
+5. **Flat package structure** — All `.kt` files in `com.example.jump_droid`. Future: sub-packages for screens/overlays/hud/managers.
+6. **No automated UI tests** — All verification is manual. Extracted composables make future test addition feasible.
 
 ## Next Recommended Engineering Tasks
 
-1. ~~Execute Phase 2~~ ✅ Done
-2. ~~Delete `PowerupBadge`~~ ✅ Done
-3. Move `MissionType.toIcon()` to `MissionType.kt`
-4. Migrate deprecated `LinearProgressIndicator` usages
-5. Merge `refactor/ui-extraction` to `main`
-6. Resume EPIC 5 Sprint C work on `main`
+1. Move `MissionType.toIcon()` to `MissionType.kt`
+2. Migrate deprecated `LinearProgressIndicator` usages
+3. Resume EPIC 5 Sprint C work on `development`
