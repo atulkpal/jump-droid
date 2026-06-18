@@ -158,6 +158,30 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-18
+
+**Sprint / Phase:** Refactor Sprint T2 — Positioning Fixes + Merge
+
+**Branch:** `refactor/ui-extraction`
+
+**Base Commit:** `24a3eb9` (T2B)
+
+**Status:** Completed
+
+### Fixed
+- `AltitudeDisplay` — added `modifier` parameter; caller passes `Modifier.align(Alignment.TopCenter)` for correct positioning
+- `NotificationLayer` — added `modifier` parameter; positioned at `TopCenter.padding(top = 240.dp)`, text shrunk from `headlineSmall` → `bodyLarge`, `letterSpacing` reduced from `4.sp` → `2.sp`
+
+### Changed
+- `OPENCODE.md` — updated branch strategy, completed phases, and next tasks
+- `docs/CHANGELOG.md` — added this entry
+
+### Merged
+- `refactor/ui-extraction` merged into `development` (`af3d0ae`)
+- Git tags `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2` pushed to remote
+
+---
+
 ## Historical Milestones
 
 The following milestones summarize completed work prior to the changelog's creation. These entries are reconstructed from commit history and were not recorded as changelog events at the time of completion.

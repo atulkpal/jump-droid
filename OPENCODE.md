@@ -14,13 +14,11 @@ Jump Droid is an Android game built with Jetpack Compose. The player pilots a ro
 
 | Branch | Purpose |
 |--------|---------|
-| `refactor/ui-extraction` | **Active** — Sprint T1 + T2 UI extraction from monolithic `GameScreen.kt` |
-| `development` | Integration branch (merged from `refactor/ui-extraction`) |
+| `development` | **Active** — integration branch for all work (EPIC 5 Sprint C next) |
+| `refactor/ui-extraction` | Completed — Sprint T1 + T2 UI extraction, fully merged into `development` |
 | `main` | Base branch; contains pre-refactor code |
 
-All Phase 1, Phase 2, and T2A extraction work lives on `refactor/ui-extraction`. Merged into `development`.
-
-Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`
+Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 
 ## Documentation Locations
 
@@ -75,6 +73,8 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`
 - ✅ All 8 Canvas effects extracted from GameScreen.kt (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion)
 - ✅ GameScreen.kt reduced from 3,179 → 3,109 lines (−70, −2.2%)
 - ✅ Cumulative game loop reduction: 4,344 → 3,109 lines (−28.4%)
+- ✅ Positioning regression fixes: `AltitudeDisplay` alignment + `NotificationLayer` text/position (`72594b5`)
+- ✅ Merged into `development` (`af3d0ae`)
 
 ## Open Refactor Tasks
 
@@ -123,6 +123,6 @@ Every notable engineering event gets a dated entry in `docs/CHANGELOG.md` with: 
 
 ## Next Recommended Engineering Tasks
 
-1. Move `MissionType.toIcon()` to `MissionType.kt`
-2. Migrate deprecated `LinearProgressIndicator` usages
-3. Resume EPIC 5 Sprint C work on `development`
+1. Resume EPIC 5 Sprint C work on `development`
+2. Move `MissionType.toIcon()` to `MissionType.kt`
+3. Migrate deprecated `LinearProgressIndicator` usages
