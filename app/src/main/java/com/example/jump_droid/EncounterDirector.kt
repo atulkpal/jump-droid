@@ -63,7 +63,7 @@ class EncounterDirector {
         threatSpawnTimer += dt
         if (threatSpawnTimer > 3f) { // Check every 3 seconds
             threatSpawnTimer = 0f
-            val activeThreats = threatManager.activeThreats
+            val activeThreats = threatManager.activeThreats.toList()
             val eligible = ThreatRegistry.getEligibleThreats(score, currentZone)
 
             // Slow down spawning if boss is present

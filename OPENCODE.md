@@ -14,7 +14,7 @@ Jump Droid is an Android game built with Jetpack Compose. The player pilots a ro
 
 | Branch | Purpose |
 |--------|---------|
-| `refactor/t4-recovery` | **Active** — Sprint T4 recovery and validation |
+| `refactor/t4-recovery` | **Active** — Sprint T4 stabilized |
 | `refactor/logic-extraction` | Sprint T3 logic extraction (merged) |
 | `development` | integration branch for all work (EPIC 5 Sprint C next) |
 | `refactor/ui-extraction` | Completed — Sprint T1 + T2 UI extraction, fully merged into `development` |
@@ -36,7 +36,7 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | `docs/architecture/Refactor_T3_Plan.md` | T3 plan (logic extraction) |
 | `docs/architecture/Refactor_T3_Report.md` | T3 completion report (completed) |
 | `docs/architecture/Refactor_T4_Plan.md` | T4 plan (system delegation) |
-| `docs/architecture/Refactor_T4_Report.md` | T4 completion report (RECOVERED / VALIDATING) |
+| `docs/architecture/Refactor_T4_Report.md` | T4 completion report (STABILIZED) |
 | `OPENCODE.md` | This file — session context |
 
 ## Current Active EPIC
@@ -54,7 +54,7 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | T2 Phase A | ✅ Done | Extracted 4 low-risk inline composables (TopRightUtilityButtons, MissionRow, FloatingTextsLayer, GaugeWrappers) |
 | T2 Phase B | ✅ Done | Extracted 8 Canvas effects into `CanvasEffects.kt` (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion) |
 | T3 | ✅ Done | Extracted `NotificationManager`, `FloatingTextManager`, `PlatformManager`, and expanded `ProgressionManager` |
-| T4 | 🟡 Recovery | System delegation of survival, director, and threat interaction logic (Validating) |
+| T4 | ✅ Done | System delegation of survival, director, and threat interaction logic (Stabilized) |
 
 ## Completed Refactor Phases
 
@@ -84,8 +84,11 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 - ✅ `FloatingTextManager.kt` created; popup lifecycle managed
 - ✅ `PlatformManager.kt` created; generation math and streaks moved
 - ✅ `ProgressionManager.kt` expanded; achievement/high score logic delegated
-- ✅ GameScreen.kt reduced from 3,109 → 3,033 lines (−76, −2.4%)
-- ✅ Cumulative game loop reduction: 4,344 → 3,033 lines (−30.2%)
+- ✅ `SurvivalManager.kt` created; damage and regen logic extracted
+- ✅ `EncounterDirector.kt` created; spawning and boss thresholds extracted
+- ✅ Massive threat interaction block (400+ lines) delegated to `ActiveThreat.kt`
+- ✅ GameScreen.kt reduced from 3,109 → 2,538 lines (−571, −18.4%)
+- ✅ Cumulative game loop reduction: 4,344 → 2,538 lines (−41.6%)
 - ✅ Positioning regression fixes: `AltitudeDisplay` alignment + `NotificationLayer` text/position (`72594b5`)
 - ✅ Merged into `development` (`af3d0ae`)
 

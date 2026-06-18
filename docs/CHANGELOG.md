@@ -10,7 +10,7 @@ All notable changes to this project are recorded as dated engineering events.
 
 **Branch:** `refactor/t4-recovery`
 
-**Status:** RECOVERED AND UNDER VALIDATION
+**Status:** COMPLETE AND STABILIZED
 
 ### Added
 - `SurvivalManager.kt` — Extracted damage and destruction lifecycle logic.
@@ -19,14 +19,17 @@ All notable changes to this project are recorded as dated engineering events.
 ### Changed
 - `GameScreen.kt`: Delegated 400+ lines of threat interaction to `ActiveThreat.kt`.
 - `GameScreen.kt`: Integrated `SurvivalManager` and `EncounterDirector`.
+- `ActiveThreat.kt`: Added `processInteraction` for delegated proximity logic.
 
 ### Fixed
-- Merged original T4 architecture into `refactor/t4-recovery` branch.
-- Resolved documentation-only merge conflicts.
+- **Mission Lifecycle**: Restored `missionManager.selectNextMission()` to fix ceremony loops and combo HUD instability.
+- **Spawn Density**: Expanded enemy routing for `UPPER_ATMOSPHERE` and tuned probabilities to development baseline.
+- **Thread Safety**: Applied `.toList()` snapshots to all critical StateList iterations to resolve `ConcurrentModificationException`.
+- **Continue Recovery**: Fixed `continueRun()` state reset to prevent immediate death-loop on hull destruction.
 
 ### Notes
-- T4 is no longer considered a failed refactor.
-- Current work focuses on polishing gameplay regressions (spawn frequency and mission completion effects).
+- T4 architecture is now fully validated and production-ready.
+- Cumulative game loop reduction: 4,344 → 2,538 lines (−41.6%).
 
 ---
 

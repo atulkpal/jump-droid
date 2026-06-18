@@ -789,7 +789,7 @@ class ActiveThreat(
                                  onVisualFeedback(15f, 0f)
                              }
                              if (jamCooldown <= 0f) {
-                                 platforms.sortedBy {
+                                 platforms.toList().sortedBy {
                                      val dxP = it.x - player.x
                                      val dyP = it.y - player.y
                                      dxP*dxP + dyP*dyP

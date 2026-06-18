@@ -433,6 +433,9 @@ fun GameScreen() {
         player.velocityX = 0f
         player.velocityY = 0f
         player.fuel = player.maxFuel * 0.5f // Restore 50% fuel
+        player.integrity = player.maxIntegrity * 0.5f // Restore 50% integrity
+        player.shield = player.maxShield * 0.5f // Restore 50% shield
+        player.destructionTimer = 0f
         player.heat = 0f
         player.isOverheated = false
         player.lastPlatform = spawnPlatform
@@ -810,7 +813,7 @@ fun GameScreen() {
                             // ... (Wait, I need to make sure I don't break the wind/threat code)
 
                             // c. Threat Interactions (Proximity Effects)
-                            threatManager.activeThreats.forEach { threat ->
+                            threatManager.activeThreats.toList().forEach { threat ->
                                 threat.processInteraction(
                                     player = player,
                                     sdt = sdt,
@@ -1473,12 +1476,12 @@ fun GameScreen() {
                     )
 
                     drawParticles(
-                        particles = particles,
+                        particles = particles.toList(),
                         cameraY = cameraY,
                         gameTime = gameTime
                     )
                     drawLandingEffects(
-                        effects = landingEffects,
+                        effects = landingEffects.toList(),
                         cameraY = cameraY
                     )
 
@@ -1493,7 +1496,7 @@ fun GameScreen() {
                     }
 
                     // Render Threats
-                    threatManager.activeThreats.forEach { threat ->
+                    threatManager.activeThreats.toList().forEach { threat ->
                         if (threat.state == ThreatState.ACTIVE) {
                             val random = Random(threat.instanceId.hashCode())
                             val lifeCycleAlpha = when (threat.phase) {
@@ -2321,13 +2324,13 @@ fun GameScreen() {
                     }
 
                     drawPowerUps(
-                        powerUps = powerUps,
+                        powerUps = powerUps.toList(),
                         cameraY = cameraY,
                         gameTime = gameTime
                     )
 
                     drawFlyingRewards(
-                        rewards = flyingRewards
+                        rewards = flyingRewards.toList()
                     )
 
                     // Render Rocket via RocketRenderer
@@ -2435,7 +2438,7 @@ fun GameScreen() {
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             MissionRow(
-                                missions = missionManager.activeMissions,
+                                missions = missionManager.activeMissions.toList(),
                                 globalShowObjective = globalShowObjective
                             )
 
