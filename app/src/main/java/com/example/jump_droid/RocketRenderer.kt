@@ -39,26 +39,71 @@ class RocketRenderer {
         with(drawScope) {
             translate(rocketX, rocketY) {
                 
-                // --- Destruction Sequence Rendering ---
+                // --- CATASTROPHIC DESTRUCTION SEQUENCE (Task 3) ---
                 if (player.destructionTimer > 0) {
-                    val progress = player.destructionTimer // 0..2 seconds
-                    val flash = (kotlin.math.sin(gameTime / 50f) * 0.5f + 0.5f)
+                    val progress = player.destructionTimer // 0..2.5s
                     
                     if (progress < 0.5f) {
-                        // Phase 1: Damage Flash
-                        drawRocketBody(this, player, overrideColor = Color.White.copy(alpha = flash))
+                        // PHASE 1: Hull Failure Flash
+                        val flashAlpha = (kotlin.math.sin(gameTime / 30f) * 0.5f + 0.5f)
+                        rotate(tilt) {
+                            drawRocketBody(this, player)
+                            drawRect(Color.White.copy(alpha = flashAlpha), topLeft = Offset(-ROCKET_WIDTH/2, -ROCKET_HEIGHT/2), size = Size(ROCKET_WIDTH, ROCKET_HEIGHT))
+                        }
                     } else if (progress < 1.5f) {
-                        // Phase 2: Breaking Apart
-                        val breakProgress = (progress - 0.5f)
-                        repeat(5) { i ->
-                            val r = Random(i.toLong())
-                            rotate(r.nextFloat() * 360f + breakProgress * 100f, pivot = Offset(0f, 0f)) {
-                                translate(breakProgress * 100f * (r.nextFloat() + 0.5f), 0f) {
-                                    drawRect(
-                                        color = SciFiWhite.copy(alpha = (1.5f - progress)),
-                                        size = Size(20f, 20f)
-                                    )
+                        // PHASE 2: Catastrophic Breakup
+                        val breakProgress = (progress - 0.5f) // 0..1.0
+                        
+                        repeat(8) { i ->
+                            val r = Random(i.toLong() * 100)
+                            val angle = r.nextFloat() * 360f + breakProgress * 200f
+                            val dist = breakProgress * 150f * (r.nextFloat() + 0.5f)
+                            
+                            rotate(angle, pivot = Offset.Zero) {
+                                translate(dist, 0f) {
+                                    // Mechanical Debris (Hull Plates, Engine pieces)
+                                    when (i % 3) {
+                                        0 -> drawRect(Color.Gray, size = Size(12f, 18f)) // Hull Plate
+                                        1 -> drawCircle(Color.DarkGray, radius = 6f) // Gear/Bolt
+                                        2 -> drawPath(Path().apply { moveTo(0f, 0f); lineTo(10f, 15f); lineTo(-5f, 10f); close() }, Color.Black) // Fragment
+                                    }
+                                    
+                                    // Fire/Smoke trailing from fragments
+                                    if (Random.nextFloat() < 0.6f) {
+                                        drawCircle(
+                                            color = if (Random.nextBoolean()) SciFiRed else SciFiGold,
+                                            radius = 4f + Random.nextFloat() * 4f,
+                                            center = Offset(-10f, 0f)
+                                        )
+                                    }
                                 }
+                            }
+                        }
+                        
+                        // Central Explosion Core
+                        val explosionAlpha = (1.5f - progress).coerceIn(0f, 1f)
+                        drawCircle(Color.White.copy(alpha = explosionAlpha), radius = 40f * (1f + breakProgress))
+                        drawCircle(SciFiGold.copy(alpha = explosionAlpha * 0.7f), radius = 60f * (1f + breakProgress))
+                    } else {
+                        // PHASE 3: Loss of Control (Tumbling wreckage)
+                        val tumbleProgress = (progress - 1.5f) // 0..1.0
+                        rotate(gameTime / 2f) {
+                            // Draw a charred, broken version of the body
+                            drawRocketBody(this, player, overrideColor = Color.DarkGray)
+                            
+                            // Thick Smoke Trail
+                            repeat(3) { i ->
+                                val r = Random(gameTime + i)
+                                drawCircle(
+                                    color = Color.Black.copy(alpha = 0.4f),
+                                    radius = 10f + r.nextFloat() * 15f,
+                                    center = Offset((r.nextFloat() - 0.5f) * 20f, 20f + tumbleProgress * 50f + i * 15f)
+                                )
+                            }
+                            
+                            // Occasional sparks
+                            if (gameTime % 200 < 50) {
+                                drawCircle(SciFiRed, 3f, Offset(Random.nextFloat() * 20f - 10f, Random.nextFloat() * 40f - 20f))
                             }
                         }
                     }
@@ -214,59 +259,68 @@ class RocketRenderer {
 
     private fun drawSurvivalLayers(drawScope: DrawScope, player: Player, gameTime: Long) {
         with(drawScope) {
-            // 1. Shield Layer (Adjustment Run 2: Segmented Energy Cage)
+            // 1. SHIELD VISUAL REDESIGN V3: Energy Armor Plates (Task 1)
             if (player.shield > 0) {
                 val shieldRatio = (player.shield / player.maxShield).coerceIn(0f, 1f)
                 
-                // Segment Count based on strength
-                val segmentCount = when {
-                    shieldRatio >= 0.85f -> 8
-                    shieldRatio >= 0.65f -> 6
-                    shieldRatio >= 0.45f -> 4
-                    shieldRatio >= 0.25f -> 2
+                // Plate Count based on strength
+                val plateCount = when {
+                    shieldRatio >= 0.90f -> 8
+                    shieldRatio >= 0.70f -> 6
+                    shieldRatio >= 0.40f -> 4
+                    shieldRatio >= 0.15f -> 2
                     else -> 1
                 }
+
+                val radius = 58f
+                val rotationSpeed = 0.05f
+                val instability = (1f - shieldRatio) * (1f - shieldRatio) * 20f
+                val pulse = (kotlin.math.sin(gameTime / 150f) * 0.1f + 0.9f)
+                val flicker = if (shieldRatio < 0.25f && (gameTime / 80 % 2 == 0L)) 0.4f else 1.0f
+
+                val plateColor = SciFiCyan.copy(alpha = (0.5f + 0.3f * shieldRatio) * flicker)
                 
-                val radius = 55f
-                val instability = (1f - shieldRatio) * 15f
-                val flicker = if (shieldRatio < 0.3f && (gameTime / 100 % 2 == 0L)) 0.3f else 1.0f
-                
-                val color = SciFiCyan.copy(alpha = (0.4f + 0.4f * shieldRatio) * flicker)
-                
-                repeat(segmentCount) { i ->
-                    val r = Random(i.toLong())
-                    val baseAngle = i * (360f / segmentCount) + (gameTime / 20f)
-                    val offsetAngle = (r.nextFloat() - 0.5f) * instability
+                repeat(plateCount) { i ->
+                    val r = Random(i.toLong() * 77)
+                    val baseAngle = i * (360f / plateCount) + (gameTime * rotationSpeed)
+                    val floatOffset = (kotlin.math.cos(gameTime / 200f + i) * 5f)
                     
-                    rotate(baseAngle + offsetAngle, pivot = Offset.Zero) {
-                        // Curved energy segments
+                    rotate(baseAngle, pivot = Offset.Zero) {
+                        // Floating Energy Armor Plate (Task 1)
+                        // These are curved rectangles that feel like armor, not a ring
                         drawArc(
-                            color = color,
-                            startAngle = -20f,
-                            sweepAngle = 40f,
+                            color = plateColor,
+                            startAngle = -15f + (r.nextFloat() - 0.5f) * instability,
+                            sweepAngle = 30f,
                             useCenter = false,
-                            topLeft = Offset(-radius, -radius),
-                            size = Size(radius * 2, radius * 2),
+                            topLeft = Offset(-radius - floatOffset, -radius - floatOffset),
+                            size = Size((radius + floatOffset) * 2 * pulse, (radius + floatOffset) * 2 * pulse),
                             style = androidx.compose.ui.graphics.drawscope.Stroke(
-                                width = 4f * shieldRatio.coerceAtLeast(0.5f),
-                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                width = 8f * shieldRatio.coerceAtLeast(0.3f),
+                                cap = androidx.compose.ui.graphics.StrokeCap.Butt // Sharper edges than Round
                             )
                         )
                         
-                        // Internal highlight line
+                        // Internal structural detail
                         drawArc(
-                            color = SciFiWhite.copy(alpha = 0.4f * shieldRatio * flicker),
-                            startAngle = -15f,
-                            sweepAngle = 30f,
+                            color = SciFiWhite.copy(alpha = 0.6f * flicker),
+                            startAngle = -10f,
+                            sweepAngle = 20f,
                             useCenter = false,
-                            topLeft = Offset(-radius + 3f, -radius + 3f),
-                            size = Size((radius - 3f) * 2, (radius - 3f) * 2),
-                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
+                            topLeft = Offset(-radius - floatOffset + 2f, -radius - floatOffset + 2f),
+                            size = Size((radius + floatOffset - 2f) * 2 * pulse, (radius + floatOffset - 2f) * 2 * pulse),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
                         )
-                        
-                        // Critical sparks
-                        if (shieldRatio < 0.25f && Random.nextFloat() < 0.1f) {
-                            drawCircle(SciFiWhite, 2f, Offset(radius, 0f))
+
+                        // Electrical discharge for low health (25% state)
+                        if (shieldRatio < 0.3f && Random.nextFloat() < 0.15f) {
+                            val boltX = radius + 10f
+                            drawLine(
+                                color = SciFiWhite,
+                                start = Offset(boltX, -5f),
+                                end = Offset(boltX + 15f * Random.nextFloat(), 5f),
+                                strokeWidth = 2f
+                            )
                         }
                     }
                 }
