@@ -1401,6 +1401,10 @@ fun GameScreen() {
                             }
                         }
 
+                        // Cycle tracks: removes completed missions after their replacement ceremony stage
+                        // and fills any empty mission slots.
+                        missionManager.selectNextMission()
+
                         // --- Survival System Update ---
                         survivalManager.update(
                             dt = dt,
