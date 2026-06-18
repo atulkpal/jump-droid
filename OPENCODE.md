@@ -14,7 +14,8 @@ Jump Droid is an Android game built with Jetpack Compose. The player pilots a ro
 
 | Branch | Purpose |
 |--------|---------|
-| `refactor/logic-extraction` | **Active** — Sprint T3 logic extraction |
+| `refactor/system-delegation` | **Active** — Sprint T4 system delegation |
+| `refactor/logic-extraction` | Sprint T3 logic extraction (merged) |
 | `development` | integration branch for all work (EPIC 5 Sprint C next) |
 | `refactor/ui-extraction` | Completed — Sprint T1 + T2 UI extraction, fully merged into `development` |
 | `main` | Base branch; contains pre-refactor code |
@@ -51,6 +52,8 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | T2 Phase B | ✅ Done | Extracted 8 Canvas effects into `CanvasEffects.kt` (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion) |
 | T3 Phase A | ✅ Done | Extracted `NotificationManager`, `FloatingTextManager`, and expanded `ProgressionManager` |
 | T3 Phase B | ✅ Done | Extracted `PlatformManager` and generation logic |
+| T4 Phase A | ✅ Done | Extracted `SurvivalManager` and `EncounterDirector` |
+| T4 Phase B | ✅ Done | Delegated 400+ lines of threat interaction to `ActiveThreat.kt` |
 
 ## Completed Refactor Phases
 
@@ -80,8 +83,11 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 - ✅ `FloatingTextManager.kt` created; 15+ call sites updated
 - ✅ `ProgressionManager.kt` expanded to handle high score and unlock logic
 - ✅ `PlatformManager.kt` created; streak logic encapsulated
-- ✅ GameScreen.kt reduced from 3,109 → 3,033 lines (−76, −2.4%)
-- ✅ Cumulative game loop reduction: 4,344 → 3,033 lines (−30.2%)
+- ✅ `SurvivalManager.kt` created; damage and regen logic extracted
+- ✅ `EncounterDirector.kt` created; spawning and boss thresholds extracted
+- ✅ Massive threat interaction block (400+ lines) delegated to `ActiveThreat.kt`
+- ✅ GameScreen.kt reduced from 3,033 → 2,522 lines (−511, −16.8%)
+- ✅ Cumulative game loop reduction: 4,344 → 2,522 lines (−41.9%)
 - ✅ Positioning regression fixes: `AltitudeDisplay` alignment + `NotificationLayer` text/position (`72594b5`)
 - ✅ Merged into `development` (`af3d0ae`)
 
@@ -123,7 +129,7 @@ Every notable engineering event gets a dated entry in `docs/CHANGELOG.md` with: 
 
 ## Current Known Technical Debt
 
-1. **GameScreen.kt at 3,033 lines** — Down from 4,344 (-30.2%). Still large; future sprints may further decompose.
+1. **GameScreen.kt at 2,522 lines** — Down from 4,344 (-41.9%). Still large; future sprints may further decompose.
 2. **Deprecated `LinearProgressIndicator`** — Used in `GameScreen.kt:3284` and `ArchiveScreen.kt:116`. Should migrate to lambda-based overload.
 3. **Threat entity rendering inline** — ~826 lines of Canvas draw code. Deferred indefinitely.
 4. **`PowerupBadge` deleted** — Was unused with zero call sites. Removed in Phase 2.

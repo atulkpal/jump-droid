@@ -5,7 +5,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import kotlin.math.abs
+import androidx.compose.ui.graphics.Color
+import kotlin.math.*
 import kotlin.random.Random
 
 /**
@@ -556,6 +557,347 @@ class ActiveThreat(
                     }
                 }
                 else -> {}
+            }
+        }
+    }
+
+    /**
+     * Processes interaction logic between this threat and the player.
+     * Should be called from the physics sub-step loop.
+     */
+    fun processInteraction(
+        player: Player,
+        sdt: Float,
+        isThrusting: Boolean,
+        platforms: List<Platform>,
+        powerUps: MutableList<PowerUp>,
+        gameTime: Long,
+        screenWidth: Float,
+        screenHeight: Float,
+        cameraY: Float,
+        onVisualFeedback: (shake: Float, flash: Float) -> Unit,
+        onNotification: (String, Float?) -> Unit,
+        onFloatingText: (String, Color, Boolean) -> Unit,
+        onDiscovery: (DiscoveryType) -> Unit,
+        onBurst: (x: Float, y: Float, count: Int, color: Color, speed: Float) -> Unit,
+        onScoreUpdate: (Int) -> Unit,
+        onMissionProgress: (MissionType) -> Unit,
+        onSpawnGhostPlatform: (x: Float, y: Float) -> Unit,
+        onSpawnReinforcements: () -> Unit
+    ) {
+        if (state != ThreatState.ACTIVE) return
+
+        val dx = player.x - x
+        val dy = player.y - y
+        val distSq = dx * dx + dy * dy
+
+        when (definition.id) {
+            "HAZ_LIGHTNING" -> {
+                if (distSq < 200f * 200f) {
+                    if (phase == 2) { // Striking
+                        if (player.invulnerabilityTimer <= 0f) {
+                            if (player.shield > 0) {
+                                player.shield = max(0f, player.shield - 25f)
+                                player.shieldRegenPauseTimer = 2f
+                            } else {
+                                player.integrity = max(0f, player.integrity - 10f)
+                            }
+                            player.invulnerabilityTimer = 0.5f
+                            onVisualFeedback(20f, 0.8f)
+                        }
+                    }
+                    definition.discoveryType?.let { onDiscovery(it) }
+                }
+            }
+            "HAZ_DEBRIS" -> {
+                if (distSq < 80f * 80f) {
+                    if (player.invulnerabilityTimer <= 0f) {
+                        if (player.shield > 0) {
+                            player.shield = max(0f, player.shield - 10f)
+                            player.integrity = max(0f, player.integrity - 5f)
+                        } else {
+                            player.integrity = max(0f, player.integrity - 25f)
+                        }
+                        player.invulnerabilityTimer = 0.8f
+                        onVisualFeedback(20f, 0f)
+                        onFloatingText("HULL IMPACT", Color.Red, false)
+                    }
+                    definition.discoveryType?.let { onDiscovery(it) }
+                }
+            }
+            "HAZ_RADIATION" -> {
+                if (distSq < 300f * 300f) {
+                    player.shield = max(0f, player.shield - 15f * sdt)
+                    definition.discoveryType?.let { onDiscovery(it) }
+                }
+            }
+            "HAZ_SOLAR_FLARE" -> {
+                if (abs(player.y - y) < 100f) {
+                    player.heat = min(Constants.MAX_HEAT, player.heat + 120f * sdt)
+                    definition.discoveryType?.let { onDiscovery(it) }
+                }
+            }
+            "HAZ_TURBULENCE" -> {
+                if (distSq < 450f * 450f) {
+                    val dist = sqrt(distSq)
+                    val strength = (1f - dist / 450f)
+                    val windDir = if (instanceId.hashCode() % 2 == 0) 1f else -1f
+                    player.velocityX += windDir * 1200f * strength * sdt
+                    player.velocityY += (Random.nextFloat() - 0.5f) * 600f * strength * sdt
+                    
+                    if (gameTime % 200 < 50) {
+                        onBurst(player.x, player.y, 1, Color.White.copy(alpha=0.3f), 100f)
+                    }
+                    definition.discoveryType?.let { onDiscovery(it) }
+                }
+            }
+            "HAZ_GRAVITY" -> {
+                if (distSq < 500f * 500f) {
+                    val dist = sqrt(distSq)
+                    val strength = (1f - dist / 500f)
+                    player.velocityY += 1500f * strength * sdt 
+                    if (isThrusting) {
+                        player.fuel = max(0f, player.fuel - 10f * strength * sdt)
+                        player.velocityY += 500f * strength * sdt 
+                    }
+                    definition.discoveryType?.let { onDiscovery(it) }
+                }
+            }
+            "HAZ_EMP" -> {
+                val ringRadius = scanPulse * 400f
+                val dist = sqrt(distSq)
+                if (abs(dist - ringRadius) < 50f) {
+                    player.shieldRegenPauseTimer = max(player.shieldRegenPauseTimer, 5f)
+                    definition.discoveryType?.let { onDiscovery(it) }
+                }
+            }
+            "ENT_CLOUD_SKIMMER" -> {
+                if (distSq < 250f * 250f) {
+                    player.velocityY -= 1000f * sdt
+                }
+            }
+            "ENT_ORBITAL_SENTRY" -> {
+                if (isTracking && distSq < 400f * 400f) {
+                    player.comboFreezeTimer = 1.0f
+                    player.fuel = max(0f, player.fuel - 10f * sdt)
+                    if (!hasInteracted) {
+                        hasInteracted = true
+                        onNotification("LOCKED ON", null)
+                    }
+                } else {
+                    hasInteracted = false
+                }
+            }
+            "ENT_CORRUPTED_HULL" -> {
+                if (!hasInteracted && distSq < 150f * 150f) {
+                    hasInteracted = true
+                    onNotification("DISTRESS SIGNAL DETECTED", null)
+                    val type = PowerUpType.entries.random()
+                    powerUps.add(PowerUp(x, y, type))
+                    onFloatingText("SALVAGE RECOVERED", Color.Green, false)
+                }
+            }
+            "HAZ_VOID_ANOMALY" -> {
+                if (distSq < 500f * 500f) {
+                    val dist = sqrt(distSq)
+                    val force = (1f - dist / 500f) * 1200f
+                    player.velocityX -= (dx / dist) * force * sdt
+                    player.velocityY -= (dy / dist) * force * sdt
+                    onVisualFeedback((1f - dist / 500f) * 15f, 0f)
+                    player.velocityX += (Random.nextFloat() - 0.5f) * 400f * sdt
+                    if (!hasInteracted) {
+                        hasInteracted = true
+                        onNotification("REALITY DISTORTION", null)
+                    }
+                } else {
+                    hasInteracted = false
+                }
+            }
+            "ENT_SCOUT_DRONE" -> {
+                if (isTracking && lifetime > 5.0f && Random.nextFloat() < 0.001f) {
+                    onSpawnReinforcements()
+                }
+            }
+            "ENT_SWARM_BOTS" -> {
+                if (distSq < 150f * 150f) {
+                    player.velocityX += (Random.nextFloat() - 0.5f) * 600f * sdt
+                    player.velocityY += (Random.nextFloat() - 0.5f) * 600f * sdt
+                }
+            }
+            "MINI_BOSS_COMMANDER", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL" -> {
+                if (phase in 2..4) {
+                    if (distSq < 100f * 100f && player.invulnerabilityTimer <= 0f) {
+                        player.fuel = max(0f, player.fuel - 20f)
+                        player.heat = min(Constants.MAX_HEAT, player.heat + 30f)
+                        player.invulnerabilityTimer = 1.0f
+                        onVisualFeedback(15f, 0f)
+                        onFloatingText("HULL COLLISION", Color.Red, false)
+                    }
+
+                    repeat(maxWeakPoints) { i ->
+                        val isDestroyed = i >= activeWeakPoints
+                        if (!isDestroyed) {
+                            val (wx, wy) = when (definition.id) {
+                                "MINI_BOSS_COMMANDER" -> Pair(x - 80f + (i * 80f), y - 40f)
+                                "BOSS_GATEKEEPER" -> {
+                                    val angle = (rotation + i * 90f) * (PI.toFloat() / 180f)
+                                    Pair(x + cos(angle) * 250f, y + sin(angle) * 250f)
+                                }
+                                "BOSS_STAR_EATER" -> Pair(x, y)
+                                "BOSS_LEVIATHAN" -> {
+                                    val ox = sin(lifetime * 1000f - i * 0.5f) * 100f
+                                    Pair(x + ox, y + i * 60f)
+                                }
+                                "BOSS_VOID_ENGINE" -> {
+                                    val angle = (rotation + i * 180f) * (PI.toFloat() / 180f)
+                                    Pair(x + cos(angle) * 150f, y + sin(angle) * 150f)
+                                }
+                                "BOSS_SIGNAL" -> Pair(x + (Random(instanceId.hashCode()).nextFloat()-0.5f)*200f, y + (Random(instanceId.hashCode()).nextFloat()-0.5f)*200f)
+                                else -> Pair(x, y)
+                            }
+
+                            val ddx = player.x - wx
+                            val ddy = player.y - wy
+                            val hitDist = if (definition.id == "BOSS_STAR_EATER") 80f else 50f
+
+                            if (sqrt(ddx*ddx + ddy*ddy) < hitDist && player.invulnerabilityTimer <= 0f) {
+                                activeWeakPoints--
+                                player.invulnerabilityTimer = 0.5f
+                                player.velocityY = -400f 
+                                onBurst(wx, wy, 25, Color(0xFF9C27B0), 300f) // SciFiPurple
+                                onVisualFeedback(20f, 0f)
+                                onFloatingText("WEAK POINT DESTROYED", Color(0xFF9C27B0), true)
+
+                                if (activeWeakPoints <= 0) {
+                                    phase = 5 
+                                    onScoreUpdate(1000)
+                                    onFloatingText("BOSS CRITICAL - RETREATING", Color.Cyan, true)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                when (definition.id) {
+                    "MINI_BOSS_COMMANDER" -> {
+                        if (phase >= 3) {
+                             if (distSq < 400f * 400f) {
+                                player.fuel = max(0f, player.fuel - 5f * sdt)
+                             }
+                             if (gravityPulseTimer < 0.6f) {
+                                 player.velocityY += 2500f * sdt
+                                 onVisualFeedback(15f, 0f)
+                             }
+                             if (jamCooldown <= 0f) {
+                                 platforms.sortedBy {
+                                     val dxP = it.x - player.x
+                                     val dyP = it.y - player.y
+                                     dxP*dxP + dyP*dyP
+                                 }.take(2).forEach {
+                                     it.isJammed = true
+                                     it.jamTimer = 2.0f
+                                 }
+                                 jamCooldown = 1.2f
+                             }
+                        }
+                    }
+                    "BOSS_GATEKEEPER" -> {
+                        val dist = sqrt(distSq)
+                        if (dist in 150f..350f) {
+                            val angle = atan2(dy, dx) * (180f / PI.toFloat())
+                            val relAngle = (angle - rotation + 360f) % 360f
+                            val inGap = relAngle % 90f < 50f
+                            if (!inGap) {
+                                player.velocityX += (dx / dist) * 4000f * sdt
+                                player.heat += 100f * sdt
+                                onVisualFeedback(5f, 0f)
+                            }
+                        }
+                        if (phase == 3 && dist < 600f) {
+                            player.velocityX -= (dx / dist) * 1500f * sdt
+                            player.velocityY -= (dy / dist) * 1500f * sdt
+                        }
+                    }
+                    "BOSS_STAR_EATER" -> {
+                        val dist = sqrt(distSq)
+                        if (dist < 1000f) {
+                            val suctionForce = (1f - dist / 1000f) * 3000f
+                            player.velocityX -= (dx / dist) * suctionForce * sdt
+                            player.velocityY -= (dy / dist) * suctionForce * sdt
+
+                            if (dist < 200f) {
+                                player.fuel = max(0f, player.fuel - 25f * sdt)
+                            }
+                        }
+                        powerUps.forEach { pu ->
+                            val pdx = x - pu.x
+                            val pdy = y - pu.y
+                            val pdist = sqrt(pdx*pdx + pdy*pdy)
+                            if (pdist < 1200f) {
+                                pu.y += (pdy / pdist) * 800f * sdt
+                                pu.x += (pdx / pdist) * 800f * sdt
+                            }
+                        }
+                    }
+                    "BOSS_LEVIATHAN" -> {
+                        repeat(6) { i ->
+                            val ox = sin(lifetime * 1.5f - i * 0.5f) * 150f
+                            val oy = i * 80f
+                            val segX = x + ox
+                            val segY = y + oy
+
+                            val sdx = player.x - segX
+                            val sdy = player.y - segY
+                            if (sdx*sdx + sdy*sdy < 200f * 200f && sdy > 20f) {
+                                player.velocityY -= 4500f * sdt
+                                if (Random.nextFloat() < 0.4f) {
+                                    onBurst(player.x, player.y + 50f, 10, Color.Cyan, 300f)
+                                }
+                            }
+                        }
+                    }
+                    "BOSS_VOID_ENGINE" -> {
+                        if (phase >= 2 && (localTimer.toInt() % 4 < 2)) {
+                            val shiftDir = if ((localTimer.toInt() / 4) % 2 == 0) 1f else -1f
+                            player.velocityX += 4800f * shiftDir * sdt
+                            onVisualFeedback(10f, 0.4f)
+                        }
+                    }
+                    "BOSS_SIGNAL" -> {
+                        if (distSq < 800f * 800f) {
+                            if (Random.nextFloat() < 0.05f) {
+                                onNotification("SIGNAL LOSS...", 0.5f)
+                            }
+                            if (phase == 3) {
+                                player.heat += 40f * sdt
+                            }
+                        }
+                        if (phase >= 2 && (gameTime / 1000) % 2 == 0L) {
+                            if (Random.nextFloat() < 0.15f) {
+                                onSpawnGhostPlatform(Random.nextFloat() * screenWidth, cameraY + Random.nextFloat() * screenHeight)
+                            }
+                        }
+                    }
+                }
+
+                if (phase == 5 && !hasInteracted) {
+                    hasInteracted = true
+                    powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
+                    onFloatingText("!!! ${definition.name.uppercase()} DEFEATED !!!", Color.Cyan, true)
+                    onNotification(">>> MISSION DATA RECOVERED <<<", 5.0f)
+                    onVisualFeedback(70f, 1.0f)
+                    onBurst(player.x, cameraY + 200f, 100, Color(0xFF9C27B0), 1200f)
+                    
+                    repeat(8) {
+                        onBurst(player.x + (Random.nextFloat() - 0.5f) * 200f, 
+                                   player.y + (Random.nextFloat() - 0.5f) * 200f, 
+                                   50, Color.White, 800f)
+                    }
+
+                    if (definition.id == "MINI_BOSS_COMMANDER") {
+                        onMissionProgress(MissionType.BOSS)
+                    }
+                }
             }
         }
     }
