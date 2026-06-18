@@ -14,7 +14,9 @@ Jump Droid is an Android game built with Jetpack Compose. The player pilots a ro
 
 | Branch | Purpose |
 |--------|---------|
-| `development` | **Active** — integration branch for all work (EPIC 5 Sprint C next) |
+| `refactor/logic-extraction` | **Active** — Sprint T3 logic extraction |
+| `refactor/system-delegation` | Failed — Sprint T4 delegation (reverted) |
+| `development` | integration branch for all work (EPIC 5 Sprint C next) |
 | `refactor/ui-extraction` | Completed — Sprint T1 + T2 UI extraction, fully merged into `development` |
 | `main` | Base branch; contains pre-refactor code |
 
@@ -31,6 +33,10 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | `docs/architecture/Refactor_T2_Plan.md` | T2 plan (T2A low risk + T2B medium risk) |
 | `docs/architecture/Refactor_T2A_Report.md` | T2A completion report (completed) |
 | `docs/architecture/Refactor_T2B_Report.md` | T2B completion report (completed) |
+| `docs/architecture/Refactor_T3_Plan.md` | T3 plan (logic extraction) |
+| `docs/architecture/Refactor_T3_Report.md` | T3 completion report (completed) |
+| `docs/architecture/Refactor_T4_Plan.md` | T4 plan (system delegation) |
+| `docs/architecture/Refactor_T4_Report.md` | T4 completion report (FAILED / REVERTED) |
 | `OPENCODE.md` | This file — session context |
 
 ## Current Active EPIC
@@ -47,6 +53,8 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | T1 Phase 2 | ✅ Done | Replaced all inline screens/HUD/overlays with extracted composable calls |
 | T2 Phase A | ✅ Done | Extracted 4 low-risk inline composables (TopRightUtilityButtons, MissionRow, FloatingTextsLayer, GaugeWrappers) |
 | T2 Phase B | ✅ Done | Extracted 8 Canvas effects into `CanvasEffects.kt` (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion) |
+| T3 | ✅ Done | Extracted `NotificationManager`, `FloatingTextManager`, `PlatformManager`, and expanded `ProgressionManager` |
+| T4 | ❌ Failed | Attempted delegation of survival, director, and threat interaction logic (REVERTED) |
 
 ## Completed Refactor Phases
 
@@ -72,7 +80,12 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 - ✅ `CanvasEffects.kt` created with 8 `DrawScope` extension functions
 - ✅ All 8 Canvas effects extracted from GameScreen.kt (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion)
 - ✅ GameScreen.kt reduced from 3,179 → 3,109 lines (−70, −2.2%)
-- ✅ Cumulative game loop reduction: 4,344 → 3,109 lines (−28.4%)
+- ✅ `NotificationManager.kt` created; manual queue logic encapsulated
+- ✅ `FloatingTextManager.kt` created; popup lifecycle managed
+- ✅ `PlatformManager.kt` created; generation math and streaks moved
+- ✅ `ProgressionManager.kt` expanded; achievement/high score logic delegated
+- ✅ GameScreen.kt reduced from 3,109 → 3,033 lines (−76, −2.4%)
+- ✅ Cumulative game loop reduction: 4,344 → 3,033 lines (−30.2%)
 - ✅ Positioning regression fixes: `AltitudeDisplay` alignment + `NotificationLayer` text/position (`72594b5`)
 - ✅ Merged into `development` (`af3d0ae`)
 
@@ -114,7 +127,7 @@ Every notable engineering event gets a dated entry in `docs/CHANGELOG.md` with: 
 
 ## Current Known Technical Debt
 
-1. **GameScreen.kt at 3,109 lines** — Down from 4,344 (-28.4%). Still large; future sprints may further decompose.
+1. **GameScreen.kt at 3,033 lines** — Down from 4,344 (-30.2%). Still large; future sprints may further decompose.
 2. **Deprecated `LinearProgressIndicator`** — Used in `GameScreen.kt:3284` and `ArchiveScreen.kt:116`. Should migrate to lambda-based overload.
 3. **Threat entity rendering inline** — ~826 lines of Canvas draw code. Deferred indefinitely.
 4. **`PowerupBadge` deleted** — Was unused with zero call sites. Removed in Phase 2.
