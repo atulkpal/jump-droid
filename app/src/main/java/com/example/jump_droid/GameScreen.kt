@@ -2978,7 +2978,10 @@ fun GameScreen() {
                     )
 
                     // --- HUD WIDGETS ---
-                    AltitudeDisplay(score = score, highScore = highScore)
+                    AltitudeDisplay(
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        score = score, highScore = highScore
+                    )
 
                     LeftGauges(
                         modifier = Modifier.align(Alignment.CenterStart),
@@ -3027,6 +3030,7 @@ fun GameScreen() {
 
                     // NOTIFICATION LAYER
                     NotificationLayer(
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 240.dp),
                         activeNotification = activeNotification,
                         notificationAlpha = notificationAlpha,
                         screenWidth = screenWidth

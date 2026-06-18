@@ -54,9 +54,12 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 @Composable
-fun AltitudeDisplay(score: Int, highScore: Int) {
+fun AltitudeDisplay(
+    modifier: Modifier = Modifier,
+    score: Int, highScore: Int
+) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .statusBarsPadding()
             .padding(top = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -300,6 +303,7 @@ fun ComboHudBar(
 
 @Composable
 fun NotificationLayer(
+    modifier: Modifier = Modifier,
     activeNotification: String?,
     notificationAlpha: Float,
     screenWidth: Float
@@ -308,10 +312,10 @@ fun NotificationLayer(
         val isHighAlert = activeNotification.contains("!!!") || activeNotification.contains(">>>")
         Text(
             text = activeNotification,
-            modifier = Modifier.graphicsLayer(alpha = notificationAlpha).widthIn(max = screenWidth.dp * 0.9f),
-            style = MaterialTheme.typography.headlineSmall.copy(
+            modifier = modifier.graphicsLayer(alpha = notificationAlpha).widthIn(max = screenWidth.dp * 0.9f),
+            style = MaterialTheme.typography.bodyLarge.copy(
                 fontWeight = FontWeight.Black,
-                letterSpacing = 4.sp,
+                letterSpacing = 2.sp,
                 shadow = Shadow(if (isHighAlert) SciFiRed.copy(alpha = 0.5f) else Color.Black, blurRadius = 15f)
             ),
             color = if (isHighAlert) SciFiRed else SciFiWhite,
