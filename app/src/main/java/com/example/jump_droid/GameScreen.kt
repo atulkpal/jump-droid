@@ -3040,59 +3040,29 @@ fun GameScreen() {
             }
             GameState.PLAYING, GameState.GAMEOVER, GameState.TUTORIAL, GameState.PAUSED, GameState.HELP, GameState.UNLOCK -> {
                 Box(Modifier.fillMaxSize()) {
-                    // Top-Right Utility Buttons
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(16.dp)
-                            .statusBarsPadding(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { gameState = GameState.HELP; isThrusting = false },
-                            modifier = Modifier.size(36.dp),
-                            contentPadding = PaddingValues(0.dp),
-                            shape = CircleShape
-                        ) { Text("?", fontWeight = FontWeight.Bold) }
-
-                        if (gameState == GameState.PLAYING) {
-                            Button(
-                                onClick = { gameState = GameState.PAUSED; isThrusting = false },
-                                modifier = Modifier.size(36.dp),
-                                contentPadding = PaddingValues(0.dp),
-                                shape = CircleShape
-                            ) { Text("||", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-                        }
-                    }
+                    TopRightUtilityButtons(
+                        modifier = Modifier.align(Alignment.TopEnd),
+                        gameState = gameState,
+                        onHelp = { gameState = GameState.HELP; isThrusting = false },
+                        onPause = { gameState = GameState.PAUSED; isThrusting = false }
+                    )
 
                     // --- HUD WIDGETS ---
                     AltitudeDisplay(score = score, highScore = highScore)
 
-                    // LEFT GAUGES
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .padding(start = 16.dp)
-                            .graphicsLayer(alpha = 0.85f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        FuelGauge(fuel = player.fuel, maxFuel = player.maxFuel, gameTime = gameTime)
-                        HeatGauge(heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated, gameTime = gameTime)
-                    }
+                    LeftGauges(
+                        modifier = Modifier.align(Alignment.CenterStart),
+                        fuel = player.fuel, maxFuel = player.maxFuel,
+                        heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated,
+                        gameTime = gameTime
+                    )
 
-                    // RIGHT GAUGES
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 16.dp)
-                            .graphicsLayer(alpha = 0.85f),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        ShieldGauge(shield = player.shield, maxShield = player.maxShield, isShieldCritical = player.shield < player.maxShield * 0.25f, gameTime = gameTime)
-                        IntegrityGauge(integrity = player.integrity, maxIntegrity = player.maxIntegrity, isHullCritical = player.integrity < player.maxIntegrity * 0.25f, gameTime = gameTime)
-                    }
+                    RightGauges(
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                        shield = player.shield, maxShield = player.maxShield,
+                        integrity = player.integrity, maxIntegrity = player.maxIntegrity,
+                        gameTime = gameTime
+                    )
 
                     // 4. CENTER BELOW ALTITUDE: Progression HUD Layer
                     val isZoneCardVisible = discoveryManager.activeEvent is DiscoveryEvent.Zone
@@ -3109,114 +3079,10 @@ fun GameScreen() {
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Mission Row
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
-                            ) {
-                                missionManager.activeMissions.forEach { activeMission ->
-                                    val cardColor = when (activeMission.ceremonyStage) {
-                                        CeremonyStage.GLOW -> SciFiCyan.copy(alpha = 0.6f)
-                                        else -> SciFiSurface
-                                    }
-
-                                    AnimatedVisibility(
-                                        visible = activeMission.ceremonyStage != CeremonyStage.REPLACING && 
-                                                 activeMission.ceremonyStage != CeremonyStage.REWARD_SPAWNED,
-                                        enter = slideInVertically { -it } + fadeIn(),
-                                        exit = fadeOut(tween(300)) + scaleOut(targetScale = 0.8f), // Dissolve feel
-                                        modifier = Modifier.weight(1f, fill = false)
-                                    ) {
-                                        Surface(
-                                            color = cardColor,
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.width(115.dp).height(65.dp).shadow(4.dp, RoundedCornerShape(12.dp)),
-                                            border = androidx.compose.foundation.BorderStroke(
-                                                width = 1.dp,
-                                                color = if (activeMission.ceremonyStage == CeremonyStage.GLOW) SciFiWhite else SciFiBorder
-                                            )
-                                        ) {
-                                            Column(
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally
-                                            ) {
-                                                if (activeMission.ceremonyStage == CeremonyStage.COMPLETED_TEXT || 
-                                                    activeMission.ceremonyStage == CeremonyStage.REWARD_SPAWNED) {
-                                                    Text(
-                                                        "MISSION COMPLETE",
-                                                        style = MaterialTheme.typography.labelSmall,
-                                                        color = SciFiGreen,
-                                                        fontWeight = FontWeight.Black,
-                                                        fontSize = 8.sp,
-                                                        letterSpacing = 1.sp
-                                                    )
-                                                } else {
-                                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                                        Text(
-                                                            text = activeMission.type.toIcon(),
-                                                            fontSize = 8.sp,
-                                                            modifier = Modifier.padding(end = 4.dp)
-                                                        )
-                                                        
-                                                        // Task 1: Prevent Overflow
-                                                        AnimatedContent(
-                                                            targetState = globalShowObjective,
-                                                            transitionSpec = { fadeIn(tween(500)) togetherWith fadeOut(tween(500)) },
-                                                            label = "MissionTextRotation"
-                                                        ) { showObj ->
-                                                            Text(
-                                                                if (showObj) activeMission.description.uppercase() else activeMission.name.uppercase(),
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                color = when(activeMission.type) {
-                                                                    MissionType.EXPLORATION -> SciFiCyan
-                                                                    MissionType.PLATFORMING -> SciFiGold
-                                                                    else -> SciFiWhite
-                                                                },
-                                                                fontWeight = FontWeight.Bold,
-                                                                fontSize = 8.sp,
-                                                                maxLines = 1,
-                                                                textAlign = TextAlign.Center,
-                                                                letterSpacing = 0.5.sp,
-                                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                                            )
-                                                        }
-                                                    }
-                                                }
-
-                                                val progressText = when(activeMission.type) {
-                                                    MissionType.EXPLORATION -> "${(activeMission.currentProgress.toFloat() / activeMission.targetValue * 100).toInt()}%"
-                                                    MissionType.SURVIVAL -> "${activeMission.currentProgress}s"
-                                                    else -> "${activeMission.currentProgress}/${activeMission.targetValue}"
-                                                }
-
-                                                Text(
-                                                    progressText,
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = SciFiWhite.copy(alpha = 0.7f),
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.Medium
-                                                )
-
-                                                Spacer(Modifier.height(4.dp))
-                                                Box(Modifier.width(50.dp).height(2.dp).background(SciFiWhite.copy(alpha = 0.1f), CircleShape)) {
-                                                    Box(
-                                                        Modifier.fillMaxHeight()
-                                                            .fillMaxWidth((activeMission.currentProgress.toFloat() / activeMission.targetValue).coerceIn(0f, 1f))
-                                                            .background(
-                                                                when(activeMission.type) {
-                                                                    MissionType.EXPLORATION -> SciFiCyan
-                                                                    MissionType.PLATFORMING -> SciFiGold
-                                                                    else -> SciFiWhite
-                                                                },
-                                                                CircleShape
-                                                            )
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            MissionRow(
+                                missions = missionManager.activeMissions,
+                                globalShowObjective = globalShowObjective
+                            )
 
                             ComboHudBar(
                                 currentCombo = comboManager.currentCombo,
@@ -3236,23 +3102,10 @@ fun GameScreen() {
                         screenWidth = screenWidth
                     )
 
-                    // Floating Combo Texts
-                    floatingTexts.forEach { ft ->
-                        val scale = if (ft.isCritical) 1.0f + (ft.life * 0.5f) else 1.0f
-                        Text(
-                            text = ft.text,
-                            color = ft.color.copy(alpha = (ft.life/1.0f).coerceIn(0f, 1f)),
-                            modifier = Modifier
-                                .offset { androidx.compose.ui.unit.IntOffset((ft.x - 50f).toInt(), (ft.y - cameraY).toInt()) }
-                                .graphicsLayer(scaleX = scale, scaleY = scale),
-                            style = if (ft.isCritical) MaterialTheme.typography.headlineSmall.copy(
-                                shadow = androidx.compose.ui.graphics.Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
-                            ) else MaterialTheme.typography.labelLarge.copy(
-                                shadow = androidx.compose.ui.graphics.Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
-                            ),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    FloatingTextsLayer(
+                        texts = floatingTexts,
+                        cameraY = cameraY
+                    )
 
                     // ZONE DISCOVERY CARD
                     AnimatedVisibility(

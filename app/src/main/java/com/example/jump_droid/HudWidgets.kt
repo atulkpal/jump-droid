@@ -323,6 +323,44 @@ fun NotificationLayer(
 }
 
 @Composable
+fun LeftGauges(
+    modifier: Modifier = Modifier,
+    fuel: Float, maxFuel: Float,
+    heat: Float, maxHeat: Float, isOverheated: Boolean,
+    gameTime: Long
+) {
+    Column(
+        modifier = modifier
+            .padding(start = 16.dp)
+            .graphicsLayer(alpha = 0.85f),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        FuelGauge(fuel = fuel, maxFuel = maxFuel, gameTime = gameTime)
+        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, gameTime = gameTime)
+    }
+}
+
+@Composable
+fun RightGauges(
+    modifier: Modifier = Modifier,
+    shield: Float, maxShield: Float,
+    integrity: Float, maxIntegrity: Float,
+    gameTime: Long
+) {
+    Column(
+        modifier = modifier
+            .padding(end = 16.dp)
+            .graphicsLayer(alpha = 0.85f),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = shield < maxShield * 0.25f, gameTime = gameTime)
+        IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = integrity < maxIntegrity * 0.25f, gameTime = gameTime)
+    }
+}
+
+@Composable
 fun ZoneDiscoveryCard(
     activeEvent: DiscoveryEvent?,
     score: Int
