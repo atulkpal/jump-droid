@@ -87,6 +87,39 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-18
+
+**Sprint / Phase:** Refactor Sprint T2 — Phase A (Low Risk)
+
+**Branch:** `refactor/ui-extraction`
+
+**Base Commit:** `686bfd0` (T1 Phase 2)
+
+**Status:** Completed
+
+### Added
+- `TopRightUtilityButtons.kt` — Help (`?`) + Pause (`||`) buttons (23 lines)
+- `MissionRow.kt` — Mission card row with ceremony stages, progress bars, AnimatedContent (108 lines)
+- `FloatingTextsLayer.kt` — Animated floating text overlay (16 lines)
+- `LeftGauges` / `RightGauges` appended to `HudWidgets.kt` — Column wrappers for fuel/heat/shield/integrity gauges (22 lines)
+- T2 plan: `docs/architecture/Refactor_T2_Plan.md`
+
+### Changed
+- `GameScreen.kt`: 5 inline blocks replaced with extracted composable calls
+- Net reduction: 147 lines (3,326 → 3,179)
+
+### Validation
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL (11s, zero errors)
+- ADB install — Success
+- Emulator launch — Events injected: 1
+
+### Notes
+- All 4 extractions use explicit parameter patterns; `BoxScope`-dependent composables accept `Modifier` parameter
+- T2B (Canvas effects, ~104 lines) is planned but not started
+- Threat entity rendering (~826 lines) remains inline indefinitely
+
+---
+
 ## Historical Milestones
 
 The following milestones summarize completed work prior to the changelog's creation. These entries are reconstructed from commit history and were not recorded as changelog events at the time of completion.
