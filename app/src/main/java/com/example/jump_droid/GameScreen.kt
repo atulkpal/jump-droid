@@ -70,15 +70,6 @@ import com.example.jump_droid.Constants.SHIELD_REGEN_DELAY
 import com.example.jump_droid.Constants.SURVIVAL_CRITICAL_THRESHOLD
 import com.example.jump_droid.ui.theme.*
 
-val AchievementsList = listOf(
-    Achievement("first_launch", "First Launch", "Reach 100 score.") { s, _, _ -> s >= 100 },
-    Achievement("sky_breaker", "Sky Breaker", "Reach Cloud Layer.") { s, _, _ -> s >= 500 },
-    Achievement("orbital_pilot", "Orbital Pilot", "Reach Orbit.") { s, _, _ -> s >= 4000 },
-    Achievement("deep_space", "Deep Space Explorer", "Reach Deep Space.") { s, _, _ -> s >= 8000 },
-    Achievement("combo_master", "Combo Master", "Achieve Combo x10.") { _, c, _ -> c >= 10 },
-    Achievement("thermal_survivor", "Thermal Survivor", "Recover from overheating 25 times.") { _, _, o -> o >= 25 },
-)
-
 @Composable
 fun GameScreen() {
     val context = LocalContext.current
@@ -4299,46 +4290,3 @@ fun PowerupBadge(label: String, color: Color, seconds: Int) {
     }
 }
 
-@Composable
-fun CodexCard(title: String, description: String, lore: String, unlocked: Boolean) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .border(
-                width = 1.dp,
-                color = if (unlocked) SciFiBorder else SciFiBorder.copy(alpha = 0.05f),
-                shape = RoundedCornerShape(12.dp)
-            ),
-        color = if (unlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                text = title.uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                color = if (unlocked) SciFiCyan else SciFiWhite.copy(alpha = 0.3f),
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (unlocked) SciFiWhite.copy(alpha = 0.8f) else SciFiWhite.copy(alpha = 0.2f),
-                textAlign = TextAlign.Start,
-                lineHeight = 16.sp
-            )
-            if (unlocked && lore.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = lore,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = SciFiGold.copy(alpha = 0.6f),
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    lineHeight = 16.sp
-                )
-            }
-        }
-    }
-}
