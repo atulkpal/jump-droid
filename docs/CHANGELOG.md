@@ -120,6 +120,44 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-18
+
+**Sprint / Phase:** Refactor Sprint T2 — Phase B (Medium Risk)
+
+**Branch:** `refactor/ui-extraction`
+
+**Base Commit:** `2fe24f1` (T2A)
+
+**Status:** Completed
+
+### Added
+- `CanvasEffects.kt` — 8 `DrawScope` extension functions for canvas rendering (168 lines)
+
+### Changed
+- `GameScreen.kt`: 8 inline Canvas blocks replaced with extracted function calls
+- Net reduction: 70 lines (3,179 → 3,109)
+
+### Extractions
+- `drawRealityDistortion` — magenta overlay near Void Anomaly
+- `drawSpeedLines` — vertical lines during fast descent
+- `drawGround` — brown ground rectangle
+- `drawParticles` — sparkle/circle particle rendering
+- `drawLandingEffects` — expanding cyan ring circles
+- `drawPowerUps` — colored shapes per powerup type
+- `drawFlyingRewards` — animated reward items
+- `drawImpactFlash` — white stroked border screen flash
+
+### Validation
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL (5s, zero errors)
+- ADB install — Success
+- Emulator launch — Success (PID running)
+
+### Notes
+- Refactor Sprint T2 is fully complete. T1 + T2 cumulative reduction: 4,344 → 3,109 lines (−28.4%)
+- Threat entity rendering (~826 lines) remains inline indefinitely
+
+---
+
 ## Historical Milestones
 
 The following milestones summarize completed work prior to the changelog's creation. These entries are reconstructed from commit history and were not recorded as changelog events at the time of completion.
