@@ -79,7 +79,7 @@ class EncounterDirector {
                             "HAZ_LIGHTNING", "HAZ_TURBULENCE" -> 1.5f
                             else -> 1.0f
                         }
-                        AltitudeZone.UPPER_ATMOSPHERE -> 1.0f
+                        AltitudeZone.UPPER_ATMOSPHERE -> 1.4f
                         AltitudeZone.ORBIT -> when (hazard.id) {
                             "HAZ_RADIATION", "HAZ_SOLAR_FLARE" -> 1.5f
                             "HAZ_LIGHTNING" -> 0.3f

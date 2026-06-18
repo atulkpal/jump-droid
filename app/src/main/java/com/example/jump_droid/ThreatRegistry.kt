@@ -30,7 +30,7 @@ object ThreatRegistry {
             discoveryType = DiscoveryType.HAZARD_LIGHTNING,
             spawnRules = ThreatSpawnRules(
                 allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.VOID),
-                spawnChance = 0.3f
+                spawnChance = 0.45f
             )
         ))
 
@@ -43,7 +43,7 @@ object ThreatRegistry {
             discoveryType = DiscoveryType.HAZARD_TURBULENCE,
             spawnRules = ThreatSpawnRules(
                 allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.VOID),
-                spawnChance = 0.3f
+                spawnChance = 0.45f
             )
         ))
 
@@ -56,7 +56,7 @@ object ThreatRegistry {
             discoveryType = DiscoveryType.HAZARD_DEBRIS,
             spawnRules = ThreatSpawnRules(
                 allowedZones = listOf(AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID),
-                spawnChance = 0.2f
+                spawnChance = 0.4f
             )
         ))
 
@@ -120,7 +120,7 @@ object ThreatRegistry {
             description = "Autonomous drones guarding the lower altitudes.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.EARTH, AltitudeZone.CLOUD_LAYER), spawnChance = 0.3f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.EARTH, AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT), spawnChance = 0.4f)
         ))
 
         register(ThreatDefinition(
@@ -138,7 +138,7 @@ object ThreatRegistry {
             description = "Floating nano-colonies that drift through the clouds, shifting shape in the wind.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_2,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER), spawnChance = 0.25f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE), spawnChance = 0.35f)
         ))
 
         register(ThreatDefinition(
