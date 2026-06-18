@@ -1,0 +1,74 @@
+# Changelog
+
+All notable changes to this project are recorded as dated engineering events.
+
+---
+
+## 2026-06-18
+
+**Sprint / Phase:** Refactor Sprint T1 — Phase 1
+
+**Branch:** `refactor/ui-extraction`
+
+**Commit:** `fb93e9d`
+
+**Status:** Completed
+
+### Added
+- 15 standalone UI composable files extracted from `GameScreen.kt`:
+  - Screens: `TitleScreen.kt`, `MainMenuScreen.kt`, `HangarScreen.kt`, `ArchiveScreen.kt`, `SettingsScreen.kt`, `AboutScreen.kt`, `LeaderboardScreen.kt`
+  - Overlays: `PauseOverlay.kt`, `TutorialOverlay.kt`, `HelpOverlay.kt`, `UnlockOverlay.kt`, `GameOverOverlay.kt`
+  - HUD widgets: `HudWidgets.kt` (8 functions: `AltitudeDisplay`, `FuelGauge`, `HeatGauge`, `ShieldGauge`, `IntegrityGauge`, `ComboHudBar`, `NotificationLayer`, `ZoneDiscoveryCard`)
+  - Shared components: `CodexCard.kt`, `Achievements.kt`
+- Architecture report: `docs/architecture/Refactor_T1_Phase1.md`
+- Phase 2 implementation plan: `docs/architecture/Refactor_T1_Phase2_Plan.md`
+
+### Changed
+- `GameScreen.kt`: removed inline `AchievementsList` val (moved to `Achievements.kt`)
+- `GameScreen.kt`: removed inline `CodexCard` composable (moved to `CodexCard.kt`)
+- Net reduction: 52 lines (4,344 → 4,292)
+
+### Fixed
+- Import errors in all 15 extracted files:
+  - `graphicsLayer` wrong package path (`foundation.layout` → `ui.graphics`)
+  - Missing imports: `border`, `shadow`, `CircleShape`, `statusBarsPadding`, `fillMaxHeight`, `offset`, `safeDrawingPadding`, `sp`
+  - Invalid `roundToPx` import removed (function resolves via `Dp` member without explicit import)
+  - Duplicate `dp` import in `TitleScreen.kt` removed
+
+### Validation
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL (zero errors, 2 pre-existing deprecation warnings)
+- All 15 extracted files compile alongside `GameScreen.kt`
+- Dex artifact produced without issues
+
+### Notes
+- GameScreen.kt still contains inline implementations for all screens, overlays, and HUD widgets. The extracted files are defined but not yet called. Phase 2 will perform the replacement.
+
+---
+
+## Historical Milestones
+
+The following milestones summarize completed work prior to the changelog's creation. These entries are reconstructed from commit history and were not recorded as changelog events at the time of completion.
+
+### EPIC 4: The Ascension Program
+
+| Sprint | Commit | Summary |
+|--------|--------|---------|
+| EPIC 4 Start | `e744ae0` | Missions, achievements, and progression system initiated. |
+| Sprint A | `6235350` | Mission reliability and early-game feel improvements. |
+| Sprint B | `1404aaa` | Combo Renaissance — combo system overhaul and scoring refinements. |
+| Sprint C | `86ce562` | Mission UX and communication — mission cards, notifications, player feedback. |
+| Sprint D | `17956c0` | Platform evolution — dynamic platform generation and difficulty scaling. |
+| Sprint E | `a00c623` | Pre-release candidate stabilization before Ascension Program launch. |
+| Sprint F | `fa3101b` | Ascension Program complete — full mission tree, achievement tracking, progression gates, and Codex system operational. |
+
+**Scope:** The Ascension Program introduced the mission system (6 mission types with difficulty tiers), achievement tracking (6 achievements with unlock conditions), player progression gates (rocket unlocks at score thresholds), the Codex (discovery categories with lore entries and per-category completion tracking), and the Zone system (altitude-based zones with distinct visual themes).
+
+### EPIC 5: Survival Protocol
+
+| Sprint | Commit | Summary |
+|--------|--------|---------|
+| Sprint B | `aee2c37` | Threats, survival economy, and destruction system stable. |
+
+**Scope (in progress):** Survival Protocol introduces the threat system (hostile entities with spawn rules and tier progression), survival economy (shield regeneration delay, hull integrity critical thresholds, overheat management), destruction sequence (3-phase visual breakup with debris and fire effects), and visual redesigns (shield energy armor plates, catastrophic breakup particles, loss-of-control tumble).
+
+*Note: EPIC 5 Sprint A is not reflected in the commit history as a discrete milestone and was subsumed into the Sprint B delivery.*
