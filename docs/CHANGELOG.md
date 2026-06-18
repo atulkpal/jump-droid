@@ -6,6 +6,37 @@ All notable changes to this project are recorded as dated engineering events.
 
 ## 2026-06-18
 
+**Sprint / Phase:** Refactor Sprint T3 — Logic & Manager Extraction
+
+**Branch:** `refactor/logic-extraction`
+
+**Status:** Completed
+
+### Added
+- `NotificationManager.kt` — Encapsulates notification queue and timer logic
+- `FloatingTextManager.kt` — Manages lifecycle of floating status text popups
+- `PlatformManager.kt` — Encapsulates platform generation and streak tracking
+
+### Changed
+- `GameScreen.kt`: 20+ call sites updated to use `NotificationManager`
+- `GameScreen.kt`: 15+ call sites updated to use `FloatingTextManager`
+- `ProgressionManager.kt`: Added `saveHighScore`, `checkUnlocks`, and `wipeData` methods
+- `GameScreen.kt`: Achievement and high score logic delegated to `ProgressionManager`
+- `GameScreen.kt`: Platform generation delegated to `PlatformManager`
+- Net reduction: 76 lines (3,109 → 3,033)
+
+### Validation
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL
+- APK launch — Verified on emulator
+
+### Notes
+- This sprint shifted the focus from UI extraction to logic modularization.
+- Core game loop remains in `GameScreen.kt` but is now significantly leaner.
+
+---
+
+## 2026-06-18
+
 **Sprint / Phase:** Refactor Sprint T1 — Phase 1
 
 **Branch:** `refactor/ui-extraction`

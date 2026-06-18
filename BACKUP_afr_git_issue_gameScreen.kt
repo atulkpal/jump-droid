@@ -70,15 +70,28 @@ import com.example.jump_droid.Constants.SHIELD_REGEN_DELAY
 import com.example.jump_droid.Constants.SURVIVAL_CRITICAL_THRESHOLD
 import com.example.jump_droid.ui.theme.*
 
+val AchievementsList = listOf(
+    Achievement("first_launch", "First Launch", "Reach 100 score.") { s, _, _ -> s >= 100 },
+    Achievement("sky_breaker", "Sky Breaker", "Reach Cloud Layer.") { s, _, _ -> s >= 500 },
+    Achievement("orbital_pilot", "Orbital Pilot", "Reach Orbit.") { s, _, _ -> s >= 4000 },
+    Achievement("deep_space", "Deep Space Explorer", "Reach Deep Space.") { s, _, _ -> s >= 8000 },
+    Achievement("combo_master", "Combo Master", "Achieve Combo x10.") { _, c, _ -> c >= 10 },
+    Achievement("thermal_survivor", "Thermal Survivor", "Recover from overheating 25 times.") { _, _, o -> o >= 25 },
+)
+
 @Composable
 fun GameScreen() {
     val context = LocalContext.current
     val densityValue = androidx.compose.ui.platform.LocalDensity.current.density
     val sharedPrefs = remember { context.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE) }
     
+    var highScore by remember { mutableIntStateOf(sharedPrefs.getInt("highScore", 0)) }
     var highestYReached by remember { mutableFloatStateOf(Float.MAX_VALUE) }
     var score by remember { mutableIntStateOf(0) }
     var continuesUsed by remember { mutableIntStateOf(0) }
+    var breakableStreak by remember { mutableIntStateOf(0) }
+    var phaseStreak by remember { mutableIntStateOf(0) }
+    var magneticStreak by remember { mutableIntStateOf(0) }
     
     var runDurationTimer by remember { mutableFloatStateOf(0f) }
     var airborneTimer by remember { mutableFloatStateOf(0f) }
@@ -96,7 +109,6 @@ fun GameScreen() {
     val comboManager = remember { ComboManager() }
     val missionCeremonies = remember { mutableStateMapOf<String, Float>() }
     val flyingRewards = remember { mutableStateListOf<FlyingReward>() }
-    val platformManager = remember { PlatformManager() }
 
     var screenWidth by remember { mutableFloatStateOf(0f) }
     var screenHeight by remember { mutableFloatStateOf(0f) }
@@ -112,7 +124,7 @@ fun GameScreen() {
     val powerUps = remember { mutableStateListOf<PowerUp>() }
     val landingEffects = remember { mutableStateListOf<LandingEffect>() }
     val particles = remember { mutableStateListOf<Particle>() }
-    val floatingTextManager = remember { FloatingTextManager() }
+    val floatingTexts = remember { mutableStateListOf<FloatingText>() }
 
     var missionHintRotationTimer by remember { mutableFloatStateOf(0f) }
     var globalShowObjective by remember { mutableStateOf(false) }
@@ -128,6 +140,11 @@ fun GameScreen() {
     var screenShake by remember { mutableFloatStateOf(0f) }
     var impactFlashAlpha by remember { mutableFloatStateOf(0f) }
 
+    // --- Failure Sequence Visuals ---
+    var telemetryStaticAlpha by remember { mutableFloatStateOf(0f) }
+    var hudGlitchFactor by remember { mutableFloatStateOf(0f) }
+    var signalLossDarkness by remember { mutableFloatStateOf(0f) }
+
     // --- Developer / Cheat States ---
     var infiniteFuel by remember { mutableStateOf(false) }
     var disableHeat by remember { mutableStateOf(false) }
@@ -135,7 +152,10 @@ fun GameScreen() {
 
     val bossesSpawned = remember { mutableStateSetOf<String>() }
 
-    val notificationManager = remember { NotificationManager() }
+    val notificationQueue = remember { mutableStateListOf<String>() }
+    var notificationTimer by remember { mutableFloatStateOf(0f) }
+    var activeNotification by remember { mutableStateOf<String?>(null) }
+    var notificationAlpha by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(gameState) {
         if (gameState != GameState.PLAYING) {
@@ -220,7 +240,7 @@ fun GameScreen() {
         }
 
         // Task 4: Reward notifications near rocket
-        floatingTextManager.add(FloatingText(rewardName, player.x, player.y - 100f, color = rewardColor, isCritical = reward is ComboReward.Artifact))
+        floatingTexts.add(FloatingText(rewardName, player.x, player.y - 100f, color = rewardColor, isCritical = reward is ComboReward.Artifact))
 
         when (reward) {
             is ComboReward.Fuel -> {
@@ -292,21 +312,21 @@ fun GameScreen() {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.fuel = min(player.maxFuel, player.fuel + 50f)
                     spawnBurst(player.x, yTop, 20, SciFiGreen, 200f)
-                    floatingTextManager.add(FloatingText("FUEL RECHARGE", player.x, player.y - 100f, color = SciFiGreen))
+                    floatingTexts.add(FloatingText("FUEL RECHARGE", player.x, player.y - 100f, color = SciFiGreen))
                     checkDiscovery(DiscoveryType.FUEL_PLATFORM)
                 }
                 PlatformType.COOLING -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.heat = max(0f, player.heat - 30f)
                     spawnBurst(player.x, yTop, 20, SciFiCyan, 200f)
-                    floatingTextManager.add(FloatingText("ENGINES COOLED", player.x, player.y - 100f, color = SciFiCyan))
+                    floatingTexts.add(FloatingText("ENGINES COOLED", player.x, player.y - 100f, color = SciFiCyan))
                     checkDiscovery(DiscoveryType.COOLING_PLATFORM)
                 }
                 PlatformType.STABILITY -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.stabilityTimer = 10f
                     spawnBurst(player.x, yTop, 20, SciFiWhite, 200f)
-                    floatingTextManager.add(FloatingText("FLIGHT STABILIZED", player.x, player.y - 100f, color = SciFiWhite))
+                    floatingTexts.add(FloatingText("FLIGHT STABILIZED", player.x, player.y - 100f, color = SciFiWhite))
                     checkDiscovery(DiscoveryType.STABILITY_PLATFORM)
                 }
                 PlatformType.MAGNETIC -> {
@@ -353,24 +373,37 @@ fun GameScreen() {
     }
 
     fun checkUnlock(newScore: Int) {
-        progressionManager.checkUnlocks(
-            score = newScore,
-            player = player,
-            onRocketUnlock = { type ->
+        RocketType.entries.forEach { type ->
+            if (newScore >= type.unlockScore && !sharedPrefs.getBoolean("unlock_${type.name}", false)) {
                 unlockedRocket = type
                 gameState = GameState.UNLOCK
-            },
-            onAchievementUnlock = { achievement ->
-                floatingTextManager.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = SciFiGold, isCritical = true))
-            },
-            onLoreDiscovery = { type ->
-                checkDiscovery(type, forceTutorialState = false)
+                checkDiscovery(type.discovery, forceTutorialState = false)
+                sharedPrefs.edit { putBoolean("unlock_${type.name}", true) }
             }
-        )
+        }
+
+        if (newScore >= 0) checkDiscovery(player.rocketType.discovery)
+
+        if (newScore >= 100) checkDiscovery(DiscoveryType.LORE_ASCENSION)
+        if (newScore >= 5000) checkDiscovery(DiscoveryType.LORE_SIGNAL)
+        if (newScore >= 10000) checkDiscovery(DiscoveryType.LORE_LOST_FLEET)
+        if (newScore >= 20000) checkDiscovery(DiscoveryType.LORE_LOGS)
+
+        AchievementsList.forEach { achievement ->
+            if (!sharedPrefs.getBoolean("achievement_${achievement.id}", false)) {
+                if (achievement.unlockCondition(newScore, player.maxComboReached, player.totalOverheats)) {
+                    sharedPrefs.edit { putBoolean("achievement_${achievement.id}", true) }
+                    floatingTexts.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = SciFiGold, isCritical = true))
+                }
+            }
+        }
     }
 
     fun saveHighScore(newScore: Int) {
-        progressionManager.saveHighScore(newScore)
+        if (newScore > highScore) {
+            highScore = newScore
+            sharedPrefs.edit { putInt("highScore", newScore) }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -441,14 +474,49 @@ fun GameScreen() {
         spawnBurst(player.x, player.y - 100f, 40, SciFiWhite, 300f)
         screenShake = 15f
         impactFlashAlpha = 1.0f
-        floatingTextManager.add(FloatingText("SYSTEM REBOOTED", player.x, player.y - 150f, color = SciFiCyan))
+        floatingTexts.add(FloatingText("SYSTEM REBOOTED", player.x, player.y - 150f, color = SciFiCyan))
 
         continuesUsed++
         gameState = GameState.PLAYING
     }
 
     fun generatePlatform(lastY: Float): Platform {
-        return platformManager.generate(score, screenWidth, lastY)
+        val difficulty = (score / 2000f).coerceIn(0f, 1f)
+        val pWidth = (250f - (difficulty * 100f)).coerceAtLeast(100f)
+        val gapY = 250f + (difficulty * 150f) + Random.nextFloat() * 100f
+        val nextY = lastY - gapY
+        val nextX = Random.nextFloat() * (screenWidth - pWidth)
+
+        // Task 3: Adjusted Spawn Hierarchy for Sprint E Closure
+        val type = when {
+            score < 500 -> if (Random.nextFloat() < 0.2f) PlatformType.MOVING else PlatformType.NORMAL
+            else -> {
+                val rand = Random.nextFloat()
+                when {
+                    rand < 0.10f -> PlatformType.MOVING
+                    rand < 0.22f -> PlatformType.ICE
+                    rand < 0.35f -> PlatformType.BOOST
+                    rand < 0.48f -> PlatformType.BREAKABLE
+                    rand < 0.60f && phaseStreak < 2 -> PlatformType.PHASE 
+                    rand < 0.70f && magneticStreak < 2 -> PlatformType.MAGNETIC
+                    rand < 0.78f -> PlatformType.STABILITY
+                    rand < 0.82f -> PlatformType.FUEL
+                    rand < 0.86f -> PlatformType.COOLING
+                    else -> PlatformType.NORMAL
+                }
+            }
+        }
+
+        if (type == PlatformType.BREAKABLE) breakableStreak++ else breakableStreak = 0
+        if (type == PlatformType.PHASE) phaseStreak++ else phaseStreak = 0
+        if (type == PlatformType.MAGNETIC) magneticStreak++ else magneticStreak = 0
+
+        val isMoving = type == PlatformType.MOVING
+        val speed = if (isMoving) (100f + (difficulty * 200f)) * (if (Random.nextBoolean()) 1f else -1f) else 0f
+        // Task 4: Breakable Platform Tension Pass (20% faster)
+        val totalBreakTime = if (type == PlatformType.BREAKABLE) 1.5f + Random.nextFloat() * 1.5f else 3f
+
+        return Platform(nextX, nextY, pWidth, type, isMoving, speed, totalBreakTime)
     }
 
     // --- Developer Cheats ---
@@ -479,13 +547,14 @@ fun GameScreen() {
     }
 
     fun applyDamage(amount: Float) {
-        if (amount <= 0 || gameState != GameState.PLAYING) return
+        if (amount <= 0 || gameState != GameState.PLAYING || player.invulnerabilityTimer > 0f) return
 
         // Visual Feedback
         screenShake = (12f + amount * 0.5f).coerceAtMost(40f)
         impactFlashAlpha = 0.7f
 
         var remainingDamage = amount
+        val initialShield = player.shield
 
         // 1. Shield Absorption
         if (player.shield > 0) {
@@ -494,8 +563,16 @@ fun GameScreen() {
             remainingDamage -= shieldDamage
 
             // Shield Hit Feedback (Cyan)
-            spawnBurst(player.x, player.y, 12, SciFiCyan, 450f)
-            // Hook for sound: playShieldHitSound()
+            if (player.shield > 0) {
+                spawnBurst(player.x, player.y, 12, SciFiCyan, 450f)
+            } else if (initialShield > 0) {
+                // TASK 2: SHIELD FAILURE EVENT
+                spawnBurst(player.x, player.y, 30, SciFiCyan, 600f) // Shatter outward
+                spawnBurst(player.x, player.y, 15, SciFiWhite, 400f) // Electrical sparks
+                impactFlashAlpha = 0.8f
+                screenShake = 25f
+                notificationQueue.add("!!! SHIELD COLLAPSED !!!")
+            }
         }
 
         // 2. Integrity Damage
@@ -505,11 +582,13 @@ fun GameScreen() {
             // Hull Hit Feedback (Red/Gold sparks)
             spawnBurst(player.x, player.y, 18, SciFiRed, 650f)
             spawnBurst(player.x, player.y, 8, SciFiGold, 400f)
-            // Hook for sound: playHullHitSound()
 
             if (player.integrity <= 0) {
-                gameState = GameState.GAMEOVER
-                saveHighScore(score)
+                // TASK 3: PHASE 1 - HULL FAILURE
+                player.destructionTimer = 0.01f // Trigger sequence
+                screenShake = 45f
+                impactFlashAlpha = 1.0f
+                notificationQueue.add("!!! HULL FAILURE !!!")
             }
         }
 
@@ -540,7 +619,7 @@ fun GameScreen() {
             }
 
             // Visuals
-            floatingTextManager.add(FloatingText("MISSION COMPLETE!", player.x, player.y - 150f, color = SciFiGreen, isCritical = true))
+            floatingTexts.add(FloatingText("MISSION COMPLETE!", player.x, player.y - 150f, color = SciFiGreen, isCritical = true))
             spawnBurst(player.x, player.y - 100f, 30, SciFiGreen, 400f)
         }
         missionManager.selectNextMission()
@@ -581,6 +660,9 @@ fun GameScreen() {
         highestYReached = groundY
         cameraY = 0f
         continuesUsed = 0
+        breakableStreak = 0
+        phaseStreak = 0
+        magneticStreak = 0
         platforms.clear()
         powerUps.clear()
         landingEffects.clear()
@@ -589,9 +671,8 @@ fun GameScreen() {
         missionManager.clear()
         threatSpawnTimer = 0f
         bossesSpawned.clear()
-        notificationManager.clear()
-        floatingTextManager.clear()
-        platformManager.reset()
+        notificationQueue.clear()
+        activeNotification = null
 
         comboManager.reset()
         flyingRewards.clear()
@@ -671,7 +752,7 @@ fun GameScreen() {
                                     targetY = screenHeight / 2f,
                                     scale = 4.0f
                                 ))
-                                notificationManager.post("COMBO MILESTONE: SURVIVAL DROP")
+                                notificationQueue.add("COMBO MILESTONE: SURVIVAL DROP")
                                 checkDiscovery(DiscoveryType.EFFICIENCY_SURVIVAL)
                             }
                             comboManager.immediateSurvivalRewards.clear()
@@ -682,7 +763,7 @@ fun GameScreen() {
                             
                             // NEW COMBO HIGH CELEBRATION (Sprint E: Polish)
                             if (comboManager.isNewHighReached) {
-                                floatingTextManager.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = SciFiGold, isCritical = true))
+                                floatingTexts.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = SciFiGold, isCritical = true))
                                 screenShake = max(screenShake, 35f)
                                 impactFlashAlpha = max(impactFlashAlpha, 0.7f)
                                 
@@ -703,7 +784,7 @@ fun GameScreen() {
                                 y = screenHeight / 2f + (120f * densityValue),
                                 scale = 3.5f // Task 2: Increased scale
                             ))
-                            notificationManager.post("COMBO COMPLETE: x${comboManager.lastFinalStreak}")
+                            notificationQueue.add("COMBO COMPLETE: x${comboManager.lastFinalStreak}")
                             
                             // Visual pay-off for combo completion
                             screenShake = max(screenShake, 25f)
@@ -741,7 +822,19 @@ fun GameScreen() {
                         val wasOverheatedBefore = player.isOverheated
 
                         // Notification Queue Processing
-                        notificationManager.update(dt)
+                        if (activeNotification != null) {
+                            notificationTimer -= dt
+                            if (notificationTimer <= 0f) {
+                                notificationAlpha -= dt * 2f
+                                if (notificationAlpha <= 0f) {
+                                    activeNotification = null
+                                }
+                            }
+                        } else if (notificationQueue.isNotEmpty()) {
+                            activeNotification = notificationQueue.removeAt(0)
+                            notificationAlpha = 1f
+                            notificationTimer = 2.0f // Show for 2 seconds
+                        }
 
                         // --- Milestone Spawning (Boss Progression) ---
                         val bossMilestones = listOf(
@@ -758,7 +851,7 @@ fun GameScreen() {
                                 bossesSpawned.add(id)
                                 ThreatRegistry.getById(id)?.let { def ->
                                     threatManager.spawnThreat(def, screenWidth / 2f, cameraY - 600f)
-                                    notificationManager.post("!!! ${def.name.uppercase()} ARRIVING !!!")
+                                    notificationQueue.add("!!! ${def.name.uppercase()} ARRIVING !!!")
                                     screenShake = 50f
                                     impactFlashAlpha = 1.0f
                                     
@@ -775,6 +868,7 @@ fun GameScreen() {
                                 }
                             }
                         }
+                    }
 
                         // Threat Spawning Logic
                         threatSpawnTimer += dt
@@ -827,7 +921,7 @@ fun GameScreen() {
                                         val vy = if (hazard.id == "HAZ_DEBRIS") 100f + Random.nextFloat() * 200f else 0f
                                         
                                         threatManager.spawnThreat(hazard, spawnX, spawnY, vx, vy)
-                                        notificationManager.post("${hazard.name.uppercase()} DETECTED")
+                                        notificationQueue.add("${hazard.name.uppercase()} DETECTED")
                                         break // Only one major threat active in a local area
                                     }
                                 }
@@ -840,7 +934,7 @@ fun GameScreen() {
                                         val spawnX = if (Random.nextBoolean()) -50f else screenWidth + 50f
                                         val vx = if (spawnX < 0) 150f else -150f
                                         threatManager.spawnThreat(probeDef, spawnX, cameraY + Random.nextFloat() * (screenHeight * 0.5f), vx = vx)
-                                        notificationManager.post("SURVEYOR PROBE DETECTED")
+                                        notificationQueue.add("SURVEYOR PROBE DETECTED")
                                     }
                                 }
                             }
@@ -848,7 +942,7 @@ fun GameScreen() {
                                 eligible.find { it.id == "ENT_SWARM_BOTS" }?.let { swarmDef ->
                                     if (Random.nextFloat() < swarmDef.spawnRules.spawnChance * spawnChanceMod) {
                                         threatManager.spawnThreat(swarmDef, Random.nextFloat() * screenWidth, cameraY - 100f)
-                                        notificationManager.post("AEROSOL SWARM DETECTED")
+                                        notificationQueue.add("AEROSOL SWARM DETECTED")
                                     }
                                 }
                             }
@@ -883,7 +977,7 @@ fun GameScreen() {
                                 eligible.find { it.id == "MINI_BOSS_COMMANDER" }?.let { bossDef ->
                                     if (Random.nextFloat() < bossDef.spawnRules.spawnChance) {
                                         threatManager.spawnThreat(bossDef, screenWidth / 2f, cameraY - 600f)
-                                        notificationManager.post("COMMAND CRUISER INBOUND")
+                                        notificationQueue.add("COMMAND CRUISER INBOUND")
                                         screenShake = 20f
                                         checkDiscovery(DiscoveryType.THREAT_SENTINEL)
                                     }
@@ -901,7 +995,7 @@ fun GameScreen() {
                                             val side = if (Random.nextBoolean()) 1f else -1f
                                             val spawnX = if (side > 0) -100f else screenWidth + 100f
                                             threatManager.spawnThreat(it, spawnX, boss.y + 100f, vx = side * 200f)
-                                            notificationManager.post("REINFORCEMENTS INBOUND")
+                                            notificationQueue.add("REINFORCEMENTS INBOUND")
                                         }
                                     }
                                     // Boss-generated hazards
@@ -912,10 +1006,17 @@ fun GameScreen() {
                                 }
                             }
                         }
+                    }
 
                         // (Legacy combo reset logic removed - now handled by ComboManager)
 
-                        floatingTextManager.update(dt)
+                        val textIterator = floatingTexts.iterator()
+                        while (textIterator.hasNext()) {
+                            val ft = textIterator.next()
+                            ft.life -= dt
+                            ft.y -= 50f * dt
+                            if (ft.life <= 0) textIterator.remove()
+                        }
                         val effectIterator = landingEffects.iterator()
                         while (effectIterator.hasNext()) {
                             val effect = effectIterator.next()
@@ -1017,7 +1118,7 @@ fun GameScreen() {
                                                 }
                                                 player.invulnerabilityTimer = 0.8f
                                                 screenShake = 20f
-                                                floatingTextManager.add(FloatingText("HULL IMPACT", player.x, player.y - 100f, color = SciFiRed))
+                                                floatingTexts.add(FloatingText("HULL IMPACT", player.x, player.y - 100f, color = SciFiRed))
                                             }
                                             threat.definition.discoveryType?.let { checkDiscovery(it) }
                                         }
@@ -1080,7 +1181,8 @@ fun GameScreen() {
                                             player.fuel = max(0f, player.fuel - 10f * sdt)
                                             if (!threat.hasInteracted) {
                                                 threat.hasInteracted = true
-                                                notificationManager.showImmediately("LOCKED ON")
+                                                activeNotification = "LOCKED ON"
+                                                notificationAlpha = 1.0f
                                             }
                                         } else {
                                             threat.hasInteracted = false
@@ -1089,10 +1191,11 @@ fun GameScreen() {
                                     "ENT_CORRUPTED_HULL" -> { // Derelict Echo: Salvage
                                         if (!threat.hasInteracted && distSq < 150f * 150f) {
                                             threat.hasInteracted = true
-                                            notificationManager.showImmediately("DISTRESS SIGNAL DETECTED")
+                                            activeNotification = "DISTRESS SIGNAL DETECTED"
+                                            notificationAlpha = 1.0f
                                             val type = PowerUpType.entries.random()
                                             powerUps.add(PowerUp(threat.x, threat.y, type))
-                                            floatingTextManager.add(FloatingText("SALVAGE RECOVERED", player.x, player.y - 100f, color = Color.Green))
+                                            floatingTexts.add(FloatingText("SALVAGE RECOVERED", player.x, player.y - 100f, color = Color.Green))
                                         }
                                     }
                                     "HAZ_VOID_ANOMALY" -> { // Void Anomaly: Gravitational Distortion
@@ -1105,7 +1208,8 @@ fun GameScreen() {
                                             player.velocityX += (Random.nextFloat() - 0.5f) * 400f * sdt
                                             if (!threat.hasInteracted) {
                                                 threat.hasInteracted = true
-                                                notificationManager.showImmediately("REALITY DISTORTION")
+                                                activeNotification = "REALITY DISTORTION"
+                                                notificationAlpha = 1.0f
                                             }
                                         } else {
                                             threat.hasInteracted = false
@@ -1119,7 +1223,8 @@ fun GameScreen() {
                                                 val side = if (Random.nextBoolean()) 1f else -1f
                                                 val spawnX = if (side > 0) -100f else screenWidth + 100f
                                                 threatManager.spawnThreat(threat.definition, spawnX, threat.y, vx = side * 150f)
-                                                notificationManager.showImmediately("REINFORCEMENTS INBOUND")
+                                                activeNotification = "REINFORCEMENTS INBOUND"
+                                                notificationAlpha = 1.0f
                                             }
                                         }
                                     }
@@ -1138,7 +1243,7 @@ fun GameScreen() {
                                                 player.heat = min(MAX_HEAT, player.heat + 30f)
                                                 player.invulnerabilityTimer = 1.0f
                                                 screenShake = 15f
-                                                floatingTextManager.add(FloatingText("HULL COLLISION", player.x, player.y - 100f, color = Color.Red))
+                                                floatingTexts.add(FloatingText("HULL COLLISION", player.x, player.y - 100f, color = Color.Red))
                                             }
 
                                             // Weak Point Logic
@@ -1175,12 +1280,12 @@ fun GameScreen() {
                                                         player.velocityY = -400f // Bounce off
                                                         spawnBurst(wx, wy, 25, SciFiPurple, 300f)
                                                         screenShake = 20f
-                                                        floatingTextManager.add(FloatingText("WEAK POINT DESTROYED", player.x, player.y - 120f, color = SciFiPurple, isCritical = true))
+                                                        floatingTexts.add(FloatingText("WEAK POINT DESTROYED", player.x, player.y - 120f, color = SciFiPurple, isCritical = true))
 
                                                         if (threat.activeWeakPoints <= 0) {
                                                             threat.phase = 5 // Force retreat/destruction phase
                                                             score += 1000
-                                                            floatingTextManager.add(FloatingText("BOSS CRITICAL - RETREATING", player.x, player.y - 150f, color = SciFiCyan, isCritical = true))
+                                                            floatingTexts.add(FloatingText("BOSS CRITICAL - RETREATING", player.x, player.y - 150f, color = SciFiCyan, isCritical = true))
                                                         }
                                                     }
                                                 }
@@ -1291,7 +1396,8 @@ fun GameScreen() {
                                                 if (distSqSignal < 800f * 800f) {
                                                     // Interference
                                                     if (Random.nextFloat() < 0.05f) {
-                                                        notificationManager.showImmediately("SIGNAL LOSS...", 0.5f)
+                                                        notificationAlpha = 0.5f
+                                                        activeNotification = "SIGNAL LOSS..."
                                                     }
                                                     // Fake fuel drain / Heat induction
                                                     if (threat.phase == 3) {
@@ -1319,8 +1425,9 @@ fun GameScreen() {
                                         if (threat.phase == 5 && !threat.hasInteracted) {
                                             threat.hasInteracted = true
                                             powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
-                                            floatingTextManager.add(FloatingText("!!! ${threat.definition.name.uppercase()} DEFEATED !!!", player.x, player.y - 200f, color = SciFiCyan, isCritical = true))
-                                            notificationManager.showImmediately(">>> MISSION DATA RECOVERED <<<", 5.0f)
+                                            floatingTexts.add(FloatingText("!!! ${threat.definition.name.uppercase()} DEFEATED !!!", player.x, player.y - 200f, color = SciFiCyan, isCritical = true))
+                                            activeNotification = ">>> MISSION DATA RECOVERED <<<"
+                                            notificationAlpha = 5.0f
                                             screenShake = 70f
                                             impactFlashAlpha = 1.0f
                                             spawnBurst(player.x, cameraY + 200f, 100, SciFiPurple, 1200f) // Massive purple burst
@@ -1596,10 +1703,10 @@ fun GameScreen() {
                                         if (player.maxFuel < Constants.MAX_FUEL_CAPACITY_LIMIT) {
                                             player.maxFuel = min(Constants.MAX_FUEL_CAPACITY_LIMIT, player.maxFuel + 25f)
                                             player.fuel = player.maxFuel
-                                            notificationManager.post("FUEL CAPACITY UP!")
+                                            notificationQueue.add("FUEL CAPACITY UP!")
                                         } else {
                                             player.fuel = player.maxFuel
-                                            notificationManager.post("FUEL REFILLED")
+                                            notificationQueue.add("FUEL REFILLED")
                                         }
                                         spawnBurst(pu.x, pu.y, 30, SciFiGold, 300f)
                                         screenShake = 5f
@@ -1609,14 +1716,14 @@ fun GameScreen() {
                                         player.turboTimer = 8f
                                         spawnBurst(pu.x, pu.y, 30, SciFiCyan, 300f)
                                         screenShake = 5f
-                                        notificationManager.post("TURBO ACTIVE!")
+                                        notificationQueue.add("TURBO ACTIVE!")
                                         checkDiscovery(DiscoveryType.TURBO_BOOSTER)
                                     }
                                     PowerUpType.EFFICIENCY_MODULE -> {
                                         player.efficiencyTimer = 8f
                                         spawnBurst(pu.x, pu.y, 30, SciFiGreen, 300f)
                                         screenShake = 5f
-                                        notificationManager.post("FUEL EFFICIENCY UP!")
+                                        notificationQueue.add("FUEL EFFICIENCY UP!")
                                         checkDiscovery(DiscoveryType.EFFICIENCY_MODULE)
                                     }
                                     PowerUpType.HEAT_SINK -> {
@@ -1624,20 +1731,20 @@ fun GameScreen() {
                                         player.isOverheated = false
                                         spawnBurst(pu.x, pu.y, 30, SciFiWhite, 300f)
                                         screenShake = 5f
-                                        notificationManager.post("ENGINES COOLED!")
+                                        notificationQueue.add("ENGINES COOLED!")
                                         checkDiscovery(DiscoveryType.HEAT_SINK)
                                     }
                                     PowerUpType.SHIELD_CAPSULE -> {
                                         player.shield = min(player.maxShield, player.shield + 25f)
                                         spawnBurst(pu.x, pu.y, 30, SciFiCyan, 400f)
-                                        notificationManager.post("SHIELD RECHARGE")
-                                        floatingTextManager.add(FloatingText("+25 SHIELD", player.x, player.y - 120f, color = SciFiCyan))
+                                        notificationQueue.add("SHIELD RECHARGE")
+                                        floatingTexts.add(FloatingText("+25 SHIELD", player.x, player.y - 120f, color = SciFiCyan))
                                     }
                                     PowerUpType.HULL_REPAIR -> {
                                         player.integrity = min(player.maxIntegrity, player.integrity + 20f)
                                         spawnBurst(pu.x, pu.y, 30, SciFiGreen, 400f)
-                                        notificationManager.post("HULL REPAIRED")
-                                        floatingTextManager.add(FloatingText("+20 HULL", player.x, player.y - 120f, color = SciFiGreen))
+                                        notificationQueue.add("HULL REPAIRED")
+                                        floatingTexts.add(FloatingText("+20 HULL", player.x, player.y - 120f, color = SciFiGreen))
                                     }
                                     PowerUpType.ARTIFACT -> {
                                         val artifact = listOf(
@@ -1648,13 +1755,13 @@ fun GameScreen() {
                                         spawnBurst(pu.x, pu.y, 50, SciFiPurple, 400f)
                                         screenShake = 10f
                                         impactFlashAlpha = 0.6f
-                                        notificationManager.post("ARTIFACT RECOVERED!")
+                                        notificationQueue.add("ARTIFACT RECOVERED!")
                                     }
                                     PowerUpType.ALTITUDE_BOOSTER -> {
                                         player.velocityY = -2500f // Massive boost
                                         spawnBurst(pu.x, pu.y, 40, SciFiWhite, 400f)
                                         screenShake = 10f
-                                        notificationManager.post("ALTITUDE BOOST!")
+                                        notificationQueue.add("ALTITUDE BOOST!")
                                     }
                                 }
 
@@ -1701,7 +1808,7 @@ fun GameScreen() {
                             if (noOverheatTimer > 0f) {
                                 // Task 4: Targeted reset for heat missions
                                 missionManager.resetProgress(MissionType.SURVIVAL) { it.id.startsWith("surv_cool") }
-                                notificationManager.post("MISSION RESET")
+                                notificationQueue.add("MISSION RESET")
                             }
                             noOverheatTimer = 0f
                         }
@@ -1876,6 +1983,7 @@ fun GameScreen() {
                                 }
                             }
                         }
+                    }
 
                         // Cycle tracks: removes completed and adds new ones
                         missionManager.selectNextMission()
@@ -1887,32 +1995,59 @@ fun GameScreen() {
                             player.shield = min(player.maxShield, player.shield + Constants.SHIELD_REGEN_RATE * dt)
                         }
 
-                        // Task 3: Hull Failure & Destruction Sequence
+                        // TASK 3: Hull Failure & Destruction Sequence (Ladder Pass)
                         if (player.integrity <= 0 && player.destructionTimer <= 0) {
-                            player.destructionTimer = 0.01f // Start sequence
-                            screenShake = 30f
+                            player.destructionTimer = 0.01f // Trigger sequence
+                            screenShake = 40f
+                            impactFlashAlpha = 1.0f
                         }
                         
                         if (player.destructionTimer > 0) {
                             player.destructionTimer += dt
-                            player.velocityX *= 0.95f
-                            player.velocityY += 500f * dt // Loss of control, falling
+                            val progress = player.destructionTimer // 0..2.5s
+
+                            // LOSS OF CONTROL (Task 3: Phase 3)
+                            if (progress > 0.5f) {
+                                player.velocityX *= 0.98f
+                                player.velocityY += 600f * dt // Gravity takes over
+                                isThrusting = false // Disable control
+                                if (gameTime % 100 < 30) {
+                                    spawnBurst(player.x, player.y, 2, SciFiRed, 200f) // Trailing sparks
+                                }
+                            }
+
+                            // TELEMETRY FAILURE (Task 4)
+                            if (progress > 1.0f) {
+                                hudGlitchFactor = ((progress - 1.0f) * 2f).coerceIn(0f, 1f)
+                                telemetryStaticAlpha = ((progress - 1.0f) / 1.5f).coerceIn(0f, 0.7f)
+                            }
+
+                            // SIGNAL LOSS (Task 5)
+                            if (progress > 1.8f) {
+                                signalLossDarkness = ((progress - 1.8f) / 0.7f).coerceIn(0f, 1f)
+                            }
                             
-                            if (player.destructionTimer > 2.0f) {
+                            // Final Transition
+                            if (progress > 2.5f) {
                                 gameState = GameState.GAMEOVER
                                 saveHighScore(score)
                             }
+                        } else {
+                            // Reset failure states if not dying
+                            hudGlitchFactor = 0f
+                            telemetryStaticAlpha = 0f
+                            signalLossDarkness = 0f
                         }
 
                         // Emergency Warnings
                         if (player.shield > 0 && player.shield < player.maxShield * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
                             if (gameTime % 3000 < 50) { // Throttled notification
-                                notificationManager.post("!!! SHIELD CRITICAL !!!")
+                                notificationQueue.add("!!! SHIELD CRITICAL !!!")
                             }
                         }
                         if (player.integrity < player.maxIntegrity * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
                             if (gameTime % 3000 < 50) { // Throttled notification
-                                notificationManager.post("!!! HULL CRITICAL !!!")
+                                notificationQueue.add("!!! HULL CRITICAL !!!")
                             }
                         }
 
@@ -1930,7 +2065,6 @@ fun GameScreen() {
                     }
                 }
             }
-        }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val shakeX = if (screenShake > 0) (Random.nextFloat() - 0.5f) * screenShake else 0f
@@ -1950,35 +2084,68 @@ fun GameScreen() {
                         gameTime = gameTime
                     )
 
-                    drawRealityDistortion(
-                        threats = threatManager.activeThreats,
-                        playerX = player.x, playerY = player.y,
-                        size = size
-                    )
+                    // Reality Distortion Visual Overlay
+                    threatManager.activeThreats.find { it.definition.id == "HAZ_VOID_ANOMALY" && it.state == ThreatState.ACTIVE }?.let { anomaly ->
+                        val dx = player.x - anomaly.x
+                        val dy = player.y - anomaly.y
+                        val dist = sqrt(dx * dx + dy * dy)
+                        if (dist < 1000f) {
+                            val intensity = (1f - dist / 1000f).coerceIn(0f, 1f)
+                            drawRect(
+                                color = Color(0xFFFF00FF).copy(alpha = 0.1f * intensity),
+                                size = size
+                            )
+                        }
+                    }
 
                     ambientManager.render(this, cameraY, gameTime)
                 }
 
-                drawSpeedLines(
-                    velocityY = player.velocityY,
-                    screenWidth = screenWidth, screenHeight = screenHeight
-                )
+                // Speed lines
+                val speedRatio = (abs(player.velocityY) / 1200f).coerceIn(0f, 1f)
+                if (speedRatio > 0.4f) {
+                    repeat(8) {
+                        val rx = Random.nextFloat() * screenWidth
+                        val ry = Random.nextFloat() * screenHeight
+                        val alpha = (speedRatio - 0.4f) * 0.3f
+                        drawLine(
+                            Color.White.copy(alpha = alpha),
+                            start = Offset(rx, ry),
+                            end = Offset(rx, ry + 60f * speedRatio),
+                            strokeWidth = 1f + 1f * speedRatio
+                        )
+                    }
+                }
 
                 if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL || gameState == GameState.PAUSED || gameState == GameState.HELP || gameState == GameState.UNLOCK) {
-                    drawGround(
-                        groundY = groundY, cameraY = cameraY,
-                        screenWidth = screenWidth, screenHeight = screenHeight
-                    )
+                    drawRect(Color(0xFF795548), topLeft = Offset(0f, groundY + (ROCKET_HEIGHT / 2) - cameraY), size = Size(screenWidth, screenHeight))
 
-                    drawParticles(
-                        particles = particles,
-                        cameraY = cameraY,
-                        gameTime = gameTime
-                    )
-                    drawLandingEffects(
-                        effects = landingEffects,
-                        cameraY = cameraY
-                    )
+                    particles.forEach { p ->
+                        val alpha = (p.life / 1.0f).coerceIn(0f, 1f)
+                        // Task 4: Render larger particles as stars for sparkle effect
+                        if (p.size > 5f && (gameTime / 150) % 2L == 0L) {
+                            val centerX = p.x
+                            val centerY = p.y - cameraY
+                            val s = p.size * 1.5f
+                            drawLine(p.color.copy(alpha = alpha), Offset(centerX - s, centerY), Offset(centerX + s, centerY), strokeWidth = 2.5f)
+                            drawLine(p.color.copy(alpha = alpha), Offset(centerX, centerY - s), Offset(centerX, centerY + s), strokeWidth = 2.5f)
+                            // Diagonal sparkle bits for premium feel
+                            val ds = s * 0.5f
+                            drawLine(p.color.copy(alpha = alpha * 0.5f), Offset(centerX - ds, centerY - ds), Offset(centerX + ds, centerY + ds), strokeWidth = 1.5f)
+                            drawLine(p.color.copy(alpha = alpha * 0.5f), Offset(centerX + ds, centerY - ds), Offset(centerX - ds, centerY + ds), strokeWidth = 1.5f)
+                        } else {
+                            drawCircle(p.color.copy(alpha = alpha), radius = p.size, center = Offset(p.x, p.y - cameraY)) 
+                        }
+                    }
+                    landingEffects.forEach { effect ->
+                        val progress = 1f - (effect.life / 0.5f).coerceIn(0f, 1f)
+                        drawCircle(
+                            color = Color.Cyan.copy(alpha = 0.3f * (1f - progress)),
+                            radius = 40f * progress,
+                            center = Offset(effect.x, effect.y - cameraY),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                        )
+                    }
 
                     platforms.forEach { platform ->
                         platformRenderer.render(
@@ -2818,15 +2985,50 @@ fun GameScreen() {
                         }
                     }
 
-                    drawPowerUps(
-                        powerUps = powerUps,
-                        cameraY = cameraY,
-                        gameTime = gameTime
-                    )
+                    powerUps.forEach { pu ->
+                        val baseColor = when (pu.type) {
+                            PowerUpType.FUEL_TANK -> Color(0xFFE57373)
+                            PowerUpType.TURBO_BOOSTER -> Color.Cyan
+                            PowerUpType.EFFICIENCY_MODULE -> Color.Green
+                            PowerUpType.HEAT_SINK -> Color.White
+                            PowerUpType.ARTIFACT -> Color(0xFF9C27B0)
+                            PowerUpType.ALTITUDE_BOOSTER -> Color.White
+                            PowerUpType.SHIELD_CAPSULE -> SciFiCyan
+                            PowerUpType.HULL_REPAIR -> SciFiGreen
+                        }
+                        if (pu.type == PowerUpType.ARTIFACT) { drawCircle(baseColor, radius = 15f, center = Offset(pu.x, pu.y - cameraY)); drawCircle(Color.White, radius = 5f, center = Offset(pu.x, pu.y - cameraY)) }
+                        else if (pu.type == PowerUpType.SHIELD_CAPSULE || pu.type == PowerUpType.HULL_REPAIR) {
+                            // Survival Capsules
+                            drawCircle(baseColor, radius = 18f, center = Offset(pu.x, pu.y - cameraY))
+                            drawCircle(Color.White.copy(alpha = 0.6f), radius = 22f, center = Offset(pu.x, pu.y - cameraY), style = Stroke(width = 2f))
+                            if ((gameTime / 200) % 2 == 0L) {
+                                drawCircle(Color.White, radius = 5f, center = Offset(pu.x, pu.y - cameraY))
+                            }
+                        }
+                        else { drawRect(baseColor, topLeft = Offset(pu.x - 12f, pu.y - cameraY - 15f), size = Size(24f, 30f)); drawRect(Color.DarkGray, topLeft = Offset(pu.x - 6f, pu.y - cameraY - 20f), size = Size(12f, 5f)) }
+                    }
 
-                    drawFlyingRewards(
-                        rewards = flyingRewards
-                    )
+                    // Render Flying Rewards
+                    flyingRewards.forEach { fr ->
+                        val curX = fr.x * (1f - fr.progress) + fr.targetX * fr.progress
+                        val curY = fr.y * (1f - fr.progress) + fr.targetY * fr.progress
+
+                        val baseColor = when (val t = fr.type) {
+                            is ComboReward.Fuel -> Color.Green
+                            is ComboReward.PowerUp -> when(t.type) {
+                                PowerUpType.HULL_REPAIR -> SciFiGreen
+                                PowerUpType.SHIELD_CAPSULE -> SciFiCyan
+                                else -> SciFiCyan
+                            }
+                            is ComboReward.AltitudeBoost -> Color.White
+                            is ComboReward.Artifact -> Color(0xFF9C27B0)
+                        }
+
+                        scale(fr.scale, pivot = Offset(curX, curY)) {
+                            drawCircle(baseColor, radius = 15f, center = Offset(curX, curY))
+                            drawCircle(Color.White, radius = 5f, center = Offset(curX, curY))
+                        }
+                    }
 
                     // Render Rocket via RocketRenderer
                     rocketRenderer.render(
@@ -2839,83 +3041,665 @@ fun GameScreen() {
                     )
                 }
 
-                drawImpactFlash(
-                    alpha = impactFlashAlpha,
-                    size = size
-                )
+                if (impactFlashAlpha > 0) {
+                    drawRect(
+                        color = Color.White.copy(alpha = impactFlashAlpha),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 20f)
+                    )
+                }
+
+                // --- Failure Sequence Overlays (Task 4 & 5) ---
+                if (telemetryStaticAlpha > 0) {
+                    repeat(20) {
+                        val rx = Random.nextFloat() * size.width
+                        val ry = Random.nextFloat() * size.height
+                        drawRect(
+                            color = Color.White.copy(alpha = telemetryStaticAlpha * Random.nextFloat()),
+                            topLeft = Offset(rx, ry),
+                            size = Size(Random.nextFloat() * 100f, 1f)
+                        )
+                    }
+                }
+                
+                if (signalLossDarkness > 0) {
+                    drawRect(
+                        color = Color.Black.copy(alpha = signalLossDarkness),
+                        size = size
+                    )
+                    
+                    if (signalLossDarkness > 0.5f) {
+                        // Glitching noise blocks
+                        repeat(5) { i ->
+                            val r = Random(i.toLong())
+                            drawRect(
+                                color = SciFiRed.copy(alpha = 0.3f * signalLossDarkness),
+                                topLeft = Offset(r.nextFloat() * size.width, r.nextFloat() * size.height),
+                                size = Size(200f, 20f)
+                            )
+                        }
+                    }
+                }
             }
+        }
 
         // --- Screens ---
 
         when (gameState) {
             GameState.TITLE -> {
-                TitleScreen(onNavigate = { gameState = it })
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
+                        val infiniteTransition = rememberInfiniteTransition(label = "TitleTransition")
+                        val glowAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "GlowAlpha")
+                        val rocketOffset by infiniteTransition.animateFloat(0f, -20f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "RocketOffset")
+                        Canvas(Modifier.size(100.dp).offset { androidx.compose.ui.unit.IntOffset(0, rocketOffset.dp.roundToPx()) }) {
+                            val rx = size.width/2; val ry = size.height/2
+                            drawRect(SciFiWhite.copy(alpha = 0.8f), topLeft = Offset(rx-10f, ry-15f), size = Size(20f, 40f))
+                            drawPath(Path().apply { moveTo(rx-10f, ry-15f); lineTo(rx, ry-30f); lineTo(rx+10f, ry-15f); close() }, SciFiRed)
+                            drawPath(Path().apply { moveTo(rx-5f, ry+25f); lineTo(rx, ry+40f+Random.nextFloat()*10f); lineTo(rx+5f, ry+25f); close() }, SciFiGold)
+                        }
+                        Spacer(Modifier.height(20.dp))
+                        Text(
+                            text = "JUMP DROID",
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                shadow = androidx.compose.ui.graphics.Shadow(SciFiCyan.copy(alpha = glowAlpha), Offset(0f, 0f), 20f),
+                                letterSpacing = 8.sp
+                            ),
+                            color = SciFiWhite,
+                            fontWeight = FontWeight.Black
+                        )
+                        Spacer(Modifier.height(80.dp))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.width(240.dp).height(56.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                        ) {
+                            Text("INITIATE ASCENT", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                        }
+                    }
+                    Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("THE ASCENSION PROGRAM // EST. 1984", color = SciFiWhite.copy(alpha = 0.3f), letterSpacing = 1.sp, fontSize = 10.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text("POWERED BY ASHWATH.AI // V1.2.0", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp)
+                    }
+                }
             }
             GameState.MAIN_MENU -> {
-                MainMenuScreen(
-                    onLaunch = { restartGame() },
-                    onNavigate = { gameState = it },
-                    onExit = { (context as? android.app.Activity)?.finish() }
-                )
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)), contentAlignment = Alignment.Center) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.safeDrawingPadding().width(280.dp)
+                    ) {
+                        Text(
+                            text = "COMMAND CENTER",
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = SciFiWhite,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 4.sp
+                        )
+                        Spacer(Modifier.height(48.dp))
+                        
+                        val menuButtons = listOf(
+                            "LAUNCH" to { restartGame() },
+                            "HANGAR" to { gameState = GameState.HANGAR },
+                            "ARCHIVE" to { gameState = GameState.ARCHIVE },
+                            "TERMINAL" to { gameState = GameState.LEADERBOARD },
+                            "MISSION DATA" to { gameState = GameState.ABOUT },
+                            "SETTINGS" to { gameState = GameState.SETTINGS }
+                        )
+
+                        menuButtons.forEach { (label, action) ->
+                            Button(
+                                onClick = action,
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(4.dp), // Sharper corners for modern look
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = SciFiSurface,
+                                    contentColor = SciFiWhite
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                            ) {
+                                Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        }
+                        
+                        Spacer(Modifier.height(24.dp))
+                        
+                        Button(
+                            onClick = { (context as? android.app.Activity)?.finish() },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = SciFiRed.copy(alpha = 0.2f),
+                                contentColor = SciFiRed
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiRed.copy(alpha = 0.5f))
+                        ) {
+                            Text("ABORT MISSION", fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                        }
+                    }
+                }
             }
             GameState.HANGAR -> {
-                HangarScreen(
-                    player = player,
-                    highScore = progressionManager.highScore,
-                    progressionManager = progressionManager,
-                    sharedPrefs = sharedPrefs,
-                    onNavigate = { gameState = it }
-                )
+                Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
+                    Column(Modifier.padding(16.dp).safeDrawingPadding()) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                            Column {
+                                Text("ROCKET HANGAR", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                                Text(progressionManager.currentRank.title, color = SciFiGold, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                val totalComp = progressionManager.getTotalCompletionPercentage()
+                                Text("$totalComp% ARCHIVE COMPLETION", color = SciFiWhite.copy(alpha = 0.4f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text("${progressionManager.artifactsCollected.size} ARTIFACTS RECOVERED", color = SciFiPurple, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(16.dp))
+                        
+                        // New: Hangar Progression Summary
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(SciFiSurface, RoundedCornerShape(8.dp))
+                                .border(1.dp, SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            val (pFound, pTotal) = progressionManager.getCompletionStats("PLATFORMS")
+                            val (zFound, zTotal) = progressionManager.getCompletionStats("AREAS")
+                            val (aFound, aTotal) = progressionManager.getCompletionStats("ARTIFACTS")
+                            
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("PLATFORMS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                Text("$pFound/$pTotal", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("ZONES", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                Text("$zFound/$zTotal", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("ARTIFACTS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                Text("$aFound/$aTotal", color = SciFiPurple, fontWeight = FontWeight.Bold)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { gameState = GameState.ARCHIVE }) {
+                                Text("ARCHIVE", color = SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                                Text("VIEW >", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(8.dp))
+
+                        // EPIC 5: Survival Specs (Read-only for now)
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(SciFiSurface.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .border(1.dp, SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                                .padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("MAX HULL", color = SciFiGreen.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                Text("${progressionManager.permanentMaxIntegrity.toInt()}", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("MAX SHIELD", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                Text("${progressionManager.permanentMaxShield.toInt()}", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("REGEN RATE", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                Text("${Constants.SHIELD_REGEN_RATE.toInt()} U/S", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(24.dp))
+                        
+                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                            RocketType.entries.forEach { type ->
+                                val unlocked = highScore >= type.unlockScore || sharedPrefs.getBoolean("unlock_${type.name}", false)
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp)
+                                        .clickable(enabled = unlocked) { player.rocketType = type; gameState = GameState.MAIN_MENU }
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (player.rocketType == type) SciFiCyan else if (unlocked) SciFiBorder else SciFiBorder.copy(alpha = 0.05f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        ),
+                                    color = if (player.rocketType == type) SciFiCyan.copy(alpha = 0.1f) else if (unlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Column(Modifier.padding(20.dp)) {
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                            Text(type.title.uppercase(), style = MaterialTheme.typography.titleLarge, color = if (unlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.3f), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                            if (!unlocked) Text("THRESHOLD: ${type.unlockScore}m", color = SciFiRed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            else if (player.rocketType == type) Text("ACTIVE", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 2.sp)
+                                        }
+                                        if (unlocked) {
+                                            Spacer(Modifier.height(12.dp))
+                                            Text("THRUST: ${(type.thrustMult * 100).toInt()}% // FUEL: ${(type.fuelMult * 100).toInt()}% // THERMAL: ${(type.heatMult * 100).toInt()}%", color = SciFiCyan.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            Spacer(Modifier.height(4.dp))
+                                            Text(type.discovery.description, color = SciFiWhite.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("BACK", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
             GameState.ARCHIVE -> {
-                ArchiveScreen(
-                    sharedPrefs = sharedPrefs,
-                    discoveryManager = discoveryManager,
-                    progressionManager = progressionManager,
-                    onNavigate = { gameState = it }
-                )
-            }
+                val categories = listOf("ROCKETS", "PLATFORMS", "POWERUPS", "AREAS", "THREATS", "ARTIFACTS", "LORE", "ACHIEVEMENTS")
+                var selectedCat by remember { mutableStateOf("ROCKETS") }
+                Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
+                    Column(Modifier.padding(16.dp).safeDrawingPadding()) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("DATA ARCHIVE", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                            val discovered = DiscoveryType.entries.count { sharedPrefs.getBoolean("discovery_$it", false) }
+                            Text("$discovered RECORDS FOUND", color = SciFiWhite.copy(alpha = 0.4f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
+                        Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 16.dp)) {
+                            categories.forEach { cat -> 
+                                Text(
+                                    text = cat,
+                                    modifier = Modifier
+                                        .clickable { selectedCat = cat }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        .background(if (selectedCat == cat) SciFiCyan.copy(alpha = 0.1f) else Color.Transparent, RoundedCornerShape(4.dp)),
+                                    color = if (selectedCat == cat) SciFiCyan else SciFiWhite.copy(alpha = 0.4f),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                        }
+                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                            if (selectedCat == "ACHIEVEMENTS") {
+                                AchievementsList.forEach { ach -> 
+                                    val unlocked = sharedPrefs.getBoolean("achievement_${ach.id}", false)
+                                    CodexCard(ach.title, if (unlocked) ach.description else "DATA ENCRYPTED: REACH OBJECTIVE TO UNLOCK.", "", unlocked) 
+                                }
+                            } else {
+                                DiscoveryType.entries.filter { it.category == selectedCat }.forEach { entry ->
+                                    val unlocked = discoveryManager.isDiscovered(entry)
+                                    val title = if (unlocked || selectedCat != "THREATS") entry.title else "UNKNOWN SIGNAL"
+                                    val desc = if (unlocked) entry.description else "DATA CORRUPTED: RECOVER DURING NEXT EXPEDITION."
+                                    val lore = if (unlocked) entry.lore else ""
+                                    
+                                    if (unlocked && selectedCat == "ARTIFACTS") {
+                                        val record = progressionManager.artifactsCollected[entry.name]
+                                        val extraInfo = if (record != null) {
+                                            "\n\nFIRST DISCOVERY: ${record.firstDiscoveryDate}\nRECOVERED: ${record.timesFound} TIMES\nHIGHEST ALT: ${record.highestAltitude}m\nZONE: ${record.zoneFound}"
+                                        } else ""
+                                        CodexCard(title, desc, lore + extraInfo, unlocked)
+                                    } else {
+                                        CodexCard(title, desc, lore, unlocked)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                        
+                        // Completion Summary
+                        if (selectedCat != "ACHIEVEMENTS") {
+                            val (found, total) = progressionManager.getCompletionStats(selectedCat)
+                            val percent = if (total > 0) (found * 100) / total else 0
+                            Surface(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                color = SciFiSurface.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(4.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.2f))
+                            ) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("$selectedCat DATABASE", style = MaterialTheme.typography.labelSmall, color = SciFiCyan)
+                                        Text("$found / $total", style = MaterialTheme.typography.labelSmall, color = SciFiWhite)
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                    LinearProgressIndicator(
+                                        progress = percent / 100f,
+                                        modifier = Modifier.fillMaxWidth().height(4.dp),
+                                        color = SciFiCyan,
+                                        trackColor = SciFiSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("BACK", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
+                    }
             GameState.SETTINGS -> {
-                SettingsScreen(
-                    sharedPrefs = sharedPrefs,
-                    onWipeData = { progressionManager.wipeData(); player.rocketType = RocketType.BALANCED; gameState = GameState.TITLE },
-                    onReturn = { gameState = GameState.MAIN_MENU }
-                )
+                Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
+                    Column(Modifier.padding(32.dp).safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("SYSTEM SETTINGS", style = MaterialTheme.typography.headlineLarge, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Spacer(Modifier.height(48.dp))
+                        Text("MASTER AUDIO", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 1.sp)
+                        Spacer(Modifier.height(16.dp))
+                        Box(Modifier.width(200.dp).height(4.dp).background(SciFiSurface, CircleShape)) {
+                            Box(Modifier.fillMaxWidth(0.8f).fillMaxHeight().background(SciFiCyan, CircleShape))
+                        }
+                        Spacer(Modifier.height(64.dp))
+                        Button(
+                            onClick = { sharedPrefs.edit { clear() }; highScore = 0; player.rocketType = RocketType.BALANCED; gameState = GameState.TITLE },
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiRed.copy(alpha = 0.2f), contentColor = SciFiRed),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiRed.copy(alpha = 0.5f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("WIPE TELEMETRY DATA", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("RETURN", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
             GameState.ABOUT -> {
-                AboutScreen(onDismiss = { gameState = GameState.MAIN_MENU })
+                Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
+                    Column(Modifier.padding(32.dp).verticalScroll(rememberScrollState()).safeDrawingPadding()) {
+                        Text("MISSION DATA", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Spacer(Modifier.height(32.dp))
+                        Text(
+                            text = "Jump Droid is an advanced vertical exploration simulator focusing on precision propulsion control and multi-layered atmospheric discovery.",
+                            color = SciFiWhite.copy(alpha = 0.8f),
+                            lineHeight = 24.sp
+                        )
+                        Spacer(Modifier.height(24.dp))
+                        Text("SYSTEM ARCHITECTURE: JETPACK COMPOSE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+                        Text("CORE ENGINE: ASHWATH.AI PROTOTYPE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 12.sp)
+                        Spacer(Modifier.height(32.dp))
+                        Text("PROTOCOL VERSION", style = MaterialTheme.typography.titleLarge, color = SciFiGold, fontWeight = FontWeight.Bold)
+                        Text("V1.2.0 // ASCENSION EXPANSION", color = SciFiWhite.copy(alpha = 0.6f))
+                        Spacer(Modifier.height(32.dp))
+                        Text("PROJECT ROADMAP", style = MaterialTheme.typography.titleLarge, color = SciFiGold, fontWeight = FontWeight.Bold)
+                        Text("• ADVANCED ENTITY AI\n• DEEP SPACE ANOMALIES\n• INTERSTELLAR TERMINAL", color = SciFiWhite.copy(alpha = 0.6f), lineHeight = 24.sp)
+                        Spacer(Modifier.height(48.dp))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("DISMISS", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
             GameState.LEADERBOARD -> {
-                LeaderboardScreen(onDismiss = { gameState = GameState.MAIN_MENU })
+                Box(Modifier.fillMaxSize().background(SciFiBackground).safeDrawingPadding(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(300.dp)) {
+                        Text("GLOBAL TERMINAL", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Spacer(Modifier.height(48.dp))
+                        Surface(
+                            color = SciFiSurface,
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("CONNECTION STATUS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                                Spacer(Modifier.height(12.dp))
+                                Text("OFFLINE", color = SciFiRed, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+                                Spacer(Modifier.height(24.dp))
+                                Text("Worldwide rankings currently unavailable due to atmospheric interference.", color = SciFiWhite.copy(alpha = 0.6f), textAlign = TextAlign.Center, fontSize = 12.sp)
+                            }
+                        }
+                        Spacer(Modifier.height(48.dp))
+                        Button(
+                            onClick = { gameState = GameState.MAIN_MENU },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        ) {
+                            Text("DISCONNECT", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
             }
             GameState.PLAYING, GameState.GAMEOVER, GameState.TUTORIAL, GameState.PAUSED, GameState.HELP, GameState.UNLOCK -> {
                 Box(Modifier.fillMaxSize()) {
-                    TopRightUtilityButtons(
-                        modifier = Modifier.align(Alignment.TopEnd),
-                        gameState = gameState,
-                        onHelp = { gameState = GameState.HELP; isThrusting = false },
-                        onPause = { gameState = GameState.PAUSED; isThrusting = false }
-                    )
+                    // Top-Right Utility Buttons
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                            .statusBarsPadding(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { gameState = GameState.HELP; isThrusting = false },
+                            modifier = Modifier.size(36.dp),
+                            contentPadding = PaddingValues(0.dp),
+                            shape = CircleShape
+                        ) { Text("?", fontWeight = FontWeight.Bold) }
 
-                    // --- HUD WIDGETS ---
-                    AltitudeDisplay(
-                        modifier = Modifier.align(Alignment.TopCenter),
-                        score = score, highScore = progressionManager.highScore
-                    )
+                        if (gameState == GameState.PLAYING) {
+                            Button(
+                                onClick = { gameState = GameState.PAUSED; isThrusting = false },
+                                modifier = Modifier.size(36.dp),
+                                contentPadding = PaddingValues(0.dp),
+                                shape = CircleShape
+                            ) { Text("||", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                        }
+                    }
 
-                    LeftGauges(
-                        modifier = Modifier.align(Alignment.CenterStart),
-                        fuel = player.fuel, maxFuel = player.maxFuel,
-                        heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated,
-                        gameTime = gameTime
-                    )
+                    // --- REFACTORED HUD (Adjustment Run 1) ---
+                    val hudAlpha = (1f - hudGlitchFactor).coerceAtLeast(0.1f)
+                    val hudTranslationX = if (hudGlitchFactor > 0.2f) (Random.nextFloat() - 0.5f) * 20f * hudGlitchFactor else 0f
+                    val hudTranslationY = if (hudGlitchFactor > 0.2f) (Random.nextFloat() - 0.5f) * 20f * hudGlitchFactor else 0f
 
-                    RightGauges(
-                        modifier = Modifier.align(Alignment.CenterEnd),
-                        shield = player.shield, maxShield = player.maxShield,
-                        integrity = player.integrity, maxIntegrity = player.maxIntegrity,
-                        gameTime = gameTime
-                    )
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                alpha = hudAlpha,
+                                translationX = hudTranslationX,
+                                translationY = hudTranslationY
+                            )
+                    ) {
+                        // 1. TOP CENTER: Altitude
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .statusBarsPadding()
+                                .padding(top = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = score.toString(),
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 4.sp,
+                                    shadow = androidx.compose.ui.graphics.Shadow(
+                                        SciFiCyan.copy(alpha = 0.3f),
+                                        blurRadius = 15f
+                                    )
+                                ),
+                                color = SciFiWhite
+                            )
+                            Text(
+                                text = "ASCENSION DATA: BEST $highScore",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SciFiWhite.copy(alpha = 0.5f),
+                                fontSize = 10.sp,
+                                letterSpacing = 2.sp
+                            )
+                        }
+
+                    // 2. LEFT SIDE: Resource Cluster (Stacked Vertically)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 16.dp)
+                            .graphicsLayer(alpha = 0.85f), // Overall transparency
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // Fuel Meter
+                        val fuelGaugeHeight = (120f + (player.maxFuel - 100f) * 0.6f).coerceIn(100f, 250f).dp
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "⛽",
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (player.fuel < 20f) (gameTime / 200 % 2).toFloat() else 0.8f)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp) // Narrowed by 50%
+                                    .height(fuelGaugeHeight)
+                                    .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                                    .border(0.5.dp, SciFiBorder.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                val fuelRatio = (player.fuel / player.maxFuel).coerceIn(0f, 1f)
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    clipPath(Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(androidx.compose.ui.geometry.Rect(Offset.Zero, size), androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()))) }) {
+                                        val fillHeight = size.height * fuelRatio
+                                        val waveOffset = (gameTime / 300f) % (2 * PI.toFloat())
+                                        val path = Path().apply {
+                                            moveTo(0f, size.height - fillHeight)
+                                            for (x in 0..size.width.toInt()) {
+                                                val y = (size.height - fillHeight) + sin(x / 4f + waveOffset) * 2f
+                                                lineTo(x.toFloat(), y)
+                                            }
+                                            lineTo(size.width, size.height)
+                                            lineTo(0f, size.height)
+                                            close()
+                                        }
+                                        drawPath(path = path, color = (if (player.fuel > player.maxFuel * 0.25f) SciFiGreen else SciFiRed).copy(alpha = 0.9f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                        // Heat Meter
+                        val heatGaugeHeight = (120f + (player.maxHeat - 100f) * 0.6f).coerceIn(100f, 250f).dp
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                if (player.isOverheated) "⚠️" else "🔥",
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (player.isOverheated) (gameTime / 150 % 2).toFloat() else 0.8f)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp) // Narrowed by 50%
+                                    .height(heatGaugeHeight)
+                                    .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                                    .border(0.5.dp, SciFiBorder.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                val heatRatio = (player.heat / player.maxHeat).coerceIn(0f, 1f)
+                                val heatColor = when {
+                                    player.isOverheated -> SciFiRed
+                                    heatRatio > 0.8f -> SciFiRed
+                                    heatRatio > 0.5f -> SciFiGold
+                                    else -> SciFiCyan
+                                }
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    val fillHeight = size.height * heatRatio
+                                    drawRect(color = heatColor.copy(alpha = 0.9f), topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
+                                }
+                            }
+                        }
+                    }
+                    }
+
+                    // 3. RIGHT SIDE: Survival Cluster (Stacked Vertically)
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 16.dp)
+                            .graphicsLayer(alpha = 0.85f), // Overall transparency
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // Shield Meter
+                        val shieldGaugeHeight = (120f + (player.maxShield - 50f) * 1.2f).coerceIn(100f, 250f).dp
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val isShieldCritical = player.shield < player.maxShield * 0.25f
+                            Text(
+                                "🛡️",
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isShieldCritical) (gameTime / 200 % 2).toFloat() else 0.8f)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp) // Narrowed by 50%
+                                    .height(shieldGaugeHeight)
+                                    .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                                    .border(0.5.dp, (if (isShieldCritical) SciFiRed else SciFiBorder).copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                val shieldRatio = (player.shield / player.maxShield).coerceIn(0f, 1f)
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    drawRect(
+                                        color = SciFiCyan.copy(alpha = 0.9f),
+                                        topLeft = Offset(0f, size.height * (1f - shieldRatio)),
+                                        size = Size(size.width, size.height * shieldRatio)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                        // Integrity Meter (Hull)
+                        val integrityGaugeHeight = (120f + (player.maxIntegrity - 100f) * 0.6f).coerceIn(100f, 250f).dp
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val isHullCritical = player.integrity < player.maxIntegrity * 0.25f
+                            Text(
+                                "❤️",
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isHullCritical) (gameTime / 200 % 2).toFloat() else 0.8f)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp) // Narrowed by 50%
+                                    .height(integrityGaugeHeight)
+                                    .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
+                                    .border(0.5.dp, (if (isHullCritical) SciFiRed else SciFiBorder).copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
+                                val integrityRatio = (player.integrity / player.maxIntegrity).coerceIn(0f, 1f)
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    drawRect(
+                                        color = SciFiGreen.copy(alpha = 0.9f),
+                                        topLeft = Offset(0f, size.height * (1f - integrityRatio)),
+                                        size = Size(size.width, size.height * integrityRatio)
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     // 4. CENTER BELOW ALTITUDE: Progression HUD Layer
                     val isZoneCardVisible = discoveryManager.activeEvent is DiscoveryEvent.Zone
@@ -2932,89 +3716,618 @@ fun GameScreen() {
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            MissionRow(
-                                missions = missionManager.activeMissions,
-                                globalShowObjective = globalShowObjective
-                            )
+                            // Mission Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+                            ) {
+                                missionManager.activeMissions.forEach { activeMission ->
+                                    val cardColor = when (activeMission.ceremonyStage) {
+                                        CeremonyStage.GLOW -> SciFiCyan.copy(alpha = 0.6f)
+                                        else -> SciFiSurface
+                                    }
 
-                            ComboHudBar(
-                                currentCombo = comboManager.currentCombo,
-                                bestComboThisRun = comboManager.bestComboThisRun,
-                                comboTarget = comboManager.comboTarget,
-                                comboTimeRemaining = comboManager.comboTimeRemaining,
-                                getWindowForCombo = { comboManager.getWindowForCombo(it) },
-                                screenWidth = screenWidth
-                            )
+                                    AnimatedVisibility(
+                                        visible = activeMission.ceremonyStage != CeremonyStage.REPLACING && 
+                                                 activeMission.ceremonyStage != CeremonyStage.REWARD_SPAWNED,
+                                        enter = slideInVertically { -it } + fadeIn(),
+                                        exit = fadeOut(tween(300)) + scaleOut(targetScale = 0.8f), // Dissolve feel
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    ) {
+                                        Surface(
+                                            color = cardColor,
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier.width(115.dp).height(65.dp).shadow(4.dp, RoundedCornerShape(12.dp)),
+                                            border = androidx.compose.foundation.BorderStroke(
+                                                width = 1.dp,
+                                                color = if (activeMission.ceremonyStage == CeremonyStage.GLOW) SciFiWhite else SciFiBorder
+                                            )
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                if (activeMission.ceremonyStage == CeremonyStage.COMPLETED_TEXT || 
+                                                    activeMission.ceremonyStage == CeremonyStage.REWARD_SPAWNED) {
+                                                    Text(
+                                                        "MISSION COMPLETE",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = SciFiGreen,
+                                                        fontWeight = FontWeight.Black,
+                                                        fontSize = 8.sp,
+                                                        letterSpacing = 1.sp
+                                                    )
+                                                } else {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(
+                                                            text = activeMission.type.toIcon(),
+                                                            fontSize = 8.sp,
+                                                            modifier = Modifier.padding(end = 4.dp)
+                                                        )
+                                                        
+                                                        // Task 1: Prevent Overflow
+                                                        AnimatedContent(
+                                                            targetState = globalShowObjective,
+                                                            transitionSpec = { fadeIn(tween(500)) togetherWith fadeOut(tween(500)) },
+                                                            label = "MissionTextRotation"
+                                                        ) { showObj ->
+                                                            Text(
+                                                                if (showObj) activeMission.description.uppercase() else activeMission.name.uppercase(),
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = when(activeMission.type) {
+                                                                    MissionType.EXPLORATION -> SciFiCyan
+                                                                    MissionType.PLATFORMING -> SciFiGold
+                                                                    else -> SciFiWhite
+                                                                },
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 8.sp,
+                                                                maxLines = 1,
+                                                                textAlign = TextAlign.Center,
+                                                                letterSpacing = 0.5.sp,
+                                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                val progressText = when(activeMission.type) {
+                                                    MissionType.EXPLORATION -> "${(activeMission.currentProgress.toFloat() / activeMission.targetValue * 100).toInt()}%"
+                                                    MissionType.SURVIVAL -> "${activeMission.currentProgress}s"
+                                                    else -> "${activeMission.currentProgress}/${activeMission.targetValue}"
+                                                }
+
+                                                Text(
+                                                    progressText,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = SciFiWhite.copy(alpha = 0.7f),
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+
+                                                Spacer(Modifier.height(4.dp))
+                                                Box(Modifier.width(50.dp).height(2.dp).background(SciFiWhite.copy(alpha = 0.1f), CircleShape)) {
+                                                    Box(
+                                                        Modifier.fillMaxHeight()
+                                                            .fillMaxWidth((activeMission.currentProgress.toFloat() / activeMission.targetValue).coerceIn(0f, 1f))
+                                                            .background(
+                                                                when(activeMission.type) {
+                                                                    MissionType.EXPLORATION -> SciFiCyan
+                                                                    MissionType.PLATFORMING -> SciFiGold
+                                                                    else -> SciFiWhite
+                                                                },
+                                                                CircleShape
+                                                            )
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            // --- INTEGRATED COMBO HUD ---
+                            Surface(
+                                color = SciFiSurface,
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth(0.9f).shadow(6.dp, RoundedCornerShape(12.dp)),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Column(horizontalAlignment = Alignment.Start) {
+                                        Text(
+                                            "BEST THIS RUN: x${comboManager.bestComboThisRun}",
+                                            color = SciFiWhite.copy(alpha = 0.5f),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 7.sp,
+                                            letterSpacing = 1.sp
+                                        )
+                                        Text(
+                                            "COMBO x${comboManager.currentCombo}",
+                                            color = if (comboManager.currentCombo >= comboManager.comboTarget) SciFiGold else SciFiWhite,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 12.sp,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                    }
+
+                                    // Timer Bar (Visual Emphasis)
+                                    val timerRatio = if (comboManager.currentCombo > 0)
+                                        (comboManager.comboTimeRemaining.toFloat() / comboManager.getWindowForCombo(comboManager.currentCombo)).coerceIn(0f, 1f)
+                                        else 0f
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(6.dp)
+                                            .background(SciFiWhite.copy(alpha = 0.1f), CircleShape)
+                                    ) {
+                                        val barColor = if (timerRatio > 0.3f) SciFiCyan else SciFiRed
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(timerRatio)
+                                                .fillMaxHeight()
+                                                .background(barColor, CircleShape)
+                                        )
+                                    }
+
+                                    Text(
+                                        "TARGET: x${comboManager.comboTarget}",
+                                        color = SciFiWhite.copy(alpha = 0.8f),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+                            }
                         }
                     }
 
-                    // NOTIFICATION LAYER
-                    NotificationLayer(
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 240.dp),
-                        activeNotification = notificationManager.active,
-                        notificationAlpha = notificationManager.alpha,
-                        screenWidth = screenWidth
-                    )
+                    // P2: DEDICATED NOTIFICATION LAYER
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 100.dp), // Positioned above player but below HUD
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            // Threat Notifications
+                            if (activeNotification != null) {
+                                val isHighAlert = activeNotification!!.contains("!!!") || activeNotification!!.contains(">>>")
+                                Text(
+                                    text = activeNotification!!,
+                                    modifier = Modifier.graphicsLayer(alpha = notificationAlpha).widthIn(max = screenWidth.dp * 0.9f),
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 4.sp,
+                                        shadow = androidx.compose.ui.graphics.Shadow(if (isHighAlert) SciFiRed.copy(alpha = 0.5f) else Color.Black, blurRadius = 15f)
+                                    ),
+                                    color = if (isHighAlert) SciFiRed else SciFiWhite,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
 
-                    FloatingTextsLayer(
-                        texts = floatingTextManager.texts,
-                        cameraY = cameraY
-                    )
+                    // (Legacy combo HUD removed - now integrated above)
 
-                    // ZONE DISCOVERY CARD
+                    // Floating Combo Texts
+                    floatingTexts.forEach { ft ->
+                        val scale = if (ft.isCritical) 1.0f + (ft.life * 0.5f) else 1.0f
+                        Text(
+                            text = ft.text,
+                            color = ft.color.copy(alpha = (ft.life/1.0f).coerceIn(0f, 1f)),
+                            modifier = Modifier
+                                .offset { androidx.compose.ui.unit.IntOffset((ft.x - 50f).toInt(), (ft.y - cameraY).toInt()) }
+                                .graphicsLayer(scaleX = scale, scaleY = scale),
+                            style = if (ft.isCritical) MaterialTheme.typography.headlineSmall.copy(
+                                shadow = androidx.compose.ui.graphics.Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
+                            ) else MaterialTheme.typography.labelLarge.copy(
+                                shadow = androidx.compose.ui.graphics.Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
+                            ),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Cinematic Area Discovery Title Card
                     AnimatedVisibility(
                         visible = discoveryManager.activeEvent is DiscoveryEvent.Zone,
                         enter = fadeIn(tween(600)) + expandVertically(tween(500)) + scaleIn(tween(500), initialScale = 0.95f),
                         exit = fadeOut(tween(400)) + shrinkVertically(tween(400)) + scaleOut(tween(400), targetScale = 1.05f),
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = 180.dp)
                     ) {
-                        ZoneDiscoveryCard(activeEvent = discoveryManager.activeEvent, score = score)
+                        val event = discoveryManager.activeEvent as? DiscoveryEvent.Zone
+                        event?.let { zoneEvent ->
+                            val zone = zoneEvent.zone
+                            val titleText = when(zone) {
+                                AltitudeZone.CLOUD_LAYER -> "CLOUD LAYER REACHED"
+                                AltitudeZone.ORBIT -> "SPACE REACHED"
+                                AltitudeZone.VOID -> "VOID ENTERED"
+                                else -> zone.zoneName.uppercase()
+                            }
+
+                            val accentColor = when(zone) {
+                                AltitudeZone.ORBIT -> SciFiGold
+                                AltitudeZone.VOID -> SciFiRed
+                                AltitudeZone.DEEP_SPACE -> SciFiPurple
+                                else -> SciFiCyan
+                            }
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .background(SciFiSurface, RoundedCornerShape(16.dp))
+                                    .padding(horizontal = 32.dp, vertical = 24.dp)
+                                    .border(1.dp, SciFiBorder, RoundedCornerShape(16.dp))
+                            ) {
+                                Text(
+                                    text = titleText,
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        shadow = androidx.compose.ui.graphics.Shadow(accentColor.copy(alpha = 0.5f), blurRadius = 20f),
+                                        letterSpacing = 4.sp
+                                    ),
+                                    color = SciFiWhite,
+                                    fontWeight = FontWeight.Black,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    text = zone.subtitle.uppercase(),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = accentColor.copy(alpha = 0.8f),
+                                    letterSpacing = 6.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
-                }
 
                 if (gameState == GameState.PAUSED) {
-                    PauseOverlay(
-                        showDevMenu = showDevMenu,
-                        infiniteFuel = infiniteFuel,
-                        disableHeat = disableHeat,
-                        cheatsEnabled = DevConfig.CHEATS_ENABLED,
-                        onToggleDevMenu = { showDevMenu = !showDevMenu },
-                        onJumpToZone = { jumpToZone(it) },
-                        onSpawnDevThreat = { spawnDevThreat(it) },
-                        onToggleInfiniteFuel = { infiniteFuel = !infiniteFuel },
-                        onToggleDisableHeat = { disableHeat = !disableHeat },
-                        onUnlockAll = { unlockAll() },
-                        onResume = { gameState = GameState.PLAYING },
-                        onRestart = { restartGame() },
-                        onMainMenu = { gameState = GameState.MAIN_MENU }
-                    )
-                }
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).pointerInput(Unit) {}, contentAlignment = Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.safeDrawingPadding().width(280.dp)
+                        ) {
+                            if (showDevMenu && DevConfig.CHEATS_ENABLED) {
+                                Text("DEVELOPER OVERRIDE", color = SciFiGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                                Spacer(Modifier.height(24.dp))
+                                Row(Modifier.horizontalScroll(rememberScrollState())) {
+                                    AltitudeZone.entries.forEach { zone ->
+                                        Button(onClick = { jumpToZone(zone) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)) { Text(zone.name, fontSize = 10.sp) }
+                                    }
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Row(Modifier.horizontalScroll(rememberScrollState())) {
+                                    listOf("ENT_SCOUT_DRONE", "ENT_SWARM_BOTS", "ENT_CLOUD_SKIMMER", "ENT_ORBITAL_SENTRY", "ENT_CORRUPTED_HULL", "HAZ_VOID_ANOMALY", "MINI_BOSS_COMMANDER", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL").forEach { id ->
+                                        Button(onClick = { spawnDevThreat(id) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)) { Text(id.substringAfterLast("_"), fontSize = 10.sp) }
+                                    }
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Row {
+                                    Button(onClick = { infiniteFuel = !infiniteFuel }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if(infiniteFuel) SciFiGreen.copy(alpha = 0.3f) else SciFiSurface, contentColor = if(infiniteFuel) SciFiGreen else SciFiWhite)) { Text("INF FUEL", fontSize = 10.sp) }
+                                    Spacer(Modifier.width(8.dp))
+                                    Button(onClick = { disableHeat = !disableHeat }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if(disableHeat) SciFiGreen.copy(alpha = 0.3f) else SciFiSurface, contentColor = if(disableHeat) SciFiGreen else SciFiWhite)) { Text("NO HEAT", fontSize = 10.sp) }
+                                    Spacer(Modifier.width(8.dp))
+                                    Button(onClick = { unlockAll() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)) { Text("UNLOCK", fontSize = 10.sp) }
+                                }
+                                Spacer(Modifier.height(32.dp))
+                                Button(onClick = { showDevMenu = false }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)) { Text("RETURN TO PAUSE", color = Color.Black, fontWeight = FontWeight.Bold) }
+                            } else {
+                                Text(
+                                    text = "SYSTEMS STANDBY",
+                                    color = SciFiWhite,
+                                    style = MaterialTheme.typography.headlineLarge,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 2.sp,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(Modifier.height(48.dp))
+                                
+                                val pauseButtons = listOf(
+                                    "RESUME" to { gameState = GameState.PLAYING },
+                                    "RESTART RUN" to { restartGame() },
+                                    "MAIN MENU" to { gameState = GameState.MAIN_MENU }
+                                )
+
+                                pauseButtons.forEach { (label, action) ->
+                                    Button(
+                                        onClick = action,
+                                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                                    ) {
+                                        Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                                    }
+                                    Spacer(Modifier.height(12.dp))
+                                }
+
+                                if (DevConfig.CHEATS_ENABLED) {
+                                    Spacer(Modifier.height(24.dp))
+                                    Button(
+                                        onClick = { showDevMenu = true },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = SciFiGold.copy(alpha = 0.5f))
+                                    ) {
+                                        Text("DEV OVERRIDE", fontSize = 12.sp, letterSpacing = 2.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    }
 
                 if (gameState == GameState.TUTORIAL && activeDiscovery != null) {
-                    TutorialOverlay(
-                        activeDiscovery = activeDiscovery,
-                        onAcknowledge = { gameState = GameState.PLAYING; activeDiscovery = null }
-                    )
-                }
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).clickable {}, contentAlignment = Alignment.Center) {
+                        if (activeDiscovery!!.category == "ARTIFACTS") {
+                            val infiniteTransition = rememberInfiniteTransition(label = "ArtifactGlow")
+                            val glowScale by infiniteTransition.animateFloat(1f, 1.5f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "GlowScale")
+                            Box(Modifier.size(300.dp).graphicsLayer(scaleX = glowScale, scaleY = glowScale).background(SciFiPurple.copy(alpha = 0.1f), CircleShape))
+                        }
+                        
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = SciFiSurface,
+                            modifier = Modifier
+                                .padding(24.dp)
+                                .widthIn(max = 400.dp)
+                                .safeDrawingPadding()
+                                .shadow(20.dp, RoundedCornerShape(20.dp), spotColor = if (activeDiscovery!!.category == "ARTIFACTS") SciFiPurple else SciFiCyan)
+                                .border(1.dp, if (activeDiscovery!!.category == "ARTIFACTS") SciFiPurple.copy(alpha = 0.5f) else SciFiBorder, RoundedCornerShape(20.dp))
+                        ) {
+                            Column(
+                                Modifier.padding(32.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                val isLore = activeDiscovery!!.category == "LORE" || activeDiscovery!!.category == "ARTIFACTS"
+                                val isArtifact = activeDiscovery!!.category == "ARTIFACTS"
+                                Text(
+                                    text = if (isArtifact) "ARTIFACT RECOVERED" else if (isLore) "INTEL RECOVERED" else "NEW DISCOVERY",
+                                    color = if (isArtifact) SciFiPurple else if (isLore) SciFiPurple else SciFiCyan,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 3.sp,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = "DATABASE UPDATED",
+                                    color = SciFiWhite.copy(alpha = 0.4f),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    letterSpacing = 2.sp
+                                )
+                                Spacer(Modifier.height(20.dp))
+                                Text(
+                                    text = activeDiscovery!!.title.uppercase(),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = SciFiWhite,
+                                    letterSpacing = 1.sp,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    text = activeDiscovery!!.description,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = SciFiWhite.copy(alpha = 0.9f),
+                                    lineHeight = 22.sp,
+                                    maxLines = 4,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                
+                                if (isArtifact) {
+                                    Spacer(Modifier.height(24.dp))
+                                    Text(
+                                        "PERMANENT PROGRESS RECORDED",
+                                        color = SciFiGold,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                
+                                Spacer(Modifier.height(32.dp))
+                                Button(
+                                    onClick = { gameState = GameState.PLAYING; activeDiscovery = null },
+                                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (isArtifact) SciFiPurple else SciFiCyan)
+                                ) {
+                                    Text("ACKNOWLEDGE", fontWeight = FontWeight.Bold, color = if (isArtifact) Color.White else Color.Black, letterSpacing = 1.sp)
+                                }
+                            }
+                        }
+                    }
+                    }
                 if (gameState == GameState.HELP) {
-                    HelpOverlay(onDismiss = { gameState = GameState.PLAYING })
-                }
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable { gameState = GameState.PLAYING }, contentAlignment = Alignment.Center) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = SciFiSurface,
+                            modifier = Modifier.padding(32.dp).safeDrawingPadding().border(1.dp, SciFiBorder, RoundedCornerShape(16.dp))
+                        ) {
+                            Column(Modifier.padding(32.dp).verticalScroll(rememberScrollState())) {
+                                Text("SYSTEM LEGEND", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black, color = SciFiCyan, letterSpacing = 2.sp)
+                                
+                                Spacer(Modifier.height(24.dp))
+                                Text("PLATFORM TYPES", fontWeight = FontWeight.Bold, color = SciFiWhite, letterSpacing = 1.sp)
+                                Spacer(Modifier.height(8.dp))
+                                val pTypes = listOf("NORMAL" to SciFiGreen, "MOVING" to SciFiCyan, "BOOST" to SciFiGold, "ICE" to SciFiCyan, "BREAKABLE" to SciFiRed, "MAGNETIC" to SciFiPurple, "PHASE" to SciFiWhite)
+                                pTypes.forEach { (label, color) ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(8.dp).background(color, CircleShape))
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(label, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                }
+
+                                Spacer(Modifier.height(24.dp))
+                                Text("RESOURCE MODULES", fontWeight = FontWeight.Bold, color = SciFiWhite, letterSpacing = 1.sp)
+                                Spacer(Modifier.height(8.dp))
+                                val powerTypes = listOf("FUEL" to SciFiGreen, "TURBO" to SciFiCyan, "EFFICIENCY" to SciFiGreen, "HEAT SINK" to SciFiWhite, "ARTIFACT" to SciFiPurple)
+                                powerTypes.forEach { (label, color) ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(Modifier.size(8.dp).background(color, RoundedCornerShape(2.dp)))
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(label, color = color, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                }
+                                
+                                Spacer(Modifier.height(32.dp))
+                                Button(
+                                    onClick = { gameState = GameState.PLAYING },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                                ) {
+                                    Text("CLOSE ARCHIVE", color = Color.Black, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                    }
                 if (gameState == GameState.UNLOCK && unlockedRocket != null) {
-                    UnlockOverlay(
-                        unlockedRocket = unlockedRocket,
-                        onConfirm = { gameState = GameState.PLAYING; unlockedRocket = null }
-                    )
-                }
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable { gameState = GameState.PLAYING; unlockedRocket = null }, contentAlignment = Alignment.Center) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = SciFiSurface,
+                            modifier = Modifier.padding(32.dp).safeDrawingPadding().border(1.dp, SciFiBorder, RoundedCornerShape(16.dp))
+                        ) {
+                            Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("NEW ASSET UNLOCKED", color = SciFiGold, fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 12.sp)
+                                Spacer(Modifier.height(16.dp))
+                                Text(unlockedRocket!!.title.uppercase(), style = MaterialTheme.typography.headlineMedium, color = SciFiWhite, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp)
+                                Spacer(Modifier.height(16.dp))
+                                Text("Craft available for immediate deployment in the Hangar.", style = MaterialTheme.typography.bodyMedium, color = SciFiWhite.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                                Spacer(Modifier.height(32.dp))
+                                Button(
+                                    onClick = { gameState = GameState.PLAYING; unlockedRocket = null },
+                                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                                ) {
+                                    Text("CONFIRM", color = Color.Black, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                    }
                 if (gameState == GameState.GAMEOVER) {
-                    GameOverOverlay(
-                        score = score,
-                        highScore = progressionManager.highScore,
-                        progressionManager = progressionManager,
-                        continuesUsed = continuesUsed,
-                        onContinue = { continueRun() },
-                        onRestart = { restartGame() },
-                        onMainMenu = { gameState = GameState.MAIN_MENU }
-                    )
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .safeDrawingPadding()
+                                .fillMaxWidth()
+                                .padding(24.dp)
+                        ) {
+                            Text(
+                                text = "COMMUNICATION LOST",
+                                color = SciFiRed,
+                                style = MaterialTheme.typography.displaySmall.copy(
+                                    fontSize = 28.sp, // Responsive adjust: specific size for guaranteed fit
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
+                                ),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = "TELEMETRY DATA ENDED",
+                                color = SciFiRed.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.labelMedium,
+                                letterSpacing = 4.sp,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1
+                            )
+                            
+                            Spacer(Modifier.height(48.dp))
+                            
+                            Surface(
+                                color = SciFiSurface,
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("FINAL ALTITUDE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                                    Text("$score", color = SciFiWhite, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
+                                    Spacer(Modifier.height(16.dp))
+                                    Text("RECORD ALTITUDE", color = SciFiGold.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                                    Text("$highScore", color = SciFiGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                                    
+                                    // New: Run Progression Summary
+                                    Spacer(Modifier.height(24.dp))
+                                    HorizontalDivider(color = SciFiBorder.copy(alpha = 0.3f), thickness = 1.dp)
+                                    Spacer(Modifier.height(16.dp))
+                                    
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("RANK", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                            Text(progressionManager.currentRank.title.split(" ").last(), color = SciFiGold, fontWeight = FontWeight.Bold)
+                                        }
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("COLLECTION", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                            Text("${progressionManager.getTotalCompletionPercentage()}%", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                                        }
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            val (found, _) = progressionManager.getCompletionStats("AREAS")
+                                            Text("ZONES", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                                            Text("$found", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(48.dp))
+
+                            if (continuesUsed < 1) {
+                                Button(
+                                    onClick = { continueRun() },
+                                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                                ) {
+                                    Text("RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                }
+                                Spacer(Modifier.height(12.dp))
+                            }
+
+                            Button(
+                                onClick = { restartGame() },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                            ) {
+                                Text("NEW EXPEDITION", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            }
+                            
+                            Spacer(Modifier.height(12.dp))
+                            
+                            Button(
+                                onClick = { gameState = GameState.MAIN_MENU },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = SciFiWhite.copy(alpha = 0.5f))
+                            ) {
+                                Text("RETURN TO BASE", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -3030,4 +4343,70 @@ fun MissionType.toIcon(): String = when(this) {
     MissionType.COMBO -> "🔥"
 }
 
+@Composable
+fun PowerupBadge(label: String, color: Color, seconds: Int) {
+    Surface(
+        color = color.copy(alpha = 0.2f),
+        shape = RoundedCornerShape(4.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.5f)),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Box(Modifier.size(6.dp).background(color, CircleShape))
+            Text(
+                text = "$label: ${seconds}s",
+                color = color,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                fontSize = 8.sp
+            )
+        }
+    }
+}
 
+@Composable
+fun CodexCard(title: String, description: String, lore: String, unlocked: Boolean) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .border(
+                width = 1.dp,
+                color = if (unlocked) SciFiBorder else SciFiBorder.copy(alpha = 0.05f),
+                shape = RoundedCornerShape(12.dp)
+            ),
+        color = if (unlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                text = title.uppercase(),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (unlocked) SciFiCyan else SciFiWhite.copy(alpha = 0.3f),
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (unlocked) SciFiWhite.copy(alpha = 0.8f) else SciFiWhite.copy(alpha = 0.2f),
+                textAlign = TextAlign.Start,
+                lineHeight = 16.sp
+            )
+            if (unlocked && lore.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = lore,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = SciFiGold.copy(alpha = 0.6f),
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+    }
+}
