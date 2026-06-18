@@ -6,23 +6,27 @@ All notable changes to this project are recorded as dated engineering events.
 
 ## 2026-06-18
 
-**Sprint / Phase:** Refactor Sprint T4 — System Delegation
+**Sprint / Phase:** Refactor Sprint T4 Recovery
 
-**Branch:** `refactor/system-delegation`
+**Branch:** `refactor/t4-recovery`
 
-**Status:** FAILED / REVERTED
+**Status:** RECOVERED AND UNDER VALIDATION
 
 ### Added
-- `SurvivalManager.kt` (reverted) — Handled damage distribution and destruction lifecycle
-- `EncounterDirector.kt` (reverted) — Spawning rules and boss milestones
+- `SurvivalManager.kt` — Extracted damage and destruction lifecycle logic.
+- `EncounterDirector.kt` — Extracted spawn rules and boss milestones.
 
 ### Changed
-- Attempted to delegate 400+ lines of threat interaction to `ActiveThreat.kt`.
-- Attempted to extract survival and encounter director logic.
+- `GameScreen.kt`: Delegated 400+ lines of threat interaction to `ActiveThreat.kt`.
+- `GameScreen.kt`: Integrated `SurvivalManager` and `EncounterDirector`.
+
+### Fixed
+- Merged original T4 architecture into `refactor/t4-recovery` branch.
+- Resolved documentation-only merge conflicts.
 
 ### Notes
-- This run was identified as failed due to multiple regressions in physics and interaction timing.
-- **The codebase has been reverted to the Sprint T3 baseline.**
+- T4 is no longer considered a failed refactor.
+- Current work focuses on polishing gameplay regressions (spawn frequency and mission completion effects).
 
 ---
 

@@ -5,52 +5,16 @@
 | Field | Value |
 |-------|-------|
 | **Sprint** | T4 (Tidying - System Delegation) |
-| **Branch** | `refactor/system-delegation` |
+| **Branch** | `refactor/t4-recovery` |
 | **Base commit** | `e79068d` (Refactor T3 complete) |
 | **Goal** | Extract survival mechanics, encounter spawning rules, and threat interaction logic from `GameScreen.kt` |
-<<<<<<< HEAD
-| **Status** | **FAILED / REVERTED** |
+| **Status** | **RECOVERED AND UNDER VALIDATION** |
 
 ---
 
 ## Summary
 
-Sprint T4 attempted a major architectural shift by delegating core gameplay "intelligence" to sub-managers. While the code was successfully extracted and line count was reduced significantly, the run was identified as failed due to multiple bugs and regressions in physics/interaction timing.
-
-**The codebase has been reverted to the Sprint T3 baseline.**
-
----
-
-## Attempted Changes
-
-### Files Created (Reverted)
-
-- `SurvivalManager.kt`: Damage distribution and destruction lifecycle.
-- `EncounterDirector.kt`: Spawning rules and boss milestones.
-
-### Logic Delegated (Reverted)
-
-- **Threat Interaction**: Replaced the massive `when` block in the physics loop with a callback-heavy bridge to `ActiveThreat.kt`.
-- **AI Director**: Moved spawn timing and zone weighting.
-- **Survival Economy**: Extracted damage application and shield regen.
-
----
-
-## Reasons for Failure
-
-1. **Coupling**: The physics loop and threat interactions are too tightly coupled for a simple delegation without a more robust event or callback system.
-2. **Timing Regressions**: Sub-stepped physics delta (sdt) calculations were inconsistent after moving logic to external classes.
-3. **Complexity**: The callback bridge required to maintain visual feedback (bursts, shake, text) became more complex than the original inline code.
-
----
-
-## Lessons Learned
-
-- Core physics and interaction logic should remain inline until a proper ECS (Entity Component System) or similar decoupled architecture is implemented.
-- Extractions should focus on standalone utilities (like Sprint T3) rather than interleaved state mutation.
-=======
-| **Constraints** | Zero behavioral changes; visual parity; no gameplay/state/manager modifications |
-| **Actual reduction** | 502 lines (3,033 → 2,531) |
+Sprint T4 attempted a major architectural shift by delegating core gameplay "intelligence" to sub-managers. Originally abandoned due to regressions, the branch was recovered and merged into `refactor/t4-recovery`. While structurally sound, work remains to polish gameplay logic regressions introduced by the delegation.
 
 ---
 
@@ -69,7 +33,6 @@ Sprint T4 attempted a major architectural shift by delegating core gameplay "int
 |------|--------|
 | `GameScreen.kt` | Replaced 600+ lines of director, survival, and interaction logic with manager calls |
 | `ActiveThreat.kt` | Added `processInteraction` method to handle unified proximity logic |
-| `OPENCODE.md` | Updated status and line counts |
 
 ### Extractions
 
@@ -113,9 +76,39 @@ Sprint T4 attempted a major architectural shift by delegating core gameplay "int
 
 ---
 
-## Notes
+## T4 Recovery Validation (2026-06-18)
 
-- **Architectural Shift**: Sprint T4 marks a major transition where `GameScreen.kt` moved from being a "Brain" to an "Orchestrator."
-- **Interaction Pattern**: The unified `processInteraction` API in `ActiveThreat.kt` uses callbacks for visual feedback, notifications, and spawning, keeping threat-specific logic out of the physics loop.
-- **EPIC Readiness**: With survival and encounter logic delegated, the project is now ideally structured for **EPIC 5 Sprint C** (Status Effects) and **EPIC 6** (New Bosses).
->>>>>>> refactor/system-delegation
+Status: RECOVERED AND UNDER VALIDATION
+
+Summary:
+
+* Original T4 branch was previously abandoned due to gameplay regressions.
+* Branch was recovered and merged into refactor/t4-recovery.
+* Merge conflicts were documentation-only.
+* All architecture code merged successfully.
+* Build validation passed.
+* Application launches successfully.
+* Core gameplay loop is functional.
+
+Current Findings:
+
+* Threat and encounter spawning frequency appears lower than expected.
+* Mission card completion effects can repeatedly trigger, causing continuous glitter/reward effects after certain altitude milestones.
+* No crashes observed.
+* No compile errors observed.
+* No major physics failures observed.
+
+Assessment:
+
+* T4 is no longer considered a failed refactor.
+* T4 is considered an incomplete but viable architectural migration.
+* Remaining issues appear to be gameplay logic regressions rather than structural architecture failures.
+
+Next Steps:
+
+* Investigate EncounterDirector spawn scheduling and probability logic.
+* Investigate mission completion state transitions and reward trigger lifecycle.
+* Produce a formal regression list before merge consideration.
+
+Conclusion:
+T4 Recovery has successfully demonstrated that the delegated architecture compiles, launches, and runs on the current codebase. Remaining work is focused on gameplay correctness rather than architectural feasibility.

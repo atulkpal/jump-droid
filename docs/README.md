@@ -103,41 +103,80 @@ Balanced (all-around), Scout (high thrust, low fuel), Tank (massive fuel capacit
 ```
 app/src/main/java/com/example/jump_droid/
 ├── MainActivity.kt              # Entry point, Compose host
-├── GameScreen.kt                # Game loop, physics, collision, HUD, state machine
-├── Models.kt                    # Core data types: Player, PowerUp, Particle, etc.
-├── Constants.kt                 # All tunable game constants
-├── AltitudeManager.kt           # Zone progression tracking
-├── AltitudeZone.kt              # 6 altitude zone definitions
-├── Platform.kt                  # 10 platform types + runtime state
-├── PlatformRenderer.kt          # Canvas rendering for platforms
-├── RocketRenderer.kt            # Canvas rendering for rocket with damage/shield visuals
-├── ZoneBackgroundRenderer.kt    # Parallax background rendering per zone
-├── ParallaxSystem.kt            # Generic parallax layer framework
-├── AmbientSystem.kt             # Ambient objects (birds, satellites, anomalies)
-├── ComboManager.kt              # Combo tracking, tiers, survival rewards
-├── DiscoveryManager.kt          # Codex discovery + persistence
-├── ProgressionManager.kt        # Permanent progression, artifact records, ranks
-├── MissionManager.kt            # Active mission tracking + progress
-├── MissionRegistry.kt           # 15 mission template definitions
-├── Mission.kt                   # Mission data model + ceremony stages
-├── MissionType.kt               # Mission category enum
-├── MissionReward.kt             # Reward types (PowerUp, Artifact, Unlock)
-├── ThreatManager.kt             # Runtime threat lifecycle
-├── ThreatRegistry.kt            # 31 threat definitions
-├── ActiveThreat.kt              # Threat instance with AI behaviors
-├── ThreatDefinition.kt          # Threat data template
-├── ThreatSpawnRules.kt          # Spawn conditions per threat
-├── ThreatType.kt                # HAZARD / ENEMY / MINI_BOSS / BOSS
-├── ThreatTier.kt                # Danger level (TIER_1 through TIER_5)
-├── ThreatState.kt               # Lifecycle state enum
-├── DevConfig.kt                 # Developer cheat toggle
-├── Boss.kt                      # Legacy boss model (superseded by ActiveThreat)
-└── ui/theme/
-    ├── Color.kt                 # Sci-Fi color palette (6 primary colors)
-    ├── Theme.kt                 # Material theme wrappers
-    ├── Type.kt                  # Typography definitions
-    └── TypographyConfig.kt      # Font configuration
-```
+├── GameScreen.kt                # The Central Orchestrator & game loop
+│
+├── screens/                     # Full-screen UI states
+│   ├── TitleScreen.kt           # Ascent initiation & animated logo
+│   ├── MainMenuScreen.kt        # Primary navigation & flight prep
+│   ├── HangarScreen.kt          # Rocket selection & upgrade bay
+│   ├── ArchiveScreen.kt         # Codex browser & completion tracking
+│   ├── SettingsScreen.kt        # Technical configs & data management
+│   ├── AboutScreen.kt           # Credits & mission background
+│   └── LeaderboardScreen.kt     # High-score & rank hierarchy
+│
+├── overlays/                    # Contextual game layers
+│   ├── PauseOverlay.kt          # Mid-run menu & developer tools
+│   ├── TutorialOverlay.kt       # New discovery orientation cards
+│   ├── HelpOverlay.kt           # Legend & control cheatsheet
+│   ├── UnlockOverlay.kt         # New tech acquisition celebration
+│   └── GameOverOverlay.kt       # Expedition summary & continuation
+│
+├── hud/                         # In-flight instrumentation
+│   ├── HudWidgets.kt            # Gauges (Fuel, Heat, Shield, Hull)
+│   ├── MissionRow.kt            # Dynamic objective tracking cards
+│   ├── NotificationLayer.kt     # Priority alert queue & fading alerts
+│   ├── FloatingTextsLayer.kt    # In-world status popups (e.g. Damage)
+│   └── TopRightUtilityButtons.kt# Quick-access Help/Pause controls
+│
+├── managers/                    # Delegated gameplay logic ("The Brains")
+│   ├── SurvivalManager.kt       # Damage math, regen, & destruction sequence
+│   ├── EncounterDirector.kt     # AI Director: Spawning rules & boss timing
+│   ├── PlatformManager.kt       # Generation math & streak tracking
+│   ├── NotificationManager.kt   # System-wide alert queue management
+│   ├── FloatingTextManager.kt   # Popup lifecycle & drift physics
+│   ├── ThreatManager.kt         # Instance lifecycle & cleanup
+│   ├── MissionManager.kt        # Objective tracking & track cycling
+│   ├── ComboManager.kt          # Chain logic & survival milestones
+│   ├── ProgressionManager.kt    # Persistence, achievements, & ranks
+│   ├── DiscoveryManager.kt      # Codex unlocking & persistence
+│   └── AltitudeManager.kt       # Zone progression & thresholds
+│
+├── threats/                     # Hostile entity system
+│   ├── ActiveThreat.kt          # Entity AI & interaction rules
+│   ├── ThreatRegistry.kt        # Catalog of 31 threat templates
+│   ├── ThreatDefinition.kt      # Data model for threat archetypes
+│   ├── ThreatSpawnRules.kt      # Eligibility & zone weights
+│   ├── ThreatType.kt            # HAZARD / ENEMY / BOSS categories
+│   ├── ThreatTier.kt            # TIER_1 through TIER_5 scaling
+│   └── ThreatState.kt           # Lifecycle: SPAWNING → ACTIVE → DESTROYED
+│
+├── systems/                     # Core data & world systems
+│   ├── Models.kt                # Player state, PowerUp, & Particle data
+│   ├── Constants.kt             # Global tunable balance parameters
+│   ├── Platform.kt              # 10 platform types & unique behaviors
+│   ├── AltitudeZone.kt          # 6 distinct environment definitions
+│   ├── Mission.kt               # Goal data & ceremony lifecycle
+│   ├── MissionType.kt           # Objectives: Exploration, Survival, etc.
+│   ├── MissionReward.kt         # Loot types: Artifacts, Modules, Fuel
+│   ├── MissionRegistry.kt       # Template catalog of all objectives
+│   └── Achievements.kt          # Permanent achievement definitions
+│
+├── render/                      # Canvas-based drawing pipelines
+│   ├── RocketRenderer.kt        # Player ship, armor, & damage visuals
+│   ├── PlatformRenderer.kt      # Material-specific platform themes
+│   ├── ZoneBackgroundRenderer.kt# Parallax gradients & zone transitions
+│   ├── CanvasEffects.kt         # Particles, SpeedLines, Flash, Distortion
+│   ├── AmbientSystem.kt         # Environmental objects (birds, satellites)
+│   ├── ParallaxSystem.kt        # Multi-layer parallax drift framework
+│   └── CodexCard.kt             # Reusable UI component for the Archive
+│
+├── ui/theme/                    # Sci-Fi aesthetic definition
+│   ├── Color.kt                 # Primary palette: Green, Cyan, Purple, etc.
+│   ├── Theme.kt                 # Material3 & custom font wrappers
+│   ├── Type.kt                  # Typography & text scale logic
+│   └── TypographyConfig.kt      # Font family integration
+│
+└── DevConfig.kt                 # Developer cheat flag
 
 ---
 

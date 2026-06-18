@@ -4,6 +4,8 @@
 
 Jump Droid is a single-activity Android app using Jetpack Compose. All gameplay rendering is done on a `Canvas` composable via `DrawScope` — there is no game engine, sprite system, or OpenGL. The game loop runs inside a `LaunchedEffect` with `withFrameNanos`, driving physics updates, collision detection, manager updates, and rendering each frame.
 
+Following a series of architectural refinements (Refactor Sprints T1–T4), the system has evolved from a monolithic "Brain" into a delegated "Orchestrator" pattern.
+
 ---
 
 ## System Architecture
@@ -17,25 +19,38 @@ Jump Droid is a single-activity Android app using Jetpack Compose. All gameplay 
                             ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          GameScreen                                  │
+│                 (The Central Orchestrator)                           │
 │  ┌─────────────┐  ┌─────────────┐  ┌────────────────────────────┐  │
-│  │  Game Loop   │  │   Canvas    │  │       HUD Overlays         │  │
-│  │  LaunchedEffect│  │  Renderer   │  │  (meters, text, buttons)  │  │
-│  │  withFrameNanos│  │  DrawScope  │  └────────────────────────────┘  │
-│  └──────┬───────┘  └──────┬──────┘                                   │
-│         │                 │                                           │
-│         ▼                 ▼                                           │
+│  │  Game Loop   │  │   Canvas    │  │       UI Framework         │  │
+│  │  LaunchedEffect│  │  Renderer   │  │  (Screens, HUD, Overlays)  │  │
+│  │  withFrameNanos│  │  DrawScope  │  └──────────────┬─────────────┘  │
+│  └──────┬───────┘  └──────┬──────┘                 │                 │
+│         │                 │                        ▼                 │
+│         ▼                 ▼              ┌────────────────────────┐  │
+│  ┌─────────────────────────────────────┐ │  Extracted UI Files    │  │
+│  │         State & Managers            │ │ (Title, Hangar, Pause, │  │
+│  │  ┌──────────┐ ┌──────────┐          │ │  HudWidgets.kt, etc.)  │  │
+│  │  │ Player   │ │Platforms │          │ └────────────────────────┘  │
+│  │  │ (mutable │ │(stateList)│          │                             │
+│  │  │  state)  │ │          │          │   ┌───────────────────────┐ │
+│  │  └──────────┘ └──────────┘          │   │    CanvasEffects.kt   │ │
+│  │  ┌──────────────┐ ┌────────────┐    │   │ (Particles, Flash,    │ │
+│  │  │Game State    │ │ Score       │    │   │  SpeedLines, etc.)    │ │
+│  │  │(GameState    │ │ High Score  │    │   └───────────────────────┘ │
+│  │  │ enum)        │ │ etc.        │    │                             │
+│  └──────┬──────────────────────────────┘                             │
+│         │                                                            │
+│         ▼                                                            │
 │  ┌─────────────────────────────────────────────────────────────┐    │
-│  │                    State & Managers                           │    │
-│  │  ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────────┐  │    │
-│  │  │ Player   │ │Platforms │ │ PowerUps  │ │ BossesSpawned│  │    │
-│  │  │ (mutable │ │(stateList)│ │ (stateList)│ │ (stateSet)   │  │    │
-│  │  │  state)  │ │          │ │           │ │              │  │    │
-│  │  └──────────┘ └──────────┘ └───────────┘ └──────────────┘  │    │
-│  │  ┌──────────────┐ ┌────────────┐ ┌──────────────────┐     │    │
-│  │  │Game State    │ │ Score       │ │ Camera / Screen  │     │    │
-│  │  │(GameState    │ │ High Score  │ │ Dimensions       │     │    │
-│  │  │ enum)        │ │ etc.        │ │                  │     │    │
-│  │  └──────────────┘ └────────────┘ └──────────────────┘     │    │
+│  │                    Specialized Managers                     │    │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │    │
+│  │  │SurvivalMngr  │ │EncounterDir. │ │PlatformMngr  │         │    │
+│  │  │(Damage/Regen)│ │(Spawning)    │ │(Generation)  │         │    │
+│  │  └──────────────┘ └──────────────┘ └──────────────┘         │    │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │    │
+│  │  │NotificationM.│ │FloatTextMngr  │ │MissionMngr   │         │    │
+│  │  │(Queue/Alerts)│ │(Popups)      │ │(Objectives)  │         │    │
+│  │  └──────────────┘ └──────────────┘ └──────────────┘         │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -47,35 +62,41 @@ Jump Droid is a single-activity Android app using Jetpack Compose. All gameplay 
 ```
 withFrameNanos { currentTime →
     1. Calculate dt (delta time)
-    2. Update managers:
+    2. Update utility managers:
+       ├── NotificationManager.update(dt)
+       ├── FloatingTextManager.update(dt)
        ├── DiscoveryManager.update(dt)
+       ├── ComboManager.update(dt)
+       └── MissionManager.selectNextMission() (Cycle tracks)
+    3. Update Director & Environment:
+       ├── EncounterDirector.update(dt, score, zone, cameraY, player)
        ├── ThreatManager.update(dt, camera, screen, player)
-       ├── AmbientManager.update(dt, camera, screen, zone)
-       └── ComboManager.update(dt)
-    3. Process combo rewards (flying rewards, survival drops)
-    4. Update timers (screenshake, flash, invulnerability, timers)
+       └── AmbientManager.update(dt, camera, screen, zone)
+    4. Survival System Update:
+       └── SurvivalManager.update(dt, player, gameTime, notifications)
     5. Sub-stepped physics (4 substeps):
        ├── Update platform positions (moving platforms)
-       ├── Apply physics (gravity, thrust, friction)
-       ├── Update power-up positions
+       ├── ActiveThreat.processInteraction(player, sdt, platforms, powerUps)
+       ├── Update power-up positions (magnetic pull, hover)
        ├── AABB collision detection (player ↔ platform)
-       ├── Threat collision detection
-       └── Platform recycling / generation
+       └── Physics application (gravity, thrust, steering, damping)
     6. Score calculation & zone update
-    7. Boss spawn checks (milestone thresholds)
-    8. Threat spawn checks (every 3s timer)
-    9. Particle, floating text, landing effect lifecycle
-   10. Mission progress updates
-   11. Canvas rendering:
+    7. Platform lifecycle (recycling & generation via PlatformManager)
+    8. Particle, landing effect, and ceremony lifecycle
+   10. Canvas rendering:
        ├── ZoneBackgroundRenderer (parallax + gradient)
        ├── AmbientSystem (ambient objects)
-       ├── Threat rendering (hazards, enemies, bosses)
+       ├── Threat rendering (Hazards, Enemies, Bosses)
        ├── PlatformRenderer (per platform type)
-       ├── PowerUp rendering
+       ├── CanvasEffects: drawParticles, drawPowerUps, drawRewards
        ├── RocketRenderer (thruster, body, shield, damage)
-       ├── Particle rendering
-       ├── Floating text + landing effects
-       └── HUD overlay (meters, combo, altitude, missions)
+       ├── CanvasEffects: drawGround, drawSpeedLines, drawDistortion
+       └── CanvasEffects: drawImpactFlash
+   11. UI Overlay (Composables):
+       ├── Full-screen State (Title, Main Menu, Hangar, Archive, etc.)
+       ├── HUD Gauges (Fuel, Heat, Shield, Integrity via HudWidgets.kt)
+       ├── HUD Overlays (Missions, Combo Bar, Notifications, Popups)
+       └── Contextual Overlays (Pause, Tutorial, Unlock, GameOver)
 }
 ```
 
@@ -83,175 +104,101 @@ withFrameNanos { currentTime →
 
 ## Component Map
 
-### Entry Point
+### Entry Point & Orchestration
 
 | File | Responsibility |
 |------|---------------|
-| `MainActivity.kt` | Sets up edge-to-edge, hosts `GameScreen` composable |
+| `MainActivity.kt` | Sets up edge-to-edge, hosts `GameScreen` composable. |
+| `GameScreen.kt` | **The Orchestrator**: Manages state, the core loop, and coordinates all sub-systems. |
 
-### Core Game State
-
-| File | Responsibility |
-|------|---------------|
-| `GameScreen.kt` | Monolithic composable: game loop, physics, collision, input, HUD, all state variables |
-| `Models.kt` | `Player` class (mutable state), `PowerUp`, `Particle`, `FloatingText`, `LandingEffect`, enums (`GameState`, `PowerUpType`, `RocketType`, `DiscoveryType`) |
-| `Constants.kt` | All tunable constants (gravity, thrust, fuel, heat, zone thresholds) |
-| `AltitudeZone.kt` | 6 zone definitions with altitude thresholds |
-
-### Platform System
+### Core Logic Managers ("The Brains")
 
 | File | Responsibility |
 |------|---------------|
-| `Platform.kt` | `PlatformType` enum (10 types), `Platform` class with runtime state (breaking, jamming, landing) |
-| `PlatformRenderer.kt` | Canvas rendering per platform type — normal, moving, boost, ice, breakable, phase, fuel, cooling, stability, magnetic |
+| `SurvivalManager.kt` | Centralizes damage distribution (Shield → Hull) and the 3-phase catastrophic destruction sequence. |
+| `EncounterDirector.kt` | The "AI Director": decides hazard spawn types, zone-specific weights, and boss arrival thresholds. |
+| `PlatformManager.kt` | Owns the mathematical generation of platforms and tracks streak counters (Breakable, Phase, Magnetic). |
+| `NotificationManager.kt` | Encapsulates the message queue, priority alerts, and alpha/timer fading logic. |
+| `FloatingTextManager.kt` | Manages the lifecycle and upward drift of status popups (e.g., "HULL IMPACT"). |
+| `ThreatManager.kt` | Runtime lifecycle — spawn, update, and cleanup of threat instances. |
 
-### Threat System
-
-| File | Responsibility |
-|------|---------------|
-| `ThreatDefinition.kt` | Data template for a threat (id, name, type, tier, stats, spawn rules) |
-| `ThreatRegistry.kt` | Singleton catalog of 31 threat definitions, query by eligibility |
-| `ThreatManager.kt` | Runtime lifecycle — spawn, update, cleanup active threat instances |
-| `ActiveThreat.kt` | Runtime instance with AI behaviors per threat type — hazards (lightning, solar flare, EMP), enemies (drone, swarm, sentry), bosses (Gatekeeper, Star-Eater, etc.) |
-| `ThreatSpawnRules.kt` | Spawn conditions (altitude range, allowed zones, chance) |
-| `ThreatType.kt` | Enum: HAZARD, ENEMY, MINI_BOSS, BOSS |
-| `ThreatTier.kt` | Enum: TIER_1 through TIER_5 |
-| `ThreatState.kt` | Enum: SPAWNING, ACTIVE, DORMANT, DESTROYED |
-| `Boss.kt` | Legacy boss model (superseded by `ActiveThreat`) |
-
-### Mission System
+### Gameplay Systems
 
 | File | Responsibility |
 |------|---------------|
-| `Mission.kt` | Mission data model with progress, completion, ceremony stages |
-| `MissionType.kt` | Enum: EXPLORATION, PLATFORMING, SURVIVAL, DISCOVERY, BOSS, COMBO |
-| `MissionReward.kt` | Sealed class: Artifact, PowerUp, Unlock, Achievement |
-| `MissionRegistry.kt` | Singleton catalog of 15 mission templates |
-| `MissionManager.kt` | Runtime tracking — activate, progress, complete, auto-cycle 3 tracks |
+| `ActiveThreat.kt` | **Delegated Intelligence**: Now handles its own interaction rules against the player via `processInteraction()`. |
+| `Models.kt` | `Player` class (mutable state), `PowerUp`, `Particle`, `FloatingText`, enums (`GameState`, `RocketType`, etc.). |
+| `Constants.kt` | All tunable constants (gravity, thrust, fuel consumption rates). |
+| `MissionManager.kt` | Runtime tracking — activate, progress, complete, and auto-cycle 3 active tracks. |
+| `ComboManager.kt` | Combo logic (chain on different platforms), 5 tiers, and survival milestone rewards. |
+| `ProgressionManager.kt` | Permanent account data: high score, achievements, artifact records, and ascension ranks. |
 
-### Discovery & Progression
-
-| File | Responsibility |
-|------|---------------|
-| `DiscoveryManager.kt` | Codex discovery tracking, persistence via SharedPreferences, event queue |
-| `ProgressionManager.kt` | Permanent progression — artifact records (date, altitude, count), ascension rank, stat upgrades |
-
-### Rendering
+### Rendering & Visuals
 
 | File | Responsibility |
 |------|---------------|
-| `RocketRenderer.kt` | Rocket body, thruster flame (side + main), tilt/banking, squash/stretch, destruction sequence, auras (turbo/efficiency), shield segmented armor, hull battle scars |
-| `ZoneBackgroundRenderer.kt` | Per-zone gradient backgrounds, parallax layer rendering, zone transition interpolation, title screen starfield |
-| `ParallaxSystem.kt` | Generic parallax framework — `RepeatingParallaxLayer`, `SilhouetteParallaxLayer`, `SingleObjectParallaxLayer`, `ParallaxManager` |
-| `AmbientSystem.kt` | Zone-specific ambient objects — birds, aircraft, clouds, satellites, asteroids, anomalies — with spawn/render/cleanup |
-
-### Combo System
-
-| File | Responsibility |
-|------|---------------|
-| `ComboManager.kt` | Combo logic (chain on different platforms, break on repeat), 5 tiers, reward calculation, survival milestone rewards, `FlyingReward` animation |
-
-### Other
-
-| File | Responsibility |
-|------|---------------|
-| `DevConfig.kt` | Toggle for developer cheat features |
-| `ui/theme/Color.kt` | Sci-Fi color palette (6 primary colors + surface/border) |
-| `ui/theme/Theme.kt` | Material theme wrappers |
-| `ui/theme/Type.kt` | Typography definitions |
-| `ui/theme/TypographyConfig.kt` | Font configuration |
+| `RocketRenderer.kt` | Rocket body, armor plates, battle damage, and destruction sequence visuals. |
+| `CanvasEffects.kt` | Extension functions for DrawScope: Ground, SpeedLines, Particles, ImpactFlash, Distortion. |
+| `PlatformRenderer.kt` | Canvas rendering for 10 platform types with unique physics themes. |
+| `ZoneBackgroundRenderer.kt` | Per-zone gradient backgrounds and parallax layer orchestration. |
+| `AmbientSystem.kt` | Zone-specific ambient objects (birds, satellites, anomalies) with parallax drift. |
 
 ---
 
 ## Data Flow
 
-### Input → Physics → Collision
+### Input → Physics → Delegated Interaction
 
 ```
 Touch Input (pointerInput)
     │
     ▼
-isThrusting = true/false
-thrustTarget = finger position
+GameScreen (isThrusting = true, thrustTarget = finger)
     │
     ▼
 Game Loop (per substep):
-    ├── Apply gravity (player.vy += BASE_GRAVITY * dt)
-    ├── Apply thrust (player.vy -= BASE_THRUST_POWER * dt)  [if thrusting & has fuel]
-    ├── Apply fuel consumption / heat generation
-    ├── Apply horizontal steering (toward thrustTarget.x)
-    ├── Apply air friction / damping
-    ├── AABB collision against all platforms
-    └── AABB collision against all threats
-```
-
-### Manager Updates
-
-```
-Per Frame:
-    ├── ThreatManager.update()     → move threats, run AI, cleanup dead
-    ├── ComboManager.update()      → countdown combo timer, break if expired
-    ├── DiscoveryManager.update()  → countdown event display timer
-    └── AmbientManager.update()    → spawn/despawn ambient objects
-
-Every 3 seconds:
-    ├── Check eligible threats (by altitude + zone)
-    ├── Roll for hazard spawns
-    ├── Roll for enemy spawns
-    └── Roll for boss encounter spawns
-
-Score Milestone Checks:
-    ├── Boss spawn thresholds (1500, 4000, 7000, 10000, 15000, 18000)
-    ├── Rocket unlock thresholds (2000, 5000, 10000)
-    ├── Zone change thresholds (500, 1500, 4000, 8000, 15000)
-    └── Achievement checks (100, 500, 4000, 8000, combo 10, overheat 25)
+    ├── ActiveThreat.processInteraction(player) ──► Apply specific effects (Force, Heat, Damage)
+    ├── Physics Substep ──► Apply gravity, steering, and damping
+    └── Collision Resolution ──► Player ↔ Platform AABB check
 ```
 
 ### Persistence Flow
 
 ```
-SharedPreferences (persistent across runs)
+SharedPreferences (via ProgressionManager)
     ├── highScore (Int)
-    ├── discovery_<TYPE> (Boolean)       — 43 entries
-    ├── art_<NAME>_date/count/alt/zone   — artifact records
-    ├── unlock_<ROCKET> (Boolean)        — 4 rockets
-    ├── achievement_<ID> (Boolean)       — 6 achievements
-    ├── max_integrity (Float)            — permanent upgrade
-    └── max_shield (Float)               — permanent upgrade
+    ├── discovery_<TYPE> (Boolean)
+    ├── unlock_<ROCKET> (Boolean)
+    └── achievement_<ID> (Boolean)
 ```
 
 ---
 
 ## Key Architectural Decisions
 
-### 1. Flat Package Structure
+### 1. Delegated "Orchestrator" Pattern
+`GameScreen.kt` no longer implements gameplay rules. Instead, it provides the "Stage" (Player state, Collections) and tells the Managers when to act. This reduced the main file from 4,360+ lines to ~2,500.
 
-All game code lives in a single package (`com.example.jump_droid`) with no sub-package separation. This works for the current size (~20 files) but would benefit from organization into `game/`, `render/`, `data/`, `ui/` as the codebase grows.
+### 2. Delegated Threat Interaction
+Moving threat interactions to `ActiveThreat.kt` ensures the physics engine doesn't need to be modified when adding new hostile entities. Each threat is responsible for its own logic within the proximity of the player.
 
-### 2. Monolithic GameScreen
+### 3. Decoupled UI Framework
+The UI is strictly partitioned into standalone `@Composable` files. Communication is handled via callbacks (e.g., `onNavigate`, `onLaunch`), preventing the UI from directly mutating gameplay state.
 
-`GameScreen.kt` (~2000 lines) contains the game loop, physics, collision detection, platform generation, HUD, and state machine. This is the single largest maintenance concern. Future refactoring should extract:
-- Physics engine
-- Collision system
-- HUD rendering
-- Platform generation logic
-- Input handling
+### 4. Sub-Stepped Physics Engine
+The physics loop runs 4 substeps per frame. Interaction processing is called **within** these substeps to maintain pixel-perfect collision reliability and accurate force application.
 
-### 3. Canvas Rendering vs. Composables
+---
 
-All game visuals are drawn via `DrawScope` on a single `Canvas` composable. This gives full control over rendering order and avoids Compose recomposition overhead for 60fps game rendering. HUD elements mix Canvas drawing with Compose `Text` and `LinearProgressIndicator` overlays.
+## The Journey of Change
 
-### 4. Data-Driven Threat System
+Jump Droid began as a monolithic proof-of-concept where a single file (`GameScreen.kt`) handled everything. As the complexity grew—adding boss phases, survival economy, and artifact collections—the file became unmaintainable.
 
-Threats are defined as data templates (`ThreatDefinition`) registered in a central catalog (`ThreatRegistry`), then instantiated at runtime (`ActiveThreat`). This pattern makes adding new threats purely data-driven — register a definition with spawn rules, and the spawning logic handles the rest.
+1.  **Sprints T1–T2 (UI Extraction)**: Removed 1,200+ lines of UI code. Partitioned the app into specialized Screens and HUD widgets. Created `CanvasEffects.kt` to clean up rendering flourishes.
+2.  **Sprint T3 (Logic Extraction)**: Modularized utility state. Extracted Notification and Floating Text handling. Moved high score and achievement audits into `ProgressionManager`.
+3.  **Sprint T4 (The Architectural Shift)**: Transitioned from an inline logic model to a delegated manager model. Extracted the "Brains" of the game into the `SurvivalManager` and `EncounterDirector`.
 
-### 5. SharedPreferences for Persistence
-
-All persistent data uses Android `SharedPreferences` directly (via `androidx.core.content.edit`). There is no database, no serialization framework, and no save file abstraction. Sufficient for current scope but limits complexity of future progression systems.
-
-### 6. Sub-Stepped Physics
-
-The physics and collision loop runs 4 substeps per frame to prevent fast-moving objects from passing through thin platforms. Each substep applies forces, updates positions, and checks AABB collisions independently.
+The resulting architecture is now robust, modular, and ready for high-velocity feature development.
 
 ---
 
@@ -264,19 +211,16 @@ The physics and collision loop runs 4 substeps per frame to prevent fast-moving 
 | New discoveries | Add to `DiscoveryType` enum | New lore or artifact entries |
 | New platform types | Add to `PlatformType` enum + render method in `PlatformRenderer` | New `LAVA` platform |
 | New rocket types | Add to `RocketType` enum | New stealth rocket |
-| New achievements | Add to `AchievementsList` in `GameScreen.kt` | "Reach 25000m" |
+| New achievements | Add to `AchievementsList` in `Achievements.kt` | "Reach 25000m" |
 | New ambient objects | Add to `AmbientType` enum + render case | New `COMET` ambient |
-| New boss behaviors | Add behavior case in `ActiveThreat.update()` | New phase logic |
+| New boss behaviors | Add phase logic in `ActiveThreat.kt` | New boss attack pattern |
 
 ---
 
 ## Dependencies
 
-Runtime dependencies (via Gradle version catalog):
+- `androidx.compose.ui` — Canvas, layout, input, graphics.
+- `androidx.compose.material3` — UI components and typography.
+- `androidx.lifecycle.runtime.ktx` — Lifecycle-aware coroutines.
 
-- `androidx.compose.ui` — Canvas, layout, input, graphics
-- `androidx.compose.material3` — HUD text, buttons, progress bars
-- `androidx.activity.compose` — `ComponentActivity` + `setContent`
-- `androidx.lifecycle.runtime.ktx` — Lifecycle-aware coroutines
-
-No external game libraries, physics engines, or serialization frameworks.
+No external game libraries or engines are used.

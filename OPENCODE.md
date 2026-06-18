@@ -14,8 +14,8 @@ Jump Droid is an Android game built with Jetpack Compose. The player pilots a ro
 
 | Branch | Purpose |
 |--------|---------|
-| `refactor/logic-extraction` | **Active** — Sprint T3 logic extraction |
-| `refactor/system-delegation` | Failed — Sprint T4 delegation (reverted) |
+| `refactor/t4-recovery` | **Active** — Sprint T4 recovery and validation |
+| `refactor/logic-extraction` | Sprint T3 logic extraction (merged) |
 | `development` | integration branch for all work (EPIC 5 Sprint C next) |
 | `refactor/ui-extraction` | Completed — Sprint T1 + T2 UI extraction, fully merged into `development` |
 | `main` | Base branch; contains pre-refactor code |
@@ -36,7 +36,7 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | `docs/architecture/Refactor_T3_Plan.md` | T3 plan (logic extraction) |
 | `docs/architecture/Refactor_T3_Report.md` | T3 completion report (completed) |
 | `docs/architecture/Refactor_T4_Plan.md` | T4 plan (system delegation) |
-| `docs/architecture/Refactor_T4_Report.md` | T4 completion report (FAILED / REVERTED) |
+| `docs/architecture/Refactor_T4_Report.md` | T4 completion report (RECOVERED / VALIDATING) |
 | `OPENCODE.md` | This file — session context |
 
 ## Current Active EPIC
@@ -54,7 +54,7 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | T2 Phase A | ✅ Done | Extracted 4 low-risk inline composables (TopRightUtilityButtons, MissionRow, FloatingTextsLayer, GaugeWrappers) |
 | T2 Phase B | ✅ Done | Extracted 8 Canvas effects into `CanvasEffects.kt` (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion) |
 | T3 | ✅ Done | Extracted `NotificationManager`, `FloatingTextManager`, `PlatformManager`, and expanded `ProgressionManager` |
-| T4 | ❌ Failed | Attempted delegation of survival, director, and threat interaction logic (REVERTED) |
+| T4 | 🟡 Recovery | System delegation of survival, director, and threat interaction logic (Validating) |
 
 ## Completed Refactor Phases
 
