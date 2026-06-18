@@ -3,6 +3,7 @@ package com.example.jump_droid
 import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
@@ -43,11 +44,15 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
     var permanentMaxShield by mutableFloatStateOf(Constants.BASE_SHIELD)
         private set
 
+    var highScore by mutableIntStateOf(0)
+        internal set
+
     init {
         loadProgression()
     }
 
     private fun loadProgression() {
+        highScore = sharedPrefs.getInt("highScore", 0)
         val artifactTypes = DiscoveryType.values().filter { it.category == "ARTIFACTS" }
         val loadedArtifacts = mutableMapOf<String, ArtifactRecord>()
         
@@ -129,6 +134,66 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         val total = DiscoveryType.values().size
         val discovered = DiscoveryType.values().count { sharedPrefs.getBoolean("discovery_$it", false) }
         return if (total > 0) (discovered * 100) / total else 0
+    }
+
+    /**
+     * Wipes all progression data.
+     */
+    fun wipeData() {
+        sharedPrefs.edit { clear() }
+        highScore = 0
+        artifactsCollected = emptyMap()
+        currentRank = AscensionRank.EXPLORER_I
+        permanentMaxIntegrity = Constants.BASE_INTEGRITY
+        permanentMaxShield = Constants.BASE_SHIELD
+    }
+
+    /**
+     * Persists a new high score if it exceeds the current one.
+     */
+    fun saveHighScore(newScore: Int): Boolean {
+        if (newScore > highScore) {
+            highScore = newScore
+            sharedPrefs.edit { putInt("highScore", newScore) }
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Audits achievements and rocket unlocks based on current run stats.
+     */
+    fun checkUnlocks(
+        score: Int,
+        player: Player,
+        onRocketUnlock: (RocketType) -> Unit,
+        onAchievementUnlock: (Achievement) -> Unit,
+        onLoreDiscovery: (DiscoveryType) -> Unit
+    ) {
+        // 1. Rocket Unlocks
+        RocketType.entries.forEach { type ->
+            if (score >= type.unlockScore && !sharedPrefs.getBoolean("unlock_${type.name}", false)) {
+                sharedPrefs.edit { putBoolean("unlock_${type.name}", true) }
+                onRocketUnlock(type)
+            }
+        }
+
+        // 2. Lore Discoveries (Score-based)
+        if (score >= 0) onLoreDiscovery(player.rocketType.discovery)
+        if (score >= 100) onLoreDiscovery(DiscoveryType.LORE_ASCENSION)
+        if (score >= 5000) onLoreDiscovery(DiscoveryType.LORE_SIGNAL)
+        if (score >= 10000) onLoreDiscovery(DiscoveryType.LORE_LOST_FLEET)
+        if (score >= 20000) onLoreDiscovery(DiscoveryType.LORE_LOGS)
+
+        // 3. Achievements
+        AchievementsList.forEach { achievement ->
+            if (!sharedPrefs.getBoolean("achievement_${achievement.id}", false)) {
+                if (achievement.unlockCondition(score, player.maxComboReached, player.totalOverheats)) {
+                    sharedPrefs.edit { putBoolean("achievement_${achievement.id}", true) }
+                    onAchievementUnlock(achievement)
+                }
+            }
+        }
     }
 }
 

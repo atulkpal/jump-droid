@@ -76,13 +76,9 @@ fun GameScreen() {
     val densityValue = androidx.compose.ui.platform.LocalDensity.current.density
     val sharedPrefs = remember { context.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE) }
     
-    var highScore by remember { mutableIntStateOf(sharedPrefs.getInt("highScore", 0)) }
     var highestYReached by remember { mutableFloatStateOf(Float.MAX_VALUE) }
     var score by remember { mutableIntStateOf(0) }
     var continuesUsed by remember { mutableIntStateOf(0) }
-    var breakableStreak by remember { mutableIntStateOf(0) }
-    var phaseStreak by remember { mutableIntStateOf(0) }
-    var magneticStreak by remember { mutableIntStateOf(0) }
     
     var runDurationTimer by remember { mutableFloatStateOf(0f) }
     var airborneTimer by remember { mutableFloatStateOf(0f) }
@@ -100,6 +96,7 @@ fun GameScreen() {
     val comboManager = remember { ComboManager() }
     val missionCeremonies = remember { mutableStateMapOf<String, Float>() }
     val flyingRewards = remember { mutableStateListOf<FlyingReward>() }
+    val platformManager = remember { PlatformManager() }
 
     var screenWidth by remember { mutableFloatStateOf(0f) }
     var screenHeight by remember { mutableFloatStateOf(0f) }
@@ -115,7 +112,7 @@ fun GameScreen() {
     val powerUps = remember { mutableStateListOf<PowerUp>() }
     val landingEffects = remember { mutableStateListOf<LandingEffect>() }
     val particles = remember { mutableStateListOf<Particle>() }
-    val floatingTexts = remember { mutableStateListOf<FloatingText>() }
+    val floatingTextManager = remember { FloatingTextManager() }
 
     var missionHintRotationTimer by remember { mutableFloatStateOf(0f) }
     var globalShowObjective by remember { mutableStateOf(false) }
@@ -124,7 +121,6 @@ fun GameScreen() {
 
     var gameTime by remember { mutableLongStateOf(0L) }
     var powerUpSpawnTimer by remember { mutableFloatStateOf(0f) }
-    var threatSpawnTimer by remember { mutableFloatStateOf(0f) }
     var cameraY by remember { mutableFloatStateOf(0f) }
     var isThrusting by remember { mutableStateOf(value = false) }
     var thrustTarget by remember { mutableStateOf(Offset.Zero) }
@@ -138,10 +134,9 @@ fun GameScreen() {
 
     val bossesSpawned = remember { mutableStateSetOf<String>() }
 
-    val notificationQueue = remember { mutableStateListOf<String>() }
-    var notificationTimer by remember { mutableFloatStateOf(0f) }
-    var activeNotification by remember { mutableStateOf<String?>(null) }
-    var notificationAlpha by remember { mutableFloatStateOf(0f) }
+    val notificationManager = remember { NotificationManager() }
+    val survivalManager = remember { SurvivalManager() }
+    val encounterDirector = remember { EncounterDirector() }
 
     LaunchedEffect(gameState) {
         if (gameState != GameState.PLAYING) {
@@ -226,7 +221,7 @@ fun GameScreen() {
         }
 
         // Task 4: Reward notifications near rocket
-        floatingTexts.add(FloatingText(rewardName, player.x, player.y - 100f, color = rewardColor, isCritical = reward is ComboReward.Artifact))
+        floatingTextManager.add(FloatingText(rewardName, player.x, player.y - 100f, color = rewardColor, isCritical = reward is ComboReward.Artifact))
 
         when (reward) {
             is ComboReward.Fuel -> {
@@ -298,21 +293,21 @@ fun GameScreen() {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.fuel = min(player.maxFuel, player.fuel + 50f)
                     spawnBurst(player.x, yTop, 20, SciFiGreen, 200f)
-                    floatingTexts.add(FloatingText("FUEL RECHARGE", player.x, player.y - 100f, color = SciFiGreen))
+                    floatingTextManager.add(FloatingText("FUEL RECHARGE", player.x, player.y - 100f, color = SciFiGreen))
                     checkDiscovery(DiscoveryType.FUEL_PLATFORM)
                 }
                 PlatformType.COOLING -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.heat = max(0f, player.heat - 30f)
                     spawnBurst(player.x, yTop, 20, SciFiCyan, 200f)
-                    floatingTexts.add(FloatingText("ENGINES COOLED", player.x, player.y - 100f, color = SciFiCyan))
+                    floatingTextManager.add(FloatingText("ENGINES COOLED", player.x, player.y - 100f, color = SciFiCyan))
                     checkDiscovery(DiscoveryType.COOLING_PLATFORM)
                 }
                 PlatformType.STABILITY -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.stabilityTimer = 10f
                     spawnBurst(player.x, yTop, 20, SciFiWhite, 200f)
-                    floatingTexts.add(FloatingText("FLIGHT STABILIZED", player.x, player.y - 100f, color = SciFiWhite))
+                    floatingTextManager.add(FloatingText("FLIGHT STABILIZED", player.x, player.y - 100f, color = SciFiWhite))
                     checkDiscovery(DiscoveryType.STABILITY_PLATFORM)
                 }
                 PlatformType.MAGNETIC -> {
@@ -359,37 +354,24 @@ fun GameScreen() {
     }
 
     fun checkUnlock(newScore: Int) {
-        RocketType.entries.forEach { type ->
-            if (newScore >= type.unlockScore && !sharedPrefs.getBoolean("unlock_${type.name}", false)) {
+        progressionManager.checkUnlocks(
+            score = newScore,
+            player = player,
+            onRocketUnlock = { type ->
                 unlockedRocket = type
                 gameState = GameState.UNLOCK
-                checkDiscovery(type.discovery, forceTutorialState = false)
-                sharedPrefs.edit { putBoolean("unlock_${type.name}", true) }
+            },
+            onAchievementUnlock = { achievement ->
+                floatingTextManager.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = SciFiGold, isCritical = true))
+            },
+            onLoreDiscovery = { type ->
+                checkDiscovery(type, forceTutorialState = false)
             }
-        }
-
-        if (newScore >= 0) checkDiscovery(player.rocketType.discovery)
-
-        if (newScore >= 100) checkDiscovery(DiscoveryType.LORE_ASCENSION)
-        if (newScore >= 5000) checkDiscovery(DiscoveryType.LORE_SIGNAL)
-        if (newScore >= 10000) checkDiscovery(DiscoveryType.LORE_LOST_FLEET)
-        if (newScore >= 20000) checkDiscovery(DiscoveryType.LORE_LOGS)
-
-        AchievementsList.forEach { achievement ->
-            if (!sharedPrefs.getBoolean("achievement_${achievement.id}", false)) {
-                if (achievement.unlockCondition(newScore, player.maxComboReached, player.totalOverheats)) {
-                    sharedPrefs.edit { putBoolean("achievement_${achievement.id}", true) }
-                    floatingTexts.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = SciFiGold, isCritical = true))
-                }
-            }
-        }
+        )
     }
 
     fun saveHighScore(newScore: Int) {
-        if (newScore > highScore) {
-            highScore = newScore
-            sharedPrefs.edit { putInt("highScore", newScore) }
-        }
+        progressionManager.saveHighScore(newScore)
     }
 
     LaunchedEffect(Unit) {
@@ -460,49 +442,14 @@ fun GameScreen() {
         spawnBurst(player.x, player.y - 100f, 40, SciFiWhite, 300f)
         screenShake = 15f
         impactFlashAlpha = 1.0f
-        floatingTexts.add(FloatingText("SYSTEM REBOOTED", player.x, player.y - 150f, color = SciFiCyan))
+        floatingTextManager.add(FloatingText("SYSTEM REBOOTED", player.x, player.y - 150f, color = SciFiCyan))
 
         continuesUsed++
         gameState = GameState.PLAYING
     }
 
     fun generatePlatform(lastY: Float): Platform {
-        val difficulty = (score / 2000f).coerceIn(0f, 1f)
-        val pWidth = (250f - (difficulty * 100f)).coerceAtLeast(100f)
-        val gapY = 250f + (difficulty * 150f) + Random.nextFloat() * 100f
-        val nextY = lastY - gapY
-        val nextX = Random.nextFloat() * (screenWidth - pWidth)
-
-        // Task 3: Adjusted Spawn Hierarchy for Sprint E Closure
-        val type = when {
-            score < 500 -> if (Random.nextFloat() < 0.2f) PlatformType.MOVING else PlatformType.NORMAL
-            else -> {
-                val rand = Random.nextFloat()
-                when {
-                    rand < 0.10f -> PlatformType.MOVING
-                    rand < 0.22f -> PlatformType.ICE
-                    rand < 0.35f -> PlatformType.BOOST
-                    rand < 0.48f -> PlatformType.BREAKABLE
-                    rand < 0.60f && phaseStreak < 2 -> PlatformType.PHASE 
-                    rand < 0.70f && magneticStreak < 2 -> PlatformType.MAGNETIC
-                    rand < 0.78f -> PlatformType.STABILITY
-                    rand < 0.82f -> PlatformType.FUEL
-                    rand < 0.86f -> PlatformType.COOLING
-                    else -> PlatformType.NORMAL
-                }
-            }
-        }
-
-        if (type == PlatformType.BREAKABLE) breakableStreak++ else breakableStreak = 0
-        if (type == PlatformType.PHASE) phaseStreak++ else phaseStreak = 0
-        if (type == PlatformType.MAGNETIC) magneticStreak++ else magneticStreak = 0
-
-        val isMoving = type == PlatformType.MOVING
-        val speed = if (isMoving) (100f + (difficulty * 200f)) * (if (Random.nextBoolean()) 1f else -1f) else 0f
-        // Task 4: Breakable Platform Tension Pass (20% faster)
-        val totalBreakTime = if (type == PlatformType.BREAKABLE) 1.5f + Random.nextFloat() * 1.5f else 3f
-
-        return Platform(nextX, nextY, pWidth, type, isMoving, speed, totalBreakTime)
+        return platformManager.generate(score, screenWidth, lastY)
     }
 
     // --- Developer Cheats ---
@@ -533,42 +480,22 @@ fun GameScreen() {
     }
 
     fun applyDamage(amount: Float) {
-        if (amount <= 0 || gameState != GameState.PLAYING) return
-
-        // Visual Feedback
-        screenShake = (12f + amount * 0.5f).coerceAtMost(40f)
-        impactFlashAlpha = 0.7f
-
-        var remainingDamage = amount
-
-        // 1. Shield Absorption
-        if (player.shield > 0) {
-            val shieldDamage = min(player.shield, remainingDamage)
-            player.shield -= shieldDamage
-            remainingDamage -= shieldDamage
-
-            // Shield Hit Feedback (Cyan)
-            spawnBurst(player.x, player.y, 12, SciFiCyan, 450f)
-            // Hook for sound: playShieldHitSound()
-        }
-
-        // 2. Integrity Damage
-        if (remainingDamage > 0) {
-            player.integrity = max(0f, player.integrity - remainingDamage)
-
-            // Hull Hit Feedback (Red/Gold sparks)
-            spawnBurst(player.x, player.y, 18, SciFiRed, 650f)
-            spawnBurst(player.x, player.y, 8, SciFiGold, 400f)
-            // Hook for sound: playHullHitSound()
-
-            if (player.integrity <= 0) {
+        survivalManager.applyDamage(
+            amount = amount,
+            player = player,
+            isGameOver = gameState != GameState.PLAYING,
+            onGameOver = {
                 gameState = GameState.GAMEOVER
                 saveHighScore(score)
+            },
+            onVisualFeedback = { shake, flash ->
+                screenShake = shake
+                impactFlashAlpha = flash
+            },
+            onBurst = { x, y, count, color, speed ->
+                spawnBurst(x, y, count, color, speed)
             }
-        }
-
-        // Pause Regen
-        player.shieldRegenPauseTimer = Constants.SHIELD_REGEN_DELAY
+        )
     }
 
     fun unlockAll() {
@@ -594,7 +521,7 @@ fun GameScreen() {
             }
 
             // Visuals
-            floatingTexts.add(FloatingText("MISSION COMPLETE!", player.x, player.y - 150f, color = SciFiGreen, isCritical = true))
+            floatingTextManager.add(FloatingText("MISSION COMPLETE!", player.x, player.y - 150f, color = SciFiGreen, isCritical = true))
             spawnBurst(player.x, player.y - 100f, 30, SciFiGreen, 400f)
         }
         missionManager.selectNextMission()
@@ -635,19 +562,16 @@ fun GameScreen() {
         highestYReached = groundY
         cameraY = 0f
         continuesUsed = 0
-        breakableStreak = 0
-        phaseStreak = 0
-        magneticStreak = 0
         platforms.clear()
         powerUps.clear()
         landingEffects.clear()
         particles.clear()
         threatManager.clear()
         missionManager.clear()
-        threatSpawnTimer = 0f
         bossesSpawned.clear()
-        notificationQueue.clear()
-        activeNotification = null
+        notificationManager.clear()
+        floatingTextManager.clear()
+        platformManager.reset()
 
         comboManager.reset()
         flyingRewards.clear()
@@ -727,7 +651,7 @@ fun GameScreen() {
                                     targetY = screenHeight / 2f,
                                     scale = 4.0f
                                 ))
-                                notificationQueue.add("COMBO MILESTONE: SURVIVAL DROP")
+                                notificationManager.post("COMBO MILESTONE: SURVIVAL DROP")
                                 checkDiscovery(DiscoveryType.EFFICIENCY_SURVIVAL)
                             }
                             comboManager.immediateSurvivalRewards.clear()
@@ -738,7 +662,7 @@ fun GameScreen() {
                             
                             // NEW COMBO HIGH CELEBRATION (Sprint E: Polish)
                             if (comboManager.isNewHighReached) {
-                                floatingTexts.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = SciFiGold, isCritical = true))
+                                floatingTextManager.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = SciFiGold, isCritical = true))
                                 screenShake = max(screenShake, 35f)
                                 impactFlashAlpha = max(impactFlashAlpha, 0.7f)
                                 
@@ -759,7 +683,7 @@ fun GameScreen() {
                                 y = screenHeight / 2f + (120f * densityValue),
                                 scale = 3.5f // Task 2: Increased scale
                             ))
-                            notificationQueue.add("COMBO COMPLETE: x${comboManager.lastFinalStreak}")
+                            notificationManager.post("COMBO COMPLETE: x${comboManager.lastFinalStreak}")
                             
                             // Visual pay-off for combo completion
                             screenShake = max(screenShake, 25f)
@@ -797,199 +721,31 @@ fun GameScreen() {
                         val wasOverheatedBefore = player.isOverheated
 
                         // Notification Queue Processing
-                        if (activeNotification != null) {
-                            notificationTimer -= dt
-                            if (notificationTimer <= 0f) {
-                                notificationAlpha -= dt * 2f
-                                if (notificationAlpha <= 0f) {
-                                    activeNotification = null
-                                }
-                            }
-                        } else if (notificationQueue.isNotEmpty()) {
-                            activeNotification = notificationQueue.removeAt(0)
-                            notificationAlpha = 1f
-                            notificationTimer = 2.0f // Show for 2 seconds
-                        }
+                        notificationManager.update(dt)
 
-                        // --- Milestone Spawning (Boss Progression) ---
-                        val bossMilestones = listOf(
-                            "MINI_BOSS_COMMANDER" to 1500,
-                            "BOSS_GATEKEEPER" to 4000,
-                            "BOSS_LEVIATHAN" to 7000,
-                            "BOSS_STAR_EATER" to 10000,
-                            "BOSS_VOID_ENGINE" to 15000,
-                            "BOSS_SIGNAL" to 18000
+                        // --- Encounter System Update (AI Director) ---
+                        encounterDirector.update(
+                            dt = dt,
+                            score = score,
+                            currentZone = altitudeManager.currentZone,
+                            screenWidth = screenWidth,
+                            screenHeight = screenHeight,
+                            cameraY = cameraY,
+                            playerX = player.x,
+                            playerY = player.y,
+                            bossesSpawned = bossesSpawned,
+                            threatManager = threatManager,
+                            notificationManager = notificationManager,
+                            onDiscovery = { checkDiscovery(it) },
+                            onVisualFeedback = { shake, flash ->
+                                screenShake = max(screenShake, shake)
+                                impactFlashAlpha = max(impactFlashAlpha, flash)
+                            }
                         )
-
-                        bossMilestones.forEach { (id, threshold) ->
-                            if (score >= threshold && !bossesSpawned.contains(id)) {
-                                bossesSpawned.add(id)
-                                ThreatRegistry.getById(id)?.let { def ->
-                                    threatManager.spawnThreat(def, screenWidth / 2f, cameraY - 600f)
-                                    notificationQueue.add("!!! ${def.name.uppercase()} ARRIVING !!!")
-                                    screenShake = 50f
-                                    impactFlashAlpha = 1.0f
-                                    
-                                    val discovery = when(id) {
-                                        "MINI_BOSS_COMMANDER" -> DiscoveryType.THREAT_SENTINEL
-                                        "BOSS_GATEKEEPER" -> DiscoveryType.THREAT_GATEKEEPER
-                                        "BOSS_LEVIATHAN" -> DiscoveryType.THREAT_LEVIATHAN
-                                        "BOSS_STAR_EATER" -> DiscoveryType.THREAT_STAR_EATER
-                                        "BOSS_VOID_ENGINE" -> DiscoveryType.THREAT_VOID_ENGINE
-                                        "BOSS_SIGNAL" -> DiscoveryType.THREAT_SIGNAL
-                                        else -> null
-                                    }
-                                    discovery?.let { checkDiscovery(it) }
-                                }
-                            }
-                        }
-
-                        // Threat Spawning Logic
-                        threatSpawnTimer += dt
-                        if (threatSpawnTimer > 3f) { // Check every 3 seconds
-                            threatSpawnTimer = 0f
-                            val activeThreats = threatManager.activeThreats
-                            val eligible = ThreatRegistry.getEligibleThreats(score, altitudeManager.currentZone)
-
-                            // Slow down spawning if boss is present
-                            val bossPresent = activeThreats.any { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }
-                            val spawnChanceMod = if (bossPresent) 0.3f else 1.0f
-
-                            val currentZone = altitudeManager.currentZone
-
-                            // 1. Environmental Hazards (Sprint B)
-                            if (activeThreats.none { it.definition.type == ThreatType.HAZARD }) {
-                                // Attempt to spawn one eligible hazard
-                                val hazards = eligible.filter { it.type == ThreatType.HAZARD }.shuffled()
-                                for (hazard in hazards) {
-                                    // Apply weighting based on zone
-                                    val weight = when (currentZone) {
-                                        AltitudeZone.CLOUD_LAYER -> when (hazard.id) {
-                                            "HAZ_LIGHTNING", "HAZ_TURBULENCE" -> 1.5f
-                                            else -> 1.0f
-                                        }
-                                        AltitudeZone.UPPER_ATMOSPHERE -> 1.0f
-                                        AltitudeZone.ORBIT -> when (hazard.id) {
-                                            "HAZ_RADIATION", "HAZ_SOLAR_FLARE" -> 1.5f
-                                            "HAZ_LIGHTNING" -> 0.3f
-                                            else -> 1.0f
-                                        }
-                                        AltitudeZone.DEEP_SPACE -> when (hazard.id) {
-                                            "HAZ_RADIATION", "HAZ_SOLAR_FLARE", "HAZ_EMP" -> 1.5f
-                                            else -> 1.0f
-                                        }
-                                        AltitudeZone.VOID -> 2.0f
-                                        else -> 1.0f
-                                    }
-
-                                    if (Random.nextFloat() < hazard.spawnRules.spawnChance * spawnChanceMod * weight) {
-                                        val spawnX = Random.nextFloat() * screenWidth
-                                        val spawnY = when (hazard.id) {
-                                            "HAZ_SOLAR_FLARE" -> cameraY - 400f // Comes from above
-                                            "HAZ_DEBRIS" -> cameraY - 200f
-                                            else -> cameraY + Random.nextFloat() * screenHeight
-                                        }
-                                        
-                                        // Specific init for some threats
-                                        val vx = if (hazard.id == "HAZ_DEBRIS") (Random.nextFloat() - 0.5f) * 100f else 0f
-                                        val vy = if (hazard.id == "HAZ_DEBRIS") 100f + Random.nextFloat() * 200f else 0f
-                                        
-                                        threatManager.spawnThreat(hazard, spawnX, spawnY, vx, vy)
-                                        notificationQueue.add("${hazard.name.uppercase()} DETECTED")
-                                        break // Only one major threat active in a local area
-                                    }
-                                }
-                            }
-
-                            // 2. Generic Enemies (Surveyor Probe, Swarm)
-                            if (activeThreats.count { it.definition.id == "ENT_SCOUT_DRONE" } < 2) {
-                                eligible.find { it.id == "ENT_SCOUT_DRONE" }?.let { probeDef ->
-                                    if (Random.nextFloat() < probeDef.spawnRules.spawnChance * spawnChanceMod) {
-                                        val spawnX = if (Random.nextBoolean()) -50f else screenWidth + 50f
-                                        val vx = if (spawnX < 0) 150f else -150f
-                                        threatManager.spawnThreat(probeDef, spawnX, cameraY + Random.nextFloat() * (screenHeight * 0.5f), vx = vx)
-                                        notificationQueue.add("SURVEYOR PROBE DETECTED")
-                                    }
-                                }
-                            }
-                            if (activeThreats.none { it.definition.id == "ENT_SWARM_BOTS" }) {
-                                eligible.find { it.id == "ENT_SWARM_BOTS" }?.let { swarmDef ->
-                                    if (Random.nextFloat() < swarmDef.spawnRules.spawnChance * spawnChanceMod) {
-                                        threatManager.spawnThreat(swarmDef, Random.nextFloat() * screenWidth, cameraY - 100f)
-                                        notificationQueue.add("AEROSOL SWARM DETECTED")
-                                    }
-                                }
-                            }
-
-                            // 3. Zone-Specific Entities
-                            if (currentZone == AltitudeZone.CLOUD_LAYER && activeThreats.none { it.definition.id == "ENT_CLOUD_SKIMMER" }) {
-                                eligible.find { it.id == "ENT_CLOUD_SKIMMER" }?.let { rayDef ->
-                                    if (Random.nextFloat() < rayDef.spawnRules.spawnChance * spawnChanceMod) {
-                                        val dir = if (Random.nextBoolean()) 1f else -1f
-                                        val spawnX = if (dir > 0) -200f else screenWidth + 200f
-                                        threatManager.spawnThreat(rayDef, spawnX, cameraY + Random.nextFloat() * screenHeight, vx = dir * 50f)
-                                    }
-                                }
-                            }
-                            if (currentZone == AltitudeZone.ORBIT && activeThreats.none { it.definition.id == "ENT_ORBITAL_SENTRY" }) {
-                                eligible.find { it.id == "ENT_ORBITAL_SENTRY" }?.let { sentryDef ->
-                                    if (Random.nextFloat() < sentryDef.spawnRules.spawnChance * spawnChanceMod) {
-                                        threatManager.spawnThreat(sentryDef, Random.nextFloat() * screenWidth, cameraY + 200f)
-                                    }
-                                }
-                            }
-                            if (currentZone == AltitudeZone.DEEP_SPACE && activeThreats.none { it.definition.id == "ENT_CORRUPTED_HULL" }) {
-                                eligible.find { it.id == "ENT_CORRUPTED_HULL" }?.let { echoDef ->
-                                    if (Random.nextFloat() < echoDef.spawnRules.spawnChance * spawnChanceMod) {
-                                        threatManager.spawnThreat(echoDef, Random.nextFloat() * screenWidth, cameraY - 100f, vx = (Random.nextFloat() - 0.5f) * 30f, vy = 20f + Random.nextFloat() * 30f)
-                                    }
-                                }
-                            }
-
-                            // 4. Mini-Boss & Boss Spawning
-                            if (activeThreats.none { it.definition.id == "MINI_BOSS_COMMANDER" }) {
-                                eligible.find { it.id == "MINI_BOSS_COMMANDER" }?.let { bossDef ->
-                                    if (Random.nextFloat() < bossDef.spawnRules.spawnChance) {
-                                        threatManager.spawnThreat(bossDef, screenWidth / 2f, cameraY - 600f)
-                                        notificationQueue.add("COMMAND CRUISER INBOUND")
-                                        screenShake = 20f
-                                        checkDiscovery(DiscoveryType.THREAT_SENTINEL)
-                                    }
-                                }
-                            }
-
-
-                            // Phase 3 Support: Boss Spawns reinforcements & Hazards
-                            activeThreats.find { it.definition.id == "MINI_BOSS_COMMANDER" }?.let { boss ->
-                                if (boss.phase == 3 || boss.phase == 4) {
-                                    // Periodic reinforcement call
-                                    if (Random.nextFloat() < 0.08f) { // Chance per 3s check
-                                        val def = ThreatRegistry.getById("ENT_SCOUT_DRONE")
-                                        def?.let {
-                                            val side = if (Random.nextBoolean()) 1f else -1f
-                                            val spawnX = if (side > 0) -100f else screenWidth + 100f
-                                            threatManager.spawnThreat(it, spawnX, boss.y + 100f, vx = side * 200f)
-                                            notificationQueue.add("REINFORCEMENTS INBOUND")
-                                        }
-                                    }
-                                    // Boss-generated hazards
-                                    if (Random.nextFloat() < 0.15f) {
-                                        val id = "HAZ_TURBULENCE"
-                                        ThreatRegistry.getById(id)?.let { threatManager.spawnThreat(it, boss.x, boss.y + 100f) }
-                                    }
-                                }
-                            }
-                        }
 
                         // (Legacy combo reset logic removed - now handled by ComboManager)
 
-                        val textIterator = floatingTexts.iterator()
-                        while (textIterator.hasNext()) {
-                            val ft = textIterator.next()
-                            ft.life -= dt
-                            ft.y -= 50f * dt
-                            if (ft.life <= 0) textIterator.remove()
-                        }
+                        floatingTextManager.update(dt)
                         val effectIterator = landingEffects.iterator()
                         while (effectIterator.hasNext()) {
                             val effect = effectIterator.next()
@@ -1054,371 +810,59 @@ fun GameScreen() {
                             // ... (Wait, I need to make sure I don't break the wind/threat code)
 
                             // c. Threat Interactions (Proximity Effects)
-                            threatManager.activeThreats.filter { it.state == ThreatState.ACTIVE }.forEach { threat ->
-                                val dx = player.x - threat.x
-                                val dy = player.y - threat.y
-                                val distSq = dx * dx + dy * dy
-
-                                when (threat.definition.id) {
-                                    "HAZ_LIGHTNING" -> {
-                                        if (distSq < 200f * 200f) {
-                                            if (threat.phase == 2) { // Striking
-                                                if (player.invulnerabilityTimer <= 0f) {
-                                                    if (player.shield > 0) {
-                                                        player.shield = max(0f, player.shield - 25f)
-                                                        player.shieldRegenPauseTimer = 2f
-                                                    } else {
-                                                        player.integrity = max(0f, player.integrity - 10f)
-                                                    }
-                                                    player.invulnerabilityTimer = 0.5f
-                                                    screenShake = 20f
-                                                    impactFlashAlpha = 0.8f
-                                                }
-                                            }
-                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
+                            threatManager.activeThreats.forEach { threat ->
+                                threat.processInteraction(
+                                    player = player,
+                                    sdt = sdt,
+                                    isThrusting = isThrusting,
+                                    platforms = platforms,
+                                    powerUps = powerUps,
+                                    gameTime = gameTime,
+                                    screenWidth = screenWidth,
+                                    screenHeight = screenHeight,
+                                    cameraY = cameraY,
+                                    onVisualFeedback = { shake, flash ->
+                                        screenShake = max(screenShake, shake)
+                                        impactFlashAlpha = max(impactFlashAlpha, flash)
+                                    },
+                                    onNotification = { msg, alpha ->
+                                        if (alpha != null) notificationManager.showImmediately(msg, alpha)
+                                        else notificationManager.showImmediately(msg)
+                                    },
+                                    onFloatingText = { msg, color, critical ->
+                                        floatingTextManager.add(FloatingText(msg, player.x, player.y - 100f, color = color, isCritical = critical))
+                                    },
+                                    onDiscovery = { checkDiscovery(it) },
+                                    onBurst = { x, y, count, color, speed ->
+                                        spawnBurst(x, y, count, color, speed)
+                                    },
+                                    onScoreUpdate = { score += it },
+                                    onMissionProgress = { type ->
+                                        missionManager.updateProgress(type)
+                                    },
+                                    onSpawnGhostPlatform = { x, y ->
+                                        if (platforms.size < 40) {
+                                            platforms.add(Platform(
+                                                initialX = x,
+                                                y = y,
+                                                width = 150f,
+                                                type = PlatformType.NORMAL,
+                                                isMoving = false,
+                                                initialSpeed = 0f,
+                                                totalBreakTime = 0.05f // Disappears instantly
+                                            ).apply { isBreaking = true })
+                                        }
+                                    },
+                                    onSpawnReinforcements = {
+                                        val currentDrones = threatManager.activeThreats.count { it.definition.id == "ENT_SCOUT_DRONE" }
+                                        if (currentDrones < 4) {
+                                            val side = if (Random.nextBoolean()) 1f else -1f
+                                            val spawnX = if (side > 0) -100f else screenWidth + 100f
+                                            threatManager.spawnThreat(threat.definition, spawnX, threat.y, vx = side * 150f)
+                                            notificationManager.showImmediately("REINFORCEMENTS INBOUND")
                                         }
                                     }
-                                    "HAZ_DEBRIS" -> {
-                                        // Task 4: Physical Wreckage Collision (Hull Focus)
-                                        if (distSq < 80f * 80f) {
-                                            if (player.invulnerabilityTimer <= 0f) {
-                                                // Debris deals more hull damage than energy damage
-                                                if (player.shield > 0) {
-                                                    player.shield = max(0f, player.shield - 10f)
-                                                    player.integrity = max(0f, player.integrity - 5f)
-                                                } else {
-                                                    player.integrity = max(0f, player.integrity - 25f)
-                                                }
-                                                player.invulnerabilityTimer = 0.8f
-                                                screenShake = 20f
-                                                floatingTexts.add(FloatingText("HULL IMPACT", player.x, player.y - 100f, color = SciFiRed))
-                                            }
-                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
-                                        }
-                                    }
-                                    "HAZ_RADIATION" -> {
-                                        if (distSq < 300f * 300f) {
-                                            player.shield = max(0f, player.shield - 15f * sdt)
-                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
-                                        }
-                                    }
-                                    "HAZ_SOLAR_FLARE" -> {
-                                        if (abs(player.y - threat.y) < 100f) {
-                                            player.heat = min(MAX_HEAT, player.heat + 120f * sdt)
-                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
-                                        }
-                                    }
-                                    "HAZ_TURBULENCE" -> {
-                                        // Task 4: Flight Control Force (No Direct Damage)
-                                        if (distSq < 450f * 450f) {
-                                            val dist = sqrt(distSq)
-                                            val strength = (1f - dist / 450f)
-                                            val windDir = if (threat.instanceId.hashCode() % 2 == 0) 1f else -1f
-                                            player.velocityX += windDir * 1200f * strength * sdt
-                                            player.velocityY += (Random.nextFloat() - 0.5f) * 600f * strength * sdt
-                                            
-                                            if (gameTime % 200 < 50) {
-                                                particles.add(Particle(player.x, player.y, (Random.nextFloat()-0.5f)*100f, (Random.nextFloat()-0.5f)*100f, 0.5f, Color.White.copy(alpha=0.3f), 2f))
-                                            }
-                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
-                                        }
-                                    }
-                                    "HAZ_GRAVITY" -> {
-                                        if (distSq < 500f * 500f) {
-                                            val dist = sqrt(distSq)
-                                            val strength = (1f - dist / 500f)
-                                            player.velocityY += 1500f * strength * sdt 
-                                            if (isThrusting) {
-                                                player.fuel = max(0f, player.fuel - 10f * strength * sdt)
-                                                player.velocityY += 500f * strength * sdt 
-                                            }
-                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
-                                        }
-                                    }
-                                    "HAZ_EMP" -> {
-                                        val ringRadius = threat.scanPulse * 400f
-                                        val dist = sqrt(distSq)
-                                        if (abs(dist - ringRadius) < 50f) {
-                                            player.shieldRegenPauseTimer = max(player.shieldRegenPauseTimer, 5f)
-                                            threat.definition.discoveryType?.let { checkDiscovery(it) }
-                                        }
-                                    }
-                                    "ENT_CLOUD_SKIMMER" -> { // Sky Ray: Lift Current
-                                        if (distSq < 250f * 250f) {
-                                            player.velocityY -= 1000f * sdt // "Ride the Ray"
-                                        }
-                                    }
-                                    "ENT_ORBITAL_SENTRY" -> { // Orbital Sentry: Combo Freeze & Fuel Interference
-                                        if (threat.isTracking && distSq < 400f * 400f) {
-                                            player.comboFreezeTimer = 1.0f
-                                            player.fuel = max(0f, player.fuel - 10f * sdt)
-                                            if (!threat.hasInteracted) {
-                                                threat.hasInteracted = true
-                                                activeNotification = "LOCKED ON"
-                                                notificationAlpha = 1.0f
-                                            }
-                                        } else {
-                                            threat.hasInteracted = false
-                                        }
-                                    }
-                                    "ENT_CORRUPTED_HULL" -> { // Derelict Echo: Salvage
-                                        if (!threat.hasInteracted && distSq < 150f * 150f) {
-                                            threat.hasInteracted = true
-                                            activeNotification = "DISTRESS SIGNAL DETECTED"
-                                            notificationAlpha = 1.0f
-                                            val type = PowerUpType.entries.random()
-                                            powerUps.add(PowerUp(threat.x, threat.y, type))
-                                            floatingTexts.add(FloatingText("SALVAGE RECOVERED", player.x, player.y - 100f, color = Color.Green))
-                                        }
-                                    }
-                                    "HAZ_VOID_ANOMALY" -> { // Void Anomaly: Gravitational Distortion
-                                        if (distSq < 500f * 500f) {
-                                            val dist = sqrt(distSq)
-                                            val force = (1f - dist / 500f) * 1200f
-                                            player.velocityX -= (dx / dist) * force * sdt
-                                            player.velocityY -= (dy / dist) * force * sdt
-                                            screenShake = max(screenShake, (1f - dist / 500f) * 15f)
-                                            player.velocityX += (Random.nextFloat() - 0.5f) * 400f * sdt
-                                            if (!threat.hasInteracted) {
-                                                threat.hasInteracted = true
-                                                activeNotification = "REALITY DISTORTION"
-                                                notificationAlpha = 1.0f
-                                            }
-                                        } else {
-                                            threat.hasInteracted = false
-                                        }
-                                    }
-                                    "ENT_SCOUT_DRONE" -> { // Surveyor Probe: Reinforcement call
-                                        if (threat.isTracking && threat.lifetime > 5.0f && Random.nextFloat() < 0.001f) {
-                                            // Task 1: Offscreen reinforcements
-                                            val currentDrones = threatManager.activeThreats.count { it.definition.id == "ENT_SCOUT_DRONE" }
-                                            if (currentDrones < 4) {
-                                                val side = if (Random.nextBoolean()) 1f else -1f
-                                                val spawnX = if (side > 0) -100f else screenWidth + 100f
-                                                threatManager.spawnThreat(threat.definition, spawnX, threat.y, vx = side * 150f)
-                                                activeNotification = "REINFORCEMENTS INBOUND"
-                                                notificationAlpha = 1.0f
-                                            }
-                                        }
-                                    }
-                                    "ENT_SWARM_BOTS" -> { // Aerosol Swarm: Turbulence
-                                        if (distSq < 150f * 150f) {
-                                            player.velocityX += (Random.nextFloat() - 0.5f) * 600f * sdt
-                                            player.velocityY += (Random.nextFloat() - 0.5f) * 600f * sdt
-                                        }
-                                    }
-                                    "MINI_BOSS_COMMANDER", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL" -> {
-                                        // Generic Boss Collision & Weak Points
-                                        if (threat.phase in 2..4) {
-                                            // Handle Proximity Penalty (Collision with hull)
-                                            if (distSq < 100f * 100f && player.invulnerabilityTimer <= 0f) {
-                                                player.fuel = max(0f, player.fuel - 20f)
-                                                player.heat = min(MAX_HEAT, player.heat + 30f)
-                                                player.invulnerabilityTimer = 1.0f
-                                                screenShake = 15f
-                                                floatingTexts.add(FloatingText("HULL COLLISION", player.x, player.y - 100f, color = Color.Red))
-                                            }
-
-                                            // Weak Point Logic
-                                            repeat(threat.maxWeakPoints) { i ->
-                                                val isDestroyed = i >= threat.activeWeakPoints
-                                                if (!isDestroyed) {
-                                                    // Calculate weak point position based on boss type
-                                                    val (wx, wy) = when (threat.definition.id) {
-                                                        "MINI_BOSS_COMMANDER" -> Pair(threat.x - 80f + (i * 80f), threat.y - 40f)
-                                                        "BOSS_GATEKEEPER" -> {
-                                                            val angle = (threat.rotation + i * 90f) * (PI.toFloat() / 180f)
-                                                            Pair(threat.x + cos(angle) * 250f, threat.y + sin(angle) * 250f)
-                                                        }
-                                                        "BOSS_STAR_EATER" -> Pair(threat.x, threat.y) // Center eye
-                                                        "BOSS_LEVIATHAN" -> {
-                                                            val ox = sin(threat.lifetime * 1000f - i * 0.5f) * 100f
-                                                            Pair(threat.x + ox, threat.y + i * 60f)
-                                                        }
-                                                        "BOSS_VOID_ENGINE" -> {
-                                                            val angle = (threat.rotation + i * 180f) * (PI.toFloat() / 180f)
-                                                            Pair(threat.x + cos(angle) * 150f, threat.y + sin(angle) * 150f)
-                                                        }
-                                                        "BOSS_SIGNAL" -> Pair(threat.x + (Random(threat.instanceId.hashCode()).nextFloat()-0.5f)*200f, threat.y + (Random(threat.instanceId.hashCode()).nextFloat()-0.5f)*200f)
-                                                        else -> Pair(threat.x, threat.y)
-                                                    }
-
-                                                    val ddx = player.x - wx
-                                                    val ddy = player.y - wy
-                                                    val hitDist = if (threat.definition.id == "BOSS_STAR_EATER") 80f else 50f
-
-                                                    if (sqrt(ddx*ddx + ddy*ddy) < hitDist && player.invulnerabilityTimer <= 0f) {
-                                                        threat.activeWeakPoints--
-                                                        player.invulnerabilityTimer = 0.5f
-                                                        player.velocityY = -400f // Bounce off
-                                                        spawnBurst(wx, wy, 25, SciFiPurple, 300f)
-                                                        screenShake = 20f
-                                                        floatingTexts.add(FloatingText("WEAK POINT DESTROYED", player.x, player.y - 120f, color = SciFiPurple, isCritical = true))
-
-                                                        if (threat.activeWeakPoints <= 0) {
-                                                            threat.phase = 5 // Force retreat/destruction phase
-                                                            score += 1000
-                                                            floatingTexts.add(FloatingText("BOSS CRITICAL - RETREATING", player.x, player.y - 150f, color = SciFiCyan, isCritical = true))
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // Boss-Specific Mechanics
-                                        when (threat.definition.id) {
-                                            "MINI_BOSS_COMMANDER" -> {
-                                                if (threat.phase >= 3) {
-                                                     if (distSq < 400f * 400f) {
-                                                        player.fuel = max(0f, player.fuel - 5f * sdt) // Boss drain
-                                                     }
-
-                                                     // Mechanic 2: Gravity Pulse (AMPLIFIED)
-                                                     if (threat.gravityPulseTimer < 0.6f) {
-                                                         player.velocityY += 2500f * sdt
-                                                         screenShake = max(screenShake, 15f)
-                                                     }
-
-                                                     // Mechanic 1: Platform Jammer (AGGRESSIVE)
-                                                     if (threat.jamCooldown <= 0f) {
-                                                         threat.jamCooldown = 1.2f
-                                                         // Target 2 nearest platforms
-                                                         platforms.sortedBy {
-                                                             val dxP = it.x - player.x
-                                                             val dyP = it.y - player.y
-                                                             dxP*dxP + dyP*dyP
-                                                         }.take(2).forEach {
-                                                             it.isJammed = true
-                                                             it.jamTimer = 2.0f
-                                                         }
-                                                     }
-                                                }
-                                            }
-                                            "BOSS_GATEKEEPER" -> {
-                                                val dist = sqrt(distSq)
-                                                if (dist in 150f..350f) {
-                                                    val angle = atan2(dy, dx) * (180f / PI.toFloat())
-                                                    val relAngle = (angle - threat.rotation + 360f) % 360f
-                                                    // Narrower safe gaps (50 degrees instead of 70)
-                                                    val inGap = relAngle % 90f < 50f
-                                                    if (!inGap) {
-                                                        player.velocityX += (dx / dist) * 4000f * sdt // EXTREME REPULSE
-                                                        player.heat += 100f * sdt
-                                                        screenShake = max(screenShake, 5f)
-                                                    }
-                                                }
-                                                if (threat.phase == 3 && dist < 600f) {
-                                                    // Massive pull to center
-                                                    player.velocityX -= (dx / dist) * 1500f * sdt
-                                                    player.velocityY -= (dy / dist) * 1500f * sdt
-                                                }
-                                            }
-                                            "BOSS_STAR_EATER" -> {
-                                                val dist = sqrt(distSq)
-                                                if (dist < 1000f) {
-                                                    val suctionForce = (1f - dist / 1000f) * 3000f
-                                                    player.velocityX -= (dx / dist) * suctionForce * sdt
-                                                    player.velocityY -= (dy / dist) * suctionForce * sdt
-
-                                                    if (dist < 200f) {
-                                                        player.fuel = max(0f, player.fuel - 25f * sdt) // Violent energy drain
-                                                    }
-                                                }
-                                                // Extreme resource pull
-                                                powerUps.forEach { pu ->
-                                                    val pdx = threat.x - pu.x
-                                                    val pdy = threat.y - pu.y
-                                                    val pdist = sqrt(pdx*pdx + pdy*pdy)
-                                                    if (pdist < 1200f) {
-                                                        pu.y += (pdy / pdist) * 800f * sdt
-                                                        pu.x += (pdx / pdist) * 800f * sdt
-                                                    }
-                                                }
-                                            }
-                                            "BOSS_LEVIATHAN" -> {
-                                                // Slipstreams (Propel the player violently)
-                                                repeat(6) { i ->
-                                                    val ox = sin(threat.lifetime * 1.5f - i * 0.5f) * 150f
-                                                    val oy = i * 80f
-                                                    val segX = threat.x + ox
-                                                    val segY = threat.y + oy
-
-                                                    val sdx = player.x - segX
-                                                    val sdy = player.y - segY
-                                                    if (sdx*sdx + sdy*sdy < 200f * 200f && sdy > 20f) {
-                                                        player.velocityY -= 4500f * sdt // MASSIVE BOOST
-                                                        if (Random.nextFloat() < 0.4f) {
-                                                            spawnBurst(player.x, player.y + 50f, 10, SciFiCyan, 300f)
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            "BOSS_VOID_ENGINE" -> {
-                                                if (threat.phase >= 2 && (threat.localTimer.toInt() % 4 < 2)) {
-                                                    // Reality Shift: EXTREME Horizontal gravity
-                                                    val shiftDir = if ((threat.localTimer.toInt() / 4) % 2 == 0) 1f else -1f
-                                                    player.velocityX += 4800f * shiftDir * sdt
-                                                    screenShake = max(screenShake, 10f)
-                                                    if (Random.nextFloat() < 0.3f) {
-                                                        impactFlashAlpha = 0.4f
-                                                    }
-                                                }
-                                            }
-                                            "BOSS_SIGNAL" -> {
-                                                val distSqSignal = distSq // rename or just use it
-                                                if (distSqSignal < 800f * 800f) {
-                                                    // Interference
-                                                    if (Random.nextFloat() < 0.05f) {
-                                                        notificationAlpha = 0.5f
-                                                        activeNotification = "SIGNAL LOSS..."
-                                                    }
-                                                    // Fake fuel drain / Heat induction
-                                                    if (threat.phase == 3) {
-                                                        player.heat += 40f * sdt
-                                                    }
-                                                }
-                                                // Mechanic: Ghost Platforms (DRAMATICALLY INCREASED)
-                                                if (threat.phase >= 2 && (gameTime / 1000) % 2 == 0L) {
-                                                    if (Random.nextFloat() < 0.15f && platforms.size < 40) {
-                                                        platforms.add(Platform(
-                                                            initialX = Random.nextFloat() * screenWidth,
-                                                            y = cameraY + Random.nextFloat() * screenHeight,
-                                                            width = 150f,
-                                                            type = PlatformType.NORMAL,
-                                                            isMoving = false,
-                                                            initialSpeed = 0f,
-                                                            totalBreakTime = 0.05f // Disappears instantly
-                                                        ).apply { isBreaking = true })
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // End encounter reward (ULTRA OBVIOUS) - Task 5: Tier 4
-                                        if (threat.phase == 5 && !threat.hasInteracted) {
-                                            threat.hasInteracted = true
-                                            powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
-                                            floatingTexts.add(FloatingText("!!! ${threat.definition.name.uppercase()} DEFEATED !!!", player.x, player.y - 200f, color = SciFiCyan, isCritical = true))
-                                            activeNotification = ">>> MISSION DATA RECOVERED <<<"
-                                            notificationAlpha = 5.0f
-                                            screenShake = 70f
-                                            impactFlashAlpha = 1.0f
-                                            spawnBurst(player.x, cameraY + 200f, 100, SciFiPurple, 1200f) // Massive purple burst
-                                            
-                                            // Task 5: Tier 4 Major Event Visuals
-                                            repeat(8) {
-                                                spawnBurst(player.x + (Random.nextFloat() - 0.5f) * 200f, 
-                                                           player.y + (Random.nextFloat() - 0.5f) * 200f, 
-                                                           50, SciFiWhite, 800f)
-                                            }
-
-                                            // Mission Hook
-                                            if (threat.definition.id == "MINI_BOSS_COMMANDER") {
-                                                missionManager.updateProgress(MissionType.BOSS)
-                                            }
-                                        }
-                                    }
-                                }
+                                )
                             }
 
                             // Task 3: Magnetic Platforms (Proximity Gravity)
@@ -1676,10 +1120,10 @@ fun GameScreen() {
                                         if (player.maxFuel < Constants.MAX_FUEL_CAPACITY_LIMIT) {
                                             player.maxFuel = min(Constants.MAX_FUEL_CAPACITY_LIMIT, player.maxFuel + 25f)
                                             player.fuel = player.maxFuel
-                                            notificationQueue.add("FUEL CAPACITY UP!")
+                                            notificationManager.post("FUEL CAPACITY UP!")
                                         } else {
                                             player.fuel = player.maxFuel
-                                            notificationQueue.add("FUEL REFILLED")
+                                            notificationManager.post("FUEL REFILLED")
                                         }
                                         spawnBurst(pu.x, pu.y, 30, SciFiGold, 300f)
                                         screenShake = 5f
@@ -1689,14 +1133,14 @@ fun GameScreen() {
                                         player.turboTimer = 8f
                                         spawnBurst(pu.x, pu.y, 30, SciFiCyan, 300f)
                                         screenShake = 5f
-                                        notificationQueue.add("TURBO ACTIVE!")
+                                        notificationManager.post("TURBO ACTIVE!")
                                         checkDiscovery(DiscoveryType.TURBO_BOOSTER)
                                     }
                                     PowerUpType.EFFICIENCY_MODULE -> {
                                         player.efficiencyTimer = 8f
                                         spawnBurst(pu.x, pu.y, 30, SciFiGreen, 300f)
                                         screenShake = 5f
-                                        notificationQueue.add("FUEL EFFICIENCY UP!")
+                                        notificationManager.post("FUEL EFFICIENCY UP!")
                                         checkDiscovery(DiscoveryType.EFFICIENCY_MODULE)
                                     }
                                     PowerUpType.HEAT_SINK -> {
@@ -1704,20 +1148,20 @@ fun GameScreen() {
                                         player.isOverheated = false
                                         spawnBurst(pu.x, pu.y, 30, SciFiWhite, 300f)
                                         screenShake = 5f
-                                        notificationQueue.add("ENGINES COOLED!")
+                                        notificationManager.post("ENGINES COOLED!")
                                         checkDiscovery(DiscoveryType.HEAT_SINK)
                                     }
                                     PowerUpType.SHIELD_CAPSULE -> {
                                         player.shield = min(player.maxShield, player.shield + 25f)
                                         spawnBurst(pu.x, pu.y, 30, SciFiCyan, 400f)
-                                        notificationQueue.add("SHIELD RECHARGE")
-                                        floatingTexts.add(FloatingText("+25 SHIELD", player.x, player.y - 120f, color = SciFiCyan))
+                                        notificationManager.post("SHIELD RECHARGE")
+                                        floatingTextManager.add(FloatingText("+25 SHIELD", player.x, player.y - 120f, color = SciFiCyan))
                                     }
                                     PowerUpType.HULL_REPAIR -> {
                                         player.integrity = min(player.maxIntegrity, player.integrity + 20f)
                                         spawnBurst(pu.x, pu.y, 30, SciFiGreen, 400f)
-                                        notificationQueue.add("HULL REPAIRED")
-                                        floatingTexts.add(FloatingText("+20 HULL", player.x, player.y - 120f, color = SciFiGreen))
+                                        notificationManager.post("HULL REPAIRED")
+                                        floatingTextManager.add(FloatingText("+20 HULL", player.x, player.y - 120f, color = SciFiGreen))
                                     }
                                     PowerUpType.ARTIFACT -> {
                                         val artifact = listOf(
@@ -1728,13 +1172,13 @@ fun GameScreen() {
                                         spawnBurst(pu.x, pu.y, 50, SciFiPurple, 400f)
                                         screenShake = 10f
                                         impactFlashAlpha = 0.6f
-                                        notificationQueue.add("ARTIFACT RECOVERED!")
+                                        notificationManager.post("ARTIFACT RECOVERED!")
                                     }
                                     PowerUpType.ALTITUDE_BOOSTER -> {
                                         player.velocityY = -2500f // Massive boost
                                         spawnBurst(pu.x, pu.y, 40, SciFiWhite, 400f)
                                         screenShake = 10f
-                                        notificationQueue.add("ALTITUDE BOOST!")
+                                        notificationManager.post("ALTITUDE BOOST!")
                                     }
                                 }
 
@@ -1781,7 +1225,7 @@ fun GameScreen() {
                             if (noOverheatTimer > 0f) {
                                 // Task 4: Targeted reset for heat missions
                                 missionManager.resetProgress(MissionType.SURVIVAL) { it.id.startsWith("surv_cool") }
-                                notificationQueue.add("MISSION RESET")
+                                notificationManager.post("MISSION RESET")
                             }
                             noOverheatTimer = 0f
                         }
@@ -1957,44 +1401,18 @@ fun GameScreen() {
                             }
                         }
 
-                        // Cycle tracks: removes completed and adds new ones
-                        missionManager.selectNextMission()
-
-                        // EPIC 5: Survival System Updates
-                        if (player.shieldRegenPauseTimer > 0) {
-                            player.shieldRegenPauseTimer = max(0f, player.shieldRegenPauseTimer - dt)
-                        } else if (player.shield < player.maxShield) {
-                            player.shield = min(player.maxShield, player.shield + Constants.SHIELD_REGEN_RATE * dt)
-                        }
-
-                        // Task 3: Hull Failure & Destruction Sequence
-                        if (player.integrity <= 0 && player.destructionTimer <= 0) {
-                            player.destructionTimer = 0.01f // Start sequence
-                            screenShake = 30f
-                        }
-                        
-                        if (player.destructionTimer > 0) {
-                            player.destructionTimer += dt
-                            player.velocityX *= 0.95f
-                            player.velocityY += 500f * dt // Loss of control, falling
-                            
-                            if (player.destructionTimer > 2.0f) {
+                        // --- Survival System Update ---
+                        survivalManager.update(
+                            dt = dt,
+                            player = player,
+                            gameTime = gameTime,
+                            notificationManager = notificationManager,
+                            onGameOver = {
                                 gameState = GameState.GAMEOVER
                                 saveHighScore(score)
-                            }
-                        }
-
-                        // Emergency Warnings
-                        if (player.shield > 0 && player.shield < player.maxShield * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
-                            if (gameTime % 3000 < 50) { // Throttled notification
-                                notificationQueue.add("!!! SHIELD CRITICAL !!!")
-                            }
-                        }
-                        if (player.integrity < player.maxIntegrity * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
-                            if (gameTime % 3000 < 50) { // Throttled notification
-                                notificationQueue.add("!!! HULL CRITICAL !!!")
-                            }
-                        }
+                            },
+                            onShake = { screenShake = max(screenShake, it) }
+                        )
 
                         if (!isThrusting) player.fuel = min(player.maxFuel, player.fuel + FUEL_RECHARGE_RATE * dt)
                         if (player.y < highestYReached) {
@@ -2941,7 +2359,7 @@ fun GameScreen() {
             GameState.HANGAR -> {
                 HangarScreen(
                     player = player,
-                    highScore = highScore,
+                    highScore = progressionManager.highScore,
                     progressionManager = progressionManager,
                     sharedPrefs = sharedPrefs,
                     onNavigate = { gameState = it }
@@ -2958,7 +2376,7 @@ fun GameScreen() {
             GameState.SETTINGS -> {
                 SettingsScreen(
                     sharedPrefs = sharedPrefs,
-                    onWipeData = { sharedPrefs.edit { clear() }; highScore = 0; player.rocketType = RocketType.BALANCED; gameState = GameState.TITLE },
+                    onWipeData = { progressionManager.wipeData(); player.rocketType = RocketType.BALANCED; gameState = GameState.TITLE },
                     onReturn = { gameState = GameState.MAIN_MENU }
                 )
             }
@@ -2980,7 +2398,7 @@ fun GameScreen() {
                     // --- HUD WIDGETS ---
                     AltitudeDisplay(
                         modifier = Modifier.align(Alignment.TopCenter),
-                        score = score, highScore = highScore
+                        score = score, highScore = progressionManager.highScore
                     )
 
                     LeftGauges(
@@ -3031,13 +2449,13 @@ fun GameScreen() {
                     // NOTIFICATION LAYER
                     NotificationLayer(
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = 240.dp),
-                        activeNotification = activeNotification,
-                        notificationAlpha = notificationAlpha,
+                        activeNotification = notificationManager.active,
+                        notificationAlpha = notificationManager.alpha,
                         screenWidth = screenWidth
                     )
 
                     FloatingTextsLayer(
-                        texts = floatingTexts,
+                        texts = floatingTextManager.texts,
                         cameraY = cameraY
                     )
 
@@ -3088,7 +2506,7 @@ fun GameScreen() {
                 if (gameState == GameState.GAMEOVER) {
                     GameOverOverlay(
                         score = score,
-                        highScore = highScore,
+                        highScore = progressionManager.highScore,
                         progressionManager = progressionManager,
                         continuesUsed = continuesUsed,
                         onContinue = { continueRun() },
