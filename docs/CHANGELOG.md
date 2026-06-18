@@ -45,6 +45,48 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-18
+
+**Sprint / Phase:** Refactor Sprint T1 — Phase 2
+
+**Branch:** `refactor/ui-extraction`
+
+**Commit:** `686bfd0`
+
+**Tags:** `refactor-t1-phase1`, `refactor-t1-phase2`
+
+**Status:** Completed
+
+### Added
+- Phase 2 completion report: `docs/architecture/Refactor_T1_Phase2_Report.md`
+- `refactor-t1-phase1` and `refactor-t1-phase2` git tags
+
+### Changed
+- `GameScreen.kt`: replaced all 7 screen branches with extracted composable calls (TITLE, MAIN_MENU, HANGAR, ARCHIVE, SETTINGS, ABOUT, LEADERBOARD)
+- `GameScreen.kt`: replaced 6 HUD widgets with extracted calls (AltitudeDisplay, FuelGauge, HeatGauge, ShieldGauge, IntegrityGauge, ComboHudBar, NotificationLayer, ZoneDiscoveryCard)
+- `GameScreen.kt`: deleted duplicate altitude display block
+- `GameScreen.kt`: replaced 5 overlays with extracted calls (PauseOverlay, TutorialOverlay, HelpOverlay, UnlockOverlay, GameOverOverlay)
+- Net reduction: 966 lines (4,292 → 3,326)
+
+### Fixed
+- `ComboHudBar` parameter type mismatch: `getWindowForCombo` required lambda wrapper `{ comboManager.getWindowForCombo(it) }`
+
+### Removed
+- `PowerupBadge` composable — unused (zero call sites, 23 lines)
+
+### Validation
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL (zero errors)
+- Brace balance: 681 `{` = 681 `}` ✅
+- APK installed and launched on emulator (`Medium_Phone API 35`)
+- `adb shell monkey` — `Events injected: 1`
+
+### Notes
+- Mission row cards (~124 lines) and floating combo texts (~17 lines) remain inline — deferred past Phase 2
+- `MissionType.toIcon()` extension kept — still called by inline mission cards
+- Refactor Sprint T1 is fully complete. Branch ready to merge to `main`.
+
+---
+
 ## Historical Milestones
 
 The following milestones summarize completed work prior to the changelog's creation. These entries are reconstructed from commit history and were not recorded as changelog events at the time of completion.
