@@ -1,8 +1,8 @@
-# Jump Droid - Boss Documentation
+# Jump Droid - Boss & Enemy Documentation
 
 ## Overview
 
-This document details all major and mini-bosses currently implemented or planned in Jump Droid. Bosses are zone guardians that appear at specific altitudes, featuring unique mechanics, multiple phases, and weak point systems.
+This document details all major bosses, mini-bosses, and standard enemies currently implemented or planned in Jump Droid. These entities are zone guardians and obstacles that appear at specific altitudes, featuring unique mechanics, multiple phases, and weak point systems.
 
 ---
 
@@ -10,12 +10,13 @@ This document details all major and mini-bosses currently implemented or planned
 
 1. [Major Bosses](#major-bosses)
 2. [Mini-Bosses](#mini-bosses)
-3. [Boss Behaviors Reference](#boss-behaviors-reference)
-4. [Weak Point System](#weak-point-system)
-5. [Difficulty Scaling](#difficulty-scaling)
-6. [Design vs Implementation Notes](#design-vs-implementation-notes)
-7. [Potential Overlaps](#potential-overlaps)
-8. [Summary Implementation Matrix](#summary-implementation-matrix)
+3. [Standard Enemies](#standard-enemies)
+4. [Boss Behaviors Reference](#boss-behaviors-reference)
+5. [Weak Point System](#weak-point-system)
+6. [Difficulty Scaling](#difficulty-scaling)
+7. [Design vs Implementation Notes](#design-vs-implementation-notes)
+8. [Potential Overlaps](#potential-overlaps)
+9. [Summary Implementation Matrix](#summary-implementation-matrix)
 
 ---
 
@@ -206,6 +207,28 @@ This document details all major and mini-bosses currently implemented or planned
 
 ---
 
+## Standard Enemies
+
+The following entities represent standard hostile units encountered throughout the ascent.
+
+| Name | ID | Status | Role | Zone | Key Behavior |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Surveyor Probe** | `ENT_SCOUT_DRONE` | **Complete** | Scout | Earth+ | Detects player and calls reinforcements. |
+| **Sky Ray** | `ENT_CLOUD_SKIMMER` | **Partial** | Support | Cloud Layer | Glides horizontally; provides upward boost. |
+| **Aerosol Swarm** | `ENT_SWARM_BOTS` | **Complete** | Area Denial | Cloud/Upper | Jittery movement; creates chaotic patterns. |
+| **Defense Node** | `ENT_ORBITAL_SENTRY` | **Complete** | Controller | Orbit | Periodic radar scan; freezes combo and drains fuel. |
+| **Derelict Echo** | `ENT_CORRUPTED_HULL` | **Complete** | Salvage | Deep Space | Drifting wreck; contact spawns random Power-Up. |
+| **Void Tracker** | `ENT_STALKER` | **Registry Only** | Hunter | Deep Space | Predatory machine; follows thermal signatures. |
+| **Cosmic Leviathan** | `ENT_VOID_WHALE` | **Registry Only** | Juggernaut | Deep Space | Massive slow-moving obstacle. |
+| **Shadow Entity** | `ENT_VOID_WRAITH` | **Registry Only** | Horror | Void | Non-Euclidean entities that phase through space. |
+| **Heat Bat** | `ENT_HEAT_BAT` | **APPROVED** | Ambusher | Atmosphere | Dives at player when Heat is high (>=70%). |
+| **Mimic Platform** | `ENT_MIMIC` | **APPROVED** | Deceiver | Global | Perfectly resembles a platform; shatters on touch. |
+| **Void Harvester** | `ENT_VOID_HARVESTER` | **APPROVED** | Predator | Deep/Void | Actively consumes uncollected Power-Ups. |
+| **Phase Wraith** | `ENT_PHASE_WRAITH` | **APPROVED** | Stalker | Void | Only damageable when player is Overheated. |
+| **Gravity Ram** | `ENT_GRAVITY_RAM` | **APPROVED** | Controller | Deep Space | Telegraphed horizontal dash with high knockback. |
+
+---
+
 ## Boss Behaviors Reference
 
 | Behavior | Enum | Description | Status | Used By |
@@ -319,6 +342,7 @@ Purpose: Record concepts that may overlap thematically and could require future 
 
 | Version | Changes |
 | :--- | :--- |
+| **v0.95** | Added Standard Enemies tabular section. Merged implementation and approved concept rosters. |
 | **v0.9** | Synchronized with THREATS.md audit. Added Status fields and Implementation Matrix. |
 | **v0.8** | Added Chrono Warden, Magma-Core Titan. Updated Signal behavior. |
 | **v0.7** | All major bosses implemented. Mini-bosses active. |

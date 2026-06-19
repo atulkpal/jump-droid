@@ -40,6 +40,10 @@ class ActiveThreat(
     var phase by mutableIntStateOf(1)
     var alertLevel by mutableFloatStateOf(0f)
     var localTimer by mutableFloatStateOf(0f)
+    var hasReinforced by mutableStateOf(false)
+    var fleeTimer by mutableFloatStateOf(0f)
+    var transmissionProgress by mutableFloatStateOf(0f)
+    var firstDetectionShown by mutableStateOf(false)
     
     // Boss Mechanic States
     var gravityPulseTimer by mutableFloatStateOf(0f)
@@ -173,11 +177,27 @@ class ActiveThreat(
                             x += (screenWidth / 2f - x) * 0.05f * dt // Drift toward center
                             y += vy * 0.5f * dt
                         }
+                        "HAZ_VOID_ANOMALY" -> {
+                            // Pulsing reality rift — slow center drift
+                            scanPulse = (kotlin.math.sin(lifetime * 1.5f) * 0.5f + 0.5f)
+                            x += (screenWidth / 2f - x) * 0.03f * dt
+                            y += vy * dt
+                        }
                     }
                 }
                 ThreatType.ENEMY -> {
                     // Awareness logic for Surveyor Probe
                     if (definition.id == "ENT_SCOUT_DRONE") {
+                        // Flee behavior after transmission
+                        if (hasReinforced) {
+                            fleeTimer -= dt
+                            vy = -400f
+                            x += (x - targetX) * 2f * dt
+                            scanPulse = (scanPulse + dt * 8f) % 1.0f
+                            if (fleeTimer <= 0f) state = ThreatState.DESTROYED
+                            return
+                        }
+
                         val dx_dist = targetX - x
                         val dy_dist = targetY - y
                         val distToTarget = kotlin.math.sqrt(dx_dist * dx_dist + dy_dist * dy_dist)
@@ -187,7 +207,7 @@ class ActiveThreat(
                         if (distToTarget < detectionRange) {
                             if (!isTracking) {
                                 isTracking = true
-                                state = ThreatState.ACTIVE // Ensure state is correct
+                                state = ThreatState.ACTIVE
                             }
                             
                             // Calculate angle to player
@@ -195,17 +215,27 @@ class ActiveThreat(
                             val dy = targetY - y
                             targetAngle = kotlin.math.atan2(dy, dx) * (180f / kotlin.math.PI.toFloat())
                             
-                            // Scan animation pulse
-                            scanPulse = (scanPulse + dt * 2f) % 1.0f
+                            // Transmission countdown while tracking
+                            if (transmissionProgress < 1f) {
+                                transmissionProgress += dt / 5f // 5-second transmission
+                                transmissionProgress = transmissionProgress.coerceIn(0f, 1f)
+                                // scanPulse reflects transmission progress (sustained, not cycling)
+                                scanPulse = transmissionProgress
+                            } else {
+                                // Transmission complete — rapid alert pulse
+                                scanPulse = (scanPulse + dt * 6f) % 1.0f
+                            }
                             
-                            // Slow move toward player (optional, keep subtle)
+                            // Slow move toward player
                             x += (targetX - x) * 0.2f * dt
                             y += (targetY - y) * 0.2f * dt
                             
                         } else {
                             if (isTracking) {
                                 isTracking = false
-                                patrolTimer = 0f // Reset patrol
+                                transmissionProgress = 0f
+                                firstDetectionShown = false
+                                patrolTimer = 0f
                             }
                             
                             // Horizontal patrol
@@ -219,14 +249,14 @@ class ActiveThreat(
                             if (x > screenWidth - 50f && vx > 0) vx = -abs(vx)
                             
                             x += vx * dt
-                            y += vy * dt // Still apply hover oscillation below
+                            y += vy * dt
                         }
                         
                         // Hover oscillation
                         if (!isTracking) {
                             vy = kotlin.math.sin(lifetime * 3f) * 20f
                         } else {
-                            vy = 0f // Steady while scanning
+                            vy = 0f
                         }
                     }
 
@@ -577,13 +607,16 @@ class ActiveThreat(
         cameraY: Float,
         onVisualFeedback: (shake: Float, flash: Float) -> Unit,
         onNotification: (String, Float?) -> Unit,
-        onFloatingText: (String, Color, Boolean) -> Unit,
+        onMajorWarning: (String, Float) -> Unit,
+        onFloatingText: (String, Float, Float, Color, Boolean, Float) -> Unit,
         onDiscovery: (DiscoveryType) -> Unit,
         onBurst: (x: Float, y: Float, count: Int, color: Color, speed: Float) -> Unit,
         onScoreUpdate: (Int) -> Unit,
         onMissionProgress: (MissionType) -> Unit,
         onSpawnGhostPlatform: (x: Float, y: Float) -> Unit,
-        onSpawnReinforcements: () -> Unit
+        onSpawnReinforcements: () -> Unit,
+        onAnchoredText: (FloatingText) -> Unit,
+        onEscalationEvent: (x: Float, y: Float, source: ActiveThreat) -> Unit
     ) {
         if (state != ThreatState.ACTIVE) return
 
@@ -620,7 +653,7 @@ class ActiveThreat(
                         }
                         player.invulnerabilityTimer = 0.8f
                         onVisualFeedback(20f, 0f)
-                        onFloatingText("HULL IMPACT", Color.Red, false)
+                        onFloatingText("HULL IMPACT", player.x, player.y, Color.Red, false, 1.0f)
                     }
                     definition.discoveryType?.let { onDiscovery(it) }
                 }
@@ -694,7 +727,7 @@ class ActiveThreat(
                     onNotification("DISTRESS SIGNAL DETECTED", null)
                     val type = PowerUpType.entries.random()
                     powerUps.add(PowerUp(x, y, type))
-                    onFloatingText("SALVAGE RECOVERED", Color.Green, false)
+                    onFloatingText("SALVAGE RECOVERED", player.x, player.y, Color.Green, false, 1.0f)
                 }
             }
             "HAZ_VOID_ANOMALY" -> {
@@ -714,8 +747,16 @@ class ActiveThreat(
                 }
             }
             "ENT_SCOUT_DRONE" -> {
-                if (isTracking && lifetime > 5.0f && Random.nextFloat() < 0.001f) {
-                    onSpawnReinforcements()
+                if (isTracking && !firstDetectionShown) {
+                    firstDetectionShown = true
+                    onAnchoredText(FloatingText("HUMAN PRESENCE DETECTED", x, y - 60f, life = 2.5f, color = Color.White, isCritical = false, sourceThreat = this, anchorOffsetY = -60f, shadowColor = Color(0x80FF1744), shadowBlur = 20f))
+                }
+                if (isTracking && transmissionProgress >= 1f && !hasReinforced) {
+                    onAnchoredText(FloatingText("SIGNAL TRANSMITTED", x, y - 60f, life = 2.5f, color = Color(0xFFFF1744), isCritical = false, sourceThreat = this, anchorOffsetY = -60f, shadowColor = Color(0xFFFF1744), shadowBlur = 25f))
+                    onEscalationEvent(x, y, this)
+                    hasReinforced = true
+                    fleeTimer = 3f
+                    onBurst(x, y, 20, Color(0xFFE91E63), 300f)
                 }
             }
             "ENT_SWARM_BOTS" -> {
@@ -731,7 +772,7 @@ class ActiveThreat(
                         player.heat = min(Constants.MAX_HEAT, player.heat + 30f)
                         player.invulnerabilityTimer = 1.0f
                         onVisualFeedback(15f, 0f)
-                        onFloatingText("HULL COLLISION", Color.Red, false)
+                        onFloatingText("HULL COLLISION", player.x, player.y, Color.Red, false, 1.0f)
                     }
 
                     repeat(maxWeakPoints) { i ->
@@ -766,12 +807,12 @@ class ActiveThreat(
                                 player.velocityY = -400f 
                                 onBurst(wx, wy, 25, Color(0xFF9C27B0), 300f) // SciFiPurple
                                 onVisualFeedback(20f, 0f)
-                                onFloatingText("WEAK POINT DESTROYED", Color(0xFF9C27B0), true)
+                                onFloatingText("WEAK POINT DESTROYED", player.x, player.y, Color(0xFF9C27B0), true, 1.0f)
 
                                 if (activeWeakPoints <= 0) {
                                     phase = 5 
                                     onScoreUpdate(1000)
-                                    onFloatingText("BOSS CRITICAL - RETREATING", Color.Cyan, true)
+                                    onFloatingText("BOSS CRITICAL - RETREATING", player.x, player.y, Color.Cyan, true, 1.0f)
                                 }
                             }
                         }
@@ -862,11 +903,18 @@ class ActiveThreat(
                             player.velocityX += 4800f * shiftDir * sdt
                             onVisualFeedback(10f, 0.4f)
                         }
+                        if (phase == 3 && Random.nextFloat() < 0.008f) {
+                            player.controlInversionTimer = 2.5f
+                            onFloatingText("CONTROL INVERTED", player.x, player.y, Color(0xFFE91E63), true, 1.0f)
+                        }
                     }
                     "BOSS_SIGNAL" -> {
                         if (distSq < 800f * 800f) {
                             if (Random.nextFloat() < 0.05f) {
                                 onNotification("SIGNAL LOSS...", 0.5f)
+                            }
+                            if (Random.nextFloat() < 0.02f) {
+                                player.hudInterferenceTimer = 2.5f
                             }
                             if (phase == 3) {
                                 player.heat += 40f * sdt
@@ -883,7 +931,7 @@ class ActiveThreat(
                 if (phase == 5 && !hasInteracted) {
                     hasInteracted = true
                     powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
-                    onFloatingText("!!! ${definition.name.uppercase()} DEFEATED !!!", Color.Cyan, true)
+                    onFloatingText("!!! ${definition.name.uppercase()} DEFEATED !!!", player.x, player.y, Color.Cyan, true, 1.0f)
                     onNotification(">>> MISSION DATA RECOVERED <<<", 5.0f)
                     onVisualFeedback(70f, 1.0f)
                     onBurst(player.x, cameraY + 200f, 100, Color(0xFF9C27B0), 1200f)

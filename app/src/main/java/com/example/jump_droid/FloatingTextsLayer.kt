@@ -18,7 +18,7 @@ fun FloatingTextsLayer(
     cameraY: Float
 ) {
     texts.forEach { ft ->
-        val scale = if (ft.isCritical) 1.0f + (ft.life * 0.5f) else 1.0f
+        val scale = if (ft.isCritical) 1.0f + (ft.life * 0.5f * ft.scaleMultiplier) else 1.0f
         Text(
             text = ft.text,
             color = ft.color.copy(alpha = (ft.life / 1.0f).coerceIn(0f, 1f)),
@@ -26,9 +26,9 @@ fun FloatingTextsLayer(
                 .offset { IntOffset((ft.x - 50f).toInt(), (ft.y - cameraY).toInt()) }
                 .graphicsLayer(scaleX = scale, scaleY = scale),
             style = if (ft.isCritical) MaterialTheme.typography.headlineSmall.copy(
-                shadow = Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
+                shadow = Shadow(ft.shadowColor, offset = Offset(0f, 0f), blurRadius = ft.shadowBlur)
             ) else MaterialTheme.typography.labelLarge.copy(
-                shadow = Shadow(Color.Black, offset = Offset(2f, 2f), blurRadius = 4f)
+                shadow = Shadow(ft.shadowColor, offset = Offset(2f, 2f), blurRadius = ft.shadowBlur)
             ),
             fontWeight = FontWeight.Bold
         )

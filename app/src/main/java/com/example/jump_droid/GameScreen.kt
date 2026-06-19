@@ -138,6 +138,14 @@ fun GameScreen() {
     val survivalManager = remember { SurvivalManager() }
     val encounterDirector = remember { EncounterDirector() }
 
+    // Escalation & Major Warning State
+    var majorWarningText by remember { mutableStateOf<String?>(null) }
+    var majorWarningTimer by remember { mutableFloatStateOf(0f) }
+    var escalationSpawnId by remember { mutableStateOf<String?>(null) }
+    var escalationSpawnX by remember { mutableFloatStateOf(0f) }
+    var escalationSpawnY by remember { mutableFloatStateOf(0f) }
+    var escalationCountdown by remember { mutableFloatStateOf(0f) }
+
     LaunchedEffect(gameState) {
         if (gameState != GameState.PLAYING) {
             isThrusting = false
@@ -530,6 +538,42 @@ fun GameScreen() {
         missionManager.selectNextMission()
     }
 
+    fun spawnEscalationThreat(id: String, droneX: Float, droneY: Float) {
+        val spawnY = droneY - 100f
+        when (id) {
+            "HAZ_LIGHTNING" -> {
+                ThreatRegistry.getById(id)?.let { def ->
+                    val offsetX = if (Random.nextBoolean()) -400f else 400f
+                    threatManager.spawnThreat(def, player.x + offsetX, spawnY - 100f, vy = 60f)
+                }
+            }
+            "HAZ_TURBULENCE" -> {
+                val side = if (player.x > screenWidth / 2f) -1f else 1f
+                val sx = if (side > 0) -200f else screenWidth + 200f
+                ThreatRegistry.getById(id)?.let { def ->
+                    threatManager.spawnThreat(def, sx, spawnY, vx = side * 250f, vy = Random.nextFloat() * 100f)
+                }
+            }
+            "HAZ_EMP" -> {
+                ThreatRegistry.getById(id)?.let { def ->
+                    threatManager.spawnThreat(def, droneX, spawnY)
+                }
+            }
+            "HAZ_GRAVITY" -> {
+                ThreatRegistry.getById(id)?.let { def ->
+                    val gx = player.x + (Random.nextFloat() - 0.5f) * 400f
+                    threatManager.spawnThreat(def, gx, droneY - 50f, vy = 40f)
+                }
+            }
+            "HAZ_VOID_ANOMALY" -> {
+                val offsetX = if (Random.nextBoolean()) -350f else 350f
+                ThreatRegistry.getById(id)?.let { def ->
+                    threatManager.spawnThreat(def, player.x + offsetX, spawnY, vy = 80f)
+                }
+            }
+        }
+    }
+
     fun restartGame() {
         if (screenWidth <= 0f) return
         player.x = screenWidth / 2f
@@ -572,6 +616,10 @@ fun GameScreen() {
         threatManager.clear()
         missionManager.clear()
         bossesSpawned.clear()
+        majorWarningText = null
+        majorWarningTimer = 0f
+        escalationSpawnId = null
+        escalationCountdown = 0f
         notificationManager.clear()
         floatingTextManager.clear()
         platformManager.reset()
@@ -771,6 +819,22 @@ fun GameScreen() {
                         if (player.stabilityTimer > 0) player.stabilityTimer = max(0f, player.stabilityTimer - dt)
                         if (player.invulnerabilityTimer > 0) player.invulnerabilityTimer = max(0f, player.invulnerabilityTimer - dt)
                         if (player.comboFreezeTimer > 0) player.comboFreezeTimer = max(0f, player.comboFreezeTimer - dt)
+                        if (player.controlInversionTimer > 0) player.controlInversionTimer = max(0f, player.controlInversionTimer - dt)
+                        if (player.hudInterferenceTimer > 0) player.hudInterferenceTimer = max(0f, player.hudInterferenceTimer - dt)
+
+                        // Major warning timer
+                        if (majorWarningTimer > 0f) {
+                            majorWarningTimer -= dt
+                            if (majorWarningTimer <= 0f) majorWarningText = null
+                        }
+                        // Escalation countdown — delay between message and threat spawn
+                        if (escalationCountdown > 0f && escalationSpawnId != null) {
+                            escalationCountdown -= dt
+                            if (escalationCountdown <= 0f) {
+                                spawnEscalationThreat(escalationSpawnId!!, escalationSpawnX, escalationSpawnY)
+                                escalationSpawnId = null
+                            }
+                        }
 
                         // Visual squash/stretch lerp back to 1.0
                         player.squashStretch += (1.0f - player.squashStretch) * 10f * dt
@@ -832,8 +896,12 @@ fun GameScreen() {
                                         if (alpha != null) notificationManager.showImmediately(msg, alpha)
                                         else notificationManager.showImmediately(msg)
                                     },
-                                    onFloatingText = { msg, color, critical ->
-                                        floatingTextManager.add(FloatingText(msg, player.x, player.y - 100f, color = color, isCritical = critical))
+                                    onMajorWarning = { msg, duration ->
+                                        majorWarningText = msg
+                                        majorWarningTimer = duration
+                                    },
+                                    onFloatingText = { msg, x, y, color, critical, life ->
+                                        floatingTextManager.add(FloatingText(msg, x, y, life = life, color = color, isCritical = critical))
                                     },
                                     onDiscovery = { checkDiscovery(it) },
                                     onBurst = { x, y, count, color, speed ->
@@ -856,13 +924,24 @@ fun GameScreen() {
                                             ).apply { isBreaking = true })
                                         }
                                     },
-                                    onSpawnReinforcements = {
-                                        val currentDrones = threatManager.activeThreats.count { it.definition.id == "ENT_SCOUT_DRONE" }
-                                        if (currentDrones < 4) {
-                                            val side = if (Random.nextBoolean()) 1f else -1f
-                                            val spawnX = if (side > 0) -100f else screenWidth + 100f
-                                            threatManager.spawnThreat(threat.definition, spawnX, threat.y, vx = side * 150f)
-                                            notificationManager.showImmediately("REINFORCEMENTS INBOUND")
+                                    onSpawnReinforcements = {},
+                                    onAnchoredText = { floatingTextManager.add(it) },
+                                    onEscalationEvent = { threatX, threatY, source ->
+                                        if (escalationCountdown <= 0f) {
+                                            val zone = altitudeManager.currentZone
+                                            val (threatId, msg) = when (zone) {
+                                                AltitudeZone.EARTH -> "ENT_SCOUT_DRONE" to "SUMMONING REINFORCEMENTS"
+                                                AltitudeZone.CLOUD_LAYER -> "HAZ_LIGHTNING" to "SUMMONING STORM"
+                                                AltitudeZone.UPPER_ATMOSPHERE -> "HAZ_TURBULENCE" to "SUMMONING TURBULENCE"
+                                                AltitudeZone.ORBIT -> "HAZ_EMP" to "ACTIVATING DEFENSE PROTOCOL"
+                                                AltitudeZone.DEEP_SPACE -> "HAZ_GRAVITY" to "SUMMONING ANOMALY"
+                                                AltitudeZone.VOID -> "HAZ_VOID_ANOMALY" to "REALITY BREACH DETECTED"
+                                            }
+                                            floatingTextManager.add(FloatingText(msg, threatX, threatY - 30f, life = 2.5f, color = SciFiRed, isCritical = false, sourceThreat = source, anchorOffsetY = -30f, shadowColor = SciFiRed, shadowBlur = 25f))
+                                            escalationSpawnId = threatId
+                                            escalationSpawnX = threatX
+                                            escalationSpawnY = threatY
+                                            escalationCountdown = 1.5f
                                         }
                                     }
                                 )
@@ -898,7 +977,7 @@ fun GameScreen() {
                                 val dx = thrustTarget.x - player.x
                                 val maxSteerDist = screenWidth / 3f
                                 val steerMult = if (player.stabilityTimer > 0) 1.2f else 0.7f
-                                val steerForce = (dx / maxSteerDist).coerceIn(-1f, 1f)
+                                val steerForce = (dx / maxSteerDist).coerceIn(-1f, 1f) * (if (player.controlInversionTimer > 0f) -1f else 1f)
                                 player.velocityX += steerForce * currentThrust * steerMult * sdt
 
                                 player.fuel = max(0f, player.fuel - currentConsumption * sdt)
@@ -1809,7 +1888,7 @@ fun GameScreen() {
                                         }
                                     }
 
-                                    val eyePulse = (sin(gameTime / 150f) * 0.5f + 0.5f)
+                                    val eyePulse = if (threat.transmissionProgress > 0f) (sin(gameTime / 50f) * 0.5f + 0.5f) else (sin(gameTime / 150f) * 0.5f + 0.5f)
                                     val eyeColor = if (isTracking) Color.Red else Color.Cyan
                                     val eyeRadius = if (isTracking) 12f else 8f
 
@@ -1831,6 +1910,25 @@ fun GameScreen() {
                                         end = Offset(tx + 35f, ty - 10f),
                                         strokeWidth = 3f
                                     )
+
+                                    // Transmission visual rings
+                                    if (isTracking && threat.transmissionProgress > 0f) {
+                                        val prog = if (threat.transmissionProgress < 1f) threat.transmissionProgress else threat.scanPulse
+                                        val baseRadius = 25f
+                                        val ringCount = 3
+                                        repeat(ringCount) { i ->
+                                            val offset = i * 0.33f
+                                            val ringPhase = (prog + offset) % 1f
+                                            val radius = ringPhase * 90f + baseRadius
+                                            val alpha = (1f - ringPhase) * 0.5f
+                                            drawCircle(
+                                                color = Color(0xFFE91E63).copy(alpha = alpha),
+                                                radius = radius,
+                                                center = Offset(tx, ty),
+                                                style = Stroke(width = 2f)
+                                            )
+                                        }
+                                    }
                                 }
                                 "ENT_SWARM_BOTS" -> {
                                     // Render Aerosol Swarm
@@ -2412,14 +2510,16 @@ fun GameScreen() {
                         modifier = Modifier.align(Alignment.CenterStart),
                         fuel = player.fuel, maxFuel = player.maxFuel,
                         heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated,
-                        gameTime = gameTime
+                        gameTime = gameTime,
+                        interferenceTimer = player.hudInterferenceTimer
                     )
 
                     RightGauges(
                         modifier = Modifier.align(Alignment.CenterEnd),
                         shield = player.shield, maxShield = player.maxShield,
                         integrity = player.integrity, maxIntegrity = player.maxIntegrity,
-                        gameTime = gameTime
+                        gameTime = gameTime,
+                        interferenceTimer = player.hudInterferenceTimer
                     )
 
                     // 4. CENTER BELOW ALTITUDE: Progression HUD Layer
@@ -2460,6 +2560,21 @@ fun GameScreen() {
                         notificationAlpha = notificationManager.alpha,
                         screenWidth = screenWidth
                     )
+
+                    // MAJOR WARNING (center-screen, reserved for bosses/rocket/zone/critical events)
+                    if (majorWarningText != null) {
+                        val warnAlpha = (majorWarningTimer / 2f).coerceIn(0f, 1f)
+                        Text(
+                            text = majorWarningText!!,
+                            modifier = Modifier.align(Alignment.Center).graphicsLayer(alpha = warnAlpha),
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 4.sp
+                            ),
+                            color = SciFiRed,
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
                     FloatingTextsLayer(
                         texts = floatingTextManager.texts,

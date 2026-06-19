@@ -25,7 +25,17 @@ class FloatingTextManager {
         while (iterator.hasNext()) {
             val ft = iterator.next()
             ft.life -= dt
-            ft.y -= 50f * dt // Upward drift
+            if (ft.sourceThreat != null) {
+                if (ft.sourceThreat!!.state != ThreatState.DESTROYED && ft.sourceThreat!!.isTracking) {
+                    ft.x = ft.sourceThreat!!.x
+                    ft.y = ft.sourceThreat!!.y + ft.anchorOffsetY
+                } else {
+                    iterator.remove()
+                    continue
+                }
+            } else {
+                ft.y -= 50f * dt
+            }
             if (ft.life <= 0) {
                 iterator.remove()
             }

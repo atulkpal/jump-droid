@@ -87,10 +87,13 @@ fun AltitudeDisplay(
 fun FuelGauge(
     fuel: Float,
     maxFuel: Float,
-    gameTime: Long
+    gameTime: Long,
+    interferenceTimer: Float = 0f
 ) {
     val gaugeHeight = (120f + (maxFuel - 100f) * 0.6f).coerceIn(100f, 250f).dp
     val isLow = fuel < 20f
+    val isInterfered = interferenceTimer > 0f
+    val noiseVal = if (isInterfered) ((sin(gameTime / 100.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             "\u26FD",
@@ -108,19 +111,29 @@ fun FuelGauge(
             val ratio = (fuel / maxFuel).coerceIn(0f, 1f)
             Canvas(modifier = Modifier.fillMaxSize()) {
                 clipPath(Path().apply { addRoundRect(RoundRect(Rect(Offset.Zero, size), CornerRadius(2.dp.toPx()))) }) {
-                    val fillHeight = size.height * ratio
-                    val waveOffset = (gameTime / 300f) % (2 * PI.toFloat())
-                    val path = Path().apply {
-                        moveTo(0f, size.height - fillHeight)
-                        for (x in 0..size.width.toInt()) {
-                            val y = (size.height - fillHeight) + sin(x / 4f + waveOffset) * 2f
-                            lineTo(x.toFloat(), y)
+                    if (noiseVal > 0.15f) {
+                        val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
+                        val fillHeight = size.height * ratio
+                        val waveOffset = (gameTime / 300f) % (2 * PI.toFloat())
+                        val path = Path().apply {
+                            moveTo(0f, size.height - fillHeight)
+                            for (x in 0..size.width.toInt()) {
+                                val y = (size.height - fillHeight) + sin(x / 4f + waveOffset) * 2f
+                                lineTo(x.toFloat(), y)
+                            }
+                            lineTo(size.width, size.height)
+                            lineTo(0f, size.height)
+                            close()
                         }
-                        lineTo(size.width, size.height)
-                        lineTo(0f, size.height)
-                        close()
+                        drawPath(path = path, color = (if (fuel > maxFuel * 0.25f) SciFiGreen else SciFiRed).copy(alpha = fillAlpha))
                     }
-                    drawPath(path = path, color = (if (fuel > maxFuel * 0.25f) SciFiGreen else SciFiRed).copy(alpha = 0.9f))
+                    if (isInterfered) {
+                        val staticSeed = sin(gameTime / 150.0 + 1.0) * 0.5 + 0.5
+                        repeat(4) {
+                            val ny = (sin(gameTime / 80.0 + it * 2.0) * 0.5 + 0.5) * size.height
+                            drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+                        }
+                    }
                 }
             }
         }
@@ -132,14 +145,17 @@ fun HeatGauge(
     heat: Float,
     maxHeat: Float,
     isOverheated: Boolean,
-    gameTime: Long
+    gameTime: Long,
+    interferenceTimer: Float = 0f
 ) {
     val gaugeHeight = (120f + (maxHeat - 100f) * 0.6f).coerceIn(100f, 250f).dp
+    val isInterfered = interferenceTimer > 0f
+    val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 2.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             if (isOverheated) "\u26A0\uFE0F" else "\uD83D\uDD25",
             fontSize = 14.sp,
-            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isOverheated) (gameTime / 150 % 2).toFloat() else 0.8f)
+            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isOverheated) (gameTime / 150 % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f)
         )
         Box(
             modifier = Modifier
@@ -157,8 +173,17 @@ fun HeatGauge(
                 else -> SciFiCyan
             }
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val fillHeight = size.height * heatRatio
-                drawRect(color = heatColor.copy(alpha = 0.9f), topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
+                if (noiseVal > 0.15f) {
+                    val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
+                    val fillHeight = size.height * heatRatio
+                    drawRect(color = heatColor.copy(alpha = fillAlpha), topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
+                }
+                if (isInterfered) {
+                    repeat(4) {
+                        val ny = (sin(gameTime / 80.0 + it * 2.0 + 1.0) * 0.5 + 0.5) * size.height
+                        drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+                    }
+                }
             }
         }
     }
@@ -169,14 +194,17 @@ fun ShieldGauge(
     shield: Float,
     maxShield: Float,
     isShieldCritical: Boolean,
-    gameTime: Long
+    gameTime: Long,
+    interferenceTimer: Float = 0f
 ) {
     val gaugeHeight = (120f + (maxShield - 50f) * 1.2f).coerceIn(100f, 250f).dp
+    val isInterfered = interferenceTimer > 0f
+    val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 3.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             "\uD83D\uDEE1\uFE0F",
             fontSize = 14.sp,
-            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isShieldCritical) (gameTime / 200 % 2).toFloat() else 0.8f)
+            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isShieldCritical) (gameTime / 200 % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f)
         )
         Box(
             modifier = Modifier
@@ -188,11 +216,20 @@ fun ShieldGauge(
         ) {
             val shieldRatio = (shield / maxShield).coerceIn(0f, 1f)
             Canvas(modifier = Modifier.fillMaxSize()) {
-                drawRect(
-                    color = SciFiCyan.copy(alpha = 0.9f),
-                    topLeft = Offset(0f, size.height * (1f - shieldRatio)),
-                    size = Size(size.width, size.height * shieldRatio)
-                )
+                if (noiseVal > 0.15f) {
+                    val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
+                    drawRect(
+                        color = SciFiCyan.copy(alpha = fillAlpha),
+                        topLeft = Offset(0f, size.height * (1f - shieldRatio)),
+                        size = Size(size.width, size.height * shieldRatio)
+                    )
+                }
+                if (isInterfered) {
+                    repeat(4) {
+                        val ny = (sin(gameTime / 80.0 + it * 2.0 + 2.0) * 0.5 + 0.5) * size.height
+                        drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+                    }
+                }
             }
         }
     }
@@ -203,14 +240,17 @@ fun IntegrityGauge(
     integrity: Float,
     maxIntegrity: Float,
     isHullCritical: Boolean,
-    gameTime: Long
+    gameTime: Long,
+    interferenceTimer: Float = 0f
 ) {
     val gaugeHeight = (120f + (maxIntegrity - 100f) * 0.6f).coerceIn(100f, 250f).dp
+    val isInterfered = interferenceTimer > 0f
+    val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 4.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             "\u2764\uFE0F",
             fontSize = 14.sp,
-            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isHullCritical) (gameTime / 200 % 2).toFloat() else 0.8f)
+            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isHullCritical) (gameTime / 200 % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f)
         )
         Box(
             modifier = Modifier
@@ -222,11 +262,20 @@ fun IntegrityGauge(
         ) {
             val integrityRatio = (integrity / maxIntegrity).coerceIn(0f, 1f)
             Canvas(modifier = Modifier.fillMaxSize()) {
-                drawRect(
-                    color = SciFiGreen.copy(alpha = 0.9f),
-                    topLeft = Offset(0f, size.height * (1f - integrityRatio)),
-                    size = Size(size.width, size.height * integrityRatio)
-                )
+                if (noiseVal > 0.15f) {
+                    val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
+                    drawRect(
+                        color = SciFiGreen.copy(alpha = fillAlpha),
+                        topLeft = Offset(0f, size.height * (1f - integrityRatio)),
+                        size = Size(size.width, size.height * integrityRatio)
+                    )
+                }
+                if (isInterfered) {
+                    repeat(4) {
+                        val ny = (sin(gameTime / 80.0 + it * 2.0 + 3.0) * 0.5 + 0.5) * size.height
+                        drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+                    }
+                }
             }
         }
     }
@@ -331,7 +380,8 @@ fun LeftGauges(
     modifier: Modifier = Modifier,
     fuel: Float, maxFuel: Float,
     heat: Float, maxHeat: Float, isOverheated: Boolean,
-    gameTime: Long
+    gameTime: Long,
+    interferenceTimer: Float = 0f
 ) {
     Column(
         modifier = modifier
@@ -340,8 +390,8 @@ fun LeftGauges(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        FuelGauge(fuel = fuel, maxFuel = maxFuel, gameTime = gameTime)
-        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, gameTime = gameTime)
+        FuelGauge(fuel = fuel, maxFuel = maxFuel, gameTime = gameTime, interferenceTimer = interferenceTimer)
+        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, gameTime = gameTime, interferenceTimer = interferenceTimer)
     }
 }
 
@@ -350,7 +400,8 @@ fun RightGauges(
     modifier: Modifier = Modifier,
     shield: Float, maxShield: Float,
     integrity: Float, maxIntegrity: Float,
-    gameTime: Long
+    gameTime: Long,
+    interferenceTimer: Float = 0f
 ) {
     Column(
         modifier = modifier
@@ -359,8 +410,8 @@ fun RightGauges(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = shield < maxShield * 0.25f, gameTime = gameTime)
-        IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = integrity < maxIntegrity * 0.25f, gameTime = gameTime)
+        ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = shield < maxShield * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer)
+        IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = integrity < maxIntegrity * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer)
     }
 }
 

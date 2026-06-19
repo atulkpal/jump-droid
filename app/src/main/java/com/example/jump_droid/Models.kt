@@ -125,7 +125,12 @@ class FloatingText(
     var y: Float,
     var life: Float = 1.0f,
     val color: Color = Color.White,
-    val isCritical: Boolean = false
+    val isCritical: Boolean = false,
+    val sourceThreat: ActiveThreat? = null,
+    val anchorOffsetY: Float = 0f,
+    val shadowColor: Color = Color.Black,
+    val shadowBlur: Float = 4f,
+    val scaleMultiplier: Float = 1.0f
 )
 
 class Particle(
@@ -167,6 +172,8 @@ class Player(
     var turboTimer by mutableFloatStateOf(0f)
     var efficiencyTimer by mutableFloatStateOf(0f)
     var stabilityTimer by mutableFloatStateOf(0f) // Task 2: Flight stabilization
+    var controlInversionTimer by mutableFloatStateOf(0f)
+    var hudInterferenceTimer by mutableFloatStateOf(0f)
     
     var combo by mutableIntStateOf(0)
     var maxComboReached by mutableIntStateOf(0)
