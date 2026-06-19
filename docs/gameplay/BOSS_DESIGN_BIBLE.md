@@ -27,7 +27,8 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 **Status:** Partial  
 **Biome:** Upper Atmosphere / Space Boundary  
 **Difficulty:** ⭐⭐⭐ (Medium)  
-**Weak Points:** 4
+**Weak Points:** 4  
+**Visual Appearance:** Massive rotating orbital ring with afterimage ghost rings from rapid rotation. Safe gaps highlighted in green glow with solid energy barrier walls; danger arcs in red with high-contrast edges. Push-back force lines radiate from barriers toward player. Weak point nodes have rotating cyan shield rings. Central eye tracks player with iris pupil movement. Full-screen arrival dimming overlay.
 
 | Phase | Description |
 | :--- | :--- |
@@ -44,7 +45,8 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 **Status:** Partial  
 **Biome:** Deep Space / Stellar Nursery  
 **Difficulty:** ⭐⭐⭐⭐ (Hard)  
-**Weak Points:** 1
+**Weak Points:** 1  
+**Visual Appearance:** Black/purple radial gradient suction aura with after-image ghost copy offset behind. Power-up suction stream trails pulling from surroundings. 16 energy dentition-teeth around the maw rim. Dark pulsing core with magenta eye weak point (white pupil). 12 purple/red tendrils that glow brighter when player is near. Hunger-meter pulsing ring around core.
 
 | Phase | Description |
 | :--- | :--- |
@@ -58,10 +60,11 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 ### 3. The Leviathan
 **ID:** `BOSS_LEVIATHAN`  
-**Status:** Partial  
+**Status:** Implemented  
 **Biome:** Void / Deep Space Edge  
 **Difficulty:** ⭐⭐⭐⭐⭐ (Very Hard)  
-**Weak Points:** 3 (Tail deals 3× damage)
+**Weak Points:** 3 (Tail deals 3× damage)  
+**Visual Appearance:** 6 organic ellipse body segments with armor plate overlay, arranged vertically with sine-wave offset. Each segment has bioluminescent vein patterns and directional slipstream arrows showing push direction. Head segment has a glowing red eye. Weak points (magenta circles with white dot) on even segments (0, 2, 4). Tail whip telegraph lines extend from last 2 segments in phase 3. Wall-pressure red edge glow on screen sides when player is near boundaries.
 
 | Phase | Description |
 | :--- | :--- |
@@ -75,10 +78,11 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 ### 4. Void Engine
 **ID:** `BOSS_VOID_ENGINE`  
-**Status:** Prototype  
+**Status:** Implemented  
 **Biome:** Void / Quantum Fluctuation Zone  
 **Difficulty:** ⭐⭐⭐⭐ (Hard)  
-**Weak Points:** 2
+**Weak Points:** 2  
+**Visual Appearance:** Pink reality-warp radial gradient aura with jagged reality-tear rim. 3 rotating arms (#880E4F bars with white border) at 120° spacing, each with ghost afterimage copies for rotation trail. Core instability white arc bursts (frequency increases with damage). Magenta weak point circles at arm tips. Screen-wide gravity-shift direction arrows (large background arrow + edge indicators). Control-inversion buildup pink screen tint overlay.
 
 | Phase | Description |
 | :--- | :--- |
@@ -92,10 +96,11 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 ### 5. The Signal
 **ID:** `BOSS_SIGNAL`  
-**Status:** Prototype  
+**Status:** Implemented  
 **Biome:** Edge of Reality / Chrono-Rift  
 **Difficulty:** ⭐⭐⭐⭐⭐ (Very Hard)  
-**Weak Points:** 1
+**Weak Points:** 1  
+**Visual Appearance:** Flickers in and out of visibility (10% chance invisible per frame, 30% in phase 3). 20 randomly positioned red/white glitch rectangles (up from 15). Screen-tear horizontal offset bands. Binary-rain particle columns (0/1 symbols). Ghost platform preview flicker outlines. Decoy Signal copies that dissolve in phase 3. Static-noise TV ring aura. Magenta glitching weak point circle with pulsing alpha. Large faint white scanning pulse ring.
 
 | Phase | Description |
 | :--- | :--- |
@@ -147,7 +152,8 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 **ID:** `MINI_BOSS_COMMANDER`  
 **Status:** Complete  
 **Biome:** Upper Atmosphere  
-**Weak Points:** 3
+**Weak Points:** 3  
+**Visual Appearance:** Large cruiser (300x120px) with phase-color shift: blue hull (P2), red hull (P3+), orange hull (flee). Cyan shield bubble when weak points remain. Bridge tower with phase-color window strip. 2 antennae with red tips. Rotating radar dish. Fast-flashing yellow hull lights (rate increases with phase). Phase-color engine glows (cyan/red/orange). 2 red scanning beam triangles (P3+). 3 magenta weak point squares with rotating white beacon. Jam-wave pulsing cyan ring. Gravity pulse ring with debris particles.
 
 | Behavior | Description |
 | :--- | :--- |
@@ -211,21 +217,21 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 The following entities represent standard hostile units encountered throughout the ascent.
 
-| Name | ID | Status | Role | Zone | Key Behavior |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Surveyor Probe** | `ENT_SCOUT_DRONE` | **Complete** | Scout | Earth+ | Detects player and calls reinforcements. |
-| **Sky Ray** | `ENT_CLOUD_SKIMMER` | **Partial** | Support | Cloud Layer | Glides horizontally; provides upward boost. |
-| **Aerosol Swarm** | `ENT_SWARM_BOTS` | **Complete** | Area Denial | Cloud/Upper | Jittery movement; creates chaotic patterns. |
-| **Defense Node** | `ENT_ORBITAL_SENTRY` | **Complete** | Controller | Orbit | Periodic radar scan; freezes combo and drains fuel. |
-| **Derelict Echo** | `ENT_CORRUPTED_HULL` | **Complete** | Salvage | Deep Space | Drifting wreck; contact spawns random Power-Up. |
-| **Void Tracker** | `ENT_STALKER` | **Registry Only** | Hunter | Deep Space | Predatory machine; follows thermal signatures. |
-| **Cosmic Leviathan** | `ENT_VOID_WHALE` | **Registry Only** | Juggernaut | Deep Space | Massive slow-moving obstacle. |
-| **Shadow Entity** | `ENT_VOID_WRAITH` | **Registry Only** | Horror | Void | Non-Euclidean entities that phase through space. |
-| **Heat Bat** | `ENT_HEAT_BAT` | **APPROVED** | Ambusher | Atmosphere | Dives at player when Heat is high (>=70%). |
-| **Mimic Platform** | `ENT_MIMIC` | **APPROVED** | Deceiver | Global | Perfectly resembles a platform; shatters on touch. |
-| **Void Harvester** | `ENT_VOID_HARVESTER` | **APPROVED** | Predator | Deep/Void | Actively consumes uncollected Power-Ups. |
-| **Phase Wraith** | `ENT_PHASE_WRAITH` | **APPROVED** | Stalker | Void | Only damageable when player is Overheated. |
-| **Gravity Ram** | `ENT_GRAVITY_RAM` | **APPROVED** | Controller | Deep Space | Telegraphed horizontal dash with high knockback. |
+| Name | ID | Status | Role | Zone | Key Behavior | Visual Appearance |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Surveyor Probe** | `ENT_SCOUT_DRONE` | **Complete** | Scout | Earth+ | Detects player and calls reinforcements. | Rectangular body (gray patrolling, dark red tracking); engine glow; red tracking beam; pulsing eye; 2 antennae; pink transmission rings; anchored text overhead |
+| **Sky Ray** | `ENT_CLOUD_SKIMMER` | **Complete** | Support | Cloud Layer | Glides horizontally; provides upward boost. | Manta ray path shape (light cyan, 40% alpha) with wing-flap; cyan slipstream lines; 3 trailing energy bubbles |
+| **Aerosol Swarm** | `ENT_SWARM_BOTS` | **Complete** | Area Denial | Cloud/Upper | Jittery movement; creates chaotic patterns. | 12 small white circles orbiting chaotically; occasional cyan spark |
+| **Defense Node** | `ENT_ORBITAL_SENTRY` | **Complete** | Controller | Orbit | Periodic radar scan; freezes combo and drains fuel. | Rotating square chassis (#37474F); cyan core; expanding cyan radar scan ring |
+| **Derelict Echo** | `ENT_CORRUPTED_HULL` | **Complete** | Salvage | Deep Space | Drifting wreck; contact spawns random Power-Up. | Rotating dark gray hull (20x40px) with secondary piece; green pulsing signal circle |
+| **Void Tracker** | `ENT_STALKER` | **Implemented** | Hunter | Deep Space | Heat-seeking stalker; aggression scales with player thrust. | **Invisible** — no rendering code implemented |
+| **Cosmic Leviathan** | `ENT_VOID_WHALE` | **Implemented** | Juggernaut | Deep Space | Drifting behemoth; slipstream pull + vacuum on proximity. | **Invisible** — no rendering code implemented |
+| **Shadow Entity** | `ENT_VOID_WRAITH` | **Implemented** | Horror | Void | Phases in/out; damages integrity and fuel only when materialized. | **Invisible** — no rendering code implemented |
+| **Heat Bat** | `ENT_HEAT_BAT` | **APPROVED** | Ambusher | Atmosphere | Dives at player when Heat is high (>=70%). | Dark silhouette (design concept) |
+| **Mimic Platform** | `ENT_MIMIC` | **APPROVED** | Deceiver | Global | Perfectly resembles a platform; shatters on touch. | Identical to a normal platform with 1-pixel glitch every 5s (design concept) |
+| **Void Harvester** | `ENT_VOID_HARVESTER` | **APPROVED** | Predator | Deep/Void | Actively consumes uncollected Power-Ups. | Mechanical squid (design concept) |
+| **Phase Wraith** | `ENT_PHASE_WRAITH` | **APPROVED** | Stalker | Void | Only damageable when player is Overheated. | Blue humanoid (design concept) |
+| **Gravity Ram** | `ENT_GRAVITY_RAM` | **APPROVED** | Controller | Deep Space | Telegraphed horizontal dash with high knockback. | Triangular ship (design concept) |
 
 ---
 
@@ -302,34 +308,34 @@ Current implementation in `ActiveThreat.kt` and `ThreatRegistry.kt` differs from
 Purpose: Record concepts that may overlap thematically and could require future review.
 
 **ENT_VOID_WHALE**
-*   **Status:** Registry Only
+*   **Status:** Implemented (Invisible — no rendering)
 *   **Theme overlap:** With `BOSS_LEVIATHAN`
 *   **Future decision:**
     *   Keep separate
     *   Promote to Mini-Boss
     *   Merge concepts into Leviathan
-*   **Current state:** No decision made.
+*   **Current state:** Has AI (slipstream + vacuum), registered in ThreatRegistry, spawnable from dev menu. No visual rendering — invisible to player.
 
 **HAZ_VOID_ANOMALY**
-*   **Status:** Prototype
+*   **Status:** Complete
 *   **Theme overlap:** With `BOSS_VOID_ENGINE`
 *   **Future decision:**
     *   Keep as Hazard spawned by boss
     *   Integrate as direct boss ability
-*   **Current state:** Functional but orphaned from registry.
+*   **Current state:** Fully registered in ThreatRegistry, has AI (pull + jitter), rendering (pink glow + rings + full-screen distortion), and natural spawn rules in EncounterDirector.
 
 ---
 
 # Summary Implementation Matrix
 
-| Name | Type | Status | Zone | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| **Command Cruiser** | Mini-Boss | **Complete** | Orbit | Platform Jamming implemented |
-| **The Gatekeeper** | Boss | **Partial** | Orbit | Gaps and barriers functional; missing projectiles |
-| **Star-Eater** | Boss | **Partial** | Deep Space | Power-Up suction implemented; missing split phase |
-| **The Leviathan** | Boss | **Partial** | Deep Space | Segmented body and thrash logic functional |
-| **Void Engine** | Boss | **Prototype** | Void | Gravity shifts implemented; design-only control inversion |
-| **The Signal** | Boss | **Prototype** | Void | Ghost platforms implemented; HUD jam is design-only |
+| Name | Type | Status | Zone | Notes | Visual Appearance |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Command Cruiser** | Mini-Boss | **Complete** | Orbit | Platform Jamming implemented | Large dark cruiser with bridge, antennae, radar dish, hull lights, engine glows, scanning beams, weak point squares |
+| **The Gatekeeper** | Boss | **Partial** | Orbit | Gaps and barriers functional; missing projectiles | Massive rotating ring with 4 cyan/red barrier arcs, magenta weak point nodes, central pulsing eye |
+| **Star-Eater** | Boss | **Partial** | Deep Space | Power-Up suction implemented; missing split phase | Black/purple suction aura, spiraling magenta particles, dark core with eye weak point, 12 tendrils |
+| **The Leviathan** | Boss | **Implemented** | Deep Space | Segmented body + slipstream; wall pressure in phase 3 | 6 connected blue segments with cyan outlines, slipstream lines, 3 magenta weak points |
+| **Void Engine** | Boss | **Implemented** | Void | Reality warping with gravity shifts and control inversion | Pink radial aura, 3 rotating arms with weak point tips, white energy arcs, shift direction arrows |
+| **The Signal** | Boss | **Implemented** | Void | Ghost platform deception; HUD interference; heat drain | Flickering visibility, red/white glitch rectangles, magenta weak point, large scanning pulse ring |
 | **Chrono Warden** | Boss | **Planned** | Chrono-Rift | Design concept only |
 | **Magma-Core Titan** | Boss | **Planned** | Subterranean | Design concept only |
 | **Frost Wyrmling** | Mini-Boss | **Planned** | Ice Fields | Design concept only |
@@ -342,6 +348,8 @@ Purpose: Record concepts that may overlap thematically and could require future 
 
 | Version | Changes |
 | :--- | :--- |
+| **v1.0** | Added Visual Appearance field to all implemented bosses, mini-bosses, and standard enemies. Updated statuses: Sky Ray → Complete, Gravity Distortion → Complete, Void Anomaly → Complete. Documented 3 invisible enemies (STALKER, VOID_WHALE, VOID_WRAITH) as known rendering gaps. |
+| **v1.1** | **Visual Overhaul v1.0**: Complete rework of all boss/mini-boss visual appearances to communicate abilities at a glance. Gatekeeper: green/red safe-gap coloring, solid barrier walls, iris-tracking eye. Star-Eater: dentition ring, power-up suction streams, hunger-meter. Leviathan: organic ellipse segments, directional slipstream arrows, wall-pressure glow. Void Engine: reality-tear rim, arm afterimages, inversion buildup tint. Signal: screen-tear bands, binary rain, decoy copies, static-noise ring. Commander: phase-color shift hull, shield bubble, rotating beacon weak points, jam-wave ring. |
 | **v0.95** | Added Standard Enemies tabular section. Merged implementation and approved concept rosters. |
 | **v0.9** | Synchronized with THREATS.md audit. Added Status fields and Implementation Matrix. |
 | **v0.8** | Added Chrono Warden, Magma-Core Titan. Updated Signal behavior. |

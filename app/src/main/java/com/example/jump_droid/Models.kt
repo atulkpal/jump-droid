@@ -163,6 +163,8 @@ class Player(
     var shield by mutableFloatStateOf(50f)
     var maxShield by mutableFloatStateOf(50f)
     var shieldRegenPauseTimer by mutableFloatStateOf(0f)
+    var infiniteShield by mutableStateOf(false)
+    var invincibleHull by mutableStateOf(false)
     
     var heat by mutableFloatStateOf(0f)
     var isOverheated by mutableStateOf(false)
@@ -186,4 +188,6 @@ class Player(
     var invulnerabilityTimer by mutableFloatStateOf(0f)
     var isOnPlatform by mutableStateOf(false)
     var destructionTimer by mutableFloatStateOf(0f) // Task 3: Destruction sequence
+    var activeTether by mutableStateOf<Tether?>(null)
+    var inputLatency by mutableFloatStateOf(0f)
 }

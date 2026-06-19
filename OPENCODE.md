@@ -37,6 +37,7 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | `docs/architecture/Refactor_T3_Report.md` | T3 completion report (completed) |
 | `docs/architecture/Refactor_T4_Plan.md` | T4 plan (system delegation) |
 | `docs/architecture/Refactor_T4_Report.md` | T4 completion report (STABILIZED) |
+| `docs/design/ENGINE_EXTENSIONS.md` | Engine expansion system details |
 | `OPENCODE.md` | This file — session context |
 
 ## Current Active EPIC
@@ -55,6 +56,7 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | T2 Phase B | ✅ Done | Extracted 8 Canvas effects into `CanvasEffects.kt` (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion) |
 | T3 | ✅ Done | Extracted `NotificationManager`, `FloatingTextManager`, `PlatformManager`, and expanded `ProgressionManager` |
 | T4 | ✅ Done | System delegation of survival, director, and threat interaction logic (Stabilized) |
+| Engine | ✅ Done | Projectiles, Input Buffer, Tethers, Visual Fog, and E2E Expansion |
 
 ## Completed Refactor Phases
 
@@ -91,6 +93,8 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 - ✅ Cumulative game loop reduction: 4,344 → 2,538 lines (−41.6%)
 - ✅ Positioning regression fixes: `AltitudeDisplay` alignment + `NotificationLayer` text/position (`72594b5`)
 - ✅ Merged into `development` (`af3d0ae`)
+- ✅ Engine expansion: `ProjectileManager`, `InputBufferManager`, `Tether` physics, and `Fog` rendering implemented
+- ✅ `ActiveThreat` signature updated for E2E interaction support
 
 ## Open Refactor Tasks
 
@@ -130,7 +134,7 @@ Every notable engineering event gets a dated entry in `docs/CHANGELOG.md` with: 
 
 ## Current Known Technical Debt
 
-1. **GameScreen.kt at 3,033 lines** — Down from 4,344 (-30.2%). Still large; future sprints may further decompose.
+1. **GameScreen.kt at ~3,760 lines** — Structural changes and manager integration. Still large; future sprints may further decompose.
 2. **Deprecated `LinearProgressIndicator`** — Used in `GameScreen.kt:3284` and `ArchiveScreen.kt:116`. Should migrate to lambda-based overload.
 3. **Threat entity rendering inline** — ~826 lines of Canvas draw code. Deferred indefinitely.
 4. **`PowerupBadge` deleted** — Was unused with zero call sites. Removed in Phase 2.

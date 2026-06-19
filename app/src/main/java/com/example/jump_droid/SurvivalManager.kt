@@ -33,7 +33,7 @@ class SurvivalManager {
         var remainingDamage = amount
 
         // 1. Shield Absorption
-        if (player.shield > 0) {
+        if (player.shield > 0 && !player.infiniteShield) {
             val shieldDamage = min(player.shield, remainingDamage)
             player.shield -= shieldDamage
             remainingDamage -= shieldDamage
@@ -43,7 +43,7 @@ class SurvivalManager {
         }
 
         // 2. Integrity Damage
-        if (remainingDamage > 0) {
+        if (remainingDamage > 0 && !player.invincibleHull) {
             player.integrity = max(0f, player.integrity - remainingDamage)
 
             // Hull Hit Feedback (Red/Gold sparks)

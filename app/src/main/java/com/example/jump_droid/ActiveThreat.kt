@@ -44,6 +44,7 @@ class ActiveThreat(
     var fleeTimer by mutableFloatStateOf(0f)
     var transmissionProgress by mutableFloatStateOf(0f)
     var firstDetectionShown by mutableStateOf(false)
+    var isMaterialized by mutableStateOf(true)
     
     // Boss Mechanic States
     var gravityPulseTimer by mutableFloatStateOf(0f)
@@ -63,7 +64,14 @@ class ActiveThreat(
     /**
      * Updates the threat's internal state.
      */
-    fun update(dt: Float, screenWidth: Float = 1000f, targetX: Float = 0f, targetY: Float = 0f) {
+    fun update(
+        dt: Float, 
+        screenWidth: Float = 1000f, 
+        targetX: Float = 0f, 
+        targetY: Float = 0f,
+        powerUps: List<PowerUp> = emptyList(),
+        activeThreats: List<ActiveThreat> = emptyList()
+    ) {
         lifetime += dt
         
         // --- Life Cycle Calculation (Adjustment Run 1) ---
@@ -444,6 +452,7 @@ class ActiveThreat(
                     }
                     if (definition.id == "BOSS_VOID_ENGINE") {
                         localTimer += dt
+                        gravityPulseTimer += dt
                         if (!isArrived) {
                             arrivalTimer += dt
                             vy = 120f
@@ -451,6 +460,7 @@ class ActiveThreat(
                                 isArrived = true
                                 phase = 2
                                 localTimer = 0f
+                                gravityPulseTimer = 0f
                             }
                             return
                         }
@@ -458,17 +468,22 @@ class ActiveThreat(
                         when (phase) {
                             2 -> { // Reality Warping
                                 rotation += 240f * dt
-                                scanPulse = (scanPulse + dt * 1.5f) % 1.0f
+                                val pulsePhase = sin(lifetime * 2f)
+                                scanPulse = (pulsePhase * 0.5f + 0.5f)
+                                gravityPulseTimer = if (gravityPulseTimer > 2f) 0f else gravityPulseTimer
                                 x += (targetX - x) * 0.2f * dt
                                 if (localTimer > 12f || activeWeakPoints < maxWeakPoints) {
                                     phase = 3
                                     localTimer = 0f
+                                    gravityPulseTimer = 0f
                                 }
                             }
                             3 -> { // Gravity Destabilization
                                 rotation += 480f * dt
                                 scanPulse = (scanPulse + dt * 3.0f) % 1.0f
-                                x += (targetX - x) * 0.5f * dt
+                                val shift = sin(lifetime * 3f) * 2f
+                                x += (targetX - x) * (0.5f + shift * 0.1f) * dt
+                                gravityPulseTimer = if (gravityPulseTimer > 1.5f) 0f else gravityPulseTimer
                                 if (localTimer > 15f || activeWeakPoints <= 0) {
                                     phase = 4
                                     localTimer = 0f
@@ -489,7 +504,7 @@ class ActiveThreat(
                                 isArrived = true
                                 phase = 2
                                 localTimer = 0f
-                                vx = 100f // Start swimming sideways
+                                vx = 100f
                             }
                             return
                         }
@@ -498,6 +513,7 @@ class ActiveThreat(
                             2 -> { // Majestic Glide
                                 x += vx * dt
                                 vy = kotlin.math.sin(lifetime * 1.2f) * 100f
+                                scanPulse = (sin(lifetime * 0.5f) * 0.5f + 0.5f) * 0.6f
                                 if (x < 50f) vx = abs(vx)
                                 if (x > screenWidth - 50f) vx = -abs(vx)
                                 if (localTimer > 15f || activeWeakPoints < maxWeakPoints) {
@@ -506,8 +522,10 @@ class ActiveThreat(
                                 }
                             }
                             3 -> { // Aggressive Thrash
-                                x += vx * 3f * dt
+                                val speedMul = 1f + (1f - activeWeakPoints.toFloat() / maxWeakPoints) * 2f
+                                x += vx * 3f * speedMul * dt
                                 vy = kotlin.math.sin(lifetime * 2.5f) * 200f
+                                scanPulse = (sin(lifetime * 3f) * 0.5f + 0.5f)
                                 if (x < 20f) vx = abs(vx)
                                 if (x > screenWidth - 20f) vx = -abs(vx)
                                 if (localTimer > 15f || activeWeakPoints <= 0) {
@@ -537,7 +555,7 @@ class ActiveThreat(
 
                         when (phase) {
                             2 -> { // HUD Interference
-                                scanPulse = (scanPulse + dt * 2.5f) % 1.0f
+                                scanPulse = (sin(lifetime * 5f) * 0.5f + 0.5f)
                                 x += (targetX - x) * 0.05f * dt
                                 if (localTimer > 15f || activeWeakPoints <= 0) {
                                     phase = 3
@@ -545,8 +563,9 @@ class ActiveThreat(
                                 }
                             }
                             3 -> { // Hallucinations
-                                scanPulse = (scanPulse + dt * 5.0f) % 1.0f
-                                x += (targetX - x) * 0.2f * dt
+                                scanPulse = (sin(lifetime * 8f) * 0.5f + 0.5f)
+                                val fakeDrift = sin(lifetime * 2f) * 2f
+                                x += (targetX - x) * (0.2f + fakeDrift * 0.05f) * dt
                                 vy = (kotlin.math.sin(lifetime * 3f) * 150f)
                                 if (localTimer > 20f) {
                                     phase = 4
@@ -585,6 +604,57 @@ class ActiveThreat(
                         // Periodic signal pulse
                         scanPulse = (scanPulse + dt * 0.4f) % 1.0f
                     }
+
+                    if (definition.id == "ENT_STALKER") {
+                        val dx = targetX - x
+                        val dy = targetY - y
+                        val dist = sqrt(dx*dx + dy*dy)
+                        if (dist < 600f) {
+                            if (!isTracking) isTracking = true
+                            val huntSpeed = 80f + alertLevel * 120f
+                            val dirX = if (dist > 0f) dx / dist else 0f
+                            val dirY = if (dist > 0f) dy / dist else 0f
+                            vx = dirX * huntSpeed
+                            vy = dirY * huntSpeed
+                            x += vx * dt
+                            y += vy * dt
+                            alertLevel = min(1f, alertLevel + dt * 0.5f)
+                            scanPulse = (scanPulse + dt * (1f + alertLevel * 2f)) % 1.0f
+                        } else {
+                            isTracking = false
+                            alertLevel = max(0f, alertLevel - dt * 0.3f)
+                            x += vx * dt
+                            y += vy * dt
+                            scanPulse = (sin(lifetime * 0.5f) * 0.5f + 0.5f) * 0.3f
+                        }
+                        if (dist > 1000f) isTracking = false
+                    }
+
+                    if (definition.id == "ENT_VOID_WRAITH") {
+                        localTimer += dt
+                        val phaseDuration = 5f
+                        val visibleDuration = 3f
+                        val cyclePos = localTimer % phaseDuration
+                        isMaterialized = cyclePos < visibleDuration
+                        val dx = targetX - x
+                        val dy = targetY - y
+                        val dist = sqrt(dx*dx + dy*dy)
+                        val speed = if (isMaterialized) 120f else 40f
+                        val dirX = if (dist > 0f) dx / dist else 0f
+                        val dirY = if (dist > 0f) dy / dist else 0f
+                        x += dirX * speed * dt
+                        y += dirY * speed * dt
+                        scanPulse = (scanPulse + dt * (if (isMaterialized) 3f else 0.5f)) % 1.0f
+                    }
+
+                    if (definition.id == "ENT_VOID_WHALE") {
+                        if (x < -300f) x = screenWidth + 300f
+                        if (x > screenWidth + 300f) x = -300f
+                        x += vx * dt
+                        vy = sin(lifetime * 0.3f) * 15f
+                        y += vy * dt
+                        scanPulse = (sin(lifetime * 0.5f) * 0.5f + 0.5f) * 0.8f + 0.2f
+                    }
                 }
                 else -> {}
             }
@@ -616,7 +686,9 @@ class ActiveThreat(
         onSpawnGhostPlatform: (x: Float, y: Float) -> Unit,
         onSpawnReinforcements: () -> Unit,
         onAnchoredText: (FloatingText) -> Unit,
-        onEscalationEvent: (x: Float, y: Float, source: ActiveThreat) -> Unit
+        onEscalationEvent: (x: Float, y: Float, source: ActiveThreat) -> Unit,
+        activeThreats: List<ActiveThreat> = emptyList(),
+        onSpawnProjectile: (x: Float, y: Float, vx: Float, vy: Float, type: ProjectileType, owner: ProjectileOwner, damage: Float, color: Color, size: Float, life: Float) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> }
     ) {
         if (state != ThreatState.ACTIVE) return
 
@@ -629,10 +701,10 @@ class ActiveThreat(
                 if (distSq < 200f * 200f) {
                     if (phase == 2) { // Striking
                         if (player.invulnerabilityTimer <= 0f) {
-                            if (player.shield > 0) {
+                            if (player.shield > 0 && !player.infiniteShield) {
                                 player.shield = max(0f, player.shield - 25f)
                                 player.shieldRegenPauseTimer = 2f
-                            } else {
+                            } else if (!player.invincibleHull) {
                                 player.integrity = max(0f, player.integrity - 10f)
                             }
                             player.invulnerabilityTimer = 0.5f
@@ -645,10 +717,12 @@ class ActiveThreat(
             "HAZ_DEBRIS" -> {
                 if (distSq < 80f * 80f) {
                     if (player.invulnerabilityTimer <= 0f) {
-                        if (player.shield > 0) {
+                        if (player.shield > 0 && !player.infiniteShield) {
                             player.shield = max(0f, player.shield - 10f)
                             player.integrity = max(0f, player.integrity - 5f)
-                        } else {
+                        } else if (player.shield > 0 && player.infiniteShield) {
+                            if (!player.invincibleHull) player.integrity = max(0f, player.integrity - 5f)
+                        } else if (!player.invincibleHull) {
                             player.integrity = max(0f, player.integrity - 25f)
                         }
                         player.invulnerabilityTimer = 0.8f
@@ -660,7 +734,7 @@ class ActiveThreat(
             }
             "HAZ_RADIATION" -> {
                 if (distSq < 300f * 300f) {
-                    player.shield = max(0f, player.shield - 15f * sdt)
+                    if (!player.infiniteShield) player.shield = max(0f, player.shield - 15f * sdt)
                     definition.discoveryType?.let { onDiscovery(it) }
                 }
             }
@@ -881,6 +955,7 @@ class ActiveThreat(
                         }
                     }
                     "BOSS_LEVIATHAN" -> {
+                        val speedMul = if (phase == 3) 1.5f else 1.0f
                         repeat(6) { i ->
                             val ox = sin(lifetime * 1.5f - i * 0.5f) * 150f
                             val oy = i * 80f
@@ -889,40 +964,85 @@ class ActiveThreat(
 
                             val sdx = player.x - segX
                             val sdy = player.y - segY
-                            if (sdx*sdx + sdy*sdy < 200f * 200f && sdy > 20f) {
-                                player.velocityY -= 4500f * sdt
-                                if (Random.nextFloat() < 0.4f) {
-                                    onBurst(player.x, player.y + 50f, 10, Color.Cyan, 300f)
+                            if (sdx*sdx + sdy*sdy < 300f * 300f) {
+                                val forceStrength = (1f - sqrt(sdx*sdx + sdy*sdy) / 300f) * 3000f * speedMul
+                                player.velocityX += (sdx / max(1f, sqrt(sdx*sdx + sdy*sdy))) * forceStrength * sdt
+                                if (sdy > 20f && sdx*sdx + sdy*sdy < 200f * 200f) {
+                                    player.velocityY -= 4500f * sdt
+                                    if (Random.nextFloat() < 0.4f) {
+                                        onBurst(player.x, player.y + 50f, 10, Color.Cyan, 300f)
+                                    }
                                 }
                             }
                         }
+                        if (phase == 3 && (player.x < 50f || player.x > screenWidth - 50f)) {
+                            player.velocityY -= 2000f * sdt
+                        }
                     }
                     "BOSS_VOID_ENGINE" -> {
-                        if (phase >= 2 && (localTimer.toInt() % 4 < 2)) {
-                            val shiftDir = if ((localTimer.toInt() / 4) % 2 == 0) 1f else -1f
-                            player.velocityX += 4800f * shiftDir * sdt
+                        if (phase >= 2) {
+                            val shiftStrength = if (phase == 3) 7200f else 4800f
+                            val shiftDir = if (sin(lifetime * (if (phase == 3) 4f else 2f)) > 0f) 1f else -1f
+                            player.velocityX += shiftStrength * shiftDir * sdt
                             onVisualFeedback(10f, 0.4f)
                         }
-                        if (phase == 3 && Random.nextFloat() < 0.008f) {
-                            player.controlInversionTimer = 2.5f
-                            onFloatingText("CONTROL INVERTED", player.x, player.y, Color(0xFFE91E63), true, 1.0f)
+                        if (phase == 3) {
+                            if (Random.nextFloat() < 0.012f) {
+                                player.controlInversionTimer = 2.5f
+                                onFloatingText("CONTROL INVERTED", player.x, player.y, Color(0xFFE91E63), true, 1.0f)
+                                onBurst(player.x, player.y, 20, Color(0xFFFF1744), 400f)
+                            }
                         }
                     }
                     "BOSS_SIGNAL" -> {
                         if (distSq < 800f * 800f) {
-                            if (Random.nextFloat() < 0.05f) {
+                            if (Random.nextFloat() < (if (phase == 3) 0.1f else 0.05f)) {
                                 onNotification("SIGNAL LOSS...", 0.5f)
                             }
-                            if (Random.nextFloat() < 0.02f) {
+                            if (Random.nextFloat() < (if (phase == 3) 0.04f else 0.02f)) {
                                 player.hudInterferenceTimer = 2.5f
                             }
                             if (phase == 3) {
                                 player.heat += 40f * sdt
+                                if (Random.nextFloat() < 0.01f) {
+                                    onFloatingText("MIRAGE", player.x, player.y - 60f, Color(0xFFE91E63), true, 1.0f)
+                                }
                             }
                         }
-                        if (phase >= 2 && (gameTime / 1000) % 2 == 0L) {
-                            if (Random.nextFloat() < 0.15f) {
+                        if (phase >= 2) {
+                            val ghostRate = if (phase == 3) 0.25f else 0.15f
+                            if (Random.nextFloat() < ghostRate) {
                                 onSpawnGhostPlatform(Random.nextFloat() * screenWidth, cameraY + Random.nextFloat() * screenHeight)
+                            }
+                        }
+                    }
+                    "ENT_STALKER" -> {
+                        if (isTracking && distSq < 120f * 120f && player.invulnerabilityTimer <= 0f) {
+                            val dmg = 10f + alertLevel * 20f
+                            player.heat = min(Constants.MAX_HEAT, player.heat + dmg)
+                            player.invulnerabilityTimer = 0.8f
+                            onVisualFeedback(10f + alertLevel * 15f, 0.2f)
+                            onBurst(x, y, 5, Color(0xFFFF1744), 200f)
+                        }
+                    }
+                    "ENT_VOID_WRAITH" -> {
+                        if (isMaterialized && distSq < 100f * 100f && player.invulnerabilityTimer <= 0f) {
+                            if (!player.invincibleHull) player.integrity = max(0f, player.integrity - 15f)
+                            player.fuel = max(0f, player.fuel - 30f)
+                            player.invulnerabilityTimer = 1.5f
+                            onVisualFeedback(25f, 0.6f)
+                            onBurst(x, y, 15, Color(0xFFD500F9), 400f)
+                        }
+                    }
+                    "ENT_VOID_WHALE" -> {
+                        val dist = sqrt(distSq)
+                        if (dist < 500f) {
+                            val force = (1f - dist / 500f) * 2000f
+                            val side = if (vx > 0f) -1f else 1f
+                            player.velocityX += side * force * sdt
+                            if (dist < 200f) {
+                                player.velocityY -= 3000f * sdt
+                                onVisualFeedback(5f, 0f)
                             }
                         }
                     }

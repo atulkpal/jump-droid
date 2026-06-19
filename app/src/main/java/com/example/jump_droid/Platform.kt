@@ -40,4 +40,7 @@ class Platform(
 
     // For mission/combo reliability
     var hasBeenLandedOn by mutableStateOf(false)
+
+    // For trap/ghost platforms (BOSS_SIGNAL)
+    var isTrapPlatform by mutableStateOf(false)
 }

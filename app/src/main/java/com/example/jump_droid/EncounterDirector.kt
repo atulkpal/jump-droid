@@ -155,6 +155,29 @@ class EncounterDirector {
                     }
                 }
             }
+            if (currentZone == AltitudeZone.DEEP_SPACE && activeThreats.none { it.definition.id == "ENT_STALKER" }) {
+                eligible.find { it.id == "ENT_STALKER" }?.let { stalkerDef ->
+                    if (Random.nextFloat() < stalkerDef.spawnRules.spawnChance * spawnChanceMod) {
+                        threatManager.spawnThreat(stalkerDef, Random.nextFloat() * screenWidth, cameraY - 400f, vx = 0f, vy = 30f)
+                    }
+                }
+            }
+            if (currentZone == AltitudeZone.DEEP_SPACE && activeThreats.none { it.definition.id == "ENT_VOID_WHALE" }) {
+                eligible.find { it.id == "ENT_VOID_WHALE" }?.let { whaleDef ->
+                    if (Random.nextFloat() < whaleDef.spawnRules.spawnChance * spawnChanceMod) {
+                        val side = if (Random.nextBoolean()) 1f else -1f
+                        val spawnX = if (side > 0) -200f else screenWidth + 200f
+                        threatManager.spawnThreat(whaleDef, spawnX, cameraY - 200f, vx = side * 30f)
+                    }
+                }
+            }
+            if (currentZone == AltitudeZone.VOID && activeThreats.none { it.definition.id == "ENT_VOID_WRAITH" }) {
+                eligible.find { it.id == "ENT_VOID_WRAITH" }?.let { wraithDef ->
+                    if (Random.nextFloat() < wraithDef.spawnRules.spawnChance * spawnChanceMod) {
+                        threatManager.spawnThreat(wraithDef, Random.nextFloat() * screenWidth, cameraY + Random.nextFloat() * screenHeight)
+                    }
+                }
+            }
 
             // 2.4 Mini-Boss spawning (Fallback)
             if (activeThreats.none { it.definition.id == "MINI_BOSS_COMMANDER" }) {

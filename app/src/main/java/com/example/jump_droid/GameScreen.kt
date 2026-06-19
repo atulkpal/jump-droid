@@ -126,6 +126,10 @@ fun GameScreen() {
     var thrustTarget by remember { mutableStateOf(Offset.Zero) }
     var screenShake by remember { mutableFloatStateOf(0f) }
     var impactFlashAlpha by remember { mutableFloatStateOf(0f) }
+    var globalFogAlpha by remember { mutableFloatStateOf(0f) }
+    
+    var effectiveThrust by remember { mutableStateOf(false) }
+    var effectiveTarget by remember { mutableStateOf(Offset.Zero) }
 
     // --- Developer / Cheat States ---
     var infiniteFuel by remember { mutableStateOf(false) }
@@ -137,6 +141,8 @@ fun GameScreen() {
     val notificationManager = remember { NotificationManager() }
     val survivalManager = remember { SurvivalManager() }
     val encounterDirector = remember { EncounterDirector() }
+    val projectileManager = remember { ProjectileManager() }
+    val inputBufferManager = remember { InputBufferManager() }
 
     // Escalation & Major Warning State
     var majorWarningText by remember { mutableStateOf<String?>(null) }
@@ -333,9 +339,10 @@ fun GameScreen() {
                     platform.isBreaking = true
                     checkDiscovery(DiscoveryType.BREAKABLE_PLATFORM)
                 }
-                else -> { 
+                else -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.velocityX *= HORIZONTAL_DAMPING
+                    if (platform.isTrapPlatform) platform.isBreaking = true
                     checkDiscovery(DiscoveryType.NORMAL_PLATFORM)
                 }
             }
@@ -597,6 +604,10 @@ fun GameScreen() {
         player.turboTimer = 0f
         player.efficiencyTimer = 0f
         player.stabilityTimer = 0f
+        player.infiniteShield = false
+        player.invincibleHull = false
+        player.activeTether = null
+        player.inputLatency = 0f
 
         gameTime = 0L
         runDurationTimer = 0f
@@ -604,6 +615,9 @@ fun GameScreen() {
         noOverheatTimer = 0f
 
         powerUpSpawnTimer = 0f
+        globalFogAlpha = 0f
+        effectiveThrust = false
+        effectiveTarget = Offset.Zero
         score = 0
         altitudeManager.updateAltitude(0)
         highestYReached = groundY
@@ -614,6 +628,8 @@ fun GameScreen() {
         landingEffects.clear()
         particles.clear()
         threatManager.clear()
+        projectileManager.clear()
+        inputBufferManager.clear()
         missionManager.clear()
         bossesSpawned.clear()
         majorWarningText = null
@@ -683,8 +699,14 @@ fun GameScreen() {
                         if (screenWidth <= 0f) return@withFrameNanos
 
                         // Update systems
+                        inputBufferManager.recordInput(isThrusting, thrustTarget, gameTime)
+                        val (frameEffThrust, frameEffTarget) = inputBufferManager.getEffectiveThrust(gameTime, player.inputLatency)
+                        effectiveThrust = frameEffThrust
+                        effectiveTarget = frameEffTarget
+
                         discoveryManager.update(dt)
-                        threatManager.update(dt, cameraY, screenHeight, screenWidth, player.x, player.y)
+                        threatManager.update(dt, cameraY, screenHeight, screenWidth, player.x, player.y, powerUps)
+                        projectileManager.update(dt)
                         ambientManager.update(dt, cameraY, screenWidth, screenHeight, altitudeManager.currentZone)
 
                         // --- COMBO SYSTEM UPDATE ---
@@ -854,6 +876,8 @@ fun GameScreen() {
                         repeat(subSteps) {
                             player.isOnPlatform = false // Reset per substep for accurate airborne tracking
 
+                            player.activeTether?.applyPhysics(player, sdt, cameraY)
+
                             // a. Update platforms
                             platforms.forEach { p ->
                                 if (p.isMoving) {
@@ -877,6 +901,11 @@ fun GameScreen() {
                             // ... (Wait, I need to make sure I don't break the wind/threat code)
 
                             // c. Threat Interactions (Proximity Effects)
+                            projectileManager.processPlayerCollision(player) { projectile ->
+                                applyDamage(projectile.damage)
+                                floatingTextManager.add(FloatingText("PROJECTILE IMPACT", player.x, player.y, color = Color.Red))
+                            }
+
                             threatManager.activeThreats.toList().forEach { threat ->
                                 threat.processInteraction(
                                     player = player,
@@ -920,8 +949,8 @@ fun GameScreen() {
                                                 type = PlatformType.NORMAL,
                                                 isMoving = false,
                                                 initialSpeed = 0f,
-                                                totalBreakTime = 0.05f // Disappears instantly
-                                            ).apply { isBreaking = true })
+                                                totalBreakTime = 0.3f // Breaks on touch
+                                            ).apply { isTrapPlatform = true })
                                         }
                                     },
                                     onSpawnReinforcements = {},
@@ -943,6 +972,10 @@ fun GameScreen() {
                                             escalationSpawnY = threatY
                                             escalationCountdown = 1.5f
                                         }
+                                    },
+                                    activeThreats = threatManager.activeThreats,
+                                    onSpawnProjectile = { x, y, vx, vy, type, owner, damage, color, size, life ->
+                                        projectileManager.spawn(x, y, vx, vy, type, owner, damage, color, size, life)
                                     }
                                 )
                             }
@@ -969,12 +1002,12 @@ fun GameScreen() {
                             }
 
                             // d. Player Physics
-                            if (isThrusting && (player.fuel > 0f || infiniteFuel) && !player.isOverheated) {
+                            if (effectiveThrust && (player.fuel > 0f || infiniteFuel) && !player.isOverheated) {
                                 val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * (if (player.turboTimer > 0) 1.2f else 1.0f)
                                 val currentConsumption = if (infiniteFuel) 0f else BASE_FUEL_CONSUMPTION * player.rocketType.fuelMult * (if (player.efficiencyTimer > 0) 0.8f else 1.0f)
 
                                 player.velocityY -= currentThrust * sdt
-                                val dx = thrustTarget.x - player.x
+                                val dx = effectiveTarget.x - player.x
                                 val maxSteerDist = screenWidth / 3f
                                 val steerMult = if (player.stabilityTimer > 0) 1.2f else 0.7f
                                 val steerForce = (dx / maxSteerDist).coerceIn(-1f, 1f) * (if (player.controlInversionTimer > 0f) -1f else 1f)
@@ -1021,12 +1054,11 @@ fun GameScreen() {
                             platforms.forEach { platform ->
                                 if (platform.isBreaking && platform.crackTime > platform.totalBreakTime) return@forEach
 
-                                // Task 1: Phase Platform collision gating
                                 if (platform.type == PlatformType.PHASE) {
                                     val cycle = 4000L
                                     val progress = (gameTime % cycle) / cycle.toFloat()
-                                    // 0.42 to 0.92 is considered "passed through"
-                                    if (progress > 0.42f && progress < 0.92f) return@forEach
+                                    // Pass-through when platform is not fully solid (matches visual alpha)
+                                    if (progress >= 0.4f) return@forEach
                                 }
 
                                 val pLeft = platform.x
@@ -1537,7 +1569,9 @@ fun GameScreen() {
                     drawRealityDistortion(
                         threats = threatManager.activeThreats,
                         playerX = player.x, playerY = player.y,
-                        size = size
+                        size = size,
+                        currentZone = altitudeManager.currentZone,
+                        altitude = score
                     )
 
                     ambientManager.render(this, cameraY, gameTime)
@@ -1545,13 +1579,15 @@ fun GameScreen() {
 
                 drawSpeedLines(
                     velocityY = player.velocityY,
-                    screenWidth = screenWidth, screenHeight = screenHeight
+                    screenWidth = screenWidth, screenHeight = screenHeight,
+                    currentZone = altitudeManager.currentZone
                 )
 
                 if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL || gameState == GameState.PAUSED || gameState == GameState.HELP || gameState == GameState.UNLOCK) {
                     drawGround(
                         groundY = groundY, cameraY = cameraY,
-                        screenWidth = screenWidth, screenHeight = screenHeight
+                        screenWidth = screenWidth, screenHeight = screenHeight,
+                        currentZone = altitudeManager.currentZone
                     )
 
                     drawParticles(
@@ -1561,7 +1597,22 @@ fun GameScreen() {
                     )
                     drawLandingEffects(
                         effects = landingEffects.toList(),
-                        cameraY = cameraY
+                        cameraY = cameraY,
+                        currentZone = altitudeManager.currentZone
+                    )
+
+                    drawProjectiles(
+                        projectiles = projectileManager.projectiles.toList(),
+                        cameraY = cameraY,
+                        gameTime = gameTime
+                    )
+
+                    drawTether(
+                        tether = player.activeTether,
+                        playerX = player.x,
+                        playerY = player.y,
+                        cameraY = cameraY,
+                        gameTime = gameTime
                     )
 
                     platforms.forEach { platform ->
@@ -1590,99 +1641,156 @@ fun GameScreen() {
                             when (threat.definition.id) {
                                 "HAZ_LIGHTNING" -> {
                                     val alpha = lifeCycleAlpha
-                                    // Massive Storm Cloud (Multiple layers for depth)
-                                    repeat(3) { i ->
-                                        val offX = (i - 1) * 80f
-                                        val offY = if (i == 1) -20f else 20f
-                                        drawCircle(
-                                            color = Color.DarkGray.copy(alpha = 0.9f * alpha),
-                                            radius = 160f - i * 20f,
-                                            center = Offset(tx + offX, ty + offY)
-                                        )
+                                    val scan = threat.scanPulse
+                                    // Cumulonimbus anvil cloud shape
+                                    val cloudPath = Path().apply {
+                                        moveTo(tx - 160f, ty - 40f)
+                                        cubicTo(tx - 180f, ty - 100f, tx - 120f, ty - 140f, tx - 40f, ty - 120f)
+                                        cubicTo(tx - 20f, ty - 150f, tx + 30f, ty - 160f, tx + 80f, ty - 130f)
+                                        cubicTo(tx + 150f, ty - 140f, tx + 190f, ty - 90f, tx + 170f, ty - 40f)
+                                        cubicTo(tx + 200f, ty - 20f, tx + 190f, ty + 20f, tx + 150f, ty + 30f)
+                                        lineTo(tx - 150f, ty + 30f)
+                                        cubicTo(tx - 190f, ty + 20f, tx - 200f, ty - 20f, tx - 160f, ty - 40f)
+                                        close()
                                     }
-                                    // Internal Glow
+                                    drawPath(cloudPath, Color.DarkGray.copy(alpha = 0.85f * alpha))
+                                    drawPath(cloudPath, Color(0xFF455A64).copy(alpha = 0.3f * alpha), style = Stroke(width = 2f))
+
+                                    // Telegraph: cloud swells and brightens from yellow to white
+                                    val telegraphBrightness = if (scan > 0 && scan < 1.0f && threat.phase == 2) scan else 0f
+                                    val cloudGlowColor = if (telegraphBrightness > 0.5f) Color.White else Color.Yellow
                                     drawCircle(
                                         brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                                            colors = listOf(Color.Yellow.copy(alpha = 0.3f * alpha), Color.Transparent),
+                                            colors = listOf(cloudGlowColor.copy(alpha = 0.3f * alpha + telegraphBrightness * 0.4f), Color.Transparent),
                                             center = Offset(tx, ty),
-                                            radius = 200f
+                                            radius = 180f + telegraphBrightness * 60f
                                         ),
-                                        radius = 200f,
+                                        radius = 180f + telegraphBrightness * 60f,
                                         center = Offset(tx, ty)
                                     )
 
-                                    // Strike logic (using scanPulse as sub-phase)
-                                    if (threat.scanPulse > 0 && threat.scanPulse < 1.0f && threat.phase == 2) {
-                                        // Telegraph: Pulse
-                                        val tAlpha = (kotlin.math.sin(gameTime / 100f) * 0.3f + 0.4f) * alpha
+                                    // Electric arc particles crackling around cloud
+                                    repeat(8) { i ->
+                                        val seed = threat.instanceId.hashCode() + i + (gameTime / 50).toInt()
+                                        val rng = Random(seed)
+                                        val arcAngle = rng.nextFloat() * 2f * PI.toFloat()
+                                        val arcDist = 120f + rng.nextFloat() * 60f
+                                        val ax = tx + cos(arcAngle) * arcDist
+                                        val ay = ty + sin(arcAngle) * arcDist
+                                        drawCircle(Color.Cyan.copy(alpha = 0.5f * alpha), radius = 2f, center = Offset(ax, ay))
+                                    }
+
+                                    // Strike zone telegraph: dashed circle on ground that shrinks
+                                    if (scan > 0 && scan < 1.0f && threat.phase == 2) {
+                                        val strikeRadius = 80f * (1f - scan) + 20f
                                         drawCircle(
-                                            color = Color.Yellow.copy(alpha = tAlpha),
-                                            radius = 180f * threat.scanPulse,
-                                            center = Offset(tx, ty),
-                                            style = Stroke(width = 4f)
+                                            color = Color.White.copy(alpha = 0.2f * alpha),
+                                            radius = strikeRadius + 30f,
+                                            center = Offset(tx, ty + 250f),
+                                            style = Stroke(width = 2f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(8f, 8f)))
                                         )
-                                    } else if (threat.scanPulse == 1.0f && threat.phase == 2) {
-                                        // Striking: Jagged Bolt
-                                        val boltPath = Path().apply {
-                                            moveTo(tx, ty)
-                                            var curY = ty
-                                            var curX = tx
-                                            repeat(5) {
-                                                val nextY = curY + 60f
-                                                val nextX = curX + (Random.nextFloat() - 0.5f) * 100f
-                                                lineTo(nextX, nextY)
-                                                curX = nextX
-                                                curY = nextY
+                                        drawCircle(Color.Yellow.copy(alpha = 0.3f * alpha * (1f - scan)), radius = strikeRadius, center = Offset(tx, ty + 250f))
+                                    }
+
+                                    // Strike: branched fork lightning
+                                    if (scan == 1.0f && threat.phase == 2) {
+                                        val strikeBase = ty + 120f
+                                        repeat(3) { branch ->
+                                            val boltPath = Path().apply {
+                                                moveTo(tx + (branch - 1) * 30f, ty + 30f)
+                                                var curY = strikeBase
+                                                var curX = tx + (branch - 1) * 30f
+                                                val segments = 4 + branch
+                                                repeat(segments) {
+                                                    val nextY = curY + 80f
+                                                    val nextX = curX + (Random.nextFloat() - 0.5f) * 120f
+                                                    lineTo(nextX, nextY)
+                                                    // Branch fork at midpoint
+                                                    if (it == segments / 2) {
+                                                        moveTo(nextX, nextY)
+                                                        lineTo(nextX + (Random.nextFloat() - 0.5f) * 80f, nextY + 50f)
+                                                        moveTo(nextX, nextY)
+                                                    }
+                                                    curX = nextX
+                                                    curY = nextY
+                                                }
                                             }
+                                            drawPath(boltPath, Color.Yellow.copy(alpha = alpha * 0.8f), style = Stroke(width = 8f - branch, cap = StrokeCap.Round))
+                                            drawPath(boltPath, Color.White.copy(alpha = alpha), style = Stroke(width = 3f, cap = StrokeCap.Round))
                                         }
-                                        drawPath(boltPath, Color.Yellow.copy(alpha = alpha), style = Stroke(width = 12f, cap = StrokeCap.Round))
-                                        drawPath(boltPath, Color.White.copy(alpha = alpha), style = Stroke(width = 4f, cap = StrokeCap.Round))
-                                        
-                                        // Impact Flash
-                                        drawCircle(
-                                            color = Color.White.copy(alpha = 0.6f * alpha),
-                                            radius = 100f,
-                                            center = Offset(tx, ty + 250f)
-                                        )
+
+                                        // Impact flash
+                                        drawCircle(Color.White.copy(alpha = 0.7f * alpha), radius = 120f, center = Offset(tx, ty + 280f))
+                                        drawCircle(Color.Yellow.copy(alpha = 0.4f * alpha), radius = 180f, center = Offset(tx, ty + 280f))
                                     }
                                 }
                                 "HAZ_DEBRIS" -> {
                                     val alpha = lifeCycleAlpha
-                                    val sizeMult = 2.0f // Task 4: Larger physical wreckage
+                                    // Unified sharp-jagged debris shape
                                     rotate(threat.rotation, pivot = Offset(tx, ty)) {
                                         val debrisColor = if (random.nextBoolean()) Color(0xFF757575) else Color(0xFF424242)
-                                        
-                                        // Task 4: Specific wreckage shapes (Satellite Panels, broken antennas)
-                                        when (threat.instanceId.hashCode() % 3) {
-                                            0 -> { // Solar Array Wing
-                                                drawRect(Color.DarkGray.copy(alpha = alpha), Offset(tx - 60f, ty - 20f), Size(120f, 40f))
-                                                drawRect(Color(0xFF3F51B5).copy(alpha = 0.4f * alpha), Offset(tx - 55f, ty - 15f), Size(110f, 30f), style = Stroke(width = 2f))
-                                                drawLine(Color.White.copy(alpha = 0.2f * alpha), Offset(tx - 60f, ty), Offset(tx + 60f, ty))
-                                            }
-                                            1 -> { // Hull Plating
-                                                val path = Path().apply {
-                                                    moveTo(tx - 40f, ty - 40f)
-                                                    lineTo(tx + 50f, ty - 30f)
-                                                    lineTo(tx + 40f, ty + 50f)
-                                                    lineTo(tx - 30f, ty + 40f)
+
+                                        // Jagged debris polygon (different random variants for variety)
+                                        val variant = abs(threat.instanceId.hashCode() % 3)
+                                        val debrisPath = Path().apply {
+                                            when (variant) {
+                                                0 -> {
+                                                    moveTo(tx - 50f, ty - 30f); lineTo(tx + 30f, ty - 50f)
+                                                    lineTo(tx + 60f, ty - 10f); lineTo(tx + 40f, ty + 40f)
+                                                    lineTo(tx - 20f, ty + 50f); lineTo(tx - 60f, ty + 20f)
                                                     close()
                                                 }
-                                                drawPath(path, debrisColor.copy(alpha = alpha))
-                                                drawPath(path, Color.White.copy(alpha = 0.1f * alpha), style = Stroke(width = 2f))
-                                            }
-                                            else -> { // Structural Truss
-                                                drawRect(debrisColor.copy(alpha = alpha), Offset(tx - 10f, ty - 60f), Size(20f, 120f))
-                                                repeat(4) { j ->
-                                                    drawLine(Color.White.copy(alpha = 0.3f * alpha), Offset(tx-10f, ty-60f+j*30f), Offset(tx+10f, ty-30f+j*30f))
+                                                1 -> {
+                                                    moveTo(tx - 40f, ty - 50f); lineTo(tx + 50f, ty - 30f)
+                                                    lineTo(tx + 30f, ty + 10f); lineTo(tx + 50f, ty + 40f)
+                                                    lineTo(tx - 10f, ty + 30f); lineTo(tx - 50f, ty + 10f)
+                                                    close()
+                                                }
+                                                else -> {
+                                                    moveTo(tx - 30f, ty - 60f); lineTo(tx + 40f, ty - 40f)
+                                                    lineTo(tx + 50f, ty); lineTo(tx + 20f, ty + 50f)
+                                                    lineTo(tx - 40f, ty + 30f); lineTo(tx - 60f, ty - 10f)
+                                                    close()
                                                 }
                                             }
                                         }
+                                        drawPath(debrisPath, debrisColor.copy(alpha = alpha))
+                                        drawPath(debrisPath, Color.White.copy(alpha = 0.1f * alpha), style = Stroke(width = 2f))
+
+                                        // Orange glow on leading edge (danger highlight)
+                                        val glowColor = Color(0xFFFF6D00)
+                                        drawPath(debrisPath, glowColor.copy(alpha = 0.15f * alpha), style = Stroke(width = 4f))
+                                    }
+
+                                    // Spark particles from rotation
+                                    repeat(3) { i ->
+                                        val seed = threat.instanceId.hashCode() + i + (gameTime / 30).toInt()
+                                        val rng = Random(seed)
+                                        val sx = tx + (rng.nextFloat() - 0.5f) * 80f
+                                        val sy = ty + (rng.nextFloat() - 0.5f) * 80f
+                                        drawCircle(Color(0xFFFFAB00).copy(alpha = 0.5f * alpha), radius = 2f, center = Offset(sx, sy))
+                                    }
+
+                                    // Speed blur ghost copies
+                                    repeat(2) { i ->
+                                        val blurX = tx + (i + 1) * 15f * cos(threat.rotation * PI.toFloat() / 180f)
+                                        val blurY = ty + (i + 1) * 15f * sin(threat.rotation * PI.toFloat() / 180f)
+                                        drawCircle(Color.Gray.copy(alpha = 0.1f * alpha / (i + 1)), radius = 40f, center = Offset(blurX, blurY))
+                                    }
+
+                                    // Danger pulse when player is on collision course
+                                    val ddx = player.x - tx
+                                    val ddy = player.y - cameraY - ty
+                                    if (ddx * ddx + ddy * ddy < 200f * 200f) {
+                                        drawCircle(Color.Red.copy(alpha = 0.2f * alpha), radius = 60f + sin(gameTime / 100f) * 10f, center = Offset(tx, ty), style = Stroke(width = 3f))
                                     }
                                 }
                                 "HAZ_RADIATION" -> {
                                     val alpha = lifeCycleAlpha
                                     val pulse = threat.scanPulse
-                                    // Task 7: Move part of radiation to background feel
+                                    val playerInZone = (player.x - tx) * (player.x - tx) + (player.y - cameraY - ty) * (player.y - cameraY - ty) < 300f * 300f
+
+                                    // Background purple aura (existing)
                                     drawCircle(
                                         brush = androidx.compose.ui.graphics.Brush.radialGradient(
                                             colors = listOf(Color(0xFF4A148C).copy(alpha = 0.15f * alpha), Color.Transparent),
@@ -1713,6 +1821,34 @@ fun GameScreen() {
                                         radius = 400f,
                                         center = Offset(tx, ty)
                                     )
+
+                                    // Energy-siphon tendrils reaching toward player when inside zone
+                                    if (playerInZone) {
+                                        repeat(5) { i ->
+                                            val angle = (i / 5f) * 2f * PI.toFloat() + (gameTime / 300f)
+                                            val baseX = tx + cos(angle) * 250f
+                                            val baseY = ty + sin(angle) * 250f
+                                            val tipX = player.x
+                                            val tipY = player.y - cameraY
+                                            val tendrilPath = Path().apply {
+                                                moveTo(baseX, baseY)
+                                                cubicTo(baseX + (tipX - baseX) * 0.3f, baseY, tipX * 0.7f + baseX * 0.3f, tipY * 0.7f + baseY * 0.3f, tipX, tipY)
+                                            }
+                                            drawPath(tendrilPath, Color(0xFF00E676).copy(alpha = 0.2f * pulse * alpha), style = Stroke(width = 2f))
+                                        }
+                                    }
+
+                                    // Geiger-counter random burst rects
+                                    repeat(12) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 50).toInt()
+                                        val rng = Random(seed)
+                                        if (rng.nextFloat() < 0.3f) {
+                                            val gx = tx + (rng.nextFloat() - 0.5f) * 600f
+                                            val gy = ty + (rng.nextFloat() - 0.5f) * 600f
+                                            drawRect(Color(0xFF00E676).copy(alpha = 0.4f * alpha), Offset(gx, gy), Size(2f + rng.nextFloat() * 4f, 2f))
+                                        }
+                                    }
+
                                     // Floating particles (Radiation)
                                     repeat(8) { i ->
                                         val pRandom = Random(threat.instanceId.hashCode() + i + (gameTime / 100).toInt())
@@ -1724,72 +1860,131 @@ fun GameScreen() {
                                 }
                                 "HAZ_SOLAR_FLARE" -> {
                                     val alpha = lifeCycleAlpha
-                                    // Massive Plasma Front
-                                    val flareHeight = 600f // Task 3: Increased scale
-                                    drawRect(
+                                    val flareHeight = 600f
+                                    val flameTop = ty - flareHeight / 2 + sin(gameTime / 150f) * 20f
+
+                                    // Wavy flame-front top edge
+                                    val flamePath = Path().apply {
+                                        moveTo(0f, flameTop)
+                                        repeat(10) { seg ->
+                                            val segX = seg * (screenWidth / 10f)
+                                            val segY = flameTop + sin(segX / 60f + gameTime / 200f) * 25f
+                                            lineTo(segX, segY)
+                                        }
+                                        lineTo(screenWidth, flameTop)
+                                        lineTo(screenWidth, ty + flareHeight / 2)
+                                        lineTo(0f, ty + flareHeight / 2)
+                                        close()
+                                    }
+                                    drawPath(
+                                        flamePath,
                                         brush = androidx.compose.ui.graphics.Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Transparent, 
-                                                Color(0xFFFFEA00).copy(alpha = 0.9f * alpha), 
-                                                Color(0xFFFF3D00).copy(alpha = 0.6f * alpha), 
-                                                Color.Transparent
-                                            ),
+                                            colors = listOf(Color.Transparent, Color(0xFFFFEA00).copy(alpha = 0.9f * alpha), Color(0xFFFF3D00).copy(alpha = 0.6f * alpha), Color.Transparent),
                                             startY = ty - flareHeight / 2,
                                             endY = ty + flareHeight / 2
-                                        ),
-                                        topLeft = Offset(0f, ty - flareHeight / 2),
-                                        size = Size(screenWidth, flareHeight)
-                                    )
-                                    // Arcs within flare
-                                    repeat(8) { i ->
-                                        val rx = (gameTime / 1.5f + i * 200f) % screenWidth
-                                        drawArc(
-                                            color = Color.White.copy(alpha = 0.3f * alpha),
-                                            startAngle = 0f,
-                                            sweepAngle = 180f,
-                                            useCenter = false,
-                                            topLeft = Offset(rx - 150f, ty - 80f),
-                                            size = Size(300f, 160f),
-                                            style = Stroke(width = 6f)
                                         )
+                                    )
+
+                                    // Flame tongue tendrils reaching ahead of wave
+                                    repeat(6) { i ->
+                                        val tongueX = (gameTime / 2f + i * (screenWidth / 6f)) % screenWidth
+                                        val tongueHeight = 40f + sin(gameTime / 300f + i) * 20f
+                                        val tonguePath = Path().apply {
+                                            moveTo(tongueX - 15f, flameTop)
+                                            quadraticTo(tongueX, flameTop - tongueHeight, tongueX + 15f, flameTop)
+                                        }
+                                        drawPath(tonguePath, Color(0xFFFF3D00).copy(alpha = 0.5f * alpha), style = Stroke(width = 8f, cap = StrokeCap.Round))
+                                        drawPath(tonguePath, Color(0xFFFFEA00).copy(alpha = 0.3f * alpha), style = Stroke(width = 3f, cap = StrokeCap.Round))
+                                    }
+
+                                    // Ember particles
+                                    repeat(15) { i ->
+                                        val seed = threat.instanceId.hashCode() + i + (gameTime / 40).toInt()
+                                        val rng = Random(seed)
+                                        val ex = rng.nextFloat() * screenWidth
+                                        val ey = flameTop + 50f + rng.nextFloat() * (flareHeight - 100f)
+                                        drawCircle(Color(0xFFFF6D00).copy(alpha = 0.4f * alpha), radius = 1f + rng.nextFloat() * 3f, center = Offset(ex, ey))
+                                    }
+
+                                    // Screen flash effect when wave passes player Y
+                                    val playerDistFromWave = abs(player.y - cameraY - (ty - flareHeight / 2))
+                                    if (playerDistFromWave < 100f) {
+                                        drawRect(Color.White.copy(alpha = 0.15f * (1f - playerDistFromWave / 100f)), topLeft = Offset(0f, 0f), size = size)
                                     }
                                 }
                                 "HAZ_TURBULENCE" -> {
                                     val alpha = lifeCycleAlpha
-                                    // Task 4: Atmospheric Distortion (Wind streaks - Force Focus)
                                     val windDir = if (threat.instanceId.hashCode() % 2 == 0) 1f else -1f
-                                    
-                                    // Background Pressure Waves (Task 7)
-                                    repeat(3) { i ->
-                                        val p = (threat.scanPulse + i * 0.33f) % 1.0f
-                                        drawCircle(
-                                            color = Color.White.copy(alpha = 0.05f * (1f - p) * alpha),
-                                            radius = 500f * p,
-                                            center = Offset(tx, ty),
-                                            style = Stroke(width = 2f)
-                                        )
+                                    val strength = (sin(gameTime / 500f) * 0.3f + 0.7f)
+                                    val streakCount = (10 + (strength * 30).toInt()).coerceAtMost(40)
+
+                                    // Large wind direction arrow at center
+                                    val arrowSize = 80f
+                                    val arrowX = tx
+                                    val arrowY = ty
+                                    drawLine(Color.White.copy(alpha = 0.15f * alpha), Offset(arrowX - arrowSize * windDir, arrowY), Offset(arrowX + arrowSize * windDir, arrowY), strokeWidth = 10f, cap = StrokeCap.Round)
+                                    // Arrowhead
+                                    val arrowHeadPath = Path().apply {
+                                        moveTo(arrowX + arrowSize * windDir, arrowY)
+                                        lineTo(arrowX + (arrowSize - 30f) * windDir, arrowY - 20f)
+                                        lineTo(arrowX + (arrowSize - 30f) * windDir, arrowY + 20f)
+                                        close()
+                                    }
+                                    drawPath(arrowHeadPath, Color.White.copy(alpha = 0.15f * alpha))
+
+                                    // Vortex swirl at center
+                                    repeat(3) { spiral ->
+                                        val spiralPath = Path().apply {
+                                            var sx = tx
+                                            var sy = ty
+                                            repeat(20) { seg ->
+                                                val t = seg / 20f
+                                                val radius = 20f + t * 180f
+                                                val angle = t * 4f * PI.toFloat() * windDir + spiral * 2.1f
+                                                sx = tx + cos(angle) * radius
+                                                sy = ty + sin(angle) * radius
+                                                lineTo(sx, sy)
+                                            }
+                                        }
+                                        drawPath(spiralPath, Color.White.copy(alpha = 0.08f * alpha), style = Stroke(width = 2f))
                                     }
 
-                                    repeat(25) { i ->
-                                        val r = Random(threat.instanceId.hashCode() + i)
-                                        val rx = tx + (r.nextFloat() - 0.5f) * 800f
-                                        val ry = ty + (r.nextFloat() - 0.5f) * 800f
-                                        val progress = (threat.scanPulse + r.nextFloat()) % 1.0f
-                                        val lx = rx + (progress * 500f * windDir)
-                                        
+                                    // Arrow-tipped streak clusters
+                                    repeat(streakCount) { i ->
+                                        val seed = threat.instanceId.hashCode() + i + (gameTime / 80).toInt()
+                                        val rng = Random(seed)
+                                        val rx = tx + (rng.nextFloat() - 0.5f) * 800f
+                                        val ry = ty + (rng.nextFloat() - 0.5f) * 800f
+                                        val progress = (threat.scanPulse + rng.nextFloat()) % 1.0f
+                                        val streakLen = 80f + strength * 80f
+                                        val sx = rx + (progress * 300f * windDir)
+                                        val streakAlpha = 0.3f * (1f - progress) * alpha * strength
+
+                                        // Streak line
                                         drawLine(
-                                            color = Color.White.copy(alpha = 0.3f * (1f - progress) * alpha),
-                                            start = Offset(lx, ry),
-                                            end = Offset(lx + 120f * windDir, ry),
-                                            strokeWidth = 8f, // Thicker, softer wind
+                                            color = Color.White.copy(alpha = streakAlpha),
+                                            start = Offset(sx, ry),
+                                            end = Offset(sx + streakLen * windDir, ry),
+                                            strokeWidth = 4f + strength * 4f,
                                             cap = StrokeCap.Round
                                         )
+                                        // Arrow tip on streak
+                                        if (progress > 0.5f && rng.nextFloat() < 0.3f) {
+                                            val tipPath = Path().apply {
+                                                moveTo(sx + streakLen * windDir, ry)
+                                                lineTo(sx + (streakLen - 15f) * windDir, ry - 6f)
+                                                lineTo(sx + (streakLen - 15f) * windDir, ry + 6f)
+                                                close()
+                                            }
+                                            drawPath(tipPath, Color.White.copy(alpha = streakAlpha * 0.6f))
+                                        }
                                     }
                                 }
                                 "HAZ_GRAVITY" -> {
                                     val alpha = lifeCycleAlpha
                                     val pulse = threat.scanPulse
-                                    // Lensing Effect (Simulated with circles)
+
+                                    // Lensing Effect (existing)
                                     repeat(4) { i ->
                                         val radius = (100f + i * 150f + pulse * 100f)
                                         drawCircle(
@@ -1799,63 +1994,254 @@ fun GameScreen() {
                                             style = Stroke(width = 2f + i)
                                         )
                                     }
-                                    // Black Hole Core
-                                    drawCircle(
-                                        color = Color.Black.copy(alpha = 0.8f * alpha),
-                                        radius = 60f,
-                                        center = Offset(tx, ty)
-                                    )
-                                    // Space Warping (Inner Ring)
-                                    drawCircle(
-                                        color = Color.Cyan.copy(alpha = 0.4f * alpha),
-                                        radius = 70f + (kotlin.math.sin(gameTime / 100f) * 10f),
-                                        center = Offset(tx, ty),
-                                        style = Stroke(width = 4f)
-                                    )
+
+                                    // Background star stretch (tidal distortion)
+                                    repeat(20) { i ->
+                                        val seed = threat.instanceId.hashCode() + i
+                                        val rng = Random(seed)
+                                        val angle = rng.nextFloat() * 2f * PI.toFloat()
+                                        val dist = 200f + rng.nextFloat() * 400f
+                                        val sx = tx + cos(angle) * dist
+                                        val sy = ty + sin(angle) * dist + 150f * pulse / (dist / 100f)
+                                        drawCircle(Color.White.copy(alpha = 0.2f * alpha * (1f - dist / 600f)), radius = 1f, center = Offset(sx, sy))
+                                    }
+
+                                    // 8 downward-pointing gravity arrows from core
+                                    repeat(8) { i ->
+                                        val angle = (i / 8f) * 2f * PI.toFloat()
+                                        val arrowDist = 140f
+                                        val ax = tx + cos(angle) * arrowDist
+                                        val ay = ty + sin(angle) * arrowDist
+                                        val arrowLen = 40f + pulse * 30f
+                                        // Arrow line pointing downward from core radial position
+                                        val gx = ax
+                                        val gy = ay + arrowLen
+                                        drawLine(Color.Cyan.copy(alpha = 0.2f * alpha), Offset(ax, ay), Offset(gx, gy + arrowLen), strokeWidth = 3f)
+                                        // Arrowhead
+                                        val head = Path().apply {
+                                            moveTo(gx, gy + arrowLen)
+                                            lineTo(gx - 8f, gy + arrowLen - 12f)
+                                            lineTo(gx + 8f, gy + arrowLen - 12f)
+                                            close()
+                                        }
+                                        drawPath(head, Color.Cyan.copy(alpha = 0.2f * alpha))
+                                    }
+
+                                    // Black Hole Core (existing)
+                                    drawCircle(color = Color.Black.copy(alpha = 0.8f * alpha), radius = 60f, center = Offset(tx, ty))
+                                    // Space Warping inner ring (existing)
+                                    drawCircle(color = Color.Cyan.copy(alpha = 0.4f * alpha), radius = 70f + (kotlin.math.sin(gameTime / 100f) * 10f), center = Offset(tx, ty), style = Stroke(width = 4f))
+
+                                    // Particles being sucked downward
+                                    repeat(6) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 5 + (gameTime / 60).toInt()
+                                        val rng = Random(seed)
+                                        val sx = tx + (rng.nextFloat() - 0.5f) * 300f
+                                        val sy = ty - 200f + (rng.nextFloat() * 400f)
+                                        drawCircle(Color.Cyan.copy(alpha = 0.3f * alpha), radius = 2f, center = Offset(sx, sy))
+                                        drawLine(Color.Cyan.copy(alpha = 0.15f * alpha), Offset(sx, sy), Offset(sx, sy + 30f), strokeWidth = 1f)
+                                    }
                                 }
                                 "HAZ_EMP" -> {
                                     val alpha = lifeCycleAlpha
-                                    val ringRadius = threat.scanPulse * 600f // Larger shockwave
-                                    val ringAlpha = (1f - (threat.scanPulse / 3.0f)).coerceIn(0f, 1f) * alpha
-                                    
-                                    // Main Shockwave
-                                    drawCircle(
+                                    val scanP = threat.scanPulse
+                                    val ringRadius = scanP * 600f
+                                    val ringAlpha = (1f - (scanP / 3.0f)).coerceIn(0f, 1f) * alpha
+
+                                    // Main Shockwave drawn as shrinking arcs (remaining time indicator)
+                                    val arcFraction = (1f - scanP / 3f).coerceIn(0f, 1f)
+                                    drawArc(
                                         color = Color.Cyan.copy(alpha = ringAlpha),
-                                        radius = ringRadius,
-                                        center = Offset(tx, ty),
+                                        startAngle = 0f,
+                                        sweepAngle = 360f * arcFraction,
+                                        useCenter = false,
+                                        topLeft = Offset(tx - ringRadius, ty - ringRadius),
+                                        size = Size(ringRadius * 2, ringRadius * 2),
                                         style = Stroke(width = 15f)
                                     )
                                     // Secondary Echoes
-                                    drawCircle(
-                                        color = Color.White.copy(alpha = ringAlpha * 0.5f),
-                                        radius = ringRadius * 0.9f,
-                                        center = Offset(tx, ty),
-                                        style = Stroke(width = 5f)
-                                    )
-                                    // Electronic Interference (Glitches)
-                                    repeat(5) { i ->
-                                        val r = Random(gameTime / 100 + i)
-                                        if (r.nextFloat() > 0.5f) {
-                                            val gx = tx + (r.nextFloat() - 0.5f) * ringRadius * 2
-                                            val gy = ty + (r.nextFloat() - 0.5f) * ringRadius * 2
-                                            drawRect(Color.Cyan.copy(alpha = 0.4f * ringAlpha), Offset(gx, gy), Size(30f, 2f))
+                                    drawCircle(color = Color.White.copy(alpha = ringAlpha * 0.5f), radius = ringRadius * 0.9f, center = Offset(tx, ty), style = Stroke(width = 5f))
+
+                                    // Electrical arcs jumping across ring circumference
+                                    repeat(4) { i ->
+                                        val seed = threat.instanceId.hashCode() + i + (gameTime / 30).toInt()
+                                        val rng = Random(seed)
+                                        val arcAngle = rng.nextFloat() * 2f * PI.toFloat()
+                                        val arcLen = 40f + rng.nextFloat() * 60f
+                                        val ax = tx + cos(arcAngle) * ringRadius
+                                        val ay = ty + sin(arcAngle) * ringRadius
+                                        val bx = tx + cos(arcAngle + 0.2f) * (ringRadius + arcLen)
+                                        val by = ty + sin(arcAngle + 0.2f) * (ringRadius + arcLen)
+                                        val arcPath = Path().apply {
+                                            moveTo(ax, ay)
+                                            quadraticTo((ax + bx) / 2 + rng.nextFloat() * 30f, (ay + by) / 2 - 40f, bx, by)
+                                        }
+                                        drawPath(arcPath, Color.White.copy(alpha = ringAlpha * 0.6f), style = Stroke(width = 2f))
+                                    }
+
+                                    // Shield-broken X icon at ring edge
+                                    val playerDist = sqrt((player.x - tx) * (player.x - tx) + (player.y - cameraY - ty) * (player.y - cameraY - ty))
+                                    if (abs(playerDist - ringRadius) < 50f) {
+                                        val xSize = 15f
+                                        drawLine(Color.Red.copy(alpha = 0.6f), Offset(tx - xSize, ty - xSize), Offset(tx + xSize, ty + xSize), strokeWidth = 4f)
+                                        drawLine(Color.Red.copy(alpha = 0.6f), Offset(tx + xSize, ty - xSize), Offset(tx - xSize, ty + xSize), strokeWidth = 4f)
+                                    }
+
+                                    // Spark trail behind ring edge
+                                    repeat(8) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 7 + (gameTime / 40).toInt()
+                                        val rng = Random(seed)
+                                        val sa = rng.nextFloat() * 2f * PI.toFloat()
+                                        val sr = ringRadius - 20f + rng.nextFloat() * 40f
+                                        drawCircle(Color.Cyan.copy(alpha = 0.3f * ringAlpha), radius = 2f, center = Offset(tx + cos(sa) * sr, ty + sin(sa) * sr))
+                                    }
+                                }
+                                "HAZ_GUST" -> {
+                                    // Sudden directional gust
+                                    val tx = threat.x
+                                    val ty = threat.y - cameraY
+                                    val windDir = if ((threat.instanceId.hashCode() % 2) == 0) 1f else -1f
+                                    val gustAlpha = (0.5f - abs(0.5f - threat.scanPulse)) * 2f * lifeCycleAlpha
+
+                                    // Main directional arrow
+                                    val arrowLen = 200f
+                                    val arrowStartX = tx - arrowLen * 0.5f * windDir
+                                    val arrowEndX = tx + arrowLen * 0.5f * windDir
+                                    drawLine(Color.White.copy(alpha = gustAlpha * 0.6f), Offset(arrowStartX, ty), Offset(arrowEndX, ty), strokeWidth = 6f, cap = StrokeCap.Round)
+                                    // Arrowhead
+                                    val headPath = Path().apply {
+                                        moveTo(arrowEndX, ty)
+                                        lineTo(arrowEndX - 30f * windDir, ty - 15f)
+                                        lineTo(arrowEndX - 30f * windDir, ty + 15f)
+                                        close()
+                                    }
+                                    drawPath(headPath, Color.White.copy(alpha = gustAlpha * 0.6f))
+
+                                    // Leaf/particle trail swept along gust path
+                                    repeat(6) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 80).toInt()
+                                        val rng = Random(seed)
+                                        val px = tx + (rng.nextFloat() - 0.5f) * 150f * windDir
+                                        val py = ty + (rng.nextFloat() - 0.5f) * 80f
+                                        drawCircle(Color(0xFF81C784).copy(alpha = gustAlpha * 0.5f), radius = 2f + rng.nextFloat() * 3f, center = Offset(px, py))
+                                    }
+
+                                    // Screen ripple when gust is at peak
+                                    if (threat.scanPulse > 0.4f && threat.scanPulse < 0.6f) {
+                                        drawCircle(Color.White.copy(alpha = 0.1f), radius = 120f, center = Offset(tx, ty), style = Stroke(width = 2f))
+                                    }
+                                }
+                                "HAZ_CROSSWIND" -> {
+                                    // Horizontal wind bands at fixed altitudes
+                                    val tx = threat.x
+                                    val ty = threat.y - cameraY
+                                    val bandCount = 4
+                                    val bandSpacing = 120f
+                                    val windDir = if ((threat.instanceId.hashCode() % 2) == 0) 1f else -1f
+                                    val alpha = lifeCycleAlpha
+
+                                    repeat(bandCount) { i ->
+                                        val bandY = ty - (bandCount / 2) * bandSpacing + i * bandSpacing + sin(gameTime / 800f + i) * 20f
+                                        val bandStrength = 1f - (abs(i - bandCount / 2f) / (bandCount / 2f))
+                                        val strokeW = 2f + bandStrength * 6f
+
+                                        // Sine-wave wind band
+                                        val bandPath = Path().apply {
+                                            moveTo(tx - 300f, bandY)
+                                            repeat(12) { seg ->
+                                                val segX = tx - 300f + seg * 50f
+                                                val segY = bandY + sin(segX / 80f + gameTime / 600f) * 8f * windDir
+                                                lineTo(segX, bandY + sin(segX / 80f + gameTime / 600f) * 8f * windDir)
+                                            }
+                                        }
+                                        drawPath(bandPath, Color.White.copy(alpha = 0.25f * bandStrength * alpha), style = Stroke(width = strokeW, cap = StrokeCap.Round))
+
+                                        // Small direction arrows on each band
+                                        repeat(3) { a ->
+                                            val arrowX = tx - 200f + a * 200f
+                                            drawLine(Color.White.copy(alpha = 0.3f * bandStrength * alpha), Offset(arrowX, bandY), Offset(arrowX + 25f * windDir, bandY), strokeWidth = 3f)
+                                            drawLine(Color.White.copy(alpha = 0.3f * bandStrength * alpha), Offset(arrowX + 25f * windDir, bandY), Offset(arrowX + 15f * windDir, bandY - 6f), strokeWidth = 2f)
+                                            drawLine(Color.White.copy(alpha = 0.3f * bandStrength * alpha), Offset(arrowX + 25f * windDir, bandY), Offset(arrowX + 15f * windDir, bandY + 6f), strokeWidth = 2f)
                                         }
                                     }
                                 }
-                                "HAZ_GUST", "HAZ_CROSSWIND", "HAZ_THERMAL" -> {
-                                    // Compatibility
+                                "HAZ_THERMAL" -> {
+                                    // Rising heat column
+                                    val tx = threat.x
+                                    val ty = threat.y - cameraY
+                                    val columnHeight = 500f
+                                    val columnWidth = 80f
+                                    val alpha = lifeCycleAlpha
+                                    val shimmer = sin(gameTime / 200f) * 10f
+
+                                    // Warm glow at base
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(Color(0xFFFF6D00).copy(alpha = 0.3f * alpha), Color.Transparent),
+                                            center = Offset(tx, ty + columnHeight / 2),
+                                            radius = columnWidth * 2f
+                                        ),
+                                        radius = columnWidth * 2f,
+                                        center = Offset(tx, ty + columnHeight / 2)
+                                    )
+
+                                    // Vertical heat column gradient
+                                    drawRect(
+                                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, Color(0xFFFF6D00).copy(alpha = 0.2f * alpha), Color(0xFFFFAB00).copy(alpha = 0.3f * alpha), Color.Transparent),
+                                            startY = ty - columnHeight / 2,
+                                            endY = ty + columnHeight / 2
+                                        ),
+                                        topLeft = Offset(tx - columnWidth / 2 + shimmer, ty - columnHeight / 2),
+                                        size = Size(columnWidth, columnHeight)
+                                    )
+
+                                    // Upward particle stream
+                                    repeat(8) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 7 + (gameTime / 60).toInt()
+                                        val rng = Random(seed)
+                                        val px = tx + (rng.nextFloat() - 0.5f) * columnWidth * 0.8f + shimmer
+                                        val py = ty + columnHeight / 2 - ((gameTime / 100f + i * 50f) % columnHeight)
+                                        val particleAlpha = 1f - (ty + columnHeight / 2 - py) / columnHeight
+                                        drawCircle(Color(0xFFFFAB00).copy(alpha = 0.5f * particleAlpha * alpha), radius = 2f + rng.nextFloat() * 3f, center = Offset(px, py))
+                                    }
+
+                                    // Mirage distortion effect (offset copy of background elements not possible, so use shimmer lines)
+                                    repeat(3) { i ->
+                                        val lineY = ty - columnHeight / 3 + i * (columnHeight / 3) + sin(gameTime / 150f + i * 2f) * 15f
+                                        val lineX = tx - columnWidth / 2 + sin(gameTime / 100f + i) * 20f
+                                        drawLine(Color.White.copy(alpha = 0.1f * alpha), Offset(lineX, lineY), Offset(lineX + columnWidth, lineY), strokeWidth = 1f)
+                                    }
                                 }
                                 "ENT_SCOUT_DRONE" -> {
-                                    // Render Surveyor Probe
+                                    // Surveyor Probe — 4-state color palette
                                     val tx = threat.x
                                     val ty = threat.y - cameraY
                                     val isTracking = threat.isTracking
+                                    val isFleeing = threat.fleeTimer > 0f
+                                    val transmitting = threat.transmissionProgress > 0f && threat.transmissionProgress < 1f
 
+                                    // Determine state color
+                                    val stateColor = when {
+                                        isFleeing -> Color(0xFFFF6D00) // Orange - fleeing
+                                        transmitting -> Color(0xFFE91E63) // Pink - transmitting
+                                        isTracking -> Color(0xFFD32F2F) // Red - tracking
+                                        threat.firstDetectionShown -> Color(0xFFFDD835) // Yellow - detected
+                                        else -> Color(0xFF1976D2) // Blue - patrol
+                                    }
+                                    val stateName = when {
+                                        isFleeing -> "FLEE"
+                                        transmitting -> "TRANSMIT"
+                                        isTracking -> "TRACK"
+                                        threat.firstDetectionShown -> "DETECT"
+                                        else -> "PATROL"
+                                    }
+
+                                    // Engine glow follows state color
                                     val flicker = Random(gameTime / 50).nextFloat() * 10f
-                                    val glowColor = if (isTracking) Color.Red else Color.White
                                     drawCircle(
                                         brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                                            colors = listOf(glowColor.copy(alpha = 0.4f), Color.Transparent),
+                                            colors = listOf(stateColor.copy(alpha = 0.4f), Color.Transparent),
                                             center = Offset(tx, ty + 20f),
                                             radius = 30f + flicker
                                         ),
@@ -1863,12 +2249,25 @@ fun GameScreen() {
                                         center = Offset(tx, ty + 20f)
                                     )
 
-                                    drawRect(
-                                        color = if (isTracking) Color(0xFFB71C1C) else Color(0xFF455A64),
-                                        topLeft = Offset(tx - 20f, ty - 15f),
-                                        size = Size(40f, 30f)
-                                    )
+                                    // Detailed probe body (trapezoid + details)
+                                    val bodyPath = Path().apply {
+                                        moveTo(tx - 20f, ty - 15f)
+                                        lineTo(tx + 20f, ty - 15f)
+                                        lineTo(tx + 15f, ty + 15f)
+                                        lineTo(tx - 15f, ty + 15f)
+                                        close()
+                                    }
+                                    drawPath(bodyPath, stateColor.copy(alpha = 0.8f))
+                                    drawPath(bodyPath, Color.White.copy(alpha = 0.2f), style = Stroke(width = 1f))
 
+                                    // Antenna — extend during transmission
+                                    val antLen = if (transmitting) 25f else 15f
+                                    drawLine(Color.LightGray, Offset(tx - 12f, ty - 15f), Offset(tx - 18f, ty - 15f - antLen), strokeWidth = 2f)
+                                    drawLine(Color.LightGray, Offset(tx + 12f, ty - 15f), Offset(tx + 18f, ty - 15f - antLen), strokeWidth = 2f)
+                                    drawCircle(stateColor, radius = 3f, center = Offset(tx - 18f, ty - 15f - antLen))
+                                    drawCircle(stateColor, radius = 3f, center = Offset(tx + 18f, ty - 15f - antLen))
+
+                                    // Tracking beam
                                     if (isTracking) {
                                         val beamAngle = threat.targetAngle
                                         rotate(beamAngle, pivot = Offset(tx, ty)) {
@@ -1880,7 +2279,7 @@ fun GameScreen() {
                                                     close()
                                                 },
                                                 brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                                    colors = listOf(Color.Red.copy(alpha = 0.3f * (1f - threat.scanPulse)), Color.Transparent),
+                                                    colors = listOf(stateColor.copy(alpha = 0.3f * (1f - threat.scanPulse)), Color.Transparent),
                                                     startX = tx,
                                                     endX = tx + 250f
                                                 )
@@ -1888,35 +2287,32 @@ fun GameScreen() {
                                         }
                                     }
 
-                                    val eyePulse = if (threat.transmissionProgress > 0f) (sin(gameTime / 50f) * 0.5f + 0.5f) else (sin(gameTime / 150f) * 0.5f + 0.5f)
-                                    val eyeColor = if (isTracking) Color.Red else Color.Cyan
-                                    val eyeRadius = if (isTracking) 12f else 8f
+                                    // Eye pulsing
+                                    val eyeRate = when {
+                                        isFleeing -> 30f
+                                        transmitting -> 50f
+                                        isTracking -> 80f
+                                        else -> 150f
+                                    }
+                                    val eyePulse = (sin(gameTime / eyeRate) * 0.5f + 0.5f)
+                                    val eyeColor = if (isTracking || transmitting) Color.Red else Color.Cyan
+                                    val eyeRadius = if (isTracking || transmitting) 12f else 8f
+                                    drawCircle(eyeColor.copy(alpha = 0.6f + eyePulse * 0.4f), radius = eyeRadius, center = Offset(tx, ty))
 
-                                    drawCircle(
-                                        color = eyeColor.copy(alpha = 0.6f + eyePulse * 0.4f),
-                                        radius = eyeRadius,
-                                        center = Offset(tx, ty)
-                                    )
+                                    // Signal wave bars during transmission
+                                    if (transmitting) {
+                                        repeat(3) { i ->
+                                            val barX = tx - 30f + i * 30f
+                                            val barH = 8f + sin(gameTime / 100f + i * 2f) * 6f
+                                            drawRect(stateColor.copy(alpha = 0.5f), Offset(barX, ty - 30f), Size(8f, barH))
+                                        }
+                                    }
 
-                                    drawLine(
-                                        color = Color.LightGray,
-                                        start = Offset(tx - 20f, ty),
-                                        end = Offset(tx - 35f, ty - 10f),
-                                        strokeWidth = 3f
-                                    )
-                                    drawLine(
-                                        color = Color.LightGray,
-                                        start = Offset(tx + 20f, ty),
-                                        end = Offset(tx + 35f, ty - 10f),
-                                        strokeWidth = 3f
-                                    )
-
-                                    // Transmission visual rings
+                                    // Transmission visual rings (existing)
                                     if (isTracking && threat.transmissionProgress > 0f) {
                                         val prog = if (threat.transmissionProgress < 1f) threat.transmissionProgress else threat.scanPulse
                                         val baseRadius = 25f
-                                        val ringCount = 3
-                                        repeat(ringCount) { i ->
+                                        repeat(3) { i ->
                                             val offset = i * 0.33f
                                             val ringPhase = (prog + offset) % 1f
                                             val radius = ringPhase * 90f + baseRadius
@@ -1929,35 +2325,76 @@ fun GameScreen() {
                                             )
                                         }
                                     }
+
+                                    // Speed trail when fleeing
+                                    if (isFleeing) {
+                                        repeat(4) { i ->
+                                            val trailAlpha = 0.3f * (1f - i / 4f)
+                                            drawRect(stateColor.copy(alpha = trailAlpha), Offset(tx - 15f + (i + 1) * 8f, ty - 12f), Size(30f, 24f))
+                                        }
+                                    }
                                 }
                                 "ENT_SWARM_BOTS" -> {
-                                    // Render Aerosol Swarm
+                                    // Aerosol Swarm — full swarm feel
                                     val tx = threat.x
                                     val ty = threat.y - cameraY
                                     val pulse = (sin(gameTime / 300f) * 0.2f + 0.8f)
+                                    val playerInside = (player.x - tx) * (player.x - tx) + (player.y - cameraY - ty) * (player.y - cameraY - ty) < 150f * 150f
 
-                                    repeat(12) { i ->
-                                        val randomPart = Random(threat.instanceId.hashCode() + i)
-                                        val ox = (sin(gameTime / 500f + i) * 35f * pulse) + (randomPart.nextFloat() * 15f)
-                                        val oy = (cos(gameTime / 400f + i * 1.5f) * 35f * pulse) + (randomPart.nextFloat() * 15f)
+                                    // Swarm boundary ring
+                                    val boundaryRadius = 100f + pulse * 30f
+                                    drawCircle(Color.White.copy(alpha = 0.05f), radius = boundaryRadius, center = Offset(tx, ty), style = Stroke(width = 1f))
 
-                                        drawCircle(
-                                            color = Color.White.copy(alpha = 0.3f),
-                                            radius = 2f + randomPart.nextFloat() * 4f,
-                                            center = Offset(tx + ox, ty + oy)
-                                        )
+                                    // 35 particles with 3 queen bots
+                                    val particleCount = 35
+                                    repeat(particleCount) { i ->
+                                        val seed = threat.instanceId.hashCode() + i + (gameTime / 80).toInt()
+                                        val rng = Random(seed)
+                                        val baseR = 20f + rng.nextFloat() * 60f
+                                        val baseAngle = (i / particleCount.toFloat()) * 2f * PI.toFloat() + (gameTime / 1000f)
+                                        val ox = cos(baseAngle + rng.nextFloat() * 0.3f) * baseR * pulse
+                                        val oy = sin(baseAngle * 1.3f + rng.nextFloat() * 0.3f) * baseR * pulse * 0.8f
+                                        val px = tx + ox
+                                        val py = ty + oy
 
-                                        if (randomPart.nextFloat() < 0.05f) {
-                                            drawCircle(
-                                                color = Color.Cyan.copy(alpha = 0.6f),
-                                                radius = 1f,
-                                                center = Offset(tx + ox, ty + oy)
-                                            )
+                                        // Queen bots (every 12th particle)
+                                        val isQueen = i % 12 == 0 && i > 0
+                                        val radius = if (isQueen) 6f + rng.nextFloat() * 2f else 1f + rng.nextFloat() * 3f
+                                        val color = if (isQueen) Color.Cyan else Color.White.copy(alpha = 0.3f)
+
+                                        drawCircle(color = color, radius = radius, center = Offset(px, py))
+
+                                        // Queen has red core
+                                        if (isQueen) {
+                                            drawCircle(Color.Red.copy(alpha = 0.5f), radius = 3f, center = Offset(px, py))
+                                        }
+
+                                        // Ghost trail behind each bot
+                                        repeat(2) { t ->
+                                            val trailX = px - ox * 0.3f * (t + 1)
+                                            val trailY = py - oy * 0.3f * (t + 1)
+                                            drawCircle(Color.White.copy(alpha = 0.08f / (t + 1)), radius = radius * 0.7f, center = Offset(trailX, trailY))
+                                        }
+
+                                        // Cyan spark (15% chance)
+                                        if (rng.nextFloat() < 0.15f) {
+                                            drawCircle(Color.Cyan.copy(alpha = 0.6f), radius = 1.5f, center = Offset(px, py))
+                                        }
+                                    }
+
+                                    // Collision flash when player is inside swarm
+                                    if (playerInside) {
+                                        repeat(5) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 7 + (gameTime / 30).toInt()
+                                            val rng = Random(seed)
+                                            val fx = tx + (rng.nextFloat() - 0.5f) * 200f
+                                            val fy = ty + (rng.nextFloat() - 0.5f) * 200f
+                                            drawCircle(Color.White.copy(alpha = 0.4f), radius = 1f + rng.nextFloat() * 2f, center = Offset(fx, fy))
                                         }
                                     }
                                 }
                                 "ENT_CLOUD_SKIMMER" -> {
-                                    // Render Sky Ray
+                                    // Sky Ray — friendly beneficial entity
                                     val tx = threat.x
                                     val ty = threat.y - cameraY
                                     val distSq = (player.x - tx) * (player.x - tx) + (player.y - cameraY - ty) * (player.y - cameraY - ty)
@@ -1966,20 +2403,45 @@ fun GameScreen() {
                                     val dir = if (threat.vx > 0) 1f else -1f
                                     val wingSpan = 80f
                                     val flap = sin(gameTime / 600f) * 20f
+                                    val friendlyColor = Color(0xFF00E676) // Teal/green
+                                    val glowColor = Color(0xFF1DE9B6)
 
+                                    // Friendly glow aura
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(glowColor.copy(alpha = 0.15f), Color.Transparent),
+                                            center = Offset(tx, ty),
+                                            radius = 80f
+                                        ),
+                                        radius = 80f,
+                                        center = Offset(tx, ty)
+                                    )
+
+                                    // Glow trail showing slipstream path
                                     if (isNear) {
+                                        val trailPath = Path().apply {
+                                            moveTo(tx - 80f * dir, ty)
+                                            cubicTo(tx - 40f * dir, ty - 30f, tx + 40f * dir, ty - 50f, tx + 80f * dir, ty - 20f)
+                                        }
+                                        drawPath(trailPath, glowColor.copy(alpha = 0.2f), style = Stroke(width = 4f))
+
                                         repeat(3) { i ->
                                             val slipX = tx + (Random.nextFloat() - 0.5f) * 40f
                                             val slipY = ty + i * 20f
-                                            drawLine(
-                                                color = Color.Cyan.copy(alpha = 0.3f),
-                                                start = Offset(slipX, slipY),
-                                                end = Offset(slipX, slipY - 60f),
-                                                strokeWidth = 2f
-                                            )
+                                            drawLine(glowColor.copy(alpha = 0.4f), Offset(slipX, slipY), Offset(slipX, slipY - 80f), strokeWidth = 3f)
+                                        }
+
+                                        // Contact sparkle particles
+                                        repeat(4) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 40).toInt()
+                                            val rng = Random(seed)
+                                            val sx = tx + (rng.nextFloat() - 0.5f) * 60f
+                                            val sy = ty + (rng.nextFloat() - 0.5f) * 60f
+                                            drawCircle(Color(0xFF69F0AE).copy(alpha = 0.5f), radius = 1f + rng.nextFloat() * 2f, center = Offset(sx, sy))
                                         }
                                     }
 
+                                    // Wing body with upward arrow markings
                                     val rayPath = Path().apply {
                                         moveTo(tx - 40f * dir, ty)
                                         quadraticTo(tx, ty - 10f, tx + 40f * dir, ty)
@@ -1989,15 +2451,20 @@ fun GameScreen() {
                                         lineTo(tx - 20f * dir, ty + 15f)
                                         close()
                                     }
-                                    drawPath(rayPath, Color(0xFFB3E5FC).copy(alpha = 0.4f))
-                                    drawPath(rayPath, Color.White.copy(alpha = 0.2f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f))
+                                    drawPath(rayPath, friendlyColor.copy(alpha = 0.4f))
+                                    drawPath(rayPath, Color.White.copy(alpha = 0.2f), style = Stroke(width = 2f))
 
+                                    // Upward arrow on each wing
+                                    val arrowY = ty + flap * 0.5f
+                                    val arrowX1 = tx - 50f * dir
+                                    val arrowX2 = tx + 10f * dir
+                                    drawLine(glowColor.copy(alpha = 0.3f), Offset(arrowX1, arrowY), Offset(arrowX2, arrowY), strokeWidth = 2f)
+                                    drawLine(glowColor.copy(alpha = 0.3f), Offset(arrowX2, arrowY), Offset(arrowX2 - 10f * dir, arrowY - 8f), strokeWidth = 2f)
+                                    drawLine(glowColor.copy(alpha = 0.3f), Offset(arrowX2, arrowY), Offset(arrowX2 - 10f * dir, arrowY + 8f), strokeWidth = 2f)
+
+                                    // Trailing energy dots
                                     repeat(3) { i ->
-                                        drawCircle(
-                                            color = Color.White.copy(alpha = 0.1f),
-                                            radius = 5f - i,
-                                            center = Offset(tx - (60f + i * 20f) * dir, ty + sin(gameTime / 400f + i) * 10f)
-                                        )
+                                        drawCircle(friendlyColor.copy(alpha = 0.2f), radius = 5f - i, center = Offset(tx - (60f + i * 20f) * dir, ty + sin(gameTime / 400f + i) * 10f))
                                     }
                                 }
                                 "HAZ_STORM" -> {
@@ -2024,68 +2491,510 @@ fun GameScreen() {
                                     }
                                 }
                                 "ENT_ORBITAL_SENTRY" -> {
-                                    // Render Orbital Sentry
+                                    // Defense Node — lock-on & fuel drain visible
                                     val tx = threat.x
                                     val ty = threat.y - cameraY
                                     val rot = threat.rotation
-                                    rotate(rot, pivot = Offset(tx, ty)) {
-                                        drawRect(Color(0xFF37474F), topLeft = Offset(tx - 25f, ty - 25f), size = Size(50f, 50f))
-                                        drawRect(Color.Gray.copy(alpha = 0.5f), topLeft = Offset(tx - 25f, ty - 25f), size = Size(50f, 50f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f))
-                                        drawCircle(Color.Cyan.copy(alpha = 0.3f), radius = 15f, center = Offset(tx, ty))
+                                    val isTracking = threat.isTracking
+
+                                    // Octagonal turret chassis
+                                    val octPath = Path().apply {
+                                        moveTo(tx - 25f, ty - 10f)
+                                        lineTo(tx - 10f, ty - 25f)
+                                        lineTo(tx + 10f, ty - 25f)
+                                        lineTo(tx + 25f, ty - 10f)
+                                        lineTo(tx + 25f, ty + 10f)
+                                        lineTo(tx + 10f, ty + 25f)
+                                        lineTo(tx - 10f, ty + 25f)
+                                        lineTo(tx - 25f, ty + 10f)
+                                        close()
                                     }
+                                    rotate(rot, pivot = Offset(tx, ty)) {
+                                        drawPath(octPath, Color(0xFF37474F))
+                                        drawPath(octPath, Color.Gray.copy(alpha = 0.5f), style = Stroke(width = 2f))
+                                        drawCircle(Color.Cyan.copy(alpha = 0.3f), radius = 15f, center = Offset(tx, ty))
+
+                                        // Gun barrel
+                                        drawRect(Color(0xFF546E7A), Offset(tx - 4f, ty - 35f), Size(8f, 12f))
+                                    }
+
+                                    // Radar scan ring
                                     val pulseRadius = 150f * threat.scanPulse
                                     drawCircle(
                                         color = Color.Cyan.copy(alpha = 0.2f * (1f - threat.scanPulse)),
                                         radius = pulseRadius,
                                         center = Offset(tx, ty),
-                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                                        style = Stroke(width = 2f)
                                     )
+
+                                    // Laser sight line when tracking
+                                    if (isTracking) {
+                                        val px = player.x
+                                        val py = player.y - cameraY
+                                        drawLine(Color.Red.copy(alpha = 0.3f), Offset(tx, ty), Offset(px, py), strokeWidth = 1f)
+
+                                        // 4-bracket lock-on reticle at player position
+                                        val bracketSize = 15f
+                                        val gap = 5f
+                                        drawLine(Color.Red.copy(alpha = 0.5f), Offset(px - bracketSize - gap, py - bracketSize - gap), Offset(px - gap, py - bracketSize - gap), strokeWidth = 2f)
+                                        drawLine(Color.Red.copy(alpha = 0.5f), Offset(px - bracketSize - gap, py - bracketSize - gap), Offset(px - bracketSize - gap, py - gap), strokeWidth = 2f)
+                                        drawLine(Color.Red.copy(alpha = 0.5f), Offset(px + bracketSize + gap, py - bracketSize - gap), Offset(px + gap, py - bracketSize - gap), strokeWidth = 2f)
+                                        drawLine(Color.Red.copy(alpha = 0.5f), Offset(px + bracketSize + gap, py - bracketSize - gap), Offset(px + bracketSize + gap, py - gap), strokeWidth = 2f)
+                                        drawLine(Color.Red.copy(alpha = 0.5f), Offset(px - bracketSize - gap, py + bracketSize + gap), Offset(px - gap, py + bracketSize + gap), strokeWidth = 2f)
+                                        drawLine(Color.Red.copy(alpha = 0.5f), Offset(px - bracketSize - gap, py + bracketSize + gap), Offset(px - bracketSize - gap, py + gap), strokeWidth = 2f)
+                                        drawLine(Color.Red.copy(alpha = 0.5f), Offset(px + bracketSize + gap, py + bracketSize + gap), Offset(px + gap, py + bracketSize + gap), strokeWidth = 2f)
+                                        drawLine(Color.Red.copy(alpha = 0.5f), Offset(px + bracketSize + gap, py + bracketSize + gap), Offset(px + bracketSize + gap, py + gap), strokeWidth = 2f)
+
+                                        // Fuel-drain stream (orange particles flowing from player to sentry)
+                                        repeat(3) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 5 + (gameTime / 30).toInt()
+                                            val rng = Random(seed)
+                                            val t = rng.nextFloat()
+                                            val sx = px + (tx - px) * t
+                                            val sy = py + (ty - py) * t
+                                            drawCircle(Color(0xFFFF6D00).copy(alpha = 0.5f * (1f - t)), radius = 2f, center = Offset(sx, sy))
+                                        }
+                                    }
+
+                                    // Combo-freeze icon
+                                    if (isTracking) {
+                                        val iconX = tx + 40f
+                                        val iconY = ty - 30f
+                                        // Snowflake symbol
+                                        rotate(gameTime / 10f, pivot = Offset(iconX, iconY)) {
+                                            repeat(3) { i ->
+                                                rotate(i * 60f, pivot = Offset(iconX, iconY)) {
+                                                    drawLine(Color.Cyan.copy(alpha = 0.5f), Offset(iconX, iconY - 8f), Offset(iconX, iconY + 8f), strokeWidth = 2f)
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                                 "ENT_CORRUPTED_HULL" -> {
-                                    // Render Derelict Echo
+                                    // Derelict Echo — lootable salvage
                                     val tx = threat.x
                                     val ty = threat.y - cameraY
-                                    rotate(threat.rotation, pivot = Offset(tx, ty)) {
-                                        drawRect(Color.DarkGray.copy(alpha = 0.4f), topLeft = Offset(tx - 15f, ty - 25f), size = Size(20f, 40f))
-                                        drawRect(Color.DarkGray.copy(alpha = 0.3f), topLeft = Offset(tx + 5f, ty - 10f), size = Size(15f, 15f))
-                                    }
-                                    val pulseAlpha = 0.5f * (1f - threat.scanPulse)
+                                    val rot = threat.rotation
+
+                                    // Gold metallic shine
+                                    val goldColor = Color(0xFFFF8F00)
+                                    val goldShine = (sin(gameTime / 200f) * 0.3f + 0.7f)
+
+                                    // Friendly beacon glow (alternating green/yellow)
+                                    val beaconColor = if ((gameTime / 500) % 2 == 0L) Color(0xFF00E676) else Color(0xFFFFEA00)
                                     drawCircle(
-                                        color = Color.Green.copy(alpha = pulseAlpha),
-                                        radius = 5f + 40f * threat.scanPulse,
-                                        center = Offset(tx, ty),
-                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(beaconColor.copy(alpha = 0.2f), Color.Transparent),
+                                            center = Offset(tx, ty),
+                                            radius = 80f
+                                        ),
+                                        radius = 80f,
+                                        center = Offset(tx, ty)
                                     )
+
+                                    rotate(rot, pivot = Offset(tx, ty)) {
+                                        // Crate body
+                                        drawRect(goldColor.copy(alpha = 0.6f), topLeft = Offset(tx - 15f, ty - 25f), size = Size(30f, 40f))
+                                        drawRect(Color.White.copy(alpha = 0.2f), topLeft = Offset(tx - 15f, ty - 25f), size = Size(30f, 40f), style = Stroke(width = 1f))
+
+                                        // Open lid (slightly ajar)
+                                        drawLine(Color(0xFFFFAB00).copy(alpha = 0.8f), Offset(tx - 15f, ty - 25f), Offset(tx - 10f, ty - 35f), strokeWidth = 3f)
+                                        drawLine(Color(0xFFFFAB00).copy(alpha = 0.8f), Offset(tx + 15f, ty - 25f), Offset(tx + 10f, ty - 35f), strokeWidth = 3f)
+
+                                        // Power-up icon peeking out (small colored circle)
+                                        drawCircle(Color.Cyan.copy(alpha = 0.6f * goldShine), radius = 6f, center = Offset(tx, ty - 18f))
+                                    }
+
+                                    // Gold sparkle particles
+                                    repeat(3) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 7 + (gameTime / 60).toInt()
+                                        val rng = Random(seed)
+                                        val sx = tx + (rng.nextFloat() - 0.5f) * 60f
+                                        val sy = ty + (rng.nextFloat() - 0.5f) * 60f
+                                        drawCircle(Color(0xFFFFD54F).copy(alpha = 0.5f), radius = 1f + rng.nextFloat() * 2f, center = Offset(sx, sy))
+                                    }
+
+                                    // Attract flow lines
+                                    repeat(3) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 80).toInt()
+                                        val rng = Random(seed)
+                                        val startX = tx + (rng.nextFloat() - 0.5f) * 200f
+                                        val startY = ty + (rng.nextFloat() - 0.5f) * 200f
+                                        drawLine(Color(0xFFFFD54F).copy(alpha = 0.15f), Offset(startX, startY), Offset(tx, ty), strokeWidth = 1f)
+                                    }
+                                }
+                                "ENT_STALKER" -> {
+                                    // Void Tracker — heat-seeking hunter drone (polished)
+                                    val tx = threat.x
+                                    val ty = threat.y - cameraY
+                                    val alertLevel = threat.alertLevel.coerceIn(0f, 1f)
+                                    val bodyRadius = 15f + alertLevel * 10f
+                                    val bodyColor = if (alertLevel > 0.5f) Color(0xFFFF6D00) else Color(0xFF880E4F)
+                                    val heatAlpha = 0.3f + alertLevel * 0.5f
+
+                                    // Engine glow
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(Color(0xFFFF6D00).copy(alpha = heatAlpha * 0.5f), Color.Transparent),
+                                            center = Offset(tx, ty),
+                                            radius = bodyRadius * 3f
+                                        ),
+                                        radius = bodyRadius * 3f,
+                                        center = Offset(tx, ty)
+                                    )
+
+                                    // Triangular body with horizontal segmentation lines
+                                    val bodyPath = Path().apply {
+                                        moveTo(tx, ty - bodyRadius * 1.5f)
+                                        lineTo(tx - bodyRadius * 1.2f, ty + bodyRadius * 0.8f)
+                                        lineTo(tx + bodyRadius * 1.2f, ty + bodyRadius * 0.8f)
+                                        close()
+                                    }
+                                    drawPath(bodyPath, bodyColor)
+                                    drawPath(bodyPath, Color.White.copy(alpha = 0.3f * (0.5f + alertLevel * 0.5f)), style = Stroke(width = 2f))
+
+                                    // Body segmentation glows (brighter with alert)
+                                    repeat(2) { i ->
+                                        val segY = ty - bodyRadius * 0.3f + i * (bodyRadius * 0.7f)
+                                        drawLine(Color(0xFFFFAB00).copy(alpha = 0.2f + alertLevel * 0.4f), Offset(tx - bodyRadius * (0.6f - i * 0.3f), segY), Offset(tx + bodyRadius * (0.6f - i * 0.3f), segY), strokeWidth = 2f)
+                                    }
+
+                                    // Thermal shimmer lines above body
+                                    repeat(3) { i ->
+                                        val shimmerX = tx + (i - 1) * bodyRadius * 0.5f
+                                        val shimmerY = ty - bodyRadius * 1.8f + sin(gameTime / 100f + i) * 5f
+                                        drawLine(Color(0xFFFF6D00).copy(alpha = 0.15f + alertLevel * 0.25f), Offset(shimmerX - 10f, shimmerY), Offset(shimmerX + 10f, shimmerY), strokeWidth = 2f)
+                                    }
+
+                                    // Alert-level bar (top of body)
+                                    drawRect(Color(0xFF1A1A1A).copy(alpha = 0.5f), Offset(tx - 15f, ty - bodyRadius * 1.8f), Size(30f * alertLevel, 4f))
+                                    drawRect(Color(0xFFFF1744).copy(alpha = 0.7f), Offset(tx - 15f, ty - bodyRadius * 1.8f), Size(30f * alertLevel, 4f))
+
+                                    // Scanning eye
+                                    val eyePulse = (sin(gameTime / 100f) * 0.3f + 0.7f) * (0.3f + alertLevel * 0.7f)
+                                    drawCircle(Color.White.copy(alpha = eyePulse), radius = 5f, center = Offset(tx, ty - 3f))
+                                    drawCircle(Color(0xFFFF1744).copy(alpha = 0.6f + 0.4f * eyePulse), radius = 3f, center = Offset(tx, ty - 3f))
+
+                                    // Heat trail particles intensify with alert
+                                    if (alertLevel > 0.2f) {
+                                        repeat((alertLevel * 6).toInt().coerceAtLeast(1)) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 7 + (gameTime / 100).toInt()
+                                            val rng = Random(seed)
+                                            val px = tx + (rng.nextFloat() - 0.5f) * 30f
+                                            val py = ty + bodyRadius + rng.nextFloat() * 40f * alertLevel
+                                            val particleAlpha = (1f - (py - ty - bodyRadius) / (40f * alertLevel)) * 0.6f
+                                            drawCircle(Color(0xFFFF6D00).copy(alpha = particleAlpha), radius = 1f + rng.nextFloat() * 3f * alertLevel, center = Offset(px, py))
+                                        }
+                                    }
+
+                                    // Scan rings
+                                    val scanSpeed = 1f + alertLevel * 3f
+                                    val scanPhase = (gameTime / 1000f * scanSpeed) % 1f
+                                    drawCircle(Color(0xFFFF1744).copy(alpha = 0.15f * (1f - scanPhase)), radius = bodyRadius * 1.5f + 80f * scanPhase, center = Offset(tx, ty), style = Stroke(width = 2f))
+                                    val scanPhase2 = (scanPhase + 0.5f) % 1f
+                                    drawCircle(Color(0xFFFF6D00).copy(alpha = 0.1f * (1f - scanPhase2)), radius = bodyRadius * 1.5f + 80f * scanPhase2, center = Offset(tx, ty), style = Stroke(width = 1f))
+                                }
+                                "ENT_VOID_WHALE" -> {
+                                    // Cosmic Leviathan — majestic ethereal behemoth (enhanced)
+                                    val tx = threat.x
+                                    val ty = threat.y - cameraY
+                                    val pulse = (sin(gameTime / 800f) * 0.15f + 0.85f)
+                                    val bodyRadius = 160f // scaled up from 120
+
+                                    // Ethereal glow aura
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(Color(0xFF00BCD4).copy(alpha = 0.15f * pulse), Color.Transparent),
+                                            center = Offset(tx, ty),
+                                            radius = bodyRadius * 2.5f
+                                        ),
+                                        radius = bodyRadius * 2.5f,
+                                        center = Offset(tx, ty)
+                                    )
+
+                                    // Main body curve (whale silhouette)
+                                    val bodyPath = Path().apply {
+                                        moveTo(tx - bodyRadius * pulse, ty)
+                                        cubicTo(tx - bodyRadius * 0.6f, ty - bodyRadius * 0.5f, tx + bodyRadius * 0.6f, ty - bodyRadius * 0.5f, tx + bodyRadius * pulse, ty)
+                                        cubicTo(tx + bodyRadius * 0.6f, ty + bodyRadius * 0.25f, tx - bodyRadius * 0.6f, ty + bodyRadius * 0.25f, tx - bodyRadius * pulse, ty)
+                                        close()
+                                    }
+                                    drawPath(bodyPath, Color(0xFF006064).copy(alpha = 0.3f * pulse))
+                                    drawPath(bodyPath, Color.Cyan.copy(alpha = 0.2f * pulse), style = Stroke(width = 3f))
+
+                                    // Tail fin
+                                    val tailPath = Path().apply {
+                                        moveTo(tx - bodyRadius * 0.9f, ty)
+                                        lineTo(tx - bodyRadius * 1.4f, ty - bodyRadius * 0.4f)
+                                        lineTo(tx - bodyRadius * 1.3f, ty)
+                                        lineTo(tx - bodyRadius * 1.4f, ty + bodyRadius * 0.4f)
+                                        close()
+                                    }
+                                    drawPath(tailPath, Color(0xFF00838F).copy(alpha = 0.2f * pulse))
+                                    drawPath(tailPath, Color.Cyan.copy(alpha = 0.15f * pulse), style = Stroke(width = 2f))
+
+                                    // Pectoral fins
+                                    val finPath = Path().apply {
+                                        moveTo(tx + bodyRadius * 0.2f, ty + bodyRadius * 0.2f)
+                                        cubicTo(tx + bodyRadius * 0.5f, ty + bodyRadius * 0.6f, tx + bodyRadius * 0.3f, ty + bodyRadius * 0.7f, tx + bodyRadius * 0.1f, ty + bodyRadius * 0.3f)
+                                        close()
+                                    }
+                                    drawPath(finPath, Color(0xFF00838F).copy(alpha = 0.15f * pulse))
+
+                                    // Nebula star-field body fill
+                                    repeat(40) { i ->
+                                        val seed = threat.instanceId.hashCode() + i + (gameTime / 500).toInt()
+                                        val rng = Random(seed)
+                                        val nx = tx + (rng.nextFloat() - 0.5f) * bodyRadius * 1.6f
+                                        val ny = ty + (rng.nextFloat() - 0.5f) * bodyRadius * 0.8f
+                                        val starColor = when (rng.nextInt(3)) { 0 -> Color.Cyan; 1 -> Color(0xFFCE93D8); else -> Color.White }
+                                        drawCircle(starColor.copy(alpha = 0.2f * rng.nextFloat() * pulse), radius = 1f + rng.nextFloat() * 2f, center = Offset(nx, ny))
+                                    }
+
+                                    // Bioluminescent star dots (existing, kept)
+                                    repeat(8) { i ->
+                                        val angleFrac = i.toFloat() / 8f
+                                        val bx = tx + cos(angleFrac * PI.toFloat() * 2f) * bodyRadius * 0.7f
+                                        val by = ty + sin(angleFrac * PI.toFloat() * 2f) * bodyRadius * 0.35f
+                                        val starPulse = (sin(gameTime / 300f + i * 1.2f) * 0.5f + 0.5f)
+                                        drawCircle(Color.Cyan.copy(alpha = 0.4f * starPulse * pulse), radius = 2f + starPulse * 3f, center = Offset(bx, by))
+                                    }
+
+                                    // Trailing star particles
+                                    repeat(5) { i ->
+                                        val trailPhase = ((gameTime / 2000f + i * 0.2f) % 1f)
+                                        val dist = trailPhase * bodyRadius * 1.5f
+                                        val offsetY = sin(trailPhase * PI.toFloat() * 2f) * 30f
+                                        drawCircle(Color.White.copy(alpha = (1f - trailPhase) * 0.3f * pulse), radius = 1f + (1f - trailPhase) * 2f, center = Offset(tx - dist * 0.7f, ty + offsetY))
+                                    }
+
+                                    // Slipstream direction arrows + lines when player is near
+                                    val dx = player.x - tx
+                                    val dy = player.y - cameraY - ty
+                                    val near = dx * dx + dy * dy < 500f * 500f
+                                    if (near) {
+                                        val pushDir = if (threat.vx > 0) -1f else 1f
+                                        // Direction arrow
+                                        val arrX = tx + pushDir * bodyRadius * 0.5f
+                                        drawLine(Color.Cyan.copy(alpha = 0.3f), Offset(arrX, ty), Offset(arrX + pushDir * 60f, ty), strokeWidth = 4f)
+                                        val arrHead = Path().apply {
+                                            moveTo(arrX + pushDir * 60f, ty)
+                                            lineTo(arrX + pushDir * 45f, ty - 10f)
+                                            lineTo(arrX + pushDir * 45f, ty + 10f)
+                                            close()
+                                        }
+                                        drawPath(arrHead, Color.Cyan.copy(alpha = 0.3f))
+
+                                        repeat(4) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 50).toInt()
+                                            val rng = Random(seed)
+                                            val sx = tx + (rng.nextFloat() - 0.5f) * bodyRadius
+                                            val sy = ty + i * 30f - 60f
+                                            drawLine(Color.Cyan.copy(alpha = 0.2f), Offset(sx, sy), Offset(sx, sy + 80f), strokeWidth = 2f)
+                                        }
+
+                                        // Void-wake lingering dots
+                                        repeat(5) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 7 + (gameTime / 100).toInt()
+                                            val rng = Random(seed)
+                                            val wx = tx + (rng.nextFloat() - 0.5f) * 200f
+                                            val wy = ty + (rng.nextFloat() - 0.5f) * 100f
+                                            drawCircle(Color.White.copy(alpha = 0.08f), radius = 2f + rng.nextFloat() * 3f, center = Offset(wx, wy))
+                                        }
+                                    }
+                                }
+                                "ENT_VOID_WRAITH" -> {
+                                    // Shadow Entity — phasing void horror (polished)
+                                    val tx = threat.x
+                                    val ty = threat.y - cameraY
+                                    val mat = threat.isMaterialized
+                                    val visAlpha = if (mat) 1f else 0.2f
+
+                                    // State-indicator glow: purple when materialized, gray when phased
+                                    val auraColor = if (mat) Color(0xFF4A148C) else Color(0xFF616161)
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(auraColor.copy(alpha = 0.15f * visAlpha), Color.Transparent),
+                                            center = Offset(tx, ty),
+                                            radius = 80f
+                                        ),
+                                        radius = 80f,
+                                        center = Offset(tx, ty)
+                                    )
+
+                                    // Crackling energy (materialized) or wireframe glitch (phased)
+                                    if (mat) {
+                                        repeat(6) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 5 + (gameTime / 80).toInt()
+                                            val rng = Random(seed)
+                                            val ex = tx + (rng.nextFloat() - 0.5f) * 100f
+                                            val ey = ty + (rng.nextFloat() - 0.5f) * 100f
+                                            drawLine(Color(0xFFD500F9).copy(alpha = 0.4f), Offset(tx, ty), Offset(ex, ey), strokeWidth = 1f + rng.nextFloat() * 2f)
+                                        }
+                                    } else {
+                                        // Wireframe outline only when phased
+                                        val bodyAlpha = 0.08f
+                                        val outlineColor = Color(0xFF4A148C).copy(alpha = bodyAlpha * 0.7f)
+                                        drawCircle(outlineColor, radius = 20f, center = Offset(tx, ty - 40f), style = Stroke(width = 2f))
+                                        val torsoPath = Path().apply {
+                                            moveTo(tx - 25f, ty - 25f); lineTo(tx + 25f, ty - 25f)
+                                            lineTo(tx + 20f, ty + 30f); lineTo(tx - 20f, ty + 30f); close()
+                                        }
+                                        drawPath(torsoPath, outlineColor, style = Stroke(width = 1f))
+                                        drawLine(outlineColor, Offset(tx - 25f, ty - 15f), Offset(tx - 50f, ty + 30f), strokeWidth = 1f)
+                                        drawLine(outlineColor, Offset(tx + 25f, ty - 15f), Offset(tx + 50f, ty + 30f), strokeWidth = 1f)
+                                        drawLine(outlineColor, Offset(tx - 12f, ty + 30f), Offset(tx - 20f, ty + 55f), strokeWidth = 1f)
+                                        drawLine(outlineColor, Offset(tx + 12f, ty + 30f), Offset(tx + 20f, ty + 55f), strokeWidth = 1f)
+
+                                        // Occasional glitch rect
+                                        if ((gameTime / 200) % 2 == 0L) {
+                                            val gx = tx + (Random(gameTime / 100).nextFloat() - 0.5f) * 60f
+                                            val gy = ty + (Random(gameTime / 100 + 1).nextFloat() - 0.5f) * 60f
+                                            drawRect(Color(0xFF4A148C).copy(alpha = 0.15f), topLeft = Offset(gx, gy), size = Size(4f, 6f))
+                                        }
+                                    }
+
+                                    // Full form when materialized
+                                    if (mat) {
+                                        val bodyAlpha = 0.7f
+                                        val bodyColor = Color(0xFF1A1A2E).copy(alpha = bodyAlpha)
+                                        val outlineColor = Color(0xFFD500F9).copy(alpha = bodyAlpha * 0.7f)
+                                        val eyeIntensity = (sin(gameTime / 150f) * 0.3f + 0.7f)
+                                        val px = player.x
+                                        val py = player.y - cameraY
+
+                                        // Head
+                                        drawCircle(bodyColor, radius = 20f, center = Offset(tx, ty - 40f))
+                                        drawCircle(outlineColor, radius = 20f, center = Offset(tx, ty - 40f), style = Stroke(width = 3f))
+
+                                        // Eyes with pupil tracking
+                                        val lookAngle = atan2(py - (ty - 42f), px - tx)
+                                        val pupilOffset = 3f
+                                        val lx = tx - 7f + cos(lookAngle) * pupilOffset
+                                        val ly = ty - 42f + sin(lookAngle) * pupilOffset
+                                        val rx = tx + 7f + cos(lookAngle) * pupilOffset
+                                        val ry = ty - 42f + sin(lookAngle) * pupilOffset
+                                        drawCircle(Color.White.copy(alpha = 0.8f * eyeIntensity), radius = 5f, center = Offset(tx - 7f, ty - 42f))
+                                        drawCircle(Color(0xFFFF1744).copy(alpha = 0.9f * eyeIntensity), radius = 3f, center = Offset(lx, ly))
+                                        drawCircle(Color.White.copy(alpha = 0.8f * eyeIntensity), radius = 5f, center = Offset(tx + 7f, ty - 42f))
+                                        drawCircle(Color(0xFFFF1744).copy(alpha = 0.9f * eyeIntensity), radius = 3f, center = Offset(rx, ry))
+
+                                        // Torso
+                                        val torsoPath = Path().apply {
+                                            moveTo(tx - 25f, ty - 25f); lineTo(tx + 25f, ty - 25f)
+                                            lineTo(tx + 20f, ty + 30f); lineTo(tx - 20f, ty + 30f); close()
+                                        }
+                                        drawPath(torsoPath, bodyColor)
+                                        drawPath(torsoPath, outlineColor, style = Stroke(width = 2f))
+
+                                        // Arms
+                                        repeat(2) { i ->
+                                            val armDir = if (i == 0) -1f else 1f
+                                            drawLine(bodyColor, Offset(tx + armDir * 25f, ty - 15f), Offset(tx + armDir * 50f, ty + 30f), strokeWidth = 8f)
+                                            drawLine(outlineColor, Offset(tx + armDir * 25f, ty - 15f), Offset(tx + armDir * 50f, ty + 30f), strokeWidth = 2f)
+                                        }
+
+                                        // Legs
+                                        drawLine(bodyColor, Offset(tx - 12f, ty + 30f), Offset(tx - 20f, ty + 55f), strokeWidth = 7f)
+                                        drawLine(bodyColor, Offset(tx + 12f, ty + 30f), Offset(tx + 20f, ty + 55f), strokeWidth = 7f)
+                                        drawLine(outlineColor, Offset(tx - 12f, ty + 30f), Offset(tx - 20f, ty + 55f), strokeWidth = 2f)
+                                        drawLine(outlineColor, Offset(tx + 12f, ty + 30f), Offset(tx + 20f, ty + 55f), strokeWidth = 2f)
+                                    }
                                 }
                                 "HAZ_VOID_ANOMALY" -> {
-                                    // Render Void Anomaly
+                                    // Reality rift with inward pull
                                     val tx = threat.x
                                     val ty = threat.y - cameraY
                                     val pulse = (sin(gameTime / 1000f) * 0.3f + 0.7f)
+                                    val scan = threat.scanPulse
+
+                                    // Deeper magenta aura (was pink)
                                     drawCircle(
                                         brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                                            colors = listOf(Color(0xFFE91E63).copy(alpha = 0.4f * pulse), Color.Transparent),
+                                            colors = listOf(Color(0xFF6A1B9A).copy(alpha = 0.5f * pulse), Color(0xFF4A148C).copy(alpha = 0.2f), Color.Transparent),
                                             center = Offset(tx, ty),
-                                            radius = 100f
+                                            radius = 150f
                                         ),
-                                        radius = 100f,
+                                        radius = 150f,
                                         center = Offset(tx, ty)
                                     )
+
+                                    // Jagged space-tear rim
+                                    val tearPath = Path().apply {
+                                        val segments = 12
+                                        moveTo(tx + 100f, ty)
+                                        repeat(segments) {
+                                            val angle = ((it + 1) / segments.toFloat()) * 2f * PI.toFloat()
+                                            val seed = threat.instanceId.hashCode() + it + (gameTime / 200).toInt()
+                                            val rng = Random(seed)
+                                            val jitter = 90f + rng.nextFloat() * 20f
+                                            lineTo(tx + cos(angle) * jitter, ty + sin(angle) * jitter)
+                                        }
+                                        close()
+                                    }
+                                    drawPath(tearPath, Color(0xFFAA00FF).copy(alpha = 0.15f * pulse), style = Stroke(width = 2f))
+
+                                    // 3 expanding ring pulses (existing, enhanced)
                                     repeat(3) { i ->
-                                        val ringPulse = (threat.scanPulse + i * 0.33f) % 1f
+                                        val ringPulse = (scan + i * 0.33f) % 1f
                                         drawCircle(
-                                            color = Color.White.copy(alpha = 0.1f * (1f - ringPulse)),
-                                            radius = 20f + 120f * ringPulse,
+                                            color = Color(0xFFE1BEE7).copy(alpha = 0.15f * (1f - ringPulse)),
+                                            radius = 20f + 130f * ringPulse,
                                             center = Offset(tx, ty),
-                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
+                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
                                         )
+                                    }
+
+                                    // Inward-spiraling vortex particles
+                                    repeat(10) { i ->
+                                        val seed = threat.instanceId.hashCode() + i + (gameTime / 80).toInt()
+                                        val rng = Random(seed)
+                                        val angle = (gameTime / 400f + i * 0.63f) % (2f * PI.toFloat())
+                                        val dist = 30f + ((gameTime / 60f + i * 30f) % 120f)
+                                        val px = tx + cos(angle) * dist
+                                        val py = ty + sin(angle) * dist
+                                        drawCircle(Color(0xFFCE93D8).copy(alpha = 0.5f * pulse * (1f - dist / 150f)), radius = 2f + rng.nextFloat() * 2f, center = Offset(px, py))
+                                    }
+
+                                    // Tidal pull lines from anomaly to screen edges
+                                    repeat(4) { i ->
+                                        val pullAngle = (i / 4f) * 2f * PI.toFloat()
+                                        val pullEnd = if (i % 2 == 0) Offset(if (i == 0) -100f else screenWidth + 100f, ty) else Offset(tx, if (i == 1) -100f else size.height + 100f)
+                                        drawLine(Color(0xFFCE93D8).copy(alpha = 0.1f * pulse), Offset(tx, ty), pullEnd, strokeWidth = 2f)
                                     }
                                 }
                                 "MINI_BOSS_COMMANDER" -> {
-                                    // Render Command Cruiser (Visual Identity Upgrade)
+                                    // Command Cruiser — phase-color shift + shield bubble
                                     val tx = threat.x
                                     val ty = threat.y - cameraY
                                     val phase = threat.phase
+
+                                    // Phase-color shift
+                                    val hullColor = when {
+                                        phase == 1 -> Color(0xFF263238)
+                                        phase == 2 -> Color(0xFF1565C0) // Blue
+                                        phase == 3 || phase == 4 -> Color(0xFFB71C1C) // Red
+                                        else -> Color(0xFFE65100) // Orange (flee)
+                                    }
+                                    val engineGlowColor = when {
+                                        phase >= 4 -> Color(0xFFFF6D00)
+                                        phase >= 3 -> Color(0xFFFF1744)
+                                        else -> Color.Cyan
+                                    }
+
+                                    // Shield bubble (when not all weak points destroyed)
+                                    if (threat.activeWeakPoints > 0) {
+                                        drawCircle(
+                                            brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                                colors = listOf(Color.Cyan.copy(alpha = 0.06f), Color.Transparent),
+                                                center = Offset(tx, ty),
+                                                radius = 200f
+                                            ),
+                                            radius = 200f,
+                                            center = Offset(tx, ty)
+                                        )
+                                        drawCircle(Color.Cyan.copy(alpha = 0.1f), radius = 200f, center = Offset(tx, ty), style = Stroke(width = 2f))
+                                    }
 
                                     // 1. Shadow (if arrival)
                                     if (threat.arrivalTimer < threat.arrivalDuration) {
@@ -2093,12 +3002,12 @@ fun GameScreen() {
                                     }
 
                                     // 2. Main Chassis
-                                    drawRect(Color(0xFF263238), topLeft = Offset(tx - 150f, ty - 60f), size = Size(300f, 120f))
-                                    drawRect(Color.Gray.copy(alpha = 0.5f), topLeft = Offset(tx - 150f, ty - 60f), size = Size(300f, 120f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4f))
+                                    drawRect(hullColor, topLeft = Offset(tx - 150f, ty - 60f), size = Size(300f, 120f))
+                                    drawRect(Color.Gray.copy(alpha = 0.5f), topLeft = Offset(tx - 150f, ty - 60f), size = Size(300f, 120f), style = Stroke(width = 4f))
 
                                     // 3. Bridge / Command Tower
                                     drawRect(Color(0xFF37474F), topLeft = Offset(tx - 40f, ty - 100f), size = Size(80f, 40f))
-                                    drawRect(Color.Cyan.copy(alpha = 0.3f), topLeft = Offset(tx - 30f, ty - 90f), size = Size(60f, 10f))
+                                    drawRect(engineGlowColor.copy(alpha = 0.3f), topLeft = Offset(tx - 30f, ty - 90f), size = Size(60f, 10f))
 
                                     // 4. Moving Antennae / Scanners
                                     repeat(2) { i ->
@@ -2116,8 +3025,9 @@ fun GameScreen() {
                                         drawArc(Color.Gray, 0f, 180f, true, topLeft = Offset(tx + 40f, ty - 100f), size = Size(40f, 40f))
                                     }
 
-                                    // 6. Hull Lights (Flashing)
-                                    if ((gameTime / 500) % 2 == 0L) {
+                                    // 6. Hull Lights (Flashing — faster in higher phases)
+                                    val lightRate = if (phase >= 3) 200 else 500
+                                    if ((gameTime / lightRate) % 2 == 0L) {
                                         drawCircle(Color.Yellow, radius = 4f, center = Offset(tx - 130f, ty - 40f))
                                         drawCircle(Color.Yellow, radius = 4f, center = Offset(tx + 130f, ty - 40f))
                                         drawCircle(Color.Yellow, radius = 4f, center = Offset(tx, ty - 40f))
@@ -2129,7 +3039,7 @@ fun GameScreen() {
                                         val ex = tx - 100f + i * 100f
                                         drawCircle(
                                             brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                                                colors = listOf(Color.Cyan.copy(alpha = 0.5f), Color.Transparent),
+                                                colors = listOf(engineGlowColor.copy(alpha = 0.5f), Color.Transparent),
                                                 center = Offset(ex, ty + 60f),
                                                 radius = 40f + engineFlicker
                                             ),
@@ -2167,29 +3077,43 @@ fun GameScreen() {
                                         val wx = tx - 80f + (i * 80f)
                                         val wy = ty - 40f
                                         if (!isDestroyed) {
+                                            // Weak point with rotating beacon
                                             drawRect(Color.Magenta, topLeft = Offset(wx - 10f, wy - 10f), size = Size(20f, 20f))
-                                            drawRect(Color.White, topLeft = Offset(wx - 10f, wy - 10f), size = Size(20f, 20f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f))
+                                            drawRect(Color.White, topLeft = Offset(wx - 10f, wy - 10f), size = Size(20f, 20f), style = Stroke(width = 2f))
+                                            // Beacon rotation
+                                            val beaconAngle = (gameTime / 20f + i * 120f) % 360f
+                                            rotate(beaconAngle, pivot = Offset(wx, wy)) {
+                                                drawLine(Color.White.copy(alpha = 0.5f), Offset(wx, wy), Offset(wx + 15f, wy), strokeWidth = 2f)
+                                            }
                                         } else {
-                                            // Destroyed state debris
                                             if (Random.nextFloat() < 0.1f) {
                                                 spawnBurst(wx, wy + cameraY, 5, SciFiBorder, 50f)
                                             }
                                         }
                                     }
 
-                                    // Gravity Pulse Visual
+                                    // Jam-wave ring (pulsing from cruiser)
+                                    if (phase >= 3) {
+                                        val jamPulse = (sin(gameTime / 400f) * 0.5f + 0.5f)
+                                        drawCircle(Color(0xFF00BCD4).copy(alpha = 0.1f * jamPulse), radius = 100f + jamPulse * 200f, center = Offset(tx, ty), style = Stroke(width = 4f))
+                                        drawCircle(Color.Cyan.copy(alpha = 0.05f * jamPulse), radius = 100f + jamPulse * 200f, center = Offset(tx, ty), style = Stroke(width = 2f))
+                                    }
+
+                                    // Gravity Pulse Visual (with debris particles)
                                     if (threat.pulseAlpha > 0) {
                                         val pulseScale = 1f - threat.pulseAlpha
-                                        drawCircle(
-                                            color = Color.White.copy(alpha = threat.pulseAlpha * 0.6f),
-                                            radius = pulseScale * 1200f,
-                                            center = Offset(tx, ty),
-                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8f)
-                                        )
+                                        drawCircle(Color.White.copy(alpha = threat.pulseAlpha * 0.6f), radius = pulseScale * 1200f, center = Offset(tx, ty), style = Stroke(width = 8f))
+                                        repeat(8) { i ->
+                                            val seed = threat.instanceId.hashCode() + i + (gameTime / 50).toInt()
+                                            val rng = Random(seed)
+                                            val da = rng.nextFloat() * 2f * PI.toFloat()
+                                            val dd = rng.nextFloat() * 600f
+                                            drawCircle(Color.White.copy(alpha = 0.2f * threat.pulseAlpha), radius = 2f, center = Offset(tx + cos(da) * dd, ty + sin(da) * dd))
+                                        }
                                     }
                                 }
                                 "BOSS_GATEKEEPER" -> {
-                                    // Render Gatekeeper (Dramatic Arrival & Identity)
+                                    // Gatekeeper — safe gap clarity + afterimage rings
                                     val tx = threat.x; val ty = threat.y - cameraY
                                     val arrivalProgress = (threat.arrivalTimer / threat.arrivalDuration).coerceIn(0f, 1f)
                                     val phase = threat.phase
@@ -2197,59 +3121,79 @@ fun GameScreen() {
                                     // Dim background
                                     drawRect(Color.Black.copy(alpha = 0.4f * arrivalProgress), topLeft = Offset(0f, 0f), size = size)
 
+                                    // Afterimage ghost rings from rotation
+                                    repeat(2) { g ->
+                                        val ghostAngle = threat.rotation - 30f - g * 20f
+                                        rotate(ghostAngle, pivot = Offset(tx, ty)) {
+                                            drawCircle(Color.White.copy(alpha = 0.05f * (1f - g * 0.5f)), radius = 250f, center = Offset(tx, ty), style = Stroke(width = 15f))
+                                        }
+                                    }
+
                                     rotate(threat.rotation, pivot = Offset(tx, ty)) {
                                         // Massive Orbital Ring
-                                        drawCircle(
-                                            color = Color.White.copy(alpha = 0.8f * arrivalProgress),
-                                            radius = 250f,
-                                            center = Offset(tx, ty),
-                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 20f)
-                                        )
-                                        // Safe Gaps (Visualized as massive energy barriers)
+                                        drawCircle(Color.White.copy(alpha = 0.8f * arrivalProgress), radius = 250f, center = Offset(tx, ty), style = Stroke(width = 20f))
+
+                                        // Safe Gaps with green/red coloring + solid barrier walls
                                         repeat(4) { i ->
-                                            val isWeakPointDestroyed = i >= threat.activeWeakPoints
+                                            val isWpDestroyed = i >= threat.activeWeakPoints
                                             rotate(i * 90f, pivot = Offset(tx, ty)) {
-                                                drawArc(
-                                                    color = if (isWeakPointDestroyed) Color.Red.copy(alpha = 0.2f) else Color.Cyan.copy(alpha = 0.7f),
-                                                    startAngle = 5f,
-                                                    sweepAngle = 80f,
-                                                    useCenter = false,
-                                                    topLeft = Offset(tx - 250f, ty - 250f),
-                                                    size = Size(500f, 500f),
-                                                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 80f)
-                                                )
+                                                // Safe gap = green, danger arc = red
+                                                val safeColor = if (isWpDestroyed) Color.Red.copy(alpha = 0.2f) else Color(0xFF00E676).copy(alpha = 0.4f)
+                                                val dangerColor = Color.Red.copy(alpha = 0.5f)
+                                                // Safe window (inner 50 degrees)
+                                                drawArc(safeColor, startAngle = 45f, sweepAngle = 10f, useCenter = false, topLeft = Offset(tx - 250f, ty - 250f), size = Size(500f, 500f), style = Stroke(width = 80f))
+                                                // Danger arc (outer 80 degrees)
+                                                drawArc(dangerColor, startAngle = 5f, sweepAngle = 80f, useCenter = false, topLeft = Offset(tx - 250f, ty - 250f), size = Size(500f, 500f), style = Stroke(width = 80f))
                                                 // High contrast unsafe edge
-                                                drawArc(
-                                                    color = Color.Red.copy(alpha = 0.5f),
-                                                    startAngle = 5f,
-                                                    sweepAngle = 10f,
-                                                    useCenter = false,
-                                                    topLeft = Offset(tx - 250f, ty - 250f),
-                                                    size = Size(500f, 500f),
-                                                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 90f)
-                                                )
-                                                // Weak Point Node
-                                                if (!isWeakPointDestroyed) {
+                                                drawArc(Color.Red.copy(alpha = 0.7f), startAngle = 5f, sweepAngle = 10f, useCenter = false, topLeft = Offset(tx - 250f, ty - 250f), size = Size(500f, 500f), style = Stroke(width = 90f))
+
+                                                // Solid energy barrier walls
+                                                drawRect(Color(0xFFFF1744).copy(alpha = 0.15f), Offset(tx + 245f, ty - 300f), Size(10f, 600f))
+
+                                                // Weak Point Node with rotating shield
+                                                if (!isWpDestroyed) {
+                                                    val shieldAngle = (gameTime / 30f) % 360f
                                                     drawCircle(Color.Magenta, radius = 25f, center = Offset(tx + 250f, ty))
                                                     drawCircle(Color.White, radius = 10f, center = Offset(tx + 250f, ty))
+                                                    // Rotating shield ring
+                                                    drawArc(Color.Cyan.copy(alpha = 0.4f), startAngle = shieldAngle, sweepAngle = 120f, useCenter = false, topLeft = Offset(tx + 225f, ty - 25f), size = Size(50f, 50f), style = Stroke(width = 4f))
                                                 }
                                             }
                                         }
                                     }
-                                    // Central Eye
+
+                                    // Push-back force lines from barrier toward player
+                                    val pdx = player.x - tx
+                                    val pdy = player.y - cameraY - ty
+                                    val pDist = sqrt(pdx * pdx + pdy * pdy)
+                                    if (pDist > 150f && pDist < 350f && threat.activeWeakPoints > 0) {
+                                        repeat(4) { i ->
+                                            val angle = atan2(pdy, pdx)
+                                            val forceX = tx + cos(angle) * 200f + (i - 1.5f) * 20f
+                                            val forceY = ty + sin(angle) * 200f
+                                            drawLine(Color(0xFFFFAB00).copy(alpha = 0.15f), Offset(forceX, forceY), Offset(player.x, player.y - cameraY), strokeWidth = 2f)
+                                        }
+                                    }
+
+                                    // Central Eye with iris tracking
                                     val eyePulse = (sin(gameTime / 200f) * 0.2f + 0.8f)
                                     val eyeColor = if (phase == 3) Color.Yellow else Color.Red
                                     drawCircle(eyeColor.copy(alpha = 0.9f * eyePulse), radius = 40f * arrivalProgress, center = Offset(tx, ty))
+                                    // Iris tracks player
+                                    val lookAngle = atan2(pdy, pdx)
+                                    val irisX = tx + cos(lookAngle) * 15f
+                                    val irisY = ty + sin(lookAngle) * 15f
                                     drawCircle(Color.White, radius = 15f * arrivalProgress, center = Offset(tx, ty))
+                                    drawCircle(Color.Black, radius = 8f * arrivalProgress, center = Offset(irisX, irisY))
                                 }
                                 "BOSS_STAR_EATER" -> {
-                                    // Render Star Eater
+                                    // Star-Eater — power-up suction visible + dentition ring
                                     val tx = threat.x; val ty = threat.y - cameraY
                                     val pulse = (sin(gameTime / 400f) * 0.1f + 0.9f)
                                     val phase = threat.phase
-
-                                    // Sucking Aura (AMPLIFIED)
                                     val auraRadius = if (phase == 3) 1000f else 800f
+
+                                    // Sucking Aura
                                     drawCircle(
                                         brush = androidx.compose.ui.graphics.Brush.radialGradient(
                                             colors = listOf(Color.Black, Color(0xFF6A1B9A).copy(alpha = 0.8f), Color.Transparent),
@@ -2270,8 +3214,45 @@ fun GameScreen() {
                                         drawCircle(Color.Magenta.copy(alpha = 0.4f), radius = 5f, center = Offset(px, py))
                                     }
 
+                                    // After-image ghost copy
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(Color(0xFF6A1B9A).copy(alpha = 0.15f), Color.Transparent),
+                                            center = Offset(tx - 50f, ty + 30f),
+                                            radius = auraRadius * 0.8f
+                                        ),
+                                        radius = auraRadius * 0.8f,
+                                        center = Offset(tx - 50f, ty + 30f)
+                                    )
+
+                                    // Power-up suction stream trails (toward nearest power-ups — simulated)
+                                    repeat(4) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 7 + (gameTime / 80).toInt()
+                                        val rng = Random(seed)
+                                        val sx = tx + (rng.nextFloat() - 0.5f) * 600f
+                                        val sy = ty + (rng.nextFloat() - 0.5f) * 600f
+                                        val streamPath = Path().apply {
+                                            moveTo(sx, sy)
+                                            cubicTo(sx, (sy + ty) * 0.5f, (sx + tx) * 0.5f, ty, tx, ty)
+                                        }
+                                        drawPath(streamPath, Color(0xFFBA68C8).copy(alpha = 0.15f), style = Stroke(width = 2f))
+                                    }
+
                                     // Dark Core
                                     drawCircle(Color.Black, radius = 120f * pulse, center = Offset(tx, ty))
+
+                                    // Dentition ring (energy teeth around maw)
+                                    val toothCount = 16
+                                    repeat(toothCount) { i ->
+                                        val ta = (i / toothCount.toFloat()) * 2f * PI.toFloat() + (gameTime / 2000f)
+                                        val innerR = 100f
+                                        val outerR = 120f + pulse * 10f
+                                        val tx1 = tx + cos(ta) * innerR
+                                        val ty1 = ty + sin(ta) * innerR
+                                        val tx2 = tx + cos(ta) * outerR
+                                        val ty2 = ty + sin(ta) * outerR
+                                        drawLine(Color(0xFFCE93D8).copy(alpha = 0.5f * pulse), Offset(tx1, ty1), Offset(tx2, ty2), strokeWidth = 4f * pulse)
+                                    }
 
                                     // Core Eye (Weak Point)
                                     if (threat.activeWeakPoints > 0) {
@@ -2279,21 +3260,27 @@ fun GameScreen() {
                                         drawCircle(Color.White, radius = 15f, center = Offset(tx, ty))
                                     }
 
-                                    // Tendrils (Now with suction physics appearance)
+                                    // Tendrils — glow brighter when player is near
+                                    val pDist = sqrt((player.x - tx) * (player.x - tx) + (player.y - cameraY - ty) * (player.y - cameraY - ty))
+                                    val tendrilGlow = if (pDist < 400f) 1.0f else 0.5f
                                     repeat(12) { i ->
                                         val angle = i * 30f + sin(gameTime / 300f + i) * 40f
                                         rotate(angle, pivot = Offset(tx, ty)) {
                                             drawLine(
-                                                if (phase == 3) Color.Red else Color(0xFFBA68C8),
+                                                if (phase == 3) Color.Red else Color(0xFFBA68C8).copy(alpha = tendrilGlow),
                                                 Offset(tx + 80f, ty),
                                                 Offset(tx + 400f, ty),
-                                                strokeWidth = 15f * pulse
+                                                strokeWidth = 15f * pulse * tendrilGlow
                                             )
                                         }
                                     }
+
+                                    // Hunger-meter: core pulse rate increases (simulated via pulse speed variation)
+                                    val hungerRate = 1f + (1f - pDist / 1000f).coerceIn(0f, 0.5f)
+                                    drawCircle(Color(0xFFFF4081).copy(alpha = 0.1f * hungerRate), radius = 80f + pulse * 20f, center = Offset(tx, ty), style = Stroke(width = 3f))
                                 }
                                 "BOSS_VOID_ENGINE" -> {
-                                    // Render Void Engine
+                                    // Void Engine — gravity shift telegraph + inversion buildup
                                     val tx = threat.x; val ty = threat.y - cameraY
                                     val rot = threat.rotation
                                     val phase = threat.phase
@@ -2309,27 +3296,60 @@ fun GameScreen() {
                                         center = Offset(tx, ty)
                                     )
 
+                                    // Reality-tear rim (jagged edge)
+                                    val tearPath = Path().apply {
+                                        val segs = 16
+                                        moveTo(tx + 500f, ty)
+                                        repeat(segs) {
+                                            val ta = ((it + 1) / segs.toFloat()) * 2f * PI.toFloat()
+                                            val seed = threat.instanceId.hashCode() + it + (gameTime / 150).toInt()
+                                            val rng = Random(seed)
+                                            val jitter = 480f + rng.nextFloat() * 40f
+                                            lineTo(tx + cos(ta) * jitter, ty + sin(ta) * jitter)
+                                        }
+                                        close()
+                                    }
+                                    drawPath(tearPath, Color(0xFFE91E63).copy(alpha = 0.08f), style = Stroke(width = 2f))
+
                                     rotate(rot, pivot = Offset(tx, ty)) {
+                                        // Arm afterimages
+                                        repeat(2) { g ->
+                                            val ghostRot = rot - 30f - g * 15f
+                                            rotate(ghostRot, pivot = Offset(tx, ty)) {
+                                                repeat(3) { i ->
+                                                    rotate(i * 120f, pivot = Offset(tx, ty)) {
+                                                        drawRect(Color(0xFF880E4F).copy(alpha = 0.1f / (g + 1)), topLeft = Offset(tx - 40f, ty - 200f), size = Size(80f, 400f))
+                                                    }
+                                                }
+                                            }
+                                        }
+
                                         repeat(3) { i ->
                                             rotate(i * 120f, pivot = Offset(tx, ty)) {
                                                 drawRect(Color(0xFF880E4F), topLeft = Offset(tx - 40f, ty - 200f), size = Size(80f, 400f))
-                                                drawRect(Color.White, topLeft = Offset(tx - 40f, ty - 200f), size = Size(80f, 400f), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4f))
-
-                                                // Weak Points on the arms
+                                                drawRect(Color.White, topLeft = Offset(tx - 40f, ty - 200f), size = Size(80f, 400f), style = Stroke(width = 4f))
                                                 if (i < threat.activeWeakPoints) {
                                                     drawCircle(Color.Magenta, radius = 20f, center = Offset(tx, ty - 150f))
                                                 }
                                             }
                                         }
                                     }
-                                    // Energy Arcs
-                                    if ((gameTime / 80) % (if(phase == 3) 2 else 4) == 0L) {
+
+                                    // Core instability arcs (frequency increases with damage)
+                                    val arcRate = if (phase == 3) 2 else 4
+                                    if ((gameTime / 80) % arcRate == 0L) {
                                         drawLine(Color.White, Offset(tx, ty), Offset(tx + (Random.nextFloat() - 0.5f) * 600f, ty + (Random.nextFloat() - 0.5f) * 600f), strokeWidth = 5f)
                                     }
 
+                                    // Control-inversion buildup: screen tint shifts pink
+                                    if (phase == 3 && (threat.localTimer.toInt() % 60) > 55) {
+                                        drawRect(Color(0xFFE91E63).copy(alpha = 0.08f), topLeft = Offset(0f, 0f), size = size)
+                                    }
+
                                     // Shift Direction Indicators (Large Arrows)
-                                    if (threat.phase >= 2 && (threat.localTimer.toInt() % 4 < 2)) {
+                                    if (phase >= 2 && (threat.localTimer.toInt() % 4 < 2)) {
                                         val shiftDir = if ((threat.localTimer.toInt() / 4) % 2 == 0) 1f else -1f
+                                        // Screen-wide arrow indicators
                                         repeat(3) { i ->
                                             val ay = (gameTime / 2f + i * 200f) % screenHeight
                                             val ax = if (shiftDir > 0) 100f else screenWidth - 100f
@@ -2343,74 +3363,155 @@ fun GameScreen() {
                                                 color = Color.Magenta.copy(alpha = 0.3f)
                                             )
                                         }
+                                        // Large background arrow
+                                        drawPath(
+                                            path = Path().apply {
+                                                moveTo(screenWidth / 2f + shiftDir * 200f, screenHeight / 2f)
+                                                lineTo(screenWidth / 2f - shiftDir * 100f, screenHeight / 2f - 60f)
+                                                lineTo(screenWidth / 2f - shiftDir * 100f, screenHeight / 2f + 60f)
+                                                close()
+                                            },
+                                            color = Color.Magenta.copy(alpha = 0.1f)
+                                        )
                                     }
                                 }
                                 "BOSS_LEVIATHAN" -> {
-                                    // Render Leviathan (Segmented body)
+                                    // Leviathan — organic segments + directional slipstream
                                     val tx = threat.x; val ty = threat.y - cameraY
                                     val phase = threat.phase
+
+                                    // Wall-pressure warning (red edge glow)
+                                    val nearLeft = player.x < 100f
+                                    val nearRight = player.x > screenWidth - 100f
+                                    if (phase == 3 && (nearLeft || nearRight)) {
+                                        val edgeX = if (nearLeft) 0f else screenWidth
+                                        drawRect(Color.Red.copy(alpha = 0.15f), Offset(edgeX - if (nearLeft) 0f else 20f, 0f), Size(if (nearLeft) 20f else 20f, size.height))
+                                    }
 
                                     repeat(6) { i ->
                                         val ox = sin(gameTime / 1000f - i * 0.5f) * 100f
                                         val oy = i * 60f
                                         val segmentPulse = (sin(gameTime / 500f + i) * 0.2f + 0.8f)
-
-                                        // Color shifts in phase 3
                                         val bodyColor = if (phase == 3) Color(0xFF1A237E) else Color(0xFF01579B)
 
-                                        drawCircle(
-                                            bodyColor,
-                                            radius = (80f - i * 10f) * segmentPulse,
-                                            center = Offset(tx + ox, ty + oy)
-                                        )
+                                        // Organic ellipse body + armor plate
+                                        drawOval(bodyColor, topLeft = Offset(tx + ox - (60f - i * 8f) * segmentPulse, ty + oy - (45f - i * 6f) * segmentPulse), size = Size((120f - i * 16f) * segmentPulse, (90f - i * 12f) * segmentPulse))
+                                        drawOval(Color.Cyan.copy(alpha = 0.2f), topLeft = Offset(tx + ox - (60f - i * 8f) * segmentPulse, ty + oy - (45f - i * 6f) * segmentPulse), size = Size((120f - i * 16f) * segmentPulse, (90f - i * 12f) * segmentPulse), style = Stroke(width = 2f))
 
-                                        // Slipstream Wind Indicators (Behind each segment)
+                                        // Armor plate overlay
+                                        drawOval(bodyColor.copy(alpha = 0.5f), topLeft = Offset(tx + ox - (30f - i * 4f) * segmentPulse, ty + oy - (10f - i * 2f) * segmentPulse), size = Size((60f - i * 8f) * segmentPulse, (20f - i * 3f) * segmentPulse))
+
+                                        // Bioluminescent vein pattern
+                                        val veinPath = Path().apply {
+                                            moveTo(tx + ox - 20f + i * 3f, ty + oy - 15f)
+                                            quadraticTo(tx + ox, ty + oy - 30f, tx + ox + 20f - i * 3f, ty + oy - 15f)
+                                        }
+                                        drawPath(veinPath, Color.Cyan.copy(alpha = 0.4f), style = Stroke(width = 2f))
+                                        drawCircle(Color.Cyan.copy(alpha = 0.5f), radius = (40f - i * 5f) * segmentPulse, center = Offset(tx + ox, ty + oy), style = Stroke(width = 2f))
+
+                                        // Directional slipstream arrow per segment
+                                        val arrowDir = if (i % 2 == 0) 1f else -1f
+                                        val arrX = tx + ox + arrowDir * 40f
+                                        drawLine(Color.Cyan.copy(alpha = 0.3f), Offset(arrX, ty + oy), Offset(arrX + arrowDir * 25f, ty + oy), strokeWidth = 2f)
+                                        val arrHead = Path().apply {
+                                            moveTo(arrX + arrowDir * 25f, ty + oy)
+                                            lineTo(arrX + arrowDir * 15f, ty + oy - 6f)
+                                            lineTo(arrX + arrowDir * 15f, ty + oy + 6f)
+                                            close()
+                                        }
+                                        drawPath(arrHead, Color.Cyan.copy(alpha = 0.3f))
+
+                                        // Slipstream lines
                                         repeat(4) { j ->
                                             val windX = tx + ox + (Random.nextFloat() - 0.5f) * 60f
                                             val windY = ty + oy + 40f + (j * 40f)
-                                            drawLine(
-                                                color = Color.Cyan.copy(alpha = 0.4f),
-                                                start = Offset(windX, windY),
-                                                end = Offset(windX, windY + 60f),
-                                                strokeWidth = 3f
-                                            )
+                                            drawLine(Color.Cyan.copy(alpha = 0.4f), Offset(windX, windY), Offset(windX, windY + 60f), strokeWidth = 3f)
                                         }
 
-                                        // Weak Points (On segments 1, 3, 5)
+                                        // Weak Points on even segments
                                         val wpIndex = i / 2
                                         if (i % 2 == 0 && wpIndex < threat.activeWeakPoints) {
                                             drawCircle(Color.Magenta, radius = 30f * segmentPulse, center = Offset(tx + ox, ty + oy))
                                             drawCircle(Color.White, radius = 10f, center = Offset(tx + ox, ty + oy))
                                         }
 
-                                        // Bioluminescent Veins
-                                        drawCircle(
-                                            Color.Cyan.copy(alpha = 0.5f),
-                                            radius = (40f - i * 5f) * segmentPulse,
-                                            center = Offset(tx + ox, ty + oy),
-                                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
-                                        )
+                                        // Head segment (segment 0) has glow eye
+                                        if (i == 0) {
+                                            drawCircle(Color(0xFFFF1744).copy(alpha = 0.6f), radius = 8f, center = Offset(tx + ox + 15f, ty + oy - 10f))
+                                            drawCircle(Color.White.copy(alpha = 0.4f), radius = 4f, center = Offset(tx + ox + 15f, ty + oy - 10f))
+                                        }
+
+                                        // Tail whip telegraph (last 2 segments in phase 3 extend)
+                                        if (phase == 3 && i >= 4) {
+                                            val whipExtend = sin(gameTime / 200f + i) * 20f
+                                            drawLine(Color.Red.copy(alpha = 0.3f), Offset(tx + ox + whipExtend, ty + oy), Offset(tx + ox + whipExtend * 2f, ty + oy + 20f), strokeWidth = 4f)
+                                        }
                                     }
                                 }
                                 "BOSS_SIGNAL" -> {
-                                    // Render The Signal
+                                    // The Signal — deception & corruption theme
                                     val tx = threat.x; val ty = threat.y - cameraY
-                                    val flicker = if (Random.nextFloat() < (if (threat.phase == 3) 0.3f else 0.1f)) 0f else 1f
+                                    val phase = threat.phase
+                                    val flicker = if (Random.nextFloat() < (if (phase == 3) 0.3f else 0.1f)) 0f else 1f
+
+                                    // Static-noise TV ring
+                                    drawCircle(Color(0xFF9E9E9E).copy(alpha = 0.04f), radius = 400f, center = Offset(tx, ty), style = Stroke(width = 60f))
 
                                     if (flicker > 0) {
-                                        repeat(15) { i ->
-                                            val rx = tx + (Random.nextFloat() - 0.5f) * 400f
-                                            val ry = ty + (Random.nextFloat() - 0.5f) * 400f
+                                        // Glitch rectangles (existing, enhanced)
+                                        repeat(20) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 50).toInt()
+                                            val rng = Random(seed)
+                                            val rx = tx + (rng.nextFloat() - 0.5f) * 400f
+                                            val ry = ty + (rng.nextFloat() - 0.5f) * 400f
                                             drawRect(
-                                                if (threat.phase == 3) Color.Red.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.3f),
+                                                if (phase == 3) Color.Red.copy(alpha = rng.nextFloat() * 0.3f) else Color.White.copy(alpha = rng.nextFloat() * 0.3f),
                                                 topLeft = Offset(rx, ry),
-                                                size = Size(Random.nextFloat() * 60f, Random.nextFloat() * 60f)
+                                                size = Size(rng.nextFloat() * 60f, rng.nextFloat() * 60f)
                                             )
+                                        }
+
+                                        // Screen-tear lines (horizontal offset bands)
+                                        repeat(4) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 11 + (gameTime / 80).toInt()
+                                            val rng = Random(seed)
+                                            val tearY = ty - 300f + rng.nextFloat() * 600f
+                                            val tearW = 20f + rng.nextFloat() * 60f
+                                            drawRect(Color(0xFF212121).copy(alpha = 0.08f), Offset(tx - 200f + rng.nextFloat() * 100f, tearY), Size(tearW, 4f))
+                                        }
+
+                                        // Binary rain particles (0/1 characters as tiny rects)
+                                        repeat(8) { i ->
+                                            val seed = threat.instanceId.hashCode() + i * 13 + (gameTime / 60).toInt()
+                                            val rng = Random(seed)
+                                            val bx = tx + (rng.nextFloat() - 0.5f) * 300f
+                                            val by = ty - 300f + ((gameTime / 40f + i * 80f) % 600f)
+                                            drawRect(Color(0xFF00E676).copy(alpha = 0.1f), Offset(bx, by), Size(3f, 5f))
+                                        }
+
+                                        // Ghost platform preview (flickering platform outline)
+                                        val ghostRng = Random(threat.instanceId.hashCode() + gameTime.toInt() / 100)
+                                        if (phase >= 2 && ghostRng.nextFloat() < 0.3f) {
+                                            val gx = tx + (ghostRng.nextFloat() - 0.5f) * 400f
+                                            val gy = ty + (ghostRng.nextFloat() - 0.5f) * 400f
+                                            drawRect(Color.White.copy(alpha = 0.08f), Offset(gx - 40f, gy - 5f), Size(80f, 10f), style = Stroke(width = 1f))
+                                        }
+
+                                        // Decoy Signal copies
+                                        val decoyRng = Random(threat.instanceId.hashCode() + gameTime.toInt() / 150)
+                                        if (phase == 3 && decoyRng.nextFloat() < 0.2f) {
+                                            val dAngle = decoyRng.nextFloat() * 2f * PI.toFloat()
+                                            val dDist = 100f + decoyRng.nextFloat() * 150f
+                                            val dx = tx + cos(dAngle) * dDist
+                                            val dy = ty + sin(dAngle) * dDist
+                                            drawCircle(Color.Magenta.copy(alpha = 0.2f), radius = 30f, center = Offset(dx, dy))
+                                            drawCircle(Color.White.copy(alpha = 0.1f), radius = 15f, center = Offset(dx, dy))
                                         }
 
                                         // Weak point (Glitching node)
                                         if (threat.activeWeakPoints > 0) {
-                                            drawCircle(Color.Magenta.copy(alpha = 0.6f), radius = 50f, center = Offset(tx, ty))
+                                            val wpPulse = (sin(gameTime / 100f) * 0.3f + 0.7f)
+                                            drawCircle(Color.Magenta.copy(alpha = 0.6f * wpPulse), radius = 50f, center = Offset(tx, ty))
                                         }
 
                                         drawCircle(Color.White.copy(alpha = 0.1f * threat.scanPulse), radius = 600f, center = Offset(tx, ty))
@@ -2435,10 +3536,18 @@ fun GameScreen() {
                     rocketRenderer.render(
                         drawScope = this,
                         player = player,
-                        isThrusting = isThrusting,
-                        thrustTarget = thrustTarget,
+                        isThrusting = effectiveThrust,
+                        thrustTarget = effectiveTarget,
                         cameraY = cameraY,
                         gameTime = gameTime
+                    )
+
+                    drawVisualObstruction(
+                        fogAlpha = globalFogAlpha,
+                        playerX = player.x,
+                        playerY = player.y,
+                        cameraY = cameraY,
+                        size = size
                     )
                 }
 
@@ -2597,12 +3706,16 @@ fun GameScreen() {
                         showDevMenu = showDevMenu,
                         infiniteFuel = infiniteFuel,
                         disableHeat = disableHeat,
+                        infiniteShield = player.infiniteShield,
+                        invincibleHull = player.invincibleHull,
                         cheatsEnabled = DevConfig.CHEATS_ENABLED,
                         onToggleDevMenu = { showDevMenu = !showDevMenu },
                         onJumpToZone = { jumpToZone(it) },
                         onSpawnDevThreat = { spawnDevThreat(it) },
                         onToggleInfiniteFuel = { infiniteFuel = !infiniteFuel },
                         onToggleDisableHeat = { disableHeat = !disableHeat },
+                        onToggleInfiniteShield = { player.infiniteShield = !player.infiniteShield },
+                        onToggleInvincibleHull = { player.invincibleHull = !player.invincibleHull },
                         onUnlockAll = { unlockAll() },
                         onResume = { gameState = GameState.PLAYING },
                         onRestart = { restartGame() },

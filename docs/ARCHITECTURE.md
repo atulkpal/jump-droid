@@ -48,8 +48,12 @@ Following a series of architectural refinements (Refactor Sprints T1–T4), the 
 │  │  │(Damage/Regen)│ │(Spawning)    │ │(Generation)  │         │    │
 │  │  └──────────────┘ └──────────────┘ └──────────────┘         │    │
 │  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │    │
-│  │  │NotificationM.│ │FloatTextMngr  │ │MissionMngr   │         │    │
-│  │  │(Queue/Alerts)│ │(Popups)      │ │(Objectives)  │         │    │
+│  │  │NOTIFICATIONM.│ │FLOATTEXTMNGR  │ │MISSIONMNGR   │         │    │
+│  │  │(QUEUE/ALERTS)│ │(POPUPS)      │ │(OBJECTIVES)  │         │    │
+│  │  └──────────────┘ └──────────────┘ └──────────────┘         │    │
+│  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐         │    │
+│  │  │PROJECTILEMNGR│ │INPUTBUFFMNGR │ │ TETHERSOLVER │         │    │
+│  │  │(RANGED CMBT) │ │(INPUT LAG)   │ │(PHYSICS LINK)│         │    │
 │  │  └──────────────┘ └──────────────┘ └──────────────┘         │    │
 │  └─────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────┘
@@ -65,6 +69,8 @@ withFrameNanos { currentTime →
     2. Update utility managers:
        ├── NotificationManager.update(dt)
        ├── FloatingTextManager.update(dt)
+       ├── ProjectileManager.update(dt)
+       ├── InputBufferManager.recordInput(thrust, target)
        ├── DiscoveryManager.update(dt)
        ├── ComboManager.update(dt)
        └── MissionManager.selectNextMission() (Cycle tracks)
@@ -76,7 +82,10 @@ withFrameNanos { currentTime →
        └── SurvivalManager.update(dt, player, gameTime, notifications)
     5. Sub-stepped physics (4 substeps):
        ├── Update platform positions (moving platforms)
-       ├── ActiveThreat.processInteraction(player, sdt, platforms, powerUps)
+       ├── Resolve input from InputBufferManager.getEffectiveThrust()
+       ├── Apply physical links via activeTether.applyPhysics()
+       ├── ProjectileManager.processPlayerCollision(player)
+       ├── ActiveThreat.processInteraction(player, sdt, platforms, powerUps, threats)
        ├── Update power-up positions (magnetic pull, hover)
        ├── AABB collision detection (player ↔ platform)
        └── Physics application (gravity, thrust, steering, damping)
@@ -88,8 +97,10 @@ withFrameNanos { currentTime →
        ├── AmbientSystem (ambient objects)
        ├── Threat rendering (Hazards, Enemies, Bosses)
        ├── PlatformRenderer (per platform type)
+       ├── CanvasEffects: drawProjectiles, drawTether
        ├── CanvasEffects: drawParticles, drawPowerUps, drawRewards
        ├── RocketRenderer (thruster, body, shield, damage)
+       ├── CanvasEffects: drawVisualObstruction (Fog)
        ├── CanvasEffects: drawGround, drawSpeedLines, drawDistortion
        └── CanvasEffects: drawImpactFlash
    11. UI Overlay (Composables):
@@ -121,12 +132,16 @@ withFrameNanos { currentTime →
 | `NotificationManager.kt` | Encapsulates the message queue, priority alerts, and alpha/timer fading logic. |
 | `FloatingTextManager.kt` | Manages the lifecycle and upward drift of status popups (e.g., "HULL IMPACT"). |
 | `ThreatManager.kt` | Runtime lifecycle — spawn, update, and cleanup of threat instances. |
+| `ProjectileManager.kt` | Manages lifecycle, rendering hooks, and collision for ranged attacks (Projectiles). |
+| `InputBufferManager.kt` | Manages time-stamped input event queue to enable latency-based gameplay effects. |
 
 ### Gameplay Systems
 
 | File | Responsibility |
 |------|---------------|
-| `ActiveThreat.kt` | **Delegated Intelligence**: Now handles its own interaction rules against the player via `processInteraction()`. |
+| `ActiveThreat.kt` | **Delegated Intelligence**: Handles its own interaction rules against player and other entities (E2E). |
+| `Projectile.kt` | Data model for ranged attacks with support for bolts, missiles, beams, and waves. |
+| `Tether.kt` | Physics sub-routine for distance-constrained restorative forces (Physical links). |
 | `Models.kt` | `Player` class (mutable state), `PowerUp`, `Particle`, `FloatingText`, enums (`GameState`, `RocketType`, etc.). |
 | `Constants.kt` | All tunable constants (gravity, thrust, fuel consumption rates). |
 | `MissionManager.kt` | Runtime tracking — activate, progress, complete, and auto-cycle 3 active tracks. |
@@ -138,7 +153,7 @@ withFrameNanos { currentTime →
 | File | Responsibility |
 |------|---------------|
 | `RocketRenderer.kt` | Rocket body, armor plates, battle damage, and destruction sequence visuals. |
-| `CanvasEffects.kt` | Extension functions for DrawScope: Ground, SpeedLines, Particles, ImpactFlash, Distortion. |
+| `CanvasEffects.kt` | Extension functions for DrawScope: Projectiles, Tethers, Ground, SpeedLines, Particles, Fog, Distortion. |
 | `PlatformRenderer.kt` | Canvas rendering for 10 platform types with unique physics themes. |
 | `ZoneBackgroundRenderer.kt` | Per-zone gradient backgrounds and parallax layer orchestration. |
 | `AmbientSystem.kt` | Zone-specific ambient objects (birds, satellites, anomalies) with parallax drift. |
@@ -177,10 +192,10 @@ SharedPreferences (via ProgressionManager)
 ## Key Architectural Decisions
 
 ### 1. Delegated "Orchestrator" Pattern
-`GameScreen.kt` no longer implements gameplay rules. Instead, it provides the "Stage" (Player state, Collections) and tells the Managers when to act. This reduced the main file from 4,360+ lines to ~2,500.
+`GameScreen.kt` no longer implements gameplay rules. Instead, it provides the "Stage" (Player state, Collections) and tells the Managers when to act. This reduced the main file from 4,360+ lines to ~2,600.
 
 ### 2. Delegated Threat Interaction
-Moving threat interactions to `ActiveThreat.kt` ensures the physics engine doesn't need to be modified when adding new hostile entities. Each threat is responsible for its own logic within the proximity of the player.
+Moving threat interactions to `ActiveThreat.kt` ensures the physics engine doesn't need to be modified when adding new hostile entities. Each threat is responsible for its own logic within the proximity of the player and other game entities (E2E).
 
 ### 3. Decoupled UI Framework
 The UI is strictly partitioned into standalone `@Composable` files. Communication is handled via callbacks (e.g., `onNavigate`, `onLaunch`), preventing the UI from directly mutating gameplay state.
@@ -206,7 +221,8 @@ The resulting architecture is now robust, modular, and ready for high-velocity f
 
 | Point | Mechanism | Example |
 |-------|-----------|---------|
-| New threats | Register in `ThreatRegistry.populateCatalog()` | `HAZ_PLASMA_STORM` |
+| New threats | Register in `ThreatRegistry.populateCatalog()` | `HAZ_CRYO_MIST` |
+| New projectiles | Add to `ProjectileType` enum + render case | `HOMING_MISSILE` |
 | New missions | Register in `MissionRegistry` | New discovery/boss missions |
 | New discoveries | Add to `DiscoveryType` enum | New lore or artifact entries |
 | New platform types | Add to `PlatformType` enum + render method in `PlatformRenderer` | New `LAVA` platform |

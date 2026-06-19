@@ -41,12 +41,16 @@ fun PauseOverlay(
     showDevMenu: Boolean,
     infiniteFuel: Boolean,
     disableHeat: Boolean,
+    infiniteShield: Boolean,
+    invincibleHull: Boolean,
     cheatsEnabled: Boolean,
     onToggleDevMenu: () -> Unit,
     onJumpToZone: (AltitudeZone) -> Unit,
     onSpawnDevThreat: (String) -> Unit,
     onToggleInfiniteFuel: () -> Unit,
     onToggleDisableHeat: () -> Unit,
+    onToggleInfiniteShield: () -> Unit,
+    onToggleInvincibleHull: () -> Unit,
     onUnlockAll: () -> Unit,
     onResume: () -> Unit,
     onRestart: () -> Unit,
@@ -58,29 +62,36 @@ fun PauseOverlay(
             modifier = Modifier.safeDrawingPadding().width(280.dp)
         ) {
             if (showDevMenu && cheatsEnabled) {
-                Text("DEVELOPER OVERRIDE", color = SciFiGold, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-                Spacer(Modifier.height(24.dp))
+                Text("DEV MENU", color = Color.White)
+                Spacer(Modifier.height(8.dp))
+                Text("ZONES", color = Color.Gray, fontSize = 10.sp)
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
                     AltitudeZone.entries.forEach { zone ->
-                        Button(onClick = { onJumpToZone(zone) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)) { Text(zone.name, fontSize = 10.sp) }
+                        Button(onClick = { onJumpToZone(zone) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text(zone.name, fontSize = 10.sp) }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
+                Text("ENTITIES", color = Color.Gray, fontSize = 10.sp)
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
-                    listOf("ENT_SCOUT_DRONE", "ENT_SWARM_BOTS", "ENT_CLOUD_SKIMMER", "ENT_ORBITAL_SENTRY", "ENT_CORRUPTED_HULL", "HAZ_VOID_ANOMALY", "MINI_BOSS_COMMANDER", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL").forEach { id ->
-                        Button(onClick = { onSpawnDevThreat(id) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)) { Text(id.substringAfterLast("_"), fontSize = 10.sp) }
+                    listOf("ENT_SCOUT_DRONE", "ENT_SWARM_BOTS", "ENT_CLOUD_SKIMMER", "ENT_ORBITAL_SENTRY", "ENT_CORRUPTED_HULL", "ENT_STALKER", "ENT_VOID_WHALE", "ENT_VOID_WRAITH", "HAZ_VOID_ANOMALY", "MINI_BOSS_COMMANDER", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL").forEach { id ->
+                        Button(onClick = { onSpawnDevThreat(id) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text(id.substringAfterLast("_"), fontSize = 10.sp) }
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
+                Text("TOGGLES", color = Color.Gray, fontSize = 10.sp)
                 Row {
-                    Button(onClick = onToggleInfiniteFuel, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if(infiniteFuel) SciFiGreen.copy(alpha = 0.3f) else SciFiSurface, contentColor = if(infiniteFuel) SciFiGreen else SciFiWhite)) { Text("INF FUEL", fontSize = 10.sp) }
-                    Spacer(Modifier.width(8.dp))
-                    Button(onClick = onToggleDisableHeat, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if(disableHeat) SciFiGreen.copy(alpha = 0.3f) else SciFiSurface, contentColor = if(disableHeat) SciFiGreen else SciFiWhite)) { Text("NO HEAT", fontSize = 10.sp) }
-                    Spacer(Modifier.width(8.dp))
-                    Button(onClick = onUnlockAll, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)) { Text("UNLOCK", fontSize = 10.sp) }
+                    Button(onClick = onToggleInfiniteFuel, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text(if (infiniteFuel) "FUEL:INF" else "FUEL", fontSize = 10.sp) }
+                    Spacer(Modifier.width(4.dp))
+                    Button(onClick = onToggleDisableHeat, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text(if (disableHeat) "HEAT:OFF" else "HEAT", fontSize = 10.sp) }
+                    Spacer(Modifier.width(4.dp))
+                    Button(onClick = onToggleInfiniteShield, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text(if (infiniteShield) "SHIELD:ON" else "SHIELD", fontSize = 10.sp) }
+                    Spacer(Modifier.width(4.dp))
+                    Button(onClick = onToggleInvincibleHull, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text(if (invincibleHull) "HULL:ON" else "HULL", fontSize = 10.sp) }
+                    Spacer(Modifier.width(4.dp))
+                    Button(onClick = onUnlockAll, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text("UNLOCK", fontSize = 10.sp) }
                 }
-                Spacer(Modifier.height(32.dp))
-                Button(onClick = onToggleDevMenu, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)) { Text("RETURN TO PAUSE", color = Color.Black, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onToggleDevMenu, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text("CLOSE") }
             } else {
                 Text(
                     text = "SYSTEMS STANDBY",
