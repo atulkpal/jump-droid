@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
@@ -58,10 +59,14 @@ import com.example.jump_droid.ui.theme.SciFiPurple
 import com.example.jump_droid.ui.theme.SciFiRed
 import com.example.jump_droid.ui.theme.SciFiSurface
 import com.example.jump_droid.ui.theme.SciFiWhite
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 
-private val zoneGaugeAccents = mapOf(
+val zoneGaugeAccents = mapOf(
     AltitudeZone.EARTH to SciFiGreen,
     AltitudeZone.CLOUD_LAYER to SciFiCyan,
     AltitudeZone.UPPER_ATMOSPHERE to SciFiPurple,
@@ -189,9 +194,10 @@ fun FuelGauge(
                             Offset(0f, sy),
                             Offset(size.width, sy),
                             strokeWidth = 0.5f
-                        )
-                    }
-                }
+        )
+    }
+}
+
             }
         }
         Text(
@@ -201,6 +207,76 @@ fun FuelGauge(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
+    }
+}
+@Composable
+fun ComboCircleTimer(
+    currentCombo: Int,
+    comboTimeRemaining: Long,
+    getWindowForCombo: (Int) -> Long,
+    gameTime: Long,
+    modifier: Modifier = Modifier
+) {
+    if (currentCombo <= 0) return
+
+    val window = getWindowForCombo(currentCombo)
+    val timerRatio = (comboTimeRemaining.toFloat() / window).coerceIn(0f, 1f)
+    val circleColor = when {
+        timerRatio <= 0.3f -> SciFiRed
+        timerRatio <= 0.6f -> SciFiGold
+        else -> SciFiCyan
+    }
+    val textMeasurer = rememberTextMeasurer()
+    val textResult = textMeasurer.measure(
+        text = "$currentCombo",
+        style = TextStyle(
+            color = SciFiWhite,
+            fontWeight = FontWeight.Black,
+            fontSize = 11.sp
+        )
+    )
+
+    val sweepAngle = (gameTime % 2000L) / 2000f * 360f
+
+    Canvas(modifier = modifier.size(32.dp)) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val radius = size.minDimension / 2f - 1.dp.toPx()
+
+        // Dim background circle
+        drawCircle(color = SciFiWhite.copy(alpha = 0.08f), radius = radius, center = center)
+
+        // Filled pie slice that drains as timer expires
+        if (timerRatio > 0f) {
+            val fillSweep = timerRatio * 360f
+            drawArc(
+                color = circleColor.copy(alpha = 0.35f),
+                startAngle = -90f,
+                sweepAngle = fillSweep,
+                useCenter = true,
+                topLeft = Offset(center.x - radius, center.y - radius),
+                size = Size(radius * 2f, radius * 2f)
+            )
+        }
+
+        // Timed sweep line
+        val radAngle = (sweepAngle - 90f) * (PI / 180f).toFloat()
+        val lineEnd = Offset(
+            center.x + cos(radAngle).toFloat() * radius * 0.85f,
+            center.y + sin(radAngle).toFloat() * radius * 0.85f
+        )
+        drawLine(
+            color = circleColor.copy(alpha = 0.6f),
+            start = center,
+            end = lineEnd,
+            strokeWidth = 1.2f
+        )
+
+        // Center number
+        val textPos = Offset(
+            (size.width - textResult.size.width) / 2f,
+            (size.height - textResult.size.height) / 2f
+        )
+        drawText(textResult, topLeft = textPos)
     }
 }
 
@@ -569,7 +645,7 @@ fun NotificationLayer(
                     blurRadius = 15f
                 )
             ),
-            color = if (isHighAlert) SciFiRed else zoneAccent,
+            color = if (isHighAlert) SciFiRed else SciFiWhite,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

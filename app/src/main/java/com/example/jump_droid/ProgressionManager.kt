@@ -136,6 +136,10 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         return if (total > 0) (discovered * 100) / total else 0
     }
 
+    fun getTotalDiscoveries(): Int {
+        return DiscoveryType.values().count { sharedPrefs.getBoolean("discovery_$it", false) }
+    }
+
     /**
      * Wipes all progression data.
      */

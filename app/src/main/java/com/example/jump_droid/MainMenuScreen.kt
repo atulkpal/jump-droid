@@ -61,7 +61,8 @@ private data class MenuStar(
 fun MainMenuScreen(
     onLaunch: () -> Unit,
     onNavigate: (GameState) -> Unit,
-    onExit: () -> Unit
+    onExit: () -> Unit,
+    missionManager: com.example.jump_droid.missions.MissionManager? = null
 ) {
     val context = LocalContext.current
     val infiniteTransition = rememberInfiniteTransition(label = "MenuTransition")
@@ -146,13 +147,22 @@ fun MainMenuScreen(
             )
             Spacer(Modifier.height(48.dp))
 
+            val missionBadge = missionManager?.let { mgr ->
+                when {
+                    mgr.hasUnclaimedRewards() -> "\u26A1"
+                    mgr.hasNewlyUnlockedHidden() -> "\uD83D\uDD14"
+                    else -> null
+                }
+            }
+            val missionsLabel = if (missionBadge != null) "MISSIONS $missionBadge" else "MISSIONS"
             val menuButtons = listOf(
                 "LAUNCH" to { onLaunch() },
                 "HANGAR" to { onNavigate(GameState.HANGAR) },
                 "ARCHIVE" to { onNavigate(GameState.ARCHIVE) },
                 "TERMINAL" to { onNavigate(GameState.LEADERBOARD) },
-                "MISSION DATA" to { onNavigate(GameState.ABOUT) },
-                "SETTINGS" to { onNavigate(GameState.SETTINGS) }
+                missionsLabel to { onNavigate(GameState.MISSIONS) },
+                "SETTINGS" to { onNavigate(GameState.SETTINGS) },
+                "ABOUT" to { onNavigate(GameState.ABOUT) }
             )
 
             menuButtons.forEachIndexed { index, (label, action) ->

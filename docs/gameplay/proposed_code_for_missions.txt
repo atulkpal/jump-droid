@@ -1,0 +1,1572 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    JUMP DROID - MISSION SYSTEM                              ║
+║                    Complete Codebase (All Files)                           ║
+║                                                                           ║
+║  File Structure:                                                          ║
+║  ├── Mission.kt          - Data models (enums, data classes)              ║
+║  ├── MissionRegistry.kt  - All 40+ mission definitions                    ║
+║  ├── MissionManager.kt   - Runtime tracking logic                         ║
+║  ├── MissionRepository.kt- DataStore persistence                          ║
+║  └── MissionScreen.kt    - Compose UI                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+════════════════════════════════════════════════════════════════════════════════
+                           FILE 1: Mission.kt
+════════════════════════════════════════════════════════════════════════════════
+
+// Mission.kt
+// Data models for the Jump Droid Mission System
+// All enums, data classes, and core types
+
+package com.jumpdroid.missions
+
+enum class MissionCategory {
+    FLIGHT_TIME,
+    PLATFORM_STAY,
+    NO_HEAT,
+    FUEL_EFFICIENCY,
+    COMBO_STREAK,
+    BOSS_SLAYER,
+    DISCOVERY_HUNTER,
+    ALTITUDE_CLIMBER,
+    MOMENTUM_MASTER,
+    HAZARD_SURVIVOR,
+    PERFECT_RUN,
+    COLLECTOR,
+    BOOST_CHAMPION,
+    COMBO_PRO
+}
+
+enum class MissionTier {
+    TIER_1, TIER_2, TIER_3, TIER_4
+}
+
+enum class MissionState {
+    LOCKED,      // Not yet visible
+    AVAILABLE,   // Visible but not started
+    IN_PROGRESS, // Started but not complete
+    COMPLETED,   // Fully done
+    CLAIMED      // Reward collected
+}
+
+enum class ObjectiveType {
+    TOTAL_FLIGHT_TIME,     // seconds
+    TOTAL_PLATFORM_TIME,   // seconds
+    ZERO_HEAT_TIME,        // seconds
+    PICKUPS_COLLECTED,     // count (deprecated, use FUEL_PICKUPS_COLLECTED)
+    MAX_COMBO,             // count
+    BOSSES_DEFEATED,       // count
+    CODEX_UNLOCKED,        // count
+    MAX_ALTITUDE,          // meters
+    MAX_MOMENTUM,          // momentum points
+    HAZARD_HITS_SURVIVED,  // count
+    PERFECT_RUN_TIME,      // seconds
+    ARTIFACTS_COLLECTED,   // count
+    DASHES_PER_RUN,        // count
+    COMBO_MAINTAIN_TIME,   // seconds (with comboThreshold)
+    FUEL_PICKUPS_COLLECTED // count
+}
+
+enum class UnlockType {
+    REACH_ALTITUDE,
+    DEFEAT_BOSS,
+    COMPLETE_MISSION,
+    UNLOCK_CODEX_ENTRY,
+    REACH_BIOME,
+    COLLECT_ARTIFACT
+}
+
+data class MissionObjective(
+    val type: ObjectiveType,
+    val targetValue: Float,
+    val currentValue: Float = 0f,
+    val unit: String = "",
+    val comboThreshold: Float? = null  // Only used for COMBO_MAINTAIN_TIME
+)
+
+data class Rewards(
+    val cash: Int,
+    val codexEntry: String? = null,
+    val powerup: String? = null,
+    val artifact: String? = null,
+    val rocketSkin: String? = null,
+    val unlockable: String? = null
+)
+
+data class UnlockCondition(
+    val type: UnlockType,
+    val value: Float,
+    val missionId: String? = null  // for mission-chain unlocks
+)
+
+data class Mission(
+    val id: String,
+    val category: MissionCategory,
+    val tier: MissionTier,
+    val name: String,
+    val description: String,
+    val objective: MissionObjective,
+    val rewards: Rewards,
+    val unlockCondition: UnlockCondition? = null  // null = always visible
+)
+
+// Data class for tracking player progress across missions
+data class GameStats(
+    val totalFlightTime: Float = 0f,       // seconds
+    val totalPlatformTime: Float = 0f,     // seconds
+    val zeroHeatTime: Float = 0f,          // seconds
+    val pickupsCollected: Int = 0,         // deprecated
+    val fuelPickupsCollected: Int = 0,     // use this instead
+    val maxCombo: Int = 0,
+    val currentCombo: Int = 0,
+    val comboMaintainTime: Float = 0f,     // seconds with combo above threshold
+    val bossesDefeated: Int = 0,
+    val codexUnlocked: Int = 0,
+    val maxAltitude: Float = 0f,           // meters
+    val maxMomentum: Float = 0f,
+    val hazardHitsSurvived: Int = 0,
+    val perfectRunTime: Float = 0f,        // seconds without damage
+    val artifactsCollected: Int = 0,
+    val dashesPerRun: Int = 0
+)
+
+data class PlayerState(
+    val x: Float = 0f,
+    val y: Float = 0f,
+    val fuel: Float = 100f,
+    val heat: Float = 0f,
+    val momentum: Float = 0f,
+    val altitude: Float = 0f,
+    val health: Float = 100f,
+    val isOnPlatform: Boolean = false,
+    val isBoosting: Boolean = false,
+    val isDashing: Boolean = false
+)
+
+
+════════════════════════════════════════════════════════════════════════════════
+                        FILE 2: MissionRegistry.kt
+════════════════════════════════════════════════════════════════════════════════
+
+// MissionRegistry.kt
+// Complete registry of all missions in Jump Droid
+// Contains 40+ missions across 12 categories + hidden missions
+
+package com.jumpdroid.missions
+
+object MissionRegistry {
+    fun getAllMissions(): List<Mission> = listOf(
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           FLIGHT TIME MISSIONS (4 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "flight_time_1",
+            category = MissionCategory.FLIGHT_TIME,
+            tier = MissionTier.TIER_1,
+            name = "Sky Explorer",
+            description = "Spend 5 minutes total in the air",
+            objective = MissionObjective(ObjectiveType.TOTAL_FLIGHT_TIME, 300f),
+            rewards = Rewards(cash = 100, codexEntry = "codex_sky_explorer")
+        ),
+        Mission(
+            id = "flight_time_2",
+            category = MissionCategory.FLIGHT_TIME,
+            tier = MissionTier.TIER_2,
+            name = "Sky Wanderer",
+            description = "Spend 12 minutes total in the air",
+            objective = MissionObjective(ObjectiveType.TOTAL_FLIGHT_TIME, 720f),
+            rewards = Rewards(cash = 250, powerup = "fuel_boost_1"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "flight_time_1")
+        ),
+        Mission(
+            id = "flight_time_3",
+            category = MissionCategory.FLIGHT_TIME,
+            tier = MissionTier.TIER_3,
+            name = "Sky Champion",
+            description = "Spend 30 minutes total in the air",
+            objective = MissionObjective(ObjectiveType.TOTAL_FLIGHT_TIME, 1800f),
+            rewards = Rewards(cash = 500, artifact = "artifact_wind_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "flight_time_2")
+        ),
+        Mission(
+            id = "flight_time_4",
+            category = MissionCategory.FLIGHT_TIME,
+            tier = MissionTier.TIER_4,
+            name = "Sky Legend",
+            description = "Spend 60 minutes total in the air",
+            objective = MissionObjective(ObjectiveType.TOTAL_FLIGHT_TIME, 3600f),
+            rewards = Rewards(cash = 1000, rocketSkin = "skin_sky_legend"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "flight_time_3")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           PLATFORM STAY MISSIONS (4 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "platform_stay_1",
+            category = MissionCategory.PLATFORM_STAY,
+            tier = MissionTier.TIER_1,
+            name = "Platform Dweller",
+            description = "Spend 5 minutes standing on platforms",
+            objective = MissionObjective(ObjectiveType.TOTAL_PLATFORM_TIME, 300f),
+            rewards = Rewards(cash = 80, codexEntry = "codex_platform_dweller")
+        ),
+        Mission(
+            id = "platform_stay_2",
+            category = MissionCategory.PLATFORM_STAY,
+            tier = MissionTier.TIER_2,
+            name = "Platform Guardian",
+            description = "Spend 15 minutes standing on platforms",
+            objective = MissionObjective(ObjectiveType.TOTAL_PLATFORM_TIME, 900f),
+            rewards = Rewards(cash = 200, powerup = "platform_boost"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "platform_stay_1")
+        ),
+        Mission(
+            id = "platform_stay_3",
+            category = MissionCategory.PLATFORM_STAY,
+            tier = MissionTier.TIER_3,
+            name = "Platform King",
+            description = "Spend 30 minutes standing on platforms",
+            objective = MissionObjective(ObjectiveType.TOTAL_PLATFORM_TIME, 1800f),
+            rewards = Rewards(cash = 400, artifact = "artifact_platform_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "platform_stay_2")
+        ),
+        Mission(
+            id = "platform_stay_4",
+            category = MissionCategory.PLATFORM_STAY,
+            tier = MissionTier.TIER_4,
+            name = "Platform Legend",
+            description = "Spend 60 minutes standing on platforms",
+            objective = MissionObjective(ObjectiveType.TOTAL_PLATFORM_TIME, 3600f),
+            rewards = Rewards(cash = 800, rocketSkin = "skin_platform_legend"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "platform_stay_3")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           NO HEAT MISSIONS (3 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "no_heat_1",
+            category = MissionCategory.NO_HEAT,
+            tier = MissionTier.TIER_1,
+            name = "Cool Operator",
+            description = "Fly for 5 minutes without generating any heat",
+            objective = MissionObjective(ObjectiveType.ZERO_HEAT_TIME, 300f),
+            rewards = Rewards(cash = 150, codexEntry = "codex_cool_operator")
+        ),
+        Mission(
+            id = "no_heat_2",
+            category = MissionCategory.NO_HEAT,
+            tier = MissionTier.TIER_2,
+            name = "Ice Veins",
+            description = "Fly for 12 minutes without generating any heat",
+            objective = MissionObjective(ObjectiveType.ZERO_HEAT_TIME, 720f),
+            rewards = Rewards(cash = 350, powerup = "heat_vent_plus"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "no_heat_1")
+        ),
+        Mission(
+            id = "no_heat_3",
+            category = MissionCategory.NO_HEAT,
+            tier = MissionTier.TIER_3,
+            name = "Absolute Zero",
+            description = "Fly for 25 minutes without generating any heat",
+            objective = MissionObjective(ObjectiveType.ZERO_HEAT_TIME, 1500f),
+            rewards = Rewards(cash = 600, artifact = "artifact_ice_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "no_heat_2")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           FUEL EFFICIENCY MISSIONS (3 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "fuel_efficiency_1",
+            category = MissionCategory.FUEL_EFFICIENCY,
+            tier = MissionTier.TIER_1,
+            name = "Fuel Saver",
+            description = "Collect 10 fuel pickups",
+            objective = MissionObjective(ObjectiveType.FUEL_PICKUPS_COLLECTED, 10f),
+            rewards = Rewards(cash = 80, codexEntry = "codex_fuel_saver")
+        ),
+        Mission(
+            id = "fuel_efficiency_2",
+            category = MissionCategory.FUEL_EFFICIENCY,
+            tier = MissionTier.TIER_2,
+            name = "Fuel Hoarder",
+            description = "Collect 30 fuel pickups",
+            objective = MissionObjective(ObjectiveType.FUEL_PICKUPS_COLLECTED, 30f),
+            rewards = Rewards(cash = 200, powerup = "fuel_capacity_plus"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "fuel_efficiency_1")
+        ),
+        Mission(
+            id = "fuel_efficiency_3",
+            category = MissionCategory.FUEL_EFFICIENCY,
+            tier = MissionTier.TIER_3,
+            name = "Fuel King",
+            description = "Collect 75 fuel pickups",
+            objective = MissionObjective(ObjectiveType.FUEL_PICKUPS_COLLECTED, 75f),
+            rewards = Rewards(cash = 450, artifact = "artifact_fuel_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "fuel_efficiency_2")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           COMBO STREAK MISSIONS (3 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "combo_streak_1",
+            category = MissionCategory.COMBO_STREAK,
+            tier = MissionTier.TIER_1,
+            name = "Combo Starter",
+            description = "Achieve a combo streak of 20",
+            objective = MissionObjective(ObjectiveType.MAX_COMBO, 20f),
+            rewards = Rewards(cash = 100, codexEntry = "codex_combo_starter")
+        ),
+        Mission(
+            id = "combo_streak_2",
+            category = MissionCategory.COMBO_STREAK,
+            tier = MissionTier.TIER_2,
+            name = "Combo Specialist",
+            description = "Achieve a combo streak of 50",
+            objective = MissionObjective(ObjectiveType.MAX_COMBO, 50f),
+            rewards = Rewards(cash = 250, powerup = "combo_boost"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "combo_streak_1")
+        ),
+        Mission(
+            id = "combo_streak_3",
+            category = MissionCategory.COMBO_STREAK,
+            tier = MissionTier.TIER_3,
+            name = "Combo Master",
+            description = "Achieve a combo streak of 100",
+            objective = MissionObjective(ObjectiveType.MAX_COMBO, 100f),
+            rewards = Rewards(cash = 500, artifact = "artifact_combo_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "combo_streak_2")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           BOSS SLAYER MISSIONS (3 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "boss_slayer_1",
+            category = MissionCategory.BOSS_SLAYER,
+            tier = MissionTier.TIER_1,
+            name = "Boss Buster",
+            description = "Defeat 1 boss",
+            objective = MissionObjective(ObjectiveType.BOSSES_DEFEATED, 1f),
+            rewards = Rewards(cash = 200, artifact = "artifact_boss_fragment")
+        ),
+        Mission(
+            id = "boss_slayer_2",
+            category = MissionCategory.BOSS_SLAYER,
+            tier = MissionTier.TIER_2,
+            name = "Boss Hunter",
+            description = "Defeat 3 bosses",
+            objective = MissionObjective(ObjectiveType.BOSSES_DEFEATED, 3f),
+            rewards = Rewards(cash = 400, rocketSkin = "skin_boss_hunter"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "boss_slayer_1")
+        ),
+        Mission(
+            id = "boss_slayer_3",
+            category = MissionCategory.BOSS_SLAYER,
+            tier = MissionTier.TIER_3,
+            name = "Boss Slayer",
+            description = "Defeat 7 bosses",
+            objective = MissionObjective(ObjectiveType.BOSSES_DEFEATED, 7f),
+            rewards = Rewards(cash = 700, artifact = "artifact_boss_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "boss_slayer_2")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           DISCOVERY HUNTER MISSIONS (3 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "discovery_hunter_1",
+            category = MissionCategory.DISCOVERY_HUNTER,
+            tier = MissionTier.TIER_1,
+            name = "Discovery Novice",
+            description = "Unlock 5 Codex entries",
+            objective = MissionObjective(ObjectiveType.CODEX_UNLOCKED, 5f),
+            rewards = Rewards(cash = 120, codexEntry = "codex_discovery_novice")
+        ),
+        Mission(
+            id = "discovery_hunter_2",
+            category = MissionCategory.DISCOVERY_HUNTER,
+            tier = MissionTier.TIER_2,
+            name = "Discovery Seeker",
+            description = "Unlock 15 Codex entries",
+            objective = MissionObjective(ObjectiveType.CODEX_UNLOCKED, 15f),
+            rewards = Rewards(cash = 300, powerup = "discovery_boost"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "discovery_hunter_1")
+        ),
+        Mission(
+            id = "discovery_hunter_3",
+            category = MissionCategory.DISCOVERY_HUNTER,
+            tier = MissionTier.TIER_3,
+            name = "Discovery Master",
+            description = "Unlock 30 Codex entries",
+            objective = MissionObjective(ObjectiveType.CODEX_UNLOCKED, 30f),
+            rewards = Rewards(cash = 600, artifact = "artifact_discovery_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "discovery_hunter_2")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           ALTITUDE CLIMBER MISSIONS (4 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "altitude_climber_1",
+            category = MissionCategory.ALTITUDE_CLIMBER,
+            tier = MissionTier.TIER_1,
+            name = "Altitude Rookie",
+            description = "Reach 500m altitude",
+            objective = MissionObjective(ObjectiveType.MAX_ALTITUDE, 500f),
+            rewards = Rewards(cash = 100, codexEntry = "codex_altitude_rookie")
+        ),
+        Mission(
+            id = "altitude_climber_2",
+            category = MissionCategory.ALTITUDE_CLIMBER,
+            tier = MissionTier.TIER_2,
+            name = "Altitude Challenger",
+            description = "Reach 1500m altitude",
+            objective = MissionObjective(ObjectiveType.MAX_ALTITUDE, 1500f),
+            rewards = Rewards(cash = 250, powerup = "altitude_boost"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "altitude_climber_1")
+        ),
+        Mission(
+            id = "altitude_climber_3",
+            category = MissionCategory.ALTITUDE_CLIMBER,
+            tier = MissionTier.TIER_3,
+            name = "Altitude Champion",
+            description = "Reach 4000m altitude",
+            objective = MissionObjective(ObjectiveType.MAX_ALTITUDE, 4000f),
+            rewards = Rewards(cash = 500, artifact = "artifact_altitude_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "altitude_climber_2")
+        ),
+        Mission(
+            id = "altitude_climber_4",
+            category = MissionCategory.ALTITUDE_CLIMBER,
+            tier = MissionTier.TIER_4,
+            name = "Altitude Legend",
+            description = "Reach 10000m altitude",
+            objective = MissionObjective(ObjectiveType.MAX_ALTITUDE, 10000f),
+            rewards = Rewards(cash = 1000, rocketSkin = "skin_altitude_legend"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "altitude_climber_3")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           MOMENTUM MASTER MISSIONS (3 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "momentum_master_1",
+            category = MissionCategory.MOMENTUM_MASTER,
+            tier = MissionTier.TIER_1,
+            name = "Momentum Builder",
+            description = "Build a momentum streak of 50",
+            objective = MissionObjective(ObjectiveType.MAX_MOMENTUM, 50f),
+            rewards = Rewards(cash = 150, codexEntry = "codex_momentum_builder")
+        ),
+        Mission(
+            id = "momentum_master_2",
+            category = MissionCategory.MOMENTUM_MASTER,
+            tier = MissionTier.TIER_2,
+            name = "Momentum Surfer",
+            description = "Build a momentum streak of 150",
+            objective = MissionObjective(ObjectiveType.MAX_MOMENTUM, 150f),
+            rewards = Rewards(cash = 350, powerup = "momentum_boost"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "momentum_master_1")
+        ),
+        Mission(
+            id = "momentum_master_3",
+            category = MissionCategory.MOMENTUM_MASTER,
+            tier = MissionTier.TIER_3,
+            name = "Momentum Champion",
+            description = "Build a momentum streak of 400",
+            objective = MissionObjective(ObjectiveType.MAX_MOMENTUM, 400f),
+            rewards = Rewards(cash = 600, artifact = "artifact_momentum_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "momentum_master_2")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           HAZARD SURVIVOR MISSIONS (3 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "hazard_survivor_1",
+            category = MissionCategory.HAZARD_SURVIVOR,
+            tier = MissionTier.TIER_1,
+            name = "Hazard Survivor",
+            description = "Survive 10 hazard hits",
+            objective = MissionObjective(ObjectiveType.HAZARD_HITS_SURVIVED, 10f),
+            rewards = Rewards(cash = 120, codexEntry = "codex_hazard_survivor")
+        ),
+        Mission(
+            id = "hazard_survivor_2",
+            category = MissionCategory.HAZARD_SURVIVOR,
+            tier = MissionTier.TIER_2,
+            name = "Hazard Veteran",
+            description = "Survive 30 hazard hits",
+            objective = MissionObjective(ObjectiveType.HAZARD_HITS_SURVIVED, 30f),
+            rewards = Rewards(cash = 300, powerup = "hazard_shield"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "hazard_survivor_1")
+        ),
+        Mission(
+            id = "hazard_survivor_3",
+            category = MissionCategory.HAZARD_SURVIVOR,
+            tier = MissionTier.TIER_3,
+            name = "Hazard Legend",
+            description = "Survive 60 hazard hits",
+            objective = MissionObjective(ObjectiveType.HAZARD_HITS_SURVIVED, 60f),
+            rewards = Rewards(cash = 600, artifact = "artifact_hazard_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "hazard_survivor_2")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           PERFECT RUN MISSIONS (3 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "perfect_run_1",
+            category = MissionCategory.PERFECT_RUN,
+            tier = MissionTier.TIER_1,
+            name = "Perfect Run Novice",
+            description = "Take no damage for 2 minutes",
+            objective = MissionObjective(ObjectiveType.PERFECT_RUN_TIME, 120f),
+            rewards = Rewards(cash = 150, codexEntry = "codex_perfect_run_novice")
+        ),
+        Mission(
+            id = "perfect_run_2",
+            category = MissionCategory.PERFECT_RUN,
+            tier = MissionTier.TIER_2,
+            name = "Perfect Run Specialist",
+            description = "Take no damage for 5 minutes",
+            objective = MissionObjective(ObjectiveType.PERFECT_RUN_TIME, 300f),
+            rewards = Rewards(cash = 350, powerup = "perfect_shield"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "perfect_run_1")
+        ),
+        Mission(
+            id = "perfect_run_3",
+            category = MissionCategory.PERFECT_RUN,
+            tier = MissionTier.TIER_3,
+            name = "Perfect Run Master",
+            description = "Take no damage for 10 minutes",
+            objective = MissionObjective(ObjectiveType.PERFECT_RUN_TIME, 600f),
+            rewards = Rewards(cash = 700, artifact = "artifact_perfect_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "perfect_run_2")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           COLLECTOR MISSIONS (3 tiers)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "collector_1",
+            category = MissionCategory.COLLECTOR,
+            tier = MissionTier.TIER_1,
+            name = "Collector Novice",
+            description = "Collect 5 artifacts",
+            objective = MissionObjective(ObjectiveType.ARTIFACTS_COLLECTED, 5f),
+            rewards = Rewards(cash = 130, codexEntry = "codex_collector_novice")
+        ),
+        Mission(
+            id = "collector_2",
+            category = MissionCategory.COLLECTOR,
+            tier = MissionTier.TIER_2,
+            name = "Collector Seeker",
+            description = "Collect 15 artifacts",
+            objective = MissionObjective(ObjectiveType.ARTIFACTS_COLLECTED, 15f),
+            rewards = Rewards(cash = 300, powerup = "collector_boost"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "collector_1")
+        ),
+        Mission(
+            id = "collector_3",
+            category = MissionCategory.COLLECTOR,
+            tier = MissionTier.TIER_3,
+            name = "Collector Master",
+            description = "Collect 30 artifacts",
+            objective = MissionObjective(ObjectiveType.ARTIFACTS_COLLECTED, 30f),
+            rewards = Rewards(cash = 600, artifact = "artifact_collector_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "collector_2")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           BOOST CHAMPION MISSIONS (Replaces Speed Demon)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "boost_champion_1",
+            category = MissionCategory.BOOST_CHAMPION,
+            tier = MissionTier.TIER_1,
+            name = "Dash Initiate",
+            description = "Perform 10 dashes in a single run",
+            objective = MissionObjective(ObjectiveType.DASHES_PER_RUN, 10f),
+            rewards = Rewards(cash = 100, powerup = "dash_recharge")
+        ),
+        Mission(
+            id = "boost_champion_2",
+            category = MissionCategory.BOOST_CHAMPION,
+            tier = MissionTier.TIER_2,
+            name = "Dash Master",
+            description = "Perform 30 dashes in a single run",
+            objective = MissionObjective(ObjectiveType.DASHES_PER_RUN, 30f),
+            rewards = Rewards(cash = 300, artifact = "artifact_dash_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "boost_champion_1")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           COMBO PRO MISSIONS (Maintain Combo Over Time)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "combo_pro_1",
+            category = MissionCategory.COMBO_PRO,
+            tier = MissionTier.TIER_1,
+            name = "Combo Pro Starter",
+            description = "Maintain a combo of 20 for 30 seconds",
+            objective = MissionObjective(
+                type = ObjectiveType.COMBO_MAINTAIN_TIME,
+                targetValue = 30f,
+                comboThreshold = 20f
+            ),
+            rewards = Rewards(cash = 120, codexEntry = "codex_combo_pro_starter")
+        ),
+        Mission(
+            id = "combo_pro_2",
+            category = MissionCategory.COMBO_PRO,
+            tier = MissionTier.TIER_2,
+            name = "Combo Pro Specialist",
+            description = "Maintain a combo of 50 for 60 seconds",
+            objective = MissionObjective(
+                type = ObjectiveType.COMBO_MAINTAIN_TIME,
+                targetValue = 60f,
+                comboThreshold = 50f
+            ),
+            rewards = Rewards(cash = 300, rocketSkin = "skin_combo_pro_specialist"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "combo_pro_1")
+        ),
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //           HIDDEN / LOCKED MISSIONS (Discovery-Based)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Mission(
+            id = "hidden_long_haul",
+            category = MissionCategory.FLIGHT_TIME,
+            tier = MissionTier.TIER_3,
+            name = "???",
+            description = "A mysterious mission awaits the one who reaches the stratosphere...",
+            objective = MissionObjective(ObjectiveType.TOTAL_FLIGHT_TIME, 600f),
+            rewards = Rewards(cash = 500, artifact = "artifact_long_haul"),
+            unlockCondition = UnlockCondition(UnlockType.REACH_ALTITUDE, 3000f)
+        ),
+        Mission(
+            id = "hidden_heat_junkie",
+            category = MissionCategory.NO_HEAT,
+            tier = MissionTier.TIER_2,
+            name = "???",
+            description = "Only those who dance with fire will uncover this challenge...",
+            objective = MissionObjective(ObjectiveType.ZERO_HEAT_TIME, 0f),
+            rewards = Rewards(cash = 300, rocketSkin = "skin_heat_junkie"),
+            unlockCondition = UnlockCondition(UnlockType.REACH_ALTITUDE, 1500f)
+        ),
+        Mission(
+            id = "hidden_near_death",
+            category = MissionCategory.PERFECT_RUN,
+            tier = MissionTier.TIER_2,
+            name = "???",
+            description = "Only the bravest pilots uncover this secret...",
+            objective = MissionObjective(ObjectiveType.PERFECT_RUN_TIME, 0f),
+            rewards = Rewards(cash = 400, codexEntry = "codex_near_death"),
+            unlockCondition = UnlockCondition(UnlockType.REACH_ALTITUDE, 1000f)
+        ),
+        Mission(
+            id = "hidden_void_walker",
+            category = MissionCategory.ALTITUDE_CLIMBER,
+            tier = MissionTier.TIER_3,
+            name = "???",
+            description = "A mysterious mission awaits the one who reaches the void...",
+            objective = MissionObjective(ObjectiveType.MAX_ALTITUDE, 5000f),
+            rewards = Rewards(cash = 600, artifact = "artifact_void_core"),
+            unlockCondition = UnlockCondition(UnlockType.REACH_BIOME, 0f)
+        ),
+        Mission(
+            id = "hidden_perfect_storm",
+            category = MissionCategory.PERFECT_RUN,
+            tier = MissionTier.TIER_3,
+            name = "???",
+            description = "Only the most dedicated pilots uncover this challenge...",
+            objective = MissionObjective(ObjectiveType.PERFECT_RUN_TIME, 600f),
+            rewards = Rewards(cash = 750, rocketSkin = "skin_perfect_storm"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "flight_time_2")
+        ),
+        Mission(
+            id = "hidden_artifact_hunter",
+            category = MissionCategory.COLLECTOR,
+            tier = MissionTier.TIER_2,
+            name = "???",
+            description = "The ancient artifacts call out to those who seek them...",
+            objective = MissionObjective(ObjectiveType.ARTIFACTS_COLLECTED, 5f),
+            rewards = Rewards(cash = 700, artifact = "artifact_hunter_bonus"),
+            unlockCondition = UnlockCondition(UnlockType.COLLECT_ARTIFACT, 3f)
+        ),
+        Mission(
+            id = "hidden_momentum_legend",
+            category = MissionCategory.MOMENTUM_MASTER,
+            tier = MissionTier.TIER_3,
+            name = "???",
+            description = "True momentum masters are forged in the void...",
+            objective = MissionObjective(ObjectiveType.MAX_MOMENTUM, 400f),
+            rewards = Rewards(cash = 800, powerup = "momentum_legend_core"),
+            unlockCondition = UnlockCondition(UnlockType.COMPLETE_MISSION, 0f, "momentum_master_2")
+        )
+    )
+
+    // Helper function to get missions by category
+    fun getMissionsByCategory(category: MissionCategory): List<Mission> {
+        return getAllMissions().filter { it.category == category }
+    }
+
+    // Helper function to get missions by tier
+    fun getMissionsByTier(tier: MissionTier): List<Mission> {
+        return getAllMissions().filter { it.tier == tier }
+    }
+
+    // Helper function to get visible (non-locked) missions
+    fun getVisibleMissions(completedIds: Set<String>): List<Mission> {
+        return getAllMissions().filter { mission ->
+            mission.unlockCondition == null || completedIds.contains(mission.unlockCondition?.missionId)
+        }
+    }
+}
+
+
+════════════════════════════════════════════════════════════════════════════════
+                          FILE 3: MissionManager.kt
+════════════════════════════════════════════════════════════════════════════════
+
+// MissionManager.kt
+// Runtime manager for tracking mission progress and state
+
+package com.jumpdroid.missions
+
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+class MissionManager(
+    private val repository: MissionRepository
+) {
+    private var missions: List<Mission> = emptyList()
+    private val _missionStates = MutableStateFlow<Map<String, MissionState>>(emptyMap())
+    val missionStates: StateFlow<Map<String, MissionState>> = _missionStates.asStateFlow()
+
+    private val _activeProgress = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val activeProgress: StateFlow<Map<String, Float>> = _activeProgress.asStateFlow()
+
+    private var cachedStats: GameStats = GameStats()
+    private var cachedPlayer: PlayerState = PlayerState()
+
+    init {
+        loadMissions()
+    }
+
+    private fun loadMissions() {
+        missions = MissionRegistry.getAllMissions()
+        val states = mutableMapOf<String, MissionState>()
+        missions.forEach { mission ->
+            val savedState = repository.getMissionState(mission.id)
+            states[mission.id] = savedState
+            // If mission is LOCKED, check if it should be unlocked
+            if (savedState == MissionState.LOCKED) {
+                checkUnlockCondition(mission)
+            }
+        }
+        _missionStates.value = states
+    }
+
+    fun getVisibleMissions(): List<Mission> {
+        return missions.filter { mission ->
+            _missionStates.value[mission.id] != MissionState.LOCKED
+        }.sortedWith(compareBy<Mission> { it.tier.ordinal }.thenBy { it.category.name })
+    }
+
+    fun getMissionState(missionId: String): MissionState {
+        return _missionStates.value[missionId] ?: MissionState.LOCKED
+    }
+
+    fun getProgress(missionId: String): Float {
+        return _activeProgress.value[missionId] ?: 0f
+    }
+
+    fun getProgressPercentage(missionId: String): Float {
+        val mission = missions.find { it.id == missionId } ?: return 0f
+        val progress = getProgress(missionId)
+        return if (mission.objective.targetValue > 0) {
+            minOf(progress / mission.objective.targetValue, 1f)
+        } else {
+            0f
+        }
+    }
+
+    /**
+     * Called when a new game run starts.
+     * Resets per-run progress and activates available missions.
+     */
+    fun startRun() {
+        val progress = mutableMapOf<String, Float>()
+        val states = _missionStates.value.toMutableMap()
+
+        missions.filter { mission ->
+            states[mission.id] == MissionState.AVAILABLE
+        }.forEach { mission ->
+            states[mission.id] = MissionState.IN_PROGRESS
+            progress[mission.id] = 0f
+        }
+
+        _missionStates.value = states
+        _activeProgress.value = progress
+        cachedStats = GameStats()
+        cachedPlayer = PlayerState()
+    }
+
+    /**
+     * Called every frame or every second to update mission progress.
+     */
+    fun update(playerState: PlayerState, gameStats: GameStats) {
+        cachedPlayer = playerState
+        cachedStats = gameStats
+
+        val progress = _activeProgress.value.toMutableMap()
+        val states = _missionStates.value.toMutableMap()
+        var needsUpdate = false
+
+        missions.forEach { mission ->
+            val state = states[mission.id] ?: return@forEach
+            if (state == MissionState.IN_PROGRESS) {
+                val currentProgress = calculateProgress(mission, playerState, gameStats)
+                progress[mission.id] = currentProgress
+                if (currentProgress >= mission.objective.targetValue && mission.objective.targetValue > 0) {
+                    completeMission(mission.id, states, progress)
+                    needsUpdate = true
+                }
+            }
+        }
+
+        if (needsUpdate) {
+            _missionStates.value = states
+        }
+        _activeProgress.value = progress
+    }
+
+    private fun calculateProgress(
+        mission: Mission,
+        playerState: PlayerState,
+        gameStats: GameStats
+    ): Float {
+        return when (mission.objective.type) {
+            ObjectiveType.TOTAL_FLIGHT_TIME -> gameStats.totalFlightTime
+            ObjectiveType.TOTAL_PLATFORM_TIME -> gameStats.totalPlatformTime
+            ObjectiveType.ZERO_HEAT_TIME -> gameStats.zeroHeatTime
+            ObjectiveType.PICKUPS_COLLECTED -> gameStats.pickupsCollected.toFloat()
+            ObjectiveType.FUEL_PICKUPS_COLLECTED -> gameStats.fuelPickupsCollected.toFloat()
+            ObjectiveType.MAX_COMBO -> gameStats.maxCombo.toFloat()
+            ObjectiveType.BOSSES_DEFEATED -> gameStats.bossesDefeated.toFloat()
+            ObjectiveType.CODEX_UNLOCKED -> gameStats.codexUnlocked.toFloat()
+            ObjectiveType.MAX_ALTITUDE -> gameStats.maxAltitude
+            ObjectiveType.MAX_MOMENTUM -> gameStats.maxMomentum
+            ObjectiveType.HAZARD_HITS_SURVIVED -> gameStats.hazardHitsSurvived.toFloat()
+            ObjectiveType.PERFECT_RUN_TIME -> gameStats.perfectRunTime
+            ObjectiveType.ARTIFACTS_COLLECTED -> gameStats.artifactsCollected.toFloat()
+            ObjectiveType.DASHES_PER_RUN -> gameStats.dashesPerRun.toFloat()
+            ObjectiveType.COMBO_MAINTAIN_TIME -> {
+                val threshold = mission.objective.comboThreshold ?: 0f
+                if (gameStats.currentCombo >= threshold) {
+                    gameStats.comboMaintainTime
+                } else {
+                    // Reset progress if combo drops below threshold
+                    0f
+                }
+            }
+        }
+    }
+
+    private fun completeMission(
+        missionId: String,
+        states: MutableMap<String, MissionState>,
+        progress: MutableMap<String, Float>
+    ) {
+        val mission = missions.find { it.id == missionId } ?: return
+        if (states[missionId] == MissionState.COMPLETED) return
+
+        states[missionId] = MissionState.COMPLETED
+        progress[missionId] = mission.objective.targetValue
+
+        // Grant rewards automatically
+        grantRewards(mission.rewards)
+
+        // Check for unlock conditions
+        checkUnlocks(mission, states)
+
+        // Persist state
+        repository.saveMissionState(missionId, MissionState.COMPLETED)
+
+        // Log completion
+        println("[Mission] Complete: ${mission.name} (${mission.id})")
+    }
+
+    private fun grantRewards(rewards: Rewards) {
+        if (rewards.cash > 0) {
+            // Add cash to player's wallet
+            println("[Mission] +${rewards.cash} cash")
+        }
+        if (rewards.codexEntry != null) {
+            // Unlock codex entry
+            println("[Mission] Codex unlocked: ${rewards.codexEntry}")
+        }
+        if (rewards.powerup != null) {
+            // Grant powerup
+            println("[Mission] Powerup granted: ${rewards.powerup}")
+        }
+        if (rewards.artifact != null) {
+            // Grant artifact
+            println("[Mission] Artifact: ${rewards.artifact}")
+        }
+        if (rewards.rocketSkin != null) {
+            // Unlock rocket skin
+            println("[Mission] Rocket skin: ${rewards.rocketSkin}")
+        }
+        if (rewards.unlockable != null) {
+            // Unlock content
+            println("[Mission] Unlockable: ${rewards.unlockable}")
+        }
+    }
+
+    private fun checkUnlocks(
+        completedMission: Mission,
+        states: MutableMap<String, MissionState>
+    ) {
+        MissionRegistry.getAllMissions()
+            .filter { it.unlockCondition?.type == UnlockType.COMPLETE_MISSION }
+            .filter { it.unlockCondition?.missionId == completedMission.id }
+            .forEach { mission ->
+                if (states[mission.id] == MissionState.LOCKED) {
+                    states[mission.id] = MissionState.AVAILABLE
+                    repository.saveMissionState(mission.id, MissionState.AVAILABLE)
+                    println("[Mission] Unlocked: ${mission.name} (${mission.id})")
+                }
+            }
+    }
+
+    private fun checkUnlockCondition(mission: Mission) {
+        val condition = mission.unlockCondition ?: return
+        // This is a simplified check. In a real implementation,
+        // you'd check against persistent player data.
+        // For now, we'll assume we need to check against cached stats.
+        when (condition.type) {
+            UnlockType.REACH_ALTITUDE -> {
+                if (cachedStats.maxAltitude >= condition.value) {
+                    unlockMission(mission.id)
+                }
+            }
+            UnlockType.DEFEAT_BOSS -> {
+                if (cachedStats.bossesDefeated >= condition.value.toInt()) {
+                    unlockMission(mission.id)
+                }
+            }
+            UnlockType.COMPLETE_MISSION -> {
+                val missionId = condition.missionId ?: return
+                if (_missionStates.value[missionId] == MissionState.COMPLETED) {
+                    unlockMission(mission.id)
+                }
+            }
+            UnlockType.UNLOCK_CODEX_ENTRY -> {
+                if (cachedStats.codexUnlocked >= condition.value.toInt()) {
+                    unlockMission(mission.id)
+                }
+            }
+            UnlockType.REACH_BIOME -> {
+                // Check if player has reached the biome
+                // This would need additional data
+            }
+            UnlockType.COLLECT_ARTIFACT -> {
+                if (cachedStats.artifactsCollected >= condition.value.toInt()) {
+                    unlockMission(mission.id)
+                }
+            }
+        }
+    }
+
+    private fun unlockMission(missionId: String) {
+        val states = _missionStates.value.toMutableMap()
+        if (states[missionId] == MissionState.LOCKED) {
+            states[missionId] = MissionState.AVAILABLE
+            _missionStates.value = states
+            repository.saveMissionState(missionId, MissionState.AVAILABLE)
+            println("[Mission] Unlocked: $missionId")
+        }
+    }
+
+    /**
+     * Called when a run ends (player dies or quits).
+     * Saves all progress and resets run-specific states.
+     */
+    fun endRun() {
+        // Save final progress
+        _activeProgress.value.forEach { (missionId, progress) ->
+            repository.saveProgress(missionId, progress)
+        }
+        // Reset per-run missions back to AVAILABLE
+        val states = _missionStates.value.toMutableMap()
+        states.filter { it.value == MissionState.IN_PROGRESS }
+            .forEach { (missionId, _) ->
+                states[missionId] = MissionState.AVAILABLE
+            }
+        _missionStates.value = states
+    }
+
+    /**
+     * Claim rewards for a completed mission.
+     */
+    fun claimRewards(missionId: String): Boolean {
+        val states = _missionStates.value.toMutableMap()
+        if (states[missionId] != MissionState.COMPLETED) {
+            return false
+        }
+        states[missionId] = MissionState.CLAIMED
+        _missionStates.value = states
+        repository.saveMissionState(missionId, MissionState.CLAIMED)
+        return true
+    }
+
+    // Helper to refresh mission states from repository (e.g., after app restart)
+    fun refreshStates() {
+        val states = mutableMapOf<String, MissionState>()
+        missions.forEach { mission ->
+            states[mission.id] = repository.getMissionState(mission.id)
+        }
+        _missionStates.value = states
+    }
+
+    // Check if a mission is complete
+    fun isMissionComplete(missionId: String): Boolean {
+        return _missionStates.value[missionId] == MissionState.COMPLETED ||
+                _missionStates.value[missionId] == MissionState.CLAIMED
+    }
+
+    // Get all completed mission IDs
+    fun getCompletedMissionIds(): Set<String> {
+        return _missionStates.value.filter { it.value == MissionState.COMPLETED || it.value == MissionState.CLAIMED }
+            .keys
+    }
+
+    // Get total number of completed missions
+    fun getCompletedCount(): Int {
+        return _missionStates.value.count { it.value == MissionState.COMPLETED || it.value == MissionState.CLAIMED }
+    }
+
+    // Get total number of missions (excluding hidden ones)
+    fun getTotalVisibleCount(): Int {
+        return getVisibleMissions().size
+    }
+
+    // Get completion percentage
+    fun getCompletionPercentage(): Float {
+        val total = getTotalVisibleCount()
+        return if (total > 0) getCompletedCount().toFloat() / total else 0f
+    }
+}
+
+
+════════════════════════════════════════════════════════════════════════════════
+                       FILE 4: MissionRepository.kt
+════════════════════════════════════════════════════════════════════════════════
+
+// MissionRepository.kt
+// Persistence layer using Android DataStore
+
+package com.jumpdroid.missions
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+
+// Extension property for DataStore
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "missions")
+
+class MissionRepository(private val context: Context) {
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Keys for DataStore
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    private fun missionStateKey(missionId: String): Preferences.Key<String> {
+        return stringPreferencesKey("mission_state_$missionId")
+    }
+
+    private fun missionProgressKey(missionId: String): Preferences.Key<Float> {
+        return floatPreferencesKey("mission_progress_$missionId")
+    }
+
+    private fun missionClaimedKey(missionId: String): Preferences.Key<Boolean> {
+        return booleanPreferencesKey("mission_claimed_$missionId")
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  State Operations
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    suspend fun saveMissionState(missionId: String, state: MissionState) {
+        context.dataStore.edit { preferences ->
+            preferences[missionStateKey(missionId)] = state.name
+        }
+    }
+
+    fun getMissionState(missionId: String): MissionState {
+        // Synchronous version for use in init blocks
+        // In production, this would be a suspend function
+        return try {
+            // For simplicity, we'll use a blocking call here
+            // In real code, use runBlocking or make the caller suspend
+            val stateName = context.dataStore.data
+                .map { preferences ->
+                    preferences[missionStateKey(missionId)] ?: MissionState.LOCKED.name
+                }
+                .first()
+            MissionState.valueOf(stateName)
+        } catch (e: Exception) {
+            MissionState.LOCKED
+        }
+    }
+
+    suspend fun getMissionStateAsync(missionId: String): MissionState {
+        val stateName = context.dataStore.data
+            .map { preferences ->
+                preferences[missionStateKey(missionId)] ?: MissionState.LOCKED.name
+            }
+            .first()
+        return MissionState.valueOf(stateName)
+    }
+
+    fun getMissionStateFlow(missionId: String): Flow<MissionState> {
+        return context.dataStore.data
+            .map { preferences ->
+                val stateName = preferences[missionStateKey(missionId)] ?: MissionState.LOCKED.name
+                MissionState.valueOf(stateName)
+            }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Progress Operations
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    suspend fun saveProgress(missionId: String, progress: Float) {
+        context.dataStore.edit { preferences ->
+            preferences[missionProgressKey(missionId)] = progress
+        }
+    }
+
+    suspend fun getProgress(missionId: String): Float {
+        return context.dataStore.data
+            .map { preferences ->
+                preferences[missionProgressKey(missionId)] ?: 0f
+            }
+            .first()
+    }
+
+    fun getProgressFlow(missionId: String): Flow<Float> {
+        return context.dataStore.data
+            .map { preferences ->
+                preferences[missionProgressKey(missionId)] ?: 0f
+            }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Batch Operations
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    suspend fun saveAllStates(states: Map<String, MissionState>) {
+        context.dataStore.edit { preferences ->
+            states.forEach { (missionId, state) ->
+                preferences[missionStateKey(missionId)] = state.name
+            }
+        }
+    }
+
+    suspend fun saveAllProgress(progress: Map<String, Float>) {
+        context.dataStore.edit { preferences ->
+            progress.forEach { (missionId, value) ->
+                preferences[missionProgressKey(missionId)] = value
+            }
+        }
+    }
+
+    suspend fun getAllStates(missionIds: List<String>): Map<String, MissionState> {
+        val result = mutableMapOf<String, MissionState>()
+        context.dataStore.data.collect { preferences ->
+            missionIds.forEach { missionId ->
+                val stateName = preferences[missionStateKey(missionId)] ?: MissionState.LOCKED.name
+                result[missionId] = MissionState.valueOf(stateName)
+            }
+        }
+        return result
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Reset Operations
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    suspend fun resetAllProgress() {
+        context.dataStore.edit { preferences ->
+            // This would need to iterate over all mission IDs
+            // For simplicity, we'll clear only known keys
+            // In production, you'd store a list of mission IDs
+        }
+    }
+
+    suspend fun resetMission(missionId: String) {
+        context.dataStore.edit { preferences ->
+            preferences.remove(missionStateKey(missionId))
+            preferences.remove(missionProgressKey(missionId))
+        }
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Claim State Operations
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    suspend fun saveClaimedState(missionId: String, isClaimed: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[missionClaimedKey(missionId)] = isClaimed
+        }
+    }
+
+    suspend fun isClaimed(missionId: String): Boolean {
+        return context.dataStore.data
+            .map { preferences ->
+                preferences[missionClaimedKey(missionId)] ?: false
+            }
+            .first()
+    }
+}
+
+
+════════════════════════════════════════════════════════════════════════════════
+                         FILE 5: MissionScreen.kt
+════════════════════════════════════════════════════════════════════════════════
+
+// MissionScreen.kt
+// Compose UI for displaying missions
+
+package com.jumpdroid.missions.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.jumpdroid.missions.Mission
+import com.jumpdroid.missions.MissionManager
+import com.jumpdroid.missions.MissionState
+import com.jumpdroid.missions.MissionTier
+
+@Composable
+fun MissionScreen(
+    missionManager: MissionManager,
+    onMissionSelected: (String) -> Unit = {},
+    onClaimRewards: (String) -> Unit = {}
+) {
+    val missions by remember { mutableStateOf(missionManager.getVisibleMissions()) }
+    val completedCount = remember { mutableStateOf(missionManager.getCompletedCount()) }
+    val totalCount = remember { mutableStateOf(missionManager.getTotalVisibleCount()) }
+
+    // Refresh on recomposition
+    LaunchedEffect(Unit) {
+        // This would ideally observe a Flow from MissionManager
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0A0A1A))
+            .padding(16.dp)
+    ) {
+        // Header
+        MissionHeader(completedCount.value, totalCount.value)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Mission List
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(missions) { mission ->
+                val state = missionManager.getMissionState(mission.id)
+                val progress = missionManager.getProgressPercentage(mission.id)
+                MissionCard(
+                    mission = mission,
+                    state = state,
+                    progress = progress,
+                    onClaim = { onClaimRewards(mission.id) },
+                    onClick = { onMissionSelected(mission.id) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MissionHeader(
+    completedCount: Int,
+    totalCount: Int
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+    ) {
+        Text(
+            text = "🚀 MISSIONS",
+            style = MaterialTheme.typography.headlineMedium,
+            color = Color.White
+        )
+        Text(
+            text = "Complete missions to earn rewards and unlock new content",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        LinearProgressIndicator(
+            progress = if (totalCount > 0) completedCount.toFloat() / totalCount else 0f,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp),
+            color = Color(0xFF4CAF50),
+            trackColor = Color(0xFF1A1A2E)
+        )
+        Text(
+            text = "$completedCount / $total0 complete",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray
+        )
+    }
+}
+
+@Composable
+fun MissionCard(
+    mission: Mission,
+    state: MissionState,
+    progress: Float,
+    onClaim: () -> Unit,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = when (state) {
+                MissionState.COMPLETED, MissionState.CLAIMED -> Color(0xFF1A3A1A)
+                MissionState.IN_PROGRESS -> Color(0xFF1A2A3A)
+                MissionState.AVAILABLE -> Color(0xFF1A1A2E)
+                MissionState.LOCKED -> Color(0xFF1A1A1A)
+            }
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // Header Row: Name + Tier + Status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = when (mission.tier) {
+                            MissionTier.TIER_1 -> "🟢"
+                            MissionTier.TIER_2 -> "🔵"
+                            MissionTier.TIER_3 -> "🟣"
+                            MissionTier.TIER_4 -> "🌟"
+                        },
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = mission.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = when (mission.tier) {
+                            MissionTier.TIER_1 -> Color(0xFF4CAF50)
+                            MissionTier.TIER_2 -> Color(0xFF2196F3)
+                            MissionTier.TIER_3 -> Color(0xFF9C27B0)
+                            MissionTier.TIER_4 -> Color(0xFFFFD700)
+                        }
+                    )
+                }
+                Text(
+                    text = when (state) {
+                        MissionState.LOCKED -> "🔒 Locked"
+                        MissionState.AVAILABLE -> "Available"
+                        MissionState.IN_PROGRESS -> "⏳ In Progress"
+                        MissionState.COMPLETED -> "✅ Complete"
+                        MissionState.CLAIMED -> "Claimed"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = when (state) {
+                        MissionState.LOCKED -> Color.Gray
+                        MissionState.AVAILABLE -> Color(0xFF4CAF50)
+                        MissionState.IN_PROGRESS -> Color(0xFFFFC107)
+                        MissionState.COMPLETED -> Color(0xFF4CAF50)
+                        MissionState.CLAIMED -> Color(0xFF888888)
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Description
+            Text(
+                text = mission.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (state == MissionState.LOCKED) Color.DarkGray else Color.White.copy(alpha = 0.8f)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Progress bar (only show if not locked)
+            if (state != MissionState.LOCKED && state != MissionState.CLAIMED) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LinearProgressIndicator(
+                        progress = if (state == MissionState.COMPLETED) 1f else progress,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(6.dp),
+                        color = when {
+                            state == MissionState.COMPLETED -> Color(0xFF4CAF50)
+                            progress > 0.7f -> Color(0xFFFFC107)
+                            else -> Color(0xFF2196F3)
+                        },
+                        trackColor = Color(0xFF1A1A2E)
+                    )
+                    Text(
+                        text = if (state == MissionState.COMPLETED) "100%" else "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Rewards row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (mission.rewards.cash > 0) {
+                    RewardChip("💰 ${mission.rewards.cash}")
+                }
+                if (mission.rewards.rocketSkin != null) {
+                    RewardChip("🚀 Skin")
+                }
+                if (mission.rewards.artifact != null) {
+                    RewardChip("💎 Artifact")
+                }
+                if (mission.rewards.codexEntry != null) {
+                    RewardChip("📖 Codex")
+                }
+                if (mission.rewards.powerup != null) {
+                    RewardChip("⚡ Powerup")
+                }
+            }
+
+            // Claim button
+            if (state == MissionState.COMPLETED) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onClaim,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50),
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text("Claim Rewards")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RewardChip(text: String) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color(0xFF2A2A3E),
+        modifier = Modifier.padding(vertical = 2.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.7f),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+// Preview composable for testing
+@Preview(showBackground = true)
+@Composable
+fun PreviewMissionScreen() {
+    // This would require a mock MissionManager
+    // For preview purposes only
+    MaterialTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFF0A0A1A)
+        ) {
+            // Preview placeholder
+            Text("Mission Screen Preview", color = Color.White)
+        }
+    }
+}
+
+
+════════════════════════════════════════════════════════════════════════════════
+                              END OF FILES
+════════════════════════════════════════════════════════════════════════════════

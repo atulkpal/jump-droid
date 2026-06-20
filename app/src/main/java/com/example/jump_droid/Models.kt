@@ -4,7 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 
 enum class GameState {
-    TITLE, MAIN_MENU, HANGAR, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK
+    TITLE, MAIN_MENU, HANGAR, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS
 }
 
 enum class PowerUpType {

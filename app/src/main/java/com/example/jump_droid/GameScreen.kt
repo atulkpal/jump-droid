@@ -5,6 +5,7 @@ import androidx.core.content.edit
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -68,6 +69,9 @@ import com.example.jump_droid.Constants.OVERHEAT_COOLDOWN_TIME
 import com.example.jump_droid.Constants.SHIELD_REGEN_RATE
 import com.example.jump_droid.Constants.SHIELD_REGEN_DELAY
 import com.example.jump_droid.Constants.SURVIVAL_CRITICAL_THRESHOLD
+import com.example.jump_droid.missions.MissionRepository
+import com.example.jump_droid.missions.MissionManager
+import com.example.jump_droid.missions.GameStats
 import com.example.jump_droid.ui.theme.*
 
 @Composable
@@ -83,6 +87,18 @@ fun GameScreen() {
     var runDurationTimer by remember { mutableFloatStateOf(0f) }
     var airborneTimer by remember { mutableFloatStateOf(0f) }
     var noOverheatTimer by remember { mutableFloatStateOf(0f) }
+    var platformStayTimer by remember { mutableFloatStateOf(0f) }
+    var perfectRunTimer by remember { mutableFloatStateOf(0f) }
+    var totalHazardHits by remember { mutableIntStateOf(0) }
+    var totalFuelPickups by remember { mutableIntStateOf(0) }
+    var totalBossesDefeated by remember { mutableIntStateOf(0) }
+    var totalArtifactsCollected by remember { mutableIntStateOf(0) }
+    var totalDashes by remember { mutableIntStateOf(0) }
+    var momentumValue by remember { mutableFloatStateOf(0f) }
+    var comboMaintainTimer by remember { mutableFloatStateOf(0f) }
+    var overheatCount by remember { mutableIntStateOf(0) }
+    var wasNearDeath by remember { mutableStateOf(false) }
+    var consecutiveWins by remember { mutableIntStateOf(0) }
     
     var gameState by remember { mutableStateOf(GameState.TITLE) }
     var activeDiscovery by remember { mutableStateOf<DiscoveryType?>(null) }
@@ -91,12 +107,21 @@ fun GameScreen() {
 
     val discoveryManager = remember { DiscoveryManager(sharedPrefs) }
     val progressionManager = remember { ProgressionManager(sharedPrefs) }
-    val missionManager = remember { MissionManager() }
+    val missionRepository = remember { MissionRepository(context) }
+    val missionManager = remember { MissionManager(missionRepository) }
     val threatManager = remember { ThreatManager() }
     val comboManager = remember { ComboManager() }
-    val missionCeremonies = remember { mutableStateMapOf<String, Float>() }
     val flyingRewards = remember { mutableStateListOf<FlyingReward>() }
     val platformManager = remember { PlatformManager() }
+
+    val scope = rememberCoroutineScope()
+
+    var missionCompleteNotification by remember { mutableStateOf<com.example.jump_droid.missions.Mission?>(null) }
+    var missionCompleteTimer by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        missionManager.initialize()
+    }
 
     var screenWidth by remember { mutableFloatStateOf(0f) }
     var screenHeight by remember { mutableFloatStateOf(0f) }
@@ -113,12 +138,6 @@ fun GameScreen() {
     val landingEffects = remember { mutableStateListOf<LandingEffect>() }
     val particles = remember { mutableStateListOf<Particle>() }
     val floatingTextManager = remember { FloatingTextManager() }
-
-    var missionHintRotationTimer by remember { mutableFloatStateOf(0f) }
-    var globalShowObjective by remember { mutableStateOf(false) }
-    var newMissionOverlay by remember { mutableStateOf<Mission?>(null) }
-    var newMissionOverlayTimer by remember { mutableFloatStateOf(0f) }
-
     var gameTime by remember { mutableLongStateOf(0L) }
     var powerUpSpawnTimer by remember { mutableFloatStateOf(0f) }
     var cameraY by remember { mutableFloatStateOf(0f) }
@@ -199,20 +218,8 @@ fun GameScreen() {
             activeDiscovery = type
             if (forceTutorialState) gameState = GameState.TUTORIAL
 
-            // Mission Hook - General Discovery (Only count if it's an ARTIFACT discovery for generic goals)
             if (type.category == "ARTIFACTS") {
-                missionManager.updateProgress(MissionType.DISCOVERY) { it.id.contains("art_find") }
-            }
-
-            // Mission Hook - Specific Discoveries
-            missionManager.activeMissions.find { !it.isCompleted && it.type == MissionType.DISCOVERY }?.let { active ->
-                val match = when(active.id) {
-                    "disc_ray" -> type.title.contains("Sky Ray", ignoreCase = true)
-                    "disc_echo" -> type.title.contains("Derelict Echo", ignoreCase = true)
-                    "disc_anomaly" -> type.title.contains("Void Anomaly", ignoreCase = true)
-                    else -> false
-                }
-                if (match) missionManager.completeMission(active.id)
+                totalArtifactsCollected++
             }
         }
     }
@@ -273,11 +280,6 @@ fun GameScreen() {
         }
 
         if (platform != null) {
-            if (!alreadyLanded) {
-                // Task 1: Generic landing missions audit
-                missionManager.updateProgress(MissionType.PLATFORMING) { it.id.startsWith("plat_land_") }
-            }
-
             when (platform.type) {
                 PlatformType.BOOST -> { 
                     player.velocityY = -600f
@@ -285,8 +287,6 @@ fun GameScreen() {
                     if (!alreadyLanded) {
                         spawnBurst(player.x, yTop, 25, SciFiGold, 400f)
                         screenShake = 10f
-                        // Task 1: Boost specific mission audit
-                        missionManager.updateProgress(MissionType.PLATFORMING) { it.id == "plat_boost" }
                     }
                 }
                 PlatformType.ICE -> { 
@@ -298,14 +298,11 @@ fun GameScreen() {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.velocityX = platform.speed
                     checkDiscovery(DiscoveryType.MOVING_PLATFORM)
-                    if (!alreadyLanded) {
-                        // Task 1: Moving specific mission audit
-                        missionManager.updateProgress(MissionType.PLATFORMING) { it.id == "plat_moving" }
-                    }
                 }
                 PlatformType.FUEL -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     player.fuel = min(player.maxFuel, player.fuel + 50f)
+                    totalFuelPickups++
                     spawnBurst(player.x, yTop, 20, SciFiGreen, 200f)
                     floatingTextManager.add(FloatingText("FUEL RECHARGE", player.x, player.y - 100f, color = SciFiGreen))
                     checkDiscovery(DiscoveryType.FUEL_PLATFORM)
@@ -498,6 +495,7 @@ fun GameScreen() {
     }
 
     fun applyDamage(amount: Float) {
+        totalHazardHits++
         survivalManager.applyDamage(
             amount = amount,
             player = player,
@@ -505,6 +503,7 @@ fun GameScreen() {
             onGameOver = {
                 gameState = GameState.GAMEOVER
                 saveHighScore(score)
+                consecutiveWins = 0
             },
             onVisualFeedback = { shake, flash ->
                 screenShake = shake
@@ -519,30 +518,7 @@ fun GameScreen() {
     fun unlockAll() {
         RocketType.entries.forEach { sharedPrefs.edit { putBoolean("unlock_${it.name}", true) } }
         DiscoveryType.entries.forEach { sharedPrefs.edit { putBoolean("discovery_$it", true) } }
-        missionManager.updateProgress(MissionType.EXPLORATION, absoluteValue = score)
-        missionManager.selectNextMission()
-
-        // Handle Completed Missions (Rewards)
-        missionManager.activeMissions.filter { it.isCompleted }.forEach { mission ->
-            // Grant Reward
-            when (val r = mission.reward) {
-                is MissionReward.PowerUp -> {
-                    val count = r.amount
-                    repeat(count) {
-                        powerUps.add(PowerUp(player.x, cameraY - 100f, r.type))
-                    }
-                }
-                is MissionReward.Artifact -> {
-                    checkDiscovery(r.discoveryType, forceTutorialState = false)
-                }
-                else -> {}
-            }
-
-            // Visuals
-            floatingTextManager.add(FloatingText("MISSION COMPLETE!", player.x, player.y - 150f, color = SciFiGreen, isCritical = true))
-            spawnBurst(player.x, player.y - 100f, 30, SciFiGreen, 400f)
-        }
-        missionManager.selectNextMission()
+        notificationManager.post("ALL CONTENT UNLOCKED")
     }
 
     fun spawnEscalationThreat(id: String, droneX: Float, droneY: Float) {
@@ -613,6 +589,9 @@ fun GameScreen() {
         runDurationTimer = 0f
         airborneTimer = 0f
         noOverheatTimer = 0f
+        comboMaintainTimer = 0f
+        overheatCount = 0
+        wasNearDeath = false
 
         powerUpSpawnTimer = 0f
         globalFogAlpha = 0f
@@ -630,7 +609,6 @@ fun GameScreen() {
         threatManager.clear()
         projectileManager.clear()
         inputBufferManager.clear()
-        missionManager.clear()
         bossesSpawned.clear()
         majorWarningText = null
         majorWarningTimer = 0f
@@ -643,7 +621,11 @@ fun GameScreen() {
         comboManager.reset()
         flyingRewards.clear()
 
-        missionManager.selectNextMission()
+        missionManager.endRun(scope)
+        missionManager.startRun()
+        consecutiveWins++
+        missionCompleteNotification = null
+        missionCompleteTimer = 0f
 
         var lastY = groundY - 250f
         repeat(15) {
@@ -733,19 +715,22 @@ fun GameScreen() {
                         if (comboManager.pendingReward != null && comboManager.pendingReward != prevPending) {
                             // Combo Ended with Reward (Task 5: Tier 3)
                             
-                            // NEW COMBO HIGH CELEBRATION (Sprint E: Polish)
+                            // NEW COMBO HIGH CELEBRATION
                             if (comboManager.isNewHighReached) {
-                                floatingTextManager.add(FloatingText("NEW COMBO HIGH!", player.x, player.y - 150f, color = SciFiGold, isCritical = true))
-                                screenShake = max(screenShake, 35f)
-                                impactFlashAlpha = max(impactFlashAlpha, 0.7f)
-                                
-                                // Large energy burst
-                                repeat(50) {
+                                val zoneColor = zoneGaugeAccents[altitudeManager.currentZone] ?: SciFiCyan
+                                floatingTextManager.add(FloatingText(
+                                    "NEW COMBO HIGH!", screenWidth / 2f - 100f, cameraY + screenHeight * 0.4f,
+                                    color = SciFiWhite, shadowColor = zoneColor, shadowBlur = 20f,
+                                    life = 2.5f, isCritical = true
+                                ))
+                                screenShake = max(screenShake, 15f)
+                                impactFlashAlpha = max(impactFlashAlpha, 0.5f)
+                                repeat(30) {
                                     val angle = Random.nextFloat() * 2f * PI.toFloat()
-                                    val s = 400f + Random.nextFloat() * 400f
+                                    val s = 300f + Random.nextFloat() * 300f
                                     particles.add(Particle(
                                         x = player.x, y = player.y, vx = cos(angle) * s, vy = sin(angle) * s,
-                                        life = 1.5f, color = SciFiGold, size = 6f
+                                        life = 2.0f, color = zoneColor, size = Random.nextFloat() * 4f + 2f
                                     ))
                                 }
                             }
@@ -937,8 +922,8 @@ fun GameScreen() {
                                         spawnBurst(x, y, count, color, speed)
                                     },
                                     onScoreUpdate = { score += it },
-                                    onMissionProgress = { type ->
-                                        missionManager.updateProgress(type)
+                                    onBossDefeated = {
+                                        totalBossesDefeated++
                                     },
                                     onSpawnGhostPlatform = { x, y ->
                                         if (platforms.size < 40) {
@@ -1148,6 +1133,7 @@ fun GameScreen() {
 
                         // Trigger Overheat Visuals if it just happened
                         if (player.isOverheated && !wasOverheatedBefore) {
+                            overheatCount++
                             screenShake = 15f
                             impactFlashAlpha = 1.0f
                             checkDiscovery(DiscoveryType.OVERHEAT_SYSTEM)
@@ -1316,208 +1302,91 @@ fun GameScreen() {
 
                         // --- Mission System Per-Frame Updates ---
                         runDurationTimer += dt
-                        // Task 1: Differentiate survival missions by ID prefix
-                        missionManager.updateProgress(MissionType.SURVIVAL, absoluteValue = runDurationTimer.toInt()) {
-                            it.id.startsWith("surv_time")
-                        }
-
                         if (!player.isOnPlatform) {
                             airborneTimer += dt
-                            // Task 1: Update Flight Time missions specifically
-                            missionManager.updateProgress(MissionType.SURVIVAL, absoluteValue = airborneTimer.toInt()) {
-                                it.id.startsWith("surv_air")
-                            }
                         }
-
                         if (!player.isOverheated) {
                             noOverheatTimer += dt
-                            // Task 4: Update Thermal missions specifically
-                            missionManager.updateProgress(MissionType.SURVIVAL, absoluteValue = noOverheatTimer.toInt()) {
-                                it.id.startsWith("surv_cool")
-                            }
                         } else {
-                            if (noOverheatTimer > 0f) {
-                                // Task 4: Targeted reset for heat missions
-                                missionManager.resetProgress(MissionType.SURVIVAL) { it.id.startsWith("surv_cool") }
-                                notificationManager.post("MISSION RESET")
-                            }
                             noOverheatTimer = 0f
                         }
-
-                        missionManager.updateProgress(MissionType.EXPLORATION, absoluteValue = score)
-
-                        // --- Mission UX System Per-Frame ---
-                        missionHintRotationTimer += dt
-                        if (missionHintRotationTimer > 5f) {
-                            missionHintRotationTimer = 0f
-                            globalShowObjective = !globalShowObjective
+                        if (player.isOnPlatform) {
+                            platformStayTimer += dt
                         }
-
-                        if (newMissionOverlayTimer > 0f) {
-                            newMissionOverlayTimer -= dt
-                            if (newMissionOverlayTimer <= 0f) newMissionOverlay = null
+                        if (player.shield == player.maxShield && player.integrity == player.maxIntegrity) {
+                            perfectRunTimer += dt
+                        } else {
+                            perfectRunTimer = 0f
                         }
+                        if (player.velocityY < -400f) totalDashes++
+                        momentumValue = player.velocityY * -0.1f
+                        if (comboManager.comboTimeRemaining > 0) comboMaintainTimer += dt
+                        if (player.integrity < player.maxIntegrity * 0.1f) wasNearDeath = true
 
-                        // Intro Card Trigger
-                        missionManager.activeMissions.find { it.isNew }?.let {
-                            it.isNew = false
-                            newMissionOverlay = it
-                            newMissionOverlayTimer = 3.0f
-                        }
+                        val gameStats = GameStats(
+                            totalFlightTime = runDurationTimer,
+                            totalPlatformTime = platformStayTimer,
+                            zeroHeatTime = noOverheatTimer,
+                            fuelPickupsCollected = totalFuelPickups,
+                            maxCombo = comboManager.bestComboThisRun,
+                            currentCombo = comboManager.currentCombo,
+                            comboMaintainTime = comboMaintainTimer,
+                            bossesDefeated = totalBossesDefeated,
+                            codexUnlocked = progressionManager.getTotalDiscoveries(),
+                            maxAltitude = score.toFloat() * 10f,
+                            maxMomentum = momentumValue,
+                            hazardHitsSurvived = totalHazardHits,
+                            perfectRunTime = perfectRunTimer,
+                            artifactsCollected = totalArtifactsCollected,
+                            dashesPerRun = totalDashes,
+                            overheatCount = overheatCount,
+                            wasNearDeath = wasNearDeath,
+                            consecutiveWins = consecutiveWins
+                        )
 
-                        // Handle Completed Missions (Ceremony & Rewards)
-                        missionManager.activeMissions.forEach { mission ->
-                            if (mission.isCompleted) {
-                                when (mission.ceremonyStage) {
-                                    CeremonyStage.GLOW -> {
-                                        // Wait a brief moment or start immediately
-                                        mission.ceremonyStage = CeremonyStage.COMPLETED_TEXT
-                                        screenShake = max(screenShake, 10f)
-                                    }
-                                    CeremonyStage.COMPLETED_TEXT -> {
-                                        // Transition handled by UI but we can add logic here if needed
-                                        // For now, move to spawn reward after a delay
-                                        // We can use a dedicated timer per mission for precise stages if needed
-                                    }
-                                    CeremonyStage.REWARD_SPAWNED -> {
-                                        // Reward is already in flyingRewards, waiting for it to finish
-                                    }
-                                    else -> {}
-                                }
+                        val completedMission = missionManager.update(gameStats)
+
+                        // Mission completion notification
+                        if (missionCompleteTimer > 0f) {
+                            missionCompleteTimer -= dt
+                            if (missionCompleteTimer <= 0f) {
+                                missionCompleteNotification = null
                             }
                         }
 
-                        missionManager.activeMissions.filter { it.isCompleted && missionCeremonies[it.id] == null }.forEach { mission ->
-                             missionCeremonies[mission.id] = 0f // Start ceremony
-                        }
+                        if (completedMission != null) {
+                            missionCompleteNotification = completedMission
+                            missionCompleteTimer = 3.0f
+                            screenShake = max(screenShake, 10f)
 
-                        val ceremonyKeys = missionCeremonies.keys.toList()
-                        ceremonyKeys.forEach { mid ->
-                            val m = missionManager.activeMissions.find { it.id == mid }
-                            if (m == null) { missionCeremonies.remove(mid); return@forEach }
+                            val centerX = screenWidth / 2f
+                            val notifyY = 150f * densityValue
 
-                            val prevTime = missionCeremonies[mid] ?: 0f
-                            val newTime = prevTime + dt
-                            missionCeremonies[mid] = newTime
-
-                            // Task 3 & 6: Card disintegration and Category Personality
-                            if (newTime < 2.0f) {
-                                val missionIdx = missionManager.activeMissions.indexOf(m)
-                                if (missionIdx >= 0) {
-                                    val totalMissions = missionManager.activeMissions.size
-                                    val startX = (screenWidth - (totalMissions * 110f)) / 2f
-                                    val cardX = startX + (missionIdx * 110f) + 55f
-                                    val cardY = 100f * densityValue
-                                    
-                                    // Task 1: Increased density for visible fracturing
-                                    val particleChance = if (newTime < 1.0f) 0.4f else 0.8f
-                                    if (Random.nextFloat() < particleChance) {
-                                        repeat(if (newTime > 1.5f) 5 else 2) {
-                                            val pColor = when(m.type) {
-                                                MissionType.EXPLORATION -> Color(0xFFFFD700) // Gold
-                                                MissionType.PLATFORMING -> Color(0xFFFF5722) // Sparks/Orange
-                                                MissionType.SURVIVAL -> Color(0xFF03A9F4) // Energy/Cyan
-                                                MissionType.DISCOVERY -> Color(0xFF9C27B0) // Artifact/Purple
-                                                MissionType.BOSS -> Color(0xFFFFC107) // Yellow/Shock
-                                                else -> Color.White
-                                            }
-                                            particles.add(Particle(
-                                                x = cardX + (Random.nextFloat() - 0.5f) * 110f,
-                                                y = (cardY + cameraY) + (Random.nextFloat() - 0.5f) * 65f, // Account for cameraY when spawning from HUD
-                                                vx = (Random.nextFloat() - 0.5f) * 80f,
-                                                vy = (Random.nextFloat() - 0.5f) * 80f + 30f,
-                                                life = 1.5f,
-                                                color = pColor,
-                                                size = 3f + Random.nextFloat() * 5f
-                                            ))
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Stage transitions
-                            if (prevTime < 1.0f && newTime >= 1.0f) {
-                                m.ceremonyStage = CeremonyStage.COMPLETED_TEXT
-                                
-                                val missionIdx = missionManager.activeMissions.indexOf(m)
-                                if (missionIdx >= 0) {
-                                    val totalMissions = missionManager.activeMissions.size
-                                    val startX = (screenWidth - (totalMissions * 110f)) / 2f
-                                    val cardX = startX + (missionIdx * 110f) + 55f
-                                    val cardY = 100f * densityValue
-                                    
-                                    // Task 4: Restore star/sparkle burst on mission completion
-                                    repeat(40) {
-                                        val angle = Random.nextFloat() * 2f * PI.toFloat()
-                                        val speed = 150f + Random.nextFloat() * 300f
-                                        particles.add(Particle(
-                                            x = cardX, y = cardY + cameraY, // Account for cameraY when spawning from HUD
-                                            vx = cos(angle) * speed, vy = sin(angle) * speed,
-                                            life = 1.2f + Random.nextFloat() * 1.0f,
-                                            color = if (Random.nextBoolean()) SciFiWhite else SciFiGold,
-                                            size = 4f + Random.nextFloat() * 5f // Larger size triggers star rendering
-                                        ))
-                                    }
-                                }
-
-                                // Task 5: Hierarchy
-                                val isSignificant = m.type == MissionType.DISCOVERY || m.type == MissionType.BOSS || m.id.contains("exp_void") || m.id == "surv_cool_2"
-                                if (isSignificant) {
-                                    screenShake = max(screenShake, 15f)
-                                    impactFlashAlpha = max(impactFlashAlpha, 0.3f)
-                                } else {
-                                    screenShake = max(screenShake, 8f)
-                                }
-                            }
-                            if (prevTime < 2.0f && newTime >= 2.0f) {
-                                // Spawn Reward
-                                val missionIdx = missionManager.activeMissions.indexOf(m)
-                                val cardX = if (missionIdx >= 0) {
-                                    val totalMissions = missionManager.activeMissions.size
-                                    val startX = (screenWidth - (totalMissions * 110f)) / 2f
-                                    startX + (missionIdx * 110f) + 55f
-                                } else screenWidth / 2f
-
-                                val comboReward = when (val r = m.reward) {
-                                    is MissionReward.PowerUp -> ComboReward.PowerUp(r.type)
-                                    is MissionReward.Artifact -> ComboReward.Artifact(r.discoveryType)
-                                    else -> ComboReward.Fuel(50f)
-                                }
-
-                                flyingRewards.add(FlyingReward(
-                                    type = comboReward,
-                                    x = cardX,
-                                    y = 100f * densityValue, // top area
-                                    scale = 4.0f // Task 2: Increased scale
+                            // Star burst celebration (preserved from old system)
+                            repeat(40) {
+                                val angle = Random.nextFloat() * 2f * PI.toFloat()
+                                val speed = 150f + Random.nextFloat() * 300f
+                                particles.add(Particle(
+                                    x = centerX, y = notifyY + cameraY,
+                                    vx = cos(angle) * speed, vy = sin(angle) * speed,
+                                    life = 1.2f + Random.nextFloat() * 1.0f,
+                                    color = if (Random.nextBoolean()) SciFiWhite else SciFiGold,
+                                    size = 4f + Random.nextFloat() * 5f
                                 ))
-                                m.ceremonyStage = CeremonyStage.REWARD_SPAWNED
-                                spawnBurst(cardX, 100f * densityValue, 40, SciFiGold, 350f)
                             }
-                            if (prevTime < 3.5f && newTime >= 3.5f) {
-                                m.ceremonyStage = CeremonyStage.REPLACING
-                                missionCeremonies.remove(mid)
-                                
-                                // Mission Synergy Bonus: Small progress to other active tracks
-                                missionManager.activeMissions.filter { !it.isCompleted && it.id != m.id }.forEach { other ->
-                                    when (other.type) {
-                                        MissionType.PLATFORMING -> {
-                                            other.currentProgress = min(other.targetValue, other.currentProgress + 1)
-                                            other.checkCompletion()
-                                        }
-                                        MissionType.SURVIVAL -> {
-                                            val bonus = if (other.id.startsWith("surv_air")) 2f else 5f
-                                            if (other.id.startsWith("surv_air")) airborneTimer += bonus
-                                            else noOverheatTimer += bonus
-                                        }
-                                        else -> {}
-                                    }
-                                }
-                            }
-                        }
 
-                        // Cycle tracks: removes completed missions after their replacement ceremony stage
-                        // and fills any empty mission slots.
-                        missionManager.selectNextMission()
+                            spawnBurst(centerX, notifyY, 40, SciFiGold, 350f)
+
+                            val comboReward = ComboReward.Fuel(50f)
+                            flyingRewards.add(FlyingReward(
+                                type = comboReward,
+                                x = centerX,
+                                y = notifyY,
+                                scale = 4.0f
+                            ))
+
+                            missionManager.dismissCompletionEvent()
+                        }
 
                         // --- Survival System Update ---
                         survivalManager.update(
@@ -1857,6 +1726,27 @@ fun GameScreen() {
                                         val py = ty + kotlin.math.sin(angle).toFloat() * (150f + pRandom.nextFloat() * 150f)
                                         drawCircle(Color.Green.copy(alpha = 0.6f * alpha), 4f, Offset(px, py))
                                     }
+
+                                    // Shield-drain preview indicator
+                                    if (playerInZone) {
+                                        val drainIcon = Path().apply {
+                                            moveTo(tx, ty - 140f)
+                                            lineTo(tx - 12f, ty - 120f); lineTo(tx - 4f, ty - 120f)
+                                            lineTo(tx - 4f, ty - 100f); lineTo(tx + 4f, ty - 100f)
+                                            lineTo(tx + 4f, ty - 120f); lineTo(tx + 12f, ty - 120f); close()
+                                        }
+                                        drawPath(drainIcon, Color(0xFF00E676).copy(alpha = 0.5f * pulse), style = Stroke(width = 2f))
+                                        drawCircle(Color(0xFF00E676).copy(alpha = 0.3f * pulse), radius = 4f, center = Offset(tx, ty - 130f))
+                                    }
+
+                                    // Screen static overlay within radiation zone
+                                    repeat(20) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 13 + (gameTime / 30).toInt()
+                                        val rng = Random(seed)
+                                        val sx = (rng.nextFloat() - 0.5f) * 800f + tx
+                                        val sy = (rng.nextFloat() - 0.5f) * 800f + ty
+                                        drawRect(Color(0xFF00E676).copy(alpha = 0.08f * rng.nextFloat()), Offset(sx, sy), Size(1f + rng.nextFloat() * 3f, 1f))
+                                    }
                                 }
                                 "HAZ_SOLAR_FLARE" -> {
                                     val alpha = lifeCycleAlpha
@@ -1898,12 +1788,27 @@ fun GameScreen() {
                                     }
 
                                     // Ember particles
-                                    repeat(15) { i ->
+                                    repeat(20) { i ->
                                         val seed = threat.instanceId.hashCode() + i + (gameTime / 40).toInt()
                                         val rng = Random(seed)
                                         val ex = rng.nextFloat() * screenWidth
                                         val ey = flameTop + 50f + rng.nextFloat() * (flareHeight - 100f)
                                         drawCircle(Color(0xFFFF6D00).copy(alpha = 0.4f * alpha), radius = 1f + rng.nextFloat() * 3f, center = Offset(ex, ey))
+                                    }
+
+                                    // Heat-distortion shimmer lines
+                                    repeat(4) { i ->
+                                        val shimmerY = flameTop + 80f + i * (flareHeight / 5f) + sin(gameTime / 120f + i * 2f) * 10f
+                                        val shimmerPath = Path().apply {
+                                            moveTo(0f, shimmerY)
+                                            repeat(8) { seg ->
+                                                val sx = seg * (screenWidth / 8f)
+                                                val sy = shimmerY + sin(sx / 40f + gameTime / 80f + i) * 6f
+                                                lineTo(sx, sy)
+                                            }
+                                            lineTo(screenWidth, shimmerY)
+                                        }
+                                        drawPath(shimmerPath, Color.White.copy(alpha = 0.06f * alpha), style = Stroke(width = 1.5f))
                                     }
 
                                     // Screen flash effect when wave passes player Y
@@ -2041,6 +1946,29 @@ fun GameScreen() {
                                         drawCircle(Color.Cyan.copy(alpha = 0.3f * alpha), radius = 2f, center = Offset(sx, sy))
                                         drawLine(Color.Cyan.copy(alpha = 0.15f * alpha), Offset(sx, sy), Offset(sx, sy + 30f), strokeWidth = 1f)
                                     }
+
+                                    // Player overlay force lines
+                                    val pDistGrav = sqrt((player.x - tx) * (player.x - tx) + (player.y - cameraY - ty) * (player.y - cameraY - ty))
+                                    if (pDistGrav < 400f) {
+                                        val pullStr = 1f - pDistGrav / 400f
+                                        repeat(4) { i ->
+                                            val angle = (i / 4f) * 2f * PI.toFloat() + (gameTime / 500f)
+                                            val lineEnd = Offset(player.x + cos(angle) * 30f, player.y - cameraY + sin(angle) * 30f)
+                                            drawLine(Color.Cyan.copy(alpha = 0.2f * pullStr), Offset(player.x, player.y - cameraY), lineEnd, strokeWidth = 1f)
+                                        }
+                                    }
+
+                                    // Fuel-penalty symbol
+                                    val fuelPenaltyPath = Path().apply {
+                                        moveTo(tx + 100f, ty - 60f)
+                                        lineTo(tx + 100f, ty - 30f); lineTo(tx + 94f, ty - 30f)
+                                        lineTo(tx + 94f, ty - 60f)
+                                        lineTo(tx + 88f, ty - 50f); lineTo(tx + 88f, ty - 46f)
+                                        lineTo(tx + 94f, ty - 54f); lineTo(tx + 94f, ty - 50f)
+                                        close()
+                                    }
+                                    drawPath(fuelPenaltyPath, Color.Red.copy(alpha = 0.4f * alpha), style = Stroke(width = 1.5f))
+                                    drawLine(Color.Red.copy(alpha = 0.5f * alpha), Offset(tx + 82f, ty - 62f), Offset(tx + 118f, ty - 28f), strokeWidth = 2f)
                                 }
                                 "HAZ_EMP" -> {
                                     val alpha = lifeCycleAlpha
@@ -2094,6 +2022,14 @@ fun GameScreen() {
                                         val sa = rng.nextFloat() * 2f * PI.toFloat()
                                         val sr = ringRadius - 20f + rng.nextFloat() * 40f
                                         drawCircle(Color.Cyan.copy(alpha = 0.3f * ringAlpha), radius = 2f, center = Offset(tx + cos(sa) * sr, ty + sin(sa) * sr))
+                                    }
+
+                                    // HUD static lines across screen
+                                    repeat(6) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 11 + (gameTime / 40).toInt()
+                                        val rng = Random(seed)
+                                        val ly = rng.nextFloat() * size.height
+                                        drawLine(Color.White.copy(alpha = 0.04f * rng.nextFloat()), Offset(0f, ly), Offset(size.width, ly), strokeWidth = 1f)
                                     }
                                 }
                                 "HAZ_GUST" -> {
@@ -2622,6 +2558,15 @@ fun GameScreen() {
                                         val startY = ty + (rng.nextFloat() - 0.5f) * 200f
                                         drawLine(Color(0xFFFFD54F).copy(alpha = 0.15f), Offset(startX, startY), Offset(tx, ty), strokeWidth = 1f)
                                     }
+
+                                    // Salvage beacon glow ring
+                                    val salvagePulse = (sin(gameTime / 300f) * 0.3f + 0.7f)
+                                    drawCircle(
+                                        color = Color(0xFFFFD54F).copy(alpha = 0.12f * salvagePulse),
+                                        radius = 50f + salvagePulse * 15f,
+                                        center = Offset(tx, ty + 40f),
+                                        style = Stroke(width = 2f)
+                                    )
                                 }
                                 "ENT_STALKER" -> {
                                     // Void Tracker — heat-seeking hunter drone (polished)
@@ -2900,6 +2845,12 @@ fun GameScreen() {
                                         drawLine(outlineColor, Offset(tx - 12f, ty + 30f), Offset(tx - 20f, ty + 55f), strokeWidth = 2f)
                                         drawLine(outlineColor, Offset(tx + 12f, ty + 30f), Offset(tx + 20f, ty + 55f), strokeWidth = 2f)
                                     }
+
+                                    // Phase-transition white flash (brief burst at state change)
+                                    val transitionFlash = maxOf(0f, 1f - ((gameTime / 300f) % 2f))
+                                    if (transitionFlash > 0.8f) {
+                                        drawCircle(Color.White.copy(alpha = (transitionFlash - 0.8f) * 0.5f), radius = 60f, center = Offset(tx, ty))
+                                    }
                                 }
                                 "HAZ_VOID_ANOMALY" -> {
                                     // Reality rift with inward pull
@@ -2962,6 +2913,19 @@ fun GameScreen() {
                                         val pullEnd = if (i % 2 == 0) Offset(if (i == 0) -100f else screenWidth + 100f, ty) else Offset(tx, if (i == 1) -100f else size.height + 100f)
                                         drawLine(Color(0xFFCE93D8).copy(alpha = 0.1f * pulse), Offset(tx, ty), pullEnd, strokeWidth = 2f)
                                     }
+
+                                    // Reality-warp offset copy (glitched double vision)
+                                    val offsetX = sin(gameTime / 80f) * 8f
+                                    val offsetY = sin(gameTime / 100f) * 6f
+                                    drawCircle(
+                                        brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                                            colors = listOf(Color(0xFF6A1B9A).copy(alpha = 0.15f), Color.Transparent),
+                                            center = Offset(tx + offsetX, ty + offsetY),
+                                            radius = 120f
+                                        ),
+                                        radius = 120f,
+                                        center = Offset(tx + offsetX, ty + offsetY)
+                                    )
                                 }
                                 "MINI_BOSS_COMMANDER" -> {
                                     // Command Cruiser — phase-color shift + shield bubble
@@ -3278,6 +3242,20 @@ fun GameScreen() {
                                     // Hunger-meter: core pulse rate increases (simulated via pulse speed variation)
                                     val hungerRate = 1f + (1f - pDist / 1000f).coerceIn(0f, 0.5f)
                                     drawCircle(Color(0xFFFF4081).copy(alpha = 0.1f * hungerRate), radius = 80f + pulse * 20f, center = Offset(tx, ty), style = Stroke(width = 3f))
+
+                                    // Suction speed indicator — ring between player and core
+                                    if (pDist < 800f) {
+                                        val suctionStr = 1f - pDist / 800f
+                                        val ringAngle = (gameTime / 80f) % (2f * PI.toFloat())
+                                        val ringR = 20f + suctionStr * 60f
+                                        repeat(4) { i ->
+                                            val a = ringAngle + i * (PI.toFloat() / 2f)
+                                            val rx = tx + cos(a) * ringR * (1f - suctionStr * 0.5f)
+                                            val ry = ty + sin(a) * ringR * (1f - suctionStr * 0.5f)
+                                            drawCircle(Color(0xFFFF4081).copy(alpha = 0.3f * suctionStr), radius = 3f + suctionStr * 4f, center = Offset(rx, ry))
+                                        }
+                                        drawCircle(Color(0xFFFF4081).copy(alpha = 0.08f * suctionStr), radius = ringR, center = Offset(tx, ty), style = Stroke(width = 1f, pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(4f, 6f))))
+                                    }
                                 }
                                 "BOSS_VOID_ENGINE" -> {
                                     // Void Engine — gravity shift telegraph + inversion buildup
@@ -3514,6 +3492,30 @@ fun GameScreen() {
                                             drawCircle(Color.Magenta.copy(alpha = 0.6f * wpPulse), radius = 50f, center = Offset(tx, ty))
                                         }
 
+                                        // Wrong-value glitch indicators (fake HUD numbers)
+                                        if (phase >= 2) {
+                                            repeat(3) { i ->
+                                                val seed = threat.instanceId.hashCode() + i * 17 + (gameTime / 100).toInt()
+                                                val rng = Random(seed)
+                                                if (rng.nextFloat() < 0.15f) {
+                                                    val gx = tx + (rng.nextFloat() - 0.5f) * 500f
+                                                    val gy = ty + (rng.nextFloat() - 0.5f) * 400f
+                                                    val digitCount = 2 + rng.nextInt(3)
+                                                    repeat(digitCount) { d ->
+                                                        val dx = gx + d * 10f
+                                                        val dy = gy + sin(d * 1.5f + gameTime / 200f) * 3f
+                                                        drawRect(Color(0xFF00E676).copy(alpha = 0.06f), Offset(dx, dy), Size(5f, 7f))
+                                                        drawRect(Color(0xFF00E676).copy(alpha = 0.03f), Offset(dx + 1f, dy + 1f), Size(3f, 5f))
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Frame-skip flicker enhancement (faster skip in phase 3)
+                                        if (phase == 3 && (gameTime / 50) % 3 == 0L) {
+                                            drawRect(Color.Black.copy(alpha = 0.3f), topLeft = Offset(0f, 0f), size = size)
+                                        }
+
                                         drawCircle(Color.White.copy(alpha = 0.1f * threat.scanPulse), radius = 600f, center = Offset(tx, ty))
                                     }
                                 }
@@ -3567,7 +3569,8 @@ fun GameScreen() {
                 MainMenuScreen(
                     onLaunch = { restartGame() },
                     onNavigate = { gameState = it },
-                    onExit = { (context as? android.app.Activity)?.finish() }
+                    onExit = { (context as? android.app.Activity)?.finish() },
+                    missionManager = missionManager
                 )
             }
             GameState.HANGAR -> {
@@ -3599,6 +3602,12 @@ fun GameScreen() {
             }
             GameState.LEADERBOARD -> {
                 LeaderboardScreen(onDismiss = { gameState = GameState.MAIN_MENU })
+            }
+            GameState.MISSIONS -> {
+                com.example.jump_droid.missions.ui.MissionScreen(
+                    missionManager = missionManager,
+                    onDismiss = { gameState = GameState.MAIN_MENU }
+                )
             }
             GameState.PLAYING, GameState.GAMEOVER, GameState.TUTORIAL, GameState.PAUSED, GameState.HELP, GameState.UNLOCK -> {
                 Box(Modifier.fillMaxSize()) {
@@ -3634,41 +3643,81 @@ fun GameScreen() {
                         zone = altitudeManager.currentZone
                     )
 
-                    // 4. CENTER BELOW ALTITUDE: Progression HUD Layer
+                    // 4. CENTER BELOW ALTITUDE: Combo Circle Timer
                     val isZoneCardVisible = discoveryManager.activeEvent is DiscoveryEvent.Zone
                     AnimatedVisibility(
-                        visible = !isZoneCardVisible,
+                        visible = !isZoneCardVisible && comboManager.currentCombo > 0,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
-                            .padding(top = 70.dp) // Moved up from 80.dp
+                            .padding(top = 70.dp)
                             .statusBarsPadding(),
                         enter = fadeIn() + expandVertically(),
                         exit = fadeOut() + shrinkVertically()
                     ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            MissionRow(
-                                missions = missionManager.activeMissions.toList(),
-                                globalShowObjective = globalShowObjective
-                            )
+                        ComboCircleTimer(
+                            currentCombo = comboManager.currentCombo,
+                            comboTimeRemaining = comboManager.comboTimeRemaining,
+                            getWindowForCombo = { comboManager.getWindowForCombo(it) },
+                            gameTime = gameTime
+                        )
+                    }
 
-                            ComboHudBar(
-                                currentCombo = comboManager.currentCombo,
-                                bestComboThisRun = comboManager.bestComboThisRun,
-                                comboTarget = comboManager.comboTarget,
-                                comboTimeRemaining = comboManager.comboTimeRemaining,
-                                getWindowForCombo = { comboManager.getWindowForCombo(it) },
-                                screenWidth = screenWidth,
-                                zone = altitudeManager.currentZone
-                            )
+                    // MISSION COMPLETE NOTIFICATION
+                    AnimatedVisibility(
+                        visible = missionCompleteNotification != null,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 140.dp)
+                            .statusBarsPadding(),
+                        enter = fadeIn(tween(300)) + scaleIn(tween(300)),
+                        exit = fadeOut(tween(500)) + scaleOut(tween(500))
+                    ) {
+                        missionCompleteNotification?.let { mission ->
+                            Surface(
+                                color = SciFiSurface,
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(1.dp, SciFiGold.copy(alpha = 0.6f)),
+                                modifier = Modifier.shadow(12.dp, RoundedCornerShape(16.dp))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        "MISSION COMPLETE",
+                                        color = SciFiGold,
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = FontWeight.Black,
+                                            letterSpacing = 2.sp
+                                        )
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        mission.name,
+                                        color = SciFiWhite,
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        mission.description,
+                                        color = SciFiWhite.copy(alpha = 0.6f),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    if (mission.rewards.cash > 0) {
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            "+${mission.rewards.cash} cr",
+                                            color = SciFiGold,
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
                     // NOTIFICATION LAYER
                     NotificationLayer(
-                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 240.dp),
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 180.dp),
                         activeNotification = notificationManager.active,
                         notificationAlpha = notificationManager.alpha,
                         screenWidth = screenWidth,
@@ -3724,7 +3773,7 @@ fun GameScreen() {
                         onUnlockAll = { unlockAll() },
                         onResume = { gameState = GameState.PLAYING },
                         onRestart = { restartGame() },
-                        onMainMenu = { gameState = GameState.MAIN_MENU },
+                        onMainMenu = { missionManager.endRun(scope); gameState = GameState.MAIN_MENU },
                         zone = altitudeManager.currentZone
                     )
                 }
@@ -3752,21 +3801,11 @@ fun GameScreen() {
                         continuesUsed = continuesUsed,
                         onContinue = { continueRun() },
                         onRestart = { restartGame() },
-                        onMainMenu = { gameState = GameState.MAIN_MENU }
+                        onMainMenu = { missionManager.endRun(scope); gameState = GameState.MAIN_MENU }
                     )
                 }
             }
         }
     }
 }
-
-fun MissionType.toIcon(): String = when(this) {
-    MissionType.EXPLORATION -> "🚀"
-    MissionType.PLATFORMING -> "🧱"
-    MissionType.SURVIVAL -> "❄️"
-    MissionType.DISCOVERY -> "📡"
-    MissionType.BOSS -> "⚠️"
-    MissionType.COMBO -> "🔥"
-}
-
 

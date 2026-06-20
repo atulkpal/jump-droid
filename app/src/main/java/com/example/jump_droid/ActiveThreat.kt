@@ -682,7 +682,7 @@ class ActiveThreat(
         onDiscovery: (DiscoveryType) -> Unit,
         onBurst: (x: Float, y: Float, count: Int, color: Color, speed: Float) -> Unit,
         onScoreUpdate: (Int) -> Unit,
-        onMissionProgress: (MissionType) -> Unit,
+        onBossDefeated: () -> Unit,
         onSpawnGhostPlatform: (x: Float, y: Float) -> Unit,
         onSpawnReinforcements: () -> Unit,
         onAnchoredText: (FloatingText) -> Unit,
@@ -1063,7 +1063,7 @@ class ActiveThreat(
                     }
 
                     if (definition.id == "MINI_BOSS_COMMANDER") {
-                        onMissionProgress(MissionType.BOSS)
+                        onBossDefeated()
                     }
                 }
             }
