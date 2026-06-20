@@ -1,5 +1,6 @@
 package com.example.jump_droid
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -37,6 +38,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
@@ -67,6 +69,9 @@ private val zoneGaugeAccents = mapOf(
     AltitudeZone.DEEP_SPACE to SciFiPurple,
     AltitudeZone.VOID to SciFiRed
 )
+
+private const val GAUGE_WIDTH = 10f
+private const val GAUGE_BAR_RADIUS = 4f
 
 @Composable
 fun AltitudeDisplay(
@@ -115,30 +120,43 @@ fun FuelGauge(
     val zoneAccent = zoneGaugeAccents[zone] ?: SciFiGreen
     val dropColor = if (isLow) SciFiRed else zoneAccent
     val fuelBounce = rememberInfiniteTransition(label = "FuelBounce").animateFloat(0f, 3f, infiniteRepeatable(tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing), RepeatMode.Reverse), label = "FuelBounceVal")
+    val ratio = (fuel / maxFuel).coerceIn(0f, 1f)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "\u26FD",
-            fontSize = 10.sp,
-            modifier = Modifier.padding(bottom = 2.dp).graphicsLayer {
-                alpha = if (isLow) ((gameTime / 200) % 2).toFloat() else 0.8f
-                translationY = fuelBounce.value
-            },
-            color = dropColor,
-            style = MaterialTheme.typography.labelSmall.copy(
-                shadow = Shadow(dropColor.copy(alpha = 0.4f), blurRadius = 8f)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "\u26FD",
+                fontSize = 10.sp,
+                modifier = Modifier.graphicsLayer {
+                    alpha = if (isLow) ((gameTime / 200) % 2).toFloat() else 0.8f
+                    translationY = fuelBounce.value
+                },
+                color = dropColor,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    shadow = Shadow(dropColor.copy(alpha = 0.4f), blurRadius = 8f)
+                )
             )
-        )
+            Spacer(Modifier.width(3.dp))
+            Text(
+                text = "${fuel.toInt()}",
+                color = dropColor.copy(alpha = 0.7f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
         Box(
             modifier = Modifier
-                .width(6.dp)
+                .width(GAUGE_WIDTH.dp)
                 .height(gaugeHeight)
-                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
-                .border(0.5.dp, SciFiBorder.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                .background(
+                    if (isLow) SciFiRed.copy(alpha = 0.08f) else zoneAccent.copy(alpha = 0.06f),
+                    RoundedCornerShape(GAUGE_BAR_RADIUS.dp)
+                )
+                .border(0.5.dp, dropColor.copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
             contentAlignment = Alignment.BottomCenter
         ) {
-            val ratio = (fuel / maxFuel).coerceIn(0f, 1f)
             Canvas(modifier = Modifier.fillMaxSize()) {
-                clipPath(Path().apply { addRoundRect(RoundRect(Rect(Offset.Zero, size), CornerRadius(2.dp.toPx()))) }) {
+                val trackRect = Rect(Offset.Zero, size)
+                clipPath(Path().apply { addRoundRect(RoundRect(trackRect, CornerRadius(GAUGE_BAR_RADIUS.dp.toPx()))) }) {
                     if (noiseVal > 0.15f) {
                         val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
                         val fillHeight = size.height * ratio
@@ -153,7 +171,10 @@ fun FuelGauge(
                             lineTo(0f, size.height)
                             close()
                         }
-                        drawPath(path = path, color = dropColor.copy(alpha = fillAlpha))
+                        drawPath(path = path, brush = Brush.verticalGradient(
+                            (size.height - fillHeight) to dropColor.copy(alpha = fillAlpha),
+                            size.height to dropColor.copy(alpha = fillAlpha * 0.3f)
+                        ))
                     }
                     if (isInterfered) {
                         val staticSeed = sin(gameTime / 150.0 + 1.0) * 0.5 + 0.5
@@ -162,9 +183,27 @@ fun FuelGauge(
                             drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
                         }
                     }
+                    // Segment ticks
+                    val segCount = 10
+                    for (i in 1 until segCount) {
+                        val sy = size.height * (i.toFloat() / segCount)
+                        drawLine(
+                            dropColor.copy(alpha = 0.1f),
+                            Offset(0f, sy),
+                            Offset(size.width, sy),
+                            strokeWidth = 0.5f
+                        )
+                    }
                 }
             }
         }
+        Text(
+            text = "${(ratio * 100).toInt()}%",
+            color = dropColor.copy(alpha = 0.5f),
+            fontSize = 7.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }
 
@@ -180,53 +219,84 @@ fun HeatGauge(
     val gaugeHeight = (120f + (maxHeat - 100f) * 0.6f).coerceIn(100f, 250f).dp
     val isInterfered = interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 2.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
-    val heatFlicker = rememberInfiniteTransition(label = "HeatFlicker").animateFloat(0.88f, 1.12f, infiniteRepeatable(tween(120, easing = androidx.compose.animation.core.LinearEasing), RepeatMode.Reverse), label = "HeatFlickerVal")
+    val heatFlicker = rememberInfiniteTransition(label = "HeatFlicker").animateFloat(0.88f, 1.12f, infiniteRepeatable(tween(120, easing = LinearEasing), RepeatMode.Reverse), label = "HeatFlickerVal")
+    val heatRatio = (heat / maxHeat).coerceIn(0f, 1f)
+    val heatColor = when {
+        isOverheated -> SciFiRed
+        heatRatio > 0.8f -> SciFiRed
+        heatRatio > 0.5f -> SciFiGold
+        else -> SciFiCyan
+    }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = if (isOverheated) "\u26A0\uFE0F" else "\uD83D\uDD25",
-            fontSize = if (isOverheated) 12.sp else 10.sp,
-            modifier = Modifier.padding(bottom = 2.dp).graphicsLayer {
-                alpha = if (isOverheated) ((gameTime / 150) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
-                scaleX = heatFlicker.value
-                scaleY = heatFlicker.value
-            },
-            color = if (isOverheated) SciFiRed else SciFiGold,
-            style = MaterialTheme.typography.labelSmall.copy(
-                shadow = Shadow(
-                    if (isOverheated) SciFiRed.copy(alpha = 0.6f) else SciFiGold.copy(alpha = 0.4f),
-                    blurRadius = 10f
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = if (isOverheated) "\u26A0\uFE0F" else "\uD83D\uDD25",
+                fontSize = if (isOverheated) 12.sp else 10.sp,
+                modifier = Modifier.graphicsLayer {
+                    alpha = if (isOverheated) ((gameTime / 150) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
+                    scaleX = heatFlicker.value
+                    scaleY = heatFlicker.value
+                },
+                color = if (isOverheated) SciFiRed else SciFiGold,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    shadow = Shadow(
+                        if (isOverheated) SciFiRed.copy(alpha = 0.6f) else SciFiGold.copy(alpha = 0.4f),
+                        blurRadius = 10f
+                    )
                 )
             )
-        )
+            Spacer(Modifier.width(3.dp))
+            Text(
+                text = "${heat.toInt()}",
+                color = heatColor.copy(alpha = 0.7f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
         Box(
             modifier = Modifier
-                .width(6.dp)
+                .width(GAUGE_WIDTH.dp)
                 .height(gaugeHeight)
-                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
-                .border(0.5.dp, SciFiBorder.copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                .background(
+                    if (isOverheated) SciFiRed.copy(alpha = 0.08f) else heatColor.copy(alpha = 0.06f),
+                    RoundedCornerShape(GAUGE_BAR_RADIUS.dp)
+                )
+                .border(0.5.dp, heatColor.copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
             contentAlignment = Alignment.BottomCenter
         ) {
-            val heatRatio = (heat / maxHeat).coerceIn(0f, 1f)
-            val heatColor = when {
-                isOverheated -> SciFiRed
-                heatRatio > 0.8f -> SciFiRed
-                heatRatio > 0.5f -> SciFiGold
-                else -> SciFiCyan
-            }
             Canvas(modifier = Modifier.fillMaxSize()) {
-                if (noiseVal > 0.15f) {
-                    val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
-                    val fillHeight = size.height * heatRatio
-                    drawRect(color = heatColor.copy(alpha = fillAlpha), topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
-                }
-                if (isInterfered) {
-                    repeat(4) {
-                        val ny = (sin(gameTime / 80.0 + it * 2.0 + 1.0) * 0.5 + 0.5) * size.height
-                        drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+                val trackRect = Rect(Offset.Zero, size)
+                clipPath(Path().apply { addRoundRect(RoundRect(trackRect, CornerRadius(GAUGE_BAR_RADIUS.dp.toPx()))) }) {
+                    if (noiseVal > 0.15f) {
+                        val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
+                        val fillHeight = size.height * heatRatio
+                        val gradientBrush = Brush.verticalGradient(
+                            (size.height - fillHeight) to heatColor.copy(alpha = fillAlpha),
+                            size.height to heatColor.copy(alpha = fillAlpha * 0.2f)
+                        )
+                        drawRect(brush = gradientBrush, topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
+                    }
+                    if (isInterfered) {
+                        repeat(4) {
+                            val ny = (sin(gameTime / 80.0 + it * 2.0 + 1.0) * 0.5 + 0.5) * size.height
+                            drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+                        }
+                    }
+                    val segCount = 10
+                    for (i in 1 until segCount) {
+                        val sy = size.height * (i.toFloat() / segCount)
+                        drawLine(heatColor.copy(alpha = 0.1f), Offset(0f, sy), Offset(size.width, sy), strokeWidth = 0.5f)
                     }
                 }
             }
         }
+        Text(
+            text = "${(heatRatio * 100).toInt()}%",
+            color = heatColor.copy(alpha = 0.5f),
+            fontSize = 7.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }
 
@@ -243,48 +313,79 @@ fun ShieldGauge(
     val isInterfered = interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 3.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     val shieldSway = rememberInfiniteTransition(label = "ShieldSway").animateFloat(-4f, 4f, infiniteRepeatable(tween(1200, easing = androidx.compose.animation.core.FastOutSlowInEasing), RepeatMode.Reverse), label = "ShieldSwayVal")
+    val shieldRatio = (shield / maxShield).coerceIn(0f, 1f)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "\uD83D\uDEE1\uFE0F",
-            fontSize = 12.sp,
-            modifier = Modifier.padding(bottom = 2.dp).graphicsLayer {
-                alpha = if (isShieldCritical) ((gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
-                rotationZ = shieldSway.value
-            },
-            color = if (isShieldCritical) SciFiRed else SciFiCyan,
-            style = MaterialTheme.typography.labelSmall.copy(
-                shadow = Shadow(
-                    if (isShieldCritical) SciFiRed.copy(alpha = 0.6f) else SciFiCyan.copy(alpha = 0.4f),
-                    blurRadius = 10f
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "\uD83D\uDEE1\uFE0F",
+                fontSize = 12.sp,
+                modifier = Modifier.graphicsLayer {
+                    alpha = if (isShieldCritical) ((gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
+                    rotationZ = shieldSway.value
+                },
+                color = if (isShieldCritical) SciFiRed else SciFiCyan,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    shadow = Shadow(
+                        if (isShieldCritical) SciFiRed.copy(alpha = 0.6f) else SciFiCyan.copy(alpha = 0.4f),
+                        blurRadius = 10f
+                    )
                 )
             )
-        )
+            Spacer(Modifier.width(3.dp))
+            Text(
+                text = "${shield.toInt()}",
+                color = (if (isShieldCritical) SciFiRed else SciFiCyan).copy(alpha = 0.7f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
         Box(
             modifier = Modifier
-                .width(6.dp)
+                .width(GAUGE_WIDTH.dp)
                 .height(gaugeHeight)
-                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
-                .border(0.5.dp, (if (isShieldCritical) SciFiRed else SciFiBorder).copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                .background(
+                    if (isShieldCritical) SciFiRed.copy(alpha = 0.08f) else SciFiCyan.copy(alpha = 0.06f),
+                    RoundedCornerShape(GAUGE_BAR_RADIUS.dp)
+                )
+                .border(0.5.dp, (if (isShieldCritical) SciFiRed else SciFiCyan).copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
             contentAlignment = Alignment.BottomCenter
         ) {
-            val shieldRatio = (shield / maxShield).coerceIn(0f, 1f)
             Canvas(modifier = Modifier.fillMaxSize()) {
-                if (noiseVal > 0.15f) {
-                    val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
-                    drawRect(
-                        color = SciFiCyan.copy(alpha = fillAlpha),
-                        topLeft = Offset(0f, size.height * (1f - shieldRatio)),
-                        size = Size(size.width, size.height * shieldRatio)
-                    )
-                }
-                if (isInterfered) {
-                    repeat(4) {
-                        val ny = (sin(gameTime / 80.0 + it * 2.0 + 2.0) * 0.5 + 0.5) * size.height
-                        drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+                val trackRect = Rect(Offset.Zero, size)
+                clipPath(Path().apply { addRoundRect(RoundRect(trackRect, CornerRadius(GAUGE_BAR_RADIUS.dp.toPx()))) }) {
+                    if (noiseVal > 0.15f) {
+                        val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
+                        val fillHeight = size.height * shieldRatio
+                        val gradientBrush = Brush.verticalGradient(
+                            (size.height - fillHeight) to SciFiCyan.copy(alpha = fillAlpha),
+                            size.height to SciFiCyan.copy(alpha = fillAlpha * 0.2f)
+                        )
+                        drawRect(brush = gradientBrush, topLeft = Offset(0f, size.height * (1f - shieldRatio)), size = Size(size.width, size.height * shieldRatio))
+                        // Shimmer
+                        val shimmerX = (gameTime / 30f) % (size.width * 2f) - size.width
+                        drawRect(Color.White.copy(alpha = 0.12f * fillAlpha), topLeft = Offset(shimmerX, 0f), size = Size(size.width * 0.3f, size.height))
+                    }
+                    if (isInterfered) {
+                        repeat(4) {
+                            val ny = (sin(gameTime / 80.0 + it * 2.0 + 2.0) * 0.5 + 0.5) * size.height
+                            drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+                        }
+                    }
+                    val segCount = 10
+                    for (i in 1 until segCount) {
+                        val sy = size.height * (i.toFloat() / segCount)
+                        drawLine(SciFiCyan.copy(alpha = 0.1f), Offset(0f, sy), Offset(size.width, sy), strokeWidth = 0.5f)
                     }
                 }
             }
         }
+        Text(
+            text = "${(shieldRatio * 100).toInt()}%",
+            color = (if (isShieldCritical) SciFiRed else SciFiCyan).copy(alpha = 0.5f),
+            fontSize = 7.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }
 
@@ -300,62 +401,90 @@ fun IntegrityGauge(
     val gaugeHeight = (120f + (maxIntegrity - 100f) * 0.6f).coerceIn(100f, 250f).dp
     val isInterfered = interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 4.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
-    val heartBeat = rememberInfiniteTransition(label = "HeartBeat").animateFloat(0f, 1f, infiniteRepeatable(tween(1000, easing = androidx.compose.animation.core.LinearEasing), RepeatMode.Restart), label = "HeartBeatVal")
+    val heartBeat = rememberInfiniteTransition(label = "HeartBeat").animateFloat(0f, 1f, infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Restart), label = "HeartBeatVal")
     val heartScale = 1f + 0.15f * sin(heartBeat.value * 2f * PI.toFloat()).toFloat().coerceAtLeast(0f) * (1f - (heartBeat.value % 0.3f / 0.3f).coerceIn(0f, 1f))
+    val integrityRatio = (integrity / maxIntegrity).coerceIn(0f, 1f)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "\u2764\uFE0F",
-            fontSize = 12.sp,
-            modifier = Modifier.padding(bottom = 2.dp).graphicsLayer {
-                alpha = if (isHullCritical) ((gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
-                scaleX = heartScale
-                scaleY = heartScale
-            },
-            color = if (isHullCritical) SciFiRed else SciFiGreen,
-            style = MaterialTheme.typography.labelSmall.copy(
-                shadow = Shadow(
-                    if (isHullCritical) SciFiRed.copy(alpha = 0.6f) else SciFiGreen.copy(alpha = 0.4f),
-                    blurRadius = 10f
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "\u2764\uFE0F",
+                fontSize = 12.sp,
+                modifier = Modifier.graphicsLayer {
+                    alpha = if (isHullCritical) ((gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
+                    scaleX = heartScale
+                    scaleY = heartScale
+                },
+                color = if (isHullCritical) SciFiRed else SciFiGreen,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    shadow = Shadow(
+                        if (isHullCritical) SciFiRed.copy(alpha = 0.6f) else SciFiGreen.copy(alpha = 0.4f),
+                        blurRadius = 10f
+                    )
                 )
             )
-        )
+            Spacer(Modifier.width(3.dp))
+            Text(
+                text = "${integrity.toInt()}",
+                color = (if (isHullCritical) SciFiRed else SciFiGreen).copy(alpha = 0.7f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
         Box(
             modifier = Modifier
-                .width(6.dp)
+                .width(GAUGE_WIDTH.dp)
                 .height(gaugeHeight)
-                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(2.dp))
-                .border(0.5.dp, (if (isHullCritical) SciFiRed else SciFiBorder).copy(alpha = 0.3f), RoundedCornerShape(2.dp)),
+                .background(
+                    if (isHullCritical) SciFiRed.copy(alpha = 0.08f) else SciFiGreen.copy(alpha = 0.06f),
+                    RoundedCornerShape(GAUGE_BAR_RADIUS.dp)
+                )
+                .border(0.5.dp, (if (isHullCritical) SciFiRed else SciFiGreen).copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
             contentAlignment = Alignment.BottomCenter
         ) {
-            val integrityRatio = (integrity / maxIntegrity).coerceIn(0f, 1f)
             Canvas(modifier = Modifier.fillMaxSize()) {
-                if (noiseVal > 0.15f) {
-                    val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
-                    drawRect(
-                        color = SciFiGreen.copy(alpha = fillAlpha),
-                        topLeft = Offset(0f, size.height * (1f - integrityRatio)),
-                        size = Size(size.width, size.height * integrityRatio)
-                    )
-                }
-                if (isInterfered) {
-                    repeat(4) {
-                        val ny = (sin(gameTime / 80.0 + it * 2.0 + 3.0) * 0.5 + 0.5) * size.height
-                        drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+                val trackRect = Rect(Offset.Zero, size)
+                clipPath(Path().apply { addRoundRect(RoundRect(trackRect, CornerRadius(GAUGE_BAR_RADIUS.dp.toPx()))) }) {
+                    if (noiseVal > 0.15f) {
+                        val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
+                        val fillHeight = size.height * integrityRatio
+                        val gradientBrush = Brush.verticalGradient(
+                            (size.height - fillHeight) to SciFiGreen.copy(alpha = fillAlpha),
+                            size.height to SciFiGreen.copy(alpha = fillAlpha * 0.2f)
+                        )
+                        drawRect(brush = gradientBrush, topLeft = Offset(0f, size.height * (1f - integrityRatio)), size = Size(size.width, size.height * integrityRatio))
                     }
-                }
-                if (integrityRatio < 0.25f && !isInterfered) {
-                    repeat(2) { i ->
-                        val crackX = size.width * (0.3f + i * 0.4f)
-                        val crackPath = Path().apply {
-                            moveTo(crackX, size.height * (1f - integrityRatio))
-                            lineTo(crackX + 2f, size.height * (1f - integrityRatio) + size.height * 0.1f)
-                            lineTo(crackX - 1f, size.height * (1f - integrityRatio) + size.height * 0.2f)
+                    if (isInterfered) {
+                        repeat(4) {
+                            val ny = (sin(gameTime / 80.0 + it * 2.0 + 3.0) * 0.5 + 0.5) * size.height
+                            drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
                         }
-                        drawPath(crackPath, SciFiRed.copy(alpha = 0.6f), style = Stroke(1f))
+                    }
+                    if (integrityRatio < 0.25f && !isInterfered) {
+                        repeat(2) { i ->
+                            val crackX = size.width * (0.3f + i * 0.4f)
+                            val crackPath = Path().apply {
+                                moveTo(crackX, size.height * (1f - integrityRatio))
+                                lineTo(crackX + 2f, size.height * (1f - integrityRatio) + size.height * 0.1f)
+                                lineTo(crackX - 1f, size.height * (1f - integrityRatio) + size.height * 0.2f)
+                            }
+                            drawPath(crackPath, SciFiRed.copy(alpha = 0.6f), style = Stroke(1f))
+                        }
+                    }
+                    val segCount = 10
+                    for (i in 1 until segCount) {
+                        val sy = size.height * (i.toFloat() / segCount)
+                        drawLine(SciFiGreen.copy(alpha = 0.1f), Offset(0f, sy), Offset(size.width, sy), strokeWidth = 0.5f)
                     }
                 }
             }
         }
+        Text(
+            text = "${(integrityRatio * 100).toInt()}%",
+            color = (if (isHullCritical) SciFiRed else SciFiGreen).copy(alpha = 0.5f),
+            fontSize = 7.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }
 
@@ -474,7 +603,7 @@ fun LeftGauges(
             .padding(start = 16.dp)
             .graphicsLayer(alpha = 0.85f),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         FuelGauge(fuel = fuel, maxFuel = maxFuel, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
         HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
@@ -495,7 +624,7 @@ fun RightGauges(
             .padding(end = 16.dp)
             .graphicsLayer(alpha = 0.85f),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = shield < maxShield * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
         IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = integrity < maxIntegrity * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)

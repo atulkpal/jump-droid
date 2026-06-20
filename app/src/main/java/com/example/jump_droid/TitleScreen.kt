@@ -164,113 +164,97 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
                 }
             }
 
-            // --- Scanning Drone ---
+            // --- Scanning Drone (cinematic patrol with depth) ---
             val patrolPhase = ft * 0.12f
             val droneX = w * (sin(patrolPhase) * 0.45f + 0.5f)
+            val droneZ = sin(patrolPhase * 1.5f) * 0.35f + 0.65f
             val droneY = h * 0.22f + sin(ft * 1.5f + patrolPhase) * 12f
             val droneDir = cos(patrolPhase)
+            val droneScale = 0.6f + droneZ * 0.6f
 
-            val scanAngle = sin(ft * 2.5f) * 0.6f
-            val beamLen = 200f
-            val beamHalfWidth = tan(0.35f) * beamLen
-
-            // Scan cone
-            val pathCone = Path().apply {
-                moveTo(droneX, droneY)
-                val a1 = (PI.toFloat() / 2f + scanAngle - 0.35f)
-                val a2 = (PI.toFloat() / 2f + scanAngle + 0.35f)
-                lineTo(droneX + cos(a1) * beamLen, droneY + sin(a1) * beamLen)
-                lineTo(droneX + cos(a2) * beamLen, droneY + sin(a2) * beamLen)
-                close()
-            }
-            drawPath(pathCone, SciFiCyan.copy(alpha = 0.06f))
-            drawPath(
-                pathCone,
-                SciFiCyan.copy(alpha = 0.1f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(0.5f)
-            )
-
-            // Detection check
+            // Radar sweep line (thin rotating beam)
+            val sweepAngle = ft * 2.5f
+            val beamLen = 160f * droneScale
             val rocketCenterX = w / 2
             val rocketCenterY = h * 0.28f + rocketBob / density.density
             val dx = rocketCenterX - droneX
             val dy = rocketCenterY - droneY
             val dist = sqrt(dx * dx + dy * dy)
             val angleToRocket = atan2(dy, dx)
-            val coneCenter = PI.toFloat() / 2f + scanAngle
-            val angleDiff = abs(angleToRocket - coneCenter)
-            val detected = dist < beamLen && angleDiff < 0.5f
+            val beamAngle = PI.toFloat() / 2f + sin(sweepAngle) * 0.5f
+            val detected = dist < beamLen * 1.5f && abs(angleToRocket - beamAngle) < 0.4f
             droneDetected = detected
 
-            // Sweep line
-            val sweepEndX = droneX + cos(coneCenter) * beamLen
-            val sweepEndY = droneY + sin(coneCenter) * beamLen
+            // Beam glow
+            val beamAlpha = if (detected) 0.4f else 0.12f
+            val beamColor = if (detected) SciFiRed else SciFiCyan
+            val sweepEndX = droneX + cos(beamAngle) * beamLen
+            val sweepEndY = droneY + sin(beamAngle) * beamLen
+            for (i in 3 downTo 1) {
+                val glowAlpha = beamAlpha * (0.3f / i)
+                drawLine(
+                    beamColor.copy(alpha = glowAlpha),
+                    Offset(droneX, droneY),
+                    Offset(sweepEndX, sweepEndY),
+                    strokeWidth = 4f * i * droneScale
+                )
+            }
             drawLine(
-                SciFiCyan.copy(alpha = if (detected) 0.5f else 0.15f, green = if (detected) 0f else 0.6f),
+                beamColor.copy(alpha = beamAlpha * 1.5f),
                 Offset(droneX, droneY),
                 Offset(sweepEndX, sweepEndY),
-                strokeWidth = if (detected) 3f else 1f
+                strokeWidth = 1.5f * droneScale
             )
 
-            // Drone body
-            val dBodyW = 18f
-            val dBodyH = 10f
+            // Light column below drone
+            drawLine(
+                SciFiCyan.copy(alpha = 0.06f),
+                Offset(droneX, droneY),
+                Offset(droneX, droneY + 40f * droneScale),
+                strokeWidth = 3f * droneScale
+            )
+
+            // Drone body (scaled by Z-depth)
+            val dBodyW = 18f * droneScale
+            val dBodyH = 10f * droneScale
             drawRoundRect(
                 Color(0xFF2A2A3A),
                 topLeft = Offset(droneX - dBodyW / 2, droneY - dBodyH / 2),
                 size = Size(dBodyW, dBodyH),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f)
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * droneScale)
             )
             drawRoundRect(
                 SciFiCyan.copy(alpha = 0.3f),
                 topLeft = Offset(droneX - dBodyW / 2, droneY - dBodyH / 2),
                 size = Size(dBodyW, dBodyH),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(0.8f)
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f * droneScale),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(0.8f * droneScale)
             )
 
             // Antenna
-            drawLine(
-                Color(0xFF555575),
-                Offset(droneX, droneY - dBodyH / 2),
-                Offset(droneX, droneY - dBodyH / 2 - 8f),
-                strokeWidth = 1.5f
-            )
-            drawCircle(
-                Color(0xFFFF4444),
-                radius = 2f,
-                center = Offset(droneX, droneY - dBodyH / 2 - 8f)
-            )
+            val antH = 8f * droneScale
+            drawLine(Color(0xFF555575), Offset(droneX, droneY - dBodyH / 2), Offset(droneX, droneY - dBodyH / 2 - antH), strokeWidth = 1.5f * droneScale)
+            drawCircle(Color(0xFFFF4444), radius = 2f * droneScale, center = Offset(droneX, droneY - dBodyH / 2 - antH))
 
             // Blinking light
             val lightOn = (ft * 3f).toInt() % 2 == 0
             drawCircle(
                 if (lightOn) Color(0xFF00FF88) else Color(0xFF006633),
-                radius = 2f,
-                center = Offset(droneX, droneY - 2f)
+                radius = 2f * droneScale,
+                center = Offset(droneX, droneY - 2f * droneScale)
             )
 
-            // Thruster
-            val thrX = droneX - droneDir * 10f
-            drawCircle(
-                SciFiRed.copy(alpha = 0.4f + sin(ft * 8f) * 0.2f),
-                radius = 3f,
-                center = Offset(thrX, droneY)
-            )
+            // Thruster (pushes opposite to direction)
+            val thrX = droneX - droneDir * 10f * droneScale
+            val thrGlow = 0.4f + sin(ft * 8f) * 0.2f
+            drawCircle(SciFiRed.copy(alpha = thrGlow), radius = 3f * droneScale, center = Offset(thrX, droneY))
+            drawCircle(SciFiRed.copy(alpha = thrGlow * 0.3f), radius = 6f * droneScale, center = Offset(thrX, droneY))
 
             // Rocket detection glow
             if (detected) {
                 val pulse = sin(ft * 12f) * 0.3f + 0.7f
-                drawCircle(
-                    SciFiRed.copy(alpha = 0.2f * pulse),
-                    radius = 24f,
-                    center = Offset(rocketCenterX, rocketCenterY)
-                )
-                drawCircle(
-                    SciFiRed.copy(alpha = 0.08f * pulse),
-                    radius = 40f,
-                    center = Offset(rocketCenterX, rocketCenterY)
-                )
+                drawCircle(SciFiRed.copy(alpha = 0.2f * pulse), radius = 24f, center = Offset(rocketCenterX, rocketCenterY))
+                drawCircle(SciFiRed.copy(alpha = 0.08f * pulse), radius = 40f, center = Offset(rocketCenterX, rocketCenterY))
             }
 
             val gx = w / 2
