@@ -1,5 +1,10 @@
 package com.example.jump_droid
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -22,11 +27,15 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -51,6 +60,11 @@ private val zonePalette = mapOf(
     AltitudeZone.VOID to Color(0xFFD32F2F)
 )
 
+private data class PauseStar(
+    var x: Float, var y: Float, var speed: Float,
+    val baseAlpha: Float, val twinklePhase: Float, val size: Float
+)
+
 @Composable
 fun PauseOverlay(
     showDevMenu: Boolean,
@@ -73,16 +87,44 @@ fun PauseOverlay(
     zone: AltitudeZone = AltitudeZone.EARTH
 ) {
     val accent = zonePalette[zone] ?: SciFiCyan
+    val infiniteTransition = rememberInfiniteTransition(label = "PauseTransition")
+    val titleGlow by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "TitleGlow")
+
+    val stars = remember {
+        List(30) {
+            PauseStar(
+                x = Random.nextFloat() * 2000f,
+                y = Random.nextFloat() * 2000f,
+                speed = 0.15f + Random.nextFloat() * 0.4f,
+                baseAlpha = 0.1f + Random.nextFloat() * 0.3f,
+                twinklePhase = Random.nextFloat() * 6.28f,
+                size = 0.5f + Random.nextFloat() * 1.5f
+            )
+        }
+    }
+
+    val frameTime = remember { mutableStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(50)
+            frameTime.value += 50
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).pointerInput(Unit) {}, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
+            val ft = frameTime.value / 1000f
             val w = size.width
             val h = size.height
-            repeat(30) {
-                val x = Random.nextFloat() * w
-                val y = Random.nextFloat() * h
-                drawCircle(accent.copy(alpha = 0.04f), radius = 0.5f + Random.nextFloat() * 1.5f, center = Offset(x, y))
+
+            stars.forEach { s ->
+                s.y += s.speed
+                if (s.y > h + 10) { s.y = -10f; s.x = Random.nextFloat() * w }
+                val twinkle = sin(ft * 2f + s.twinklePhase) * 0.3f + 0.7f
+                val alpha = s.baseAlpha * twinkle
+                drawCircle(accent.copy(alpha = alpha), radius = s.size, center = Offset(s.x, s.y))
             }
+
             drawCircle(accent.copy(alpha = 0.03f), radius = 80f, center = Offset(w * 0.8f, h * 0.2f))
             drawCircle(accent.copy(alpha = 0.02f), radius = 50f, center = Offset(w * 0.15f, h * 0.75f))
         }
@@ -126,7 +168,9 @@ fun PauseOverlay(
                 Text(
                     text = "SYSTEMS STANDBY",
                     color = SciFiWhite,
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        shadow = Shadow(accent.copy(alpha = titleGlow * 0.4f), blurRadius = 14f)
+                    ),
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp,
                     textAlign = TextAlign.Center,
@@ -172,6 +216,8 @@ fun PauseOverlay(
                         Text("DEV OVERRIDE", fontSize = 12.sp, letterSpacing = 2.sp)
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+                Text("MISSION PAUSED // ${zone.zoneName.uppercase()} SECTOR", color = accent.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             }
         }
     }

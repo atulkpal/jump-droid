@@ -27,12 +27,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,6 +49,11 @@ import com.example.jump_droid.ui.theme.SciFiSurface
 import com.example.jump_droid.ui.theme.SciFiWhite
 import kotlin.math.sin
 import kotlin.random.Random
+
+private data class GoStar(
+    var x: Float, var y: Float, var speed: Float,
+    val baseAlpha: Float, val twinklePhase: Float, val size: Float
+)
 
 @Composable
 fun GameOverOverlay(
@@ -59,15 +68,49 @@ fun GameOverOverlay(
     val infiniteTransition = rememberInfiniteTransition(label = "GameOverTransition")
     val glitchOffset by infiniteTransition.animateFloat(0f, 3f, infiniteRepeatable(tween(200), RepeatMode.Reverse), label = "GlitchOffset")
     val borderPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(1200), RepeatMode.Reverse), label = "BorderPulse")
+    val titleGlow by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "TitleGlow")
+
+    val stars = remember {
+        List(50) {
+            GoStar(
+                x = Random.nextFloat() * 2000f,
+                y = Random.nextFloat() * 2000f,
+                speed = 0.15f + Random.nextFloat() * 0.4f,
+                baseAlpha = 0.1f + Random.nextFloat() * 0.3f,
+                twinklePhase = Random.nextFloat() * 6.28f,
+                size = 0.5f + Random.nextFloat() * 1.5f
+            )
+        }
+    }
+
+    val frameTime = remember { mutableStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(50)
+            frameTime.value += 50
+        }
+    }
 
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
+            val ft = frameTime.value / 1000f
             val w = size.width
             val h = size.height
-            repeat(40) {
-                val x = Random.nextFloat() * w + sin(it * 1.3f) * 2f
+
+            // Animated starfield
+            stars.forEach { s ->
+                s.y += s.speed
+                if (s.y > h + 10) { s.y = -10f; s.x = Random.nextFloat() * w }
+                val twinkle = sin(ft * 2f + s.twinklePhase) * 0.3f + 0.7f
+                val alpha = s.baseAlpha * twinkle
+                drawCircle(Color(0xFFD32F2F).copy(alpha = alpha), radius = s.size, center = Offset(s.x, s.y))
+            }
+
+            // Glitch particles overlay
+            repeat(20) {
+                val x = Random.nextFloat() * w + sin(ft * 2f + it * 1.3f) * 2f
                 val y = Random.nextFloat() * h
-                drawCircle(Color(0xFFD32F2F).copy(alpha = 0.08f), radius = 0.5f + Random.nextFloat(), center = Offset(x, y))
+                drawCircle(SciFiRed.copy(alpha = 0.06f), radius = 0.5f + Random.nextFloat(), center = Offset(x, y))
             }
         }
 
@@ -84,7 +127,8 @@ fun GameOverOverlay(
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
+                    letterSpacing = 1.sp,
+                    shadow = Shadow(SciFiRed.copy(alpha = titleGlow * 0.5f), blurRadius = 16f)
                 ),
                 textAlign = TextAlign.Center,
                 maxLines = 1,

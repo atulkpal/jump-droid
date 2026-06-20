@@ -32,13 +32,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,6 +58,11 @@ import com.example.jump_droid.ui.theme.SciFiWhite
 import kotlin.math.sin
 import kotlin.random.Random
 
+private data class HangarStar(
+    var x: Float, var y: Float, var speed: Float,
+    val baseAlpha: Float, val twinklePhase: Float, val size: Float, val color: Color
+)
+
 @Composable
 fun HangarScreen(
     player: Player,
@@ -64,18 +73,46 @@ fun HangarScreen(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "HangarTransition")
     val accentPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "AccentPulse")
+    val borderPulse by infiniteTransition.animateFloat(0.4f, 1f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "BorderPulse")
+
+    val stars = remember {
+        List(50) {
+            HangarStar(
+                x = Random.nextFloat() * 2000f,
+                y = Random.nextFloat() * 2000f,
+                speed = 0.15f + Random.nextFloat() * 0.4f,
+                baseAlpha = 0.15f + Random.nextFloat() * 0.4f,
+                twinklePhase = Random.nextFloat() * 6.28f,
+                size = 0.5f + Random.nextFloat() * 1.5f,
+                color = listOf(SciFiCyan, SciFiPurple, SciFiGold)[Random.nextInt(3)]
+            )
+        }
+    }
+
+    val frameTime = remember { mutableStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(50)
+            frameTime.value += 50
+        }
+    }
 
     Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
         Box {
             Canvas(Modifier.fillMaxSize()) {
+                val ft = frameTime.value / 1000f
                 val w = size.width
                 val h = size.height
-                repeat(30) {
-                    val x = Random.nextFloat() * w
-                    val y = Random.nextFloat() * h
-                    drawCircle(SciFiCyan.copy(alpha = 0.04f), radius = 0.5f + Random.nextFloat(), center = Offset(x, y))
+
+                stars.forEach { s ->
+                    s.y += s.speed
+                    if (s.y > h + 10) { s.y = -10f; s.x = Random.nextFloat() * w }
+                    val twinkle = sin(ft * 2f + s.twinklePhase) * 0.3f + 0.7f
+                    val alpha = s.baseAlpha * twinkle
+                    drawCircle(s.color.copy(alpha = alpha), radius = s.size, center = Offset(s.x, s.y))
                 }
-                drawCircle(SciFiGold.copy(alpha = 0.03f), radius = 60f, center = Offset(w * 0.15f, h * 0.2f))
+
+                    drawCircle(SciFiGold.copy(alpha = 0.03f), radius = 60f, center = Offset(w * 0.15f, h * 0.2f))
                 drawCircle(SciFiPurple.copy(alpha = 0.03f), radius = 80f, center = Offset(w * 0.85f, h * 0.8f))
             }
 
@@ -211,10 +248,12 @@ fun HangarScreen(
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
-                    border = BorderStroke(1.dp, SciFiBorder)
+                    border = BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse))
                 ) {
-                    Text("BACK", color = SciFiWhite, fontWeight = FontWeight.Bold)
+                    Text("RETURN TO COMMAND", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
+                Spacer(Modifier.height(8.dp))
+                Text("HANGAR // ROCKET SELECT // ${progressionManager.currentRank.title}", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
             }
         }
     }

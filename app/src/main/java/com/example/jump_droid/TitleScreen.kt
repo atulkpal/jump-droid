@@ -45,9 +45,15 @@ import com.example.jump_droid.ui.theme.SciFiCyan
 import com.example.jump_droid.ui.theme.SciFiGold
 import com.example.jump_droid.ui.theme.SciFiRed
 import com.example.jump_droid.ui.theme.SciFiWhite
+import androidx.compose.runtime.setValue
+import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sqrt
+import kotlin.math.tan
 import kotlin.random.Random
 
 private data class TitleStar(
@@ -59,6 +65,11 @@ private data class TitleStar(
 private data class TitleSilhouette(
     var x: Float, var y: Float, var speed: Float,
     val baseY: Float, val type: Int
+)
+
+private data class TitleDrone(
+    var x: Float, var y: Float, var dir: Float,
+    var detected: Boolean = false
 )
 
 private val zoneColors = listOf(
@@ -101,6 +112,7 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
     }
 
     val frameTime = remember { mutableStateOf(0L) }
+    var droneDetected by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(50)
@@ -150,6 +162,115 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
                         drawCircle(Color(0xFF9C27B0).copy(alpha = 0.18f), radius = 14f, center = Offset(si.x, sy))
                     }
                 }
+            }
+
+            // --- Scanning Drone ---
+            val patrolPhase = ft * 0.12f
+            val droneX = w * (sin(patrolPhase) * 0.45f + 0.5f)
+            val droneY = h * 0.22f + sin(ft * 1.5f + patrolPhase) * 12f
+            val droneDir = cos(patrolPhase)
+
+            val scanAngle = sin(ft * 2.5f) * 0.6f
+            val beamLen = 200f
+            val beamHalfWidth = tan(0.35f) * beamLen
+
+            // Scan cone
+            val pathCone = Path().apply {
+                moveTo(droneX, droneY)
+                val a1 = (PI.toFloat() / 2f + scanAngle - 0.35f)
+                val a2 = (PI.toFloat() / 2f + scanAngle + 0.35f)
+                lineTo(droneX + cos(a1) * beamLen, droneY + sin(a1) * beamLen)
+                lineTo(droneX + cos(a2) * beamLen, droneY + sin(a2) * beamLen)
+                close()
+            }
+            drawPath(pathCone, SciFiCyan.copy(alpha = 0.06f))
+            drawPath(
+                pathCone,
+                SciFiCyan.copy(alpha = 0.1f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(0.5f)
+            )
+
+            // Detection check
+            val rocketCenterX = w / 2
+            val rocketCenterY = h * 0.28f + rocketBob / density.density
+            val dx = rocketCenterX - droneX
+            val dy = rocketCenterY - droneY
+            val dist = sqrt(dx * dx + dy * dy)
+            val angleToRocket = atan2(dy, dx)
+            val coneCenter = PI.toFloat() / 2f + scanAngle
+            val angleDiff = abs(angleToRocket - coneCenter)
+            val detected = dist < beamLen && angleDiff < 0.5f
+            droneDetected = detected
+
+            // Sweep line
+            val sweepEndX = droneX + cos(coneCenter) * beamLen
+            val sweepEndY = droneY + sin(coneCenter) * beamLen
+            drawLine(
+                SciFiCyan.copy(alpha = if (detected) 0.5f else 0.15f, green = if (detected) 0f else 0.6f),
+                Offset(droneX, droneY),
+                Offset(sweepEndX, sweepEndY),
+                strokeWidth = if (detected) 3f else 1f
+            )
+
+            // Drone body
+            val dBodyW = 18f
+            val dBodyH = 10f
+            drawRoundRect(
+                Color(0xFF2A2A3A),
+                topLeft = Offset(droneX - dBodyW / 2, droneY - dBodyH / 2),
+                size = Size(dBodyW, dBodyH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f)
+            )
+            drawRoundRect(
+                SciFiCyan.copy(alpha = 0.3f),
+                topLeft = Offset(droneX - dBodyW / 2, droneY - dBodyH / 2),
+                size = Size(dBodyW, dBodyH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(0.8f)
+            )
+
+            // Antenna
+            drawLine(
+                Color(0xFF555575),
+                Offset(droneX, droneY - dBodyH / 2),
+                Offset(droneX, droneY - dBodyH / 2 - 8f),
+                strokeWidth = 1.5f
+            )
+            drawCircle(
+                Color(0xFFFF4444),
+                radius = 2f,
+                center = Offset(droneX, droneY - dBodyH / 2 - 8f)
+            )
+
+            // Blinking light
+            val lightOn = (ft * 3f).toInt() % 2 == 0
+            drawCircle(
+                if (lightOn) Color(0xFF00FF88) else Color(0xFF006633),
+                radius = 2f,
+                center = Offset(droneX, droneY - 2f)
+            )
+
+            // Thruster
+            val thrX = droneX - droneDir * 10f
+            drawCircle(
+                SciFiRed.copy(alpha = 0.4f + sin(ft * 8f) * 0.2f),
+                radius = 3f,
+                center = Offset(thrX, droneY)
+            )
+
+            // Rocket detection glow
+            if (detected) {
+                val pulse = sin(ft * 12f) * 0.3f + 0.7f
+                drawCircle(
+                    SciFiRed.copy(alpha = 0.2f * pulse),
+                    radius = 24f,
+                    center = Offset(rocketCenterX, rocketCenterY)
+                )
+                drawCircle(
+                    SciFiRed.copy(alpha = 0.08f * pulse),
+                    radius = 40f,
+                    center = Offset(rocketCenterX, rocketCenterY)
+                )
             }
 
             val gx = w / 2
@@ -243,6 +364,25 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
                 colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
             ) {
                 Text("INITIATE ASCENT", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+            }
+        }
+
+        if (droneDetected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = 160.dp)
+            ) {
+                val pulseAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(150), RepeatMode.Reverse), label = "SignalPulse")
+                Text(
+                    "⚠ SIGNAL LOCKED",
+                    color = SciFiRed.copy(alpha = pulseAlpha),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 4.sp,
+                        shadow = Shadow(SciFiRed.copy(alpha = 0.6f), Offset(0f, 0f), 16f)
+                    )
+                )
             }
         }
 
