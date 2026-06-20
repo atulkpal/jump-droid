@@ -3612,7 +3612,8 @@ fun GameScreen() {
                     // --- HUD WIDGETS ---
                     AltitudeDisplay(
                         modifier = Modifier.align(Alignment.TopCenter),
-                        score = score, highScore = progressionManager.highScore
+                        score = score, highScore = progressionManager.highScore,
+                        zone = altitudeManager.currentZone
                     )
 
                     LeftGauges(
@@ -3620,7 +3621,8 @@ fun GameScreen() {
                         fuel = player.fuel, maxFuel = player.maxFuel,
                         heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated,
                         gameTime = gameTime,
-                        interferenceTimer = player.hudInterferenceTimer
+                        interferenceTimer = player.hudInterferenceTimer,
+                        zone = altitudeManager.currentZone
                     )
 
                     RightGauges(
@@ -3628,7 +3630,8 @@ fun GameScreen() {
                         shield = player.shield, maxShield = player.maxShield,
                         integrity = player.integrity, maxIntegrity = player.maxIntegrity,
                         gameTime = gameTime,
-                        interferenceTimer = player.hudInterferenceTimer
+                        interferenceTimer = player.hudInterferenceTimer,
+                        zone = altitudeManager.currentZone
                     )
 
                     // 4. CENTER BELOW ALTITUDE: Progression HUD Layer
@@ -3657,7 +3660,8 @@ fun GameScreen() {
                                 comboTarget = comboManager.comboTarget,
                                 comboTimeRemaining = comboManager.comboTimeRemaining,
                                 getWindowForCombo = { comboManager.getWindowForCombo(it) },
-                                screenWidth = screenWidth
+                                screenWidth = screenWidth,
+                                zone = altitudeManager.currentZone
                             )
                         }
                     }
@@ -3667,7 +3671,8 @@ fun GameScreen() {
                         modifier = Modifier.align(Alignment.TopCenter).padding(top = 240.dp),
                         activeNotification = notificationManager.active,
                         notificationAlpha = notificationManager.alpha,
-                        screenWidth = screenWidth
+                        screenWidth = screenWidth,
+                        zone = altitudeManager.currentZone
                     )
 
                     // MAJOR WARNING (center-screen, reserved for bosses/rocket/zone/critical events)
@@ -3719,7 +3724,8 @@ fun GameScreen() {
                         onUnlockAll = { unlockAll() },
                         onResume = { gameState = GameState.PLAYING },
                         onRestart = { restartGame() },
-                        onMainMenu = { gameState = GameState.MAIN_MENU }
+                        onMainMenu = { gameState = GameState.MAIN_MENU },
+                        zone = altitudeManager.currentZone
                     )
                 }
 

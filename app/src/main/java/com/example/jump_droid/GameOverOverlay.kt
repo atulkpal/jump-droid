@@ -1,10 +1,17 @@
 package com.example.jump_droid
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,10 +27,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.jump_droid.ui.theme.SciFiBorder
@@ -32,6 +43,8 @@ import com.example.jump_droid.ui.theme.SciFiGold
 import com.example.jump_droid.ui.theme.SciFiRed
 import com.example.jump_droid.ui.theme.SciFiSurface
 import com.example.jump_droid.ui.theme.SciFiWhite
+import kotlin.math.sin
+import kotlin.random.Random
 
 @Composable
 fun GameOverOverlay(
@@ -43,7 +56,21 @@ fun GameOverOverlay(
     onRestart: () -> Unit,
     onMainMenu: () -> Unit
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "GameOverTransition")
+    val glitchOffset by infiniteTransition.animateFloat(0f, 3f, infiniteRepeatable(tween(200), RepeatMode.Reverse), label = "GlitchOffset")
+    val borderPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(1200), RepeatMode.Reverse), label = "BorderPulse")
+
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            repeat(40) {
+                val x = Random.nextFloat() * w + sin(it * 1.3f) * 2f
+                val y = Random.nextFloat() * h
+                drawCircle(Color(0xFFD32F2F).copy(alpha = 0.08f), radius = 0.5f + Random.nextFloat(), center = Offset(x, y))
+            }
+        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -59,26 +86,38 @@ fun GameOverOverlay(
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.sp
                 ),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
                 maxLines = 1,
-                softWrap = false
+                softWrap = false,
+                modifier = Modifier.offset(
+                    x = (glitchOffset * (if (sin(glitchOffset.toDouble()) > 0.5) 1 else -1)).dp
+                )
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = "TELEMETRY DATA ENDED",
                 color = SciFiRed.copy(alpha = 0.6f),
                 style = MaterialTheme.typography.labelMedium,
                 letterSpacing = 4.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "SIGNAL LOST AT ALTITUDE $score",
+                color = SciFiRed.copy(alpha = 0.3f),
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.sp,
+                textAlign = TextAlign.Center,
                 maxLines = 1
             )
 
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(36.dp))
 
             Surface(
                 color = SciFiSurface,
                 shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, SciFiBorder),
+                border = BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -110,7 +149,7 @@ fun GameOverOverlay(
                 }
             }
 
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(36.dp))
 
             if (continuesUsed < 1) {
                 Button(

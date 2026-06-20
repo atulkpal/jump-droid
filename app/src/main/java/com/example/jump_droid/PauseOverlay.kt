@@ -1,5 +1,7 @@
 package com.example.jump_droid
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -20,8 +22,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +39,17 @@ import com.example.jump_droid.ui.theme.SciFiGreen
 import com.example.jump_droid.ui.theme.SciFiRed
 import com.example.jump_droid.ui.theme.SciFiSurface
 import com.example.jump_droid.ui.theme.SciFiWhite
+import kotlin.math.sin
+import kotlin.random.Random
+
+private val zonePalette = mapOf(
+    AltitudeZone.EARTH to Color(0xFF4CAF50),
+    AltitudeZone.CLOUD_LAYER to Color(0xFF00BCD4),
+    AltitudeZone.UPPER_ATMOSPHERE to Color(0xFF9C27B0),
+    AltitudeZone.ORBIT to Color(0xFFFFD700),
+    AltitudeZone.DEEP_SPACE to Color(0xFF673AB7),
+    AltitudeZone.VOID to Color(0xFFD32F2F)
+)
 
 @Composable
 fun PauseOverlay(
@@ -54,9 +69,24 @@ fun PauseOverlay(
     onUnlockAll: () -> Unit,
     onResume: () -> Unit,
     onRestart: () -> Unit,
-    onMainMenu: () -> Unit
+    onMainMenu: () -> Unit,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
+    val accent = zonePalette[zone] ?: SciFiCyan
+
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).pointerInput(Unit) {}, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            repeat(30) {
+                val x = Random.nextFloat() * w
+                val y = Random.nextFloat() * h
+                drawCircle(accent.copy(alpha = 0.04f), radius = 0.5f + Random.nextFloat() * 1.5f, center = Offset(x, y))
+            }
+            drawCircle(accent.copy(alpha = 0.03f), radius = 80f, center = Offset(w * 0.8f, h * 0.2f))
+            drawCircle(accent.copy(alpha = 0.02f), radius = 50f, center = Offset(w * 0.15f, h * 0.75f))
+        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.safeDrawingPadding().width(280.dp)
@@ -66,8 +96,8 @@ fun PauseOverlay(
                 Spacer(Modifier.height(8.dp))
                 Text("ZONES", color = Color.Gray, fontSize = 10.sp)
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
-                    AltitudeZone.entries.forEach { zone ->
-                        Button(onClick = { onJumpToZone(zone) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text(zone.name, fontSize = 10.sp) }
+                    AltitudeZone.entries.forEach { z ->
+                        Button(onClick = { onJumpToZone(z) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = zonePalette[z]?.copy(alpha = 0.3f) ?: Color(0xFF333333), contentColor = Color.White)) { Text(z.name, fontSize = 10.sp) }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -102,6 +132,15 @@ fun PauseOverlay(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "// ${zone.zoneName.uppercase()} PAUSE",
+                    color = accent.copy(alpha = 0.5f),
+                    style = MaterialTheme.typography.labelSmall,
+                    letterSpacing = 3.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(48.dp))
 
                 val pauseButtons = listOf(
@@ -116,7 +155,7 @@ fun PauseOverlay(
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+                        border = BorderStroke(1.dp, accent.copy(alpha = 0.5f))
                     ) {
                         Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
                     }
@@ -128,7 +167,7 @@ fun PauseOverlay(
                     Button(
                         onClick = onToggleDevMenu,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = SciFiGold.copy(alpha = 0.5f))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = accent.copy(alpha = 0.5f))
                     ) {
                         Text("DEV OVERRIDE", fontSize = 12.sp, letterSpacing = 2.sp)
                     }

@@ -1,5 +1,10 @@
 package com.example.jump_droid
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -53,11 +59,22 @@ import com.example.jump_droid.ui.theme.SciFiWhite
 import kotlin.math.PI
 import kotlin.math.sin
 
+private val zoneGaugeAccents = mapOf(
+    AltitudeZone.EARTH to SciFiGreen,
+    AltitudeZone.CLOUD_LAYER to SciFiCyan,
+    AltitudeZone.UPPER_ATMOSPHERE to SciFiPurple,
+    AltitudeZone.ORBIT to SciFiGold,
+    AltitudeZone.DEEP_SPACE to SciFiPurple,
+    AltitudeZone.VOID to SciFiRed
+)
+
 @Composable
 fun AltitudeDisplay(
     modifier: Modifier = Modifier,
-    score: Int, highScore: Int
+    score: Int, highScore: Int,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
+    val zoneAccent = zoneGaugeAccents[zone] ?: SciFiCyan
     Column(
         modifier = modifier
             .statusBarsPadding()
@@ -69,7 +86,7 @@ fun AltitudeDisplay(
             style = MaterialTheme.typography.displaySmall.copy(
                 fontWeight = FontWeight.Black,
                 letterSpacing = 4.sp,
-                shadow = Shadow(SciFiCyan.copy(alpha = 0.3f), blurRadius = 15f)
+                shadow = Shadow(zoneAccent.copy(alpha = 0.3f), blurRadius = 15f)
             ),
             color = SciFiWhite
         )
@@ -88,17 +105,28 @@ fun FuelGauge(
     fuel: Float,
     maxFuel: Float,
     gameTime: Long,
-    interferenceTimer: Float = 0f
+    interferenceTimer: Float = 0f,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
     val gaugeHeight = (120f + (maxFuel - 100f) * 0.6f).coerceIn(100f, 250f).dp
     val isLow = fuel < 20f
     val isInterfered = interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(gameTime / 100.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
+    val zoneAccent = zoneGaugeAccents[zone] ?: SciFiGreen
+    val dropColor = if (isLow) SciFiRed else zoneAccent
+    val fuelBounce = rememberInfiniteTransition(label = "FuelBounce").animateFloat(0f, 3f, infiniteRepeatable(tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing), RepeatMode.Reverse), label = "FuelBounceVal")
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            "\u26FD",
-            fontSize = 14.sp,
-            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isLow) (gameTime / 200 % 2).toFloat() else 0.8f)
+            text = "\u26FD",
+            fontSize = 10.sp,
+            modifier = Modifier.padding(bottom = 2.dp).graphicsLayer {
+                alpha = if (isLow) ((gameTime / 200) % 2).toFloat() else 0.8f
+                translationY = fuelBounce.value
+            },
+            color = dropColor,
+            style = MaterialTheme.typography.labelSmall.copy(
+                shadow = Shadow(dropColor.copy(alpha = 0.4f), blurRadius = 8f)
+            )
         )
         Box(
             modifier = Modifier
@@ -125,7 +153,7 @@ fun FuelGauge(
                             lineTo(0f, size.height)
                             close()
                         }
-                        drawPath(path = path, color = (if (fuel > maxFuel * 0.25f) SciFiGreen else SciFiRed).copy(alpha = fillAlpha))
+                        drawPath(path = path, color = dropColor.copy(alpha = fillAlpha))
                     }
                     if (isInterfered) {
                         val staticSeed = sin(gameTime / 150.0 + 1.0) * 0.5 + 0.5
@@ -146,16 +174,29 @@ fun HeatGauge(
     maxHeat: Float,
     isOverheated: Boolean,
     gameTime: Long,
-    interferenceTimer: Float = 0f
+    interferenceTimer: Float = 0f,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
     val gaugeHeight = (120f + (maxHeat - 100f) * 0.6f).coerceIn(100f, 250f).dp
     val isInterfered = interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 2.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
+    val heatFlicker = rememberInfiniteTransition(label = "HeatFlicker").animateFloat(0.88f, 1.12f, infiniteRepeatable(tween(120, easing = androidx.compose.animation.core.LinearEasing), RepeatMode.Reverse), label = "HeatFlickerVal")
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            if (isOverheated) "\u26A0\uFE0F" else "\uD83D\uDD25",
-            fontSize = 14.sp,
-            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isOverheated) (gameTime / 150 % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f)
+            text = if (isOverheated) "\u26A0\uFE0F" else "\uD83D\uDD25",
+            fontSize = if (isOverheated) 12.sp else 10.sp,
+            modifier = Modifier.padding(bottom = 2.dp).graphicsLayer {
+                alpha = if (isOverheated) ((gameTime / 150) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
+                scaleX = heatFlicker.value
+                scaleY = heatFlicker.value
+            },
+            color = if (isOverheated) SciFiRed else SciFiGold,
+            style = MaterialTheme.typography.labelSmall.copy(
+                shadow = Shadow(
+                    if (isOverheated) SciFiRed.copy(alpha = 0.6f) else SciFiGold.copy(alpha = 0.4f),
+                    blurRadius = 10f
+                )
+            )
         )
         Box(
             modifier = Modifier
@@ -195,16 +236,28 @@ fun ShieldGauge(
     maxShield: Float,
     isShieldCritical: Boolean,
     gameTime: Long,
-    interferenceTimer: Float = 0f
+    interferenceTimer: Float = 0f,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
     val gaugeHeight = (120f + (maxShield - 50f) * 1.2f).coerceIn(100f, 250f).dp
     val isInterfered = interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 3.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
+    val shieldSway = rememberInfiniteTransition(label = "ShieldSway").animateFloat(-4f, 4f, infiniteRepeatable(tween(1200, easing = androidx.compose.animation.core.FastOutSlowInEasing), RepeatMode.Reverse), label = "ShieldSwayVal")
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            "\uD83D\uDEE1\uFE0F",
-            fontSize = 14.sp,
-            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isShieldCritical) (gameTime / 200 % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f)
+            text = "\uD83D\uDEE1\uFE0F",
+            fontSize = 12.sp,
+            modifier = Modifier.padding(bottom = 2.dp).graphicsLayer {
+                alpha = if (isShieldCritical) ((gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
+                rotationZ = shieldSway.value
+            },
+            color = if (isShieldCritical) SciFiRed else SciFiCyan,
+            style = MaterialTheme.typography.labelSmall.copy(
+                shadow = Shadow(
+                    if (isShieldCritical) SciFiRed.copy(alpha = 0.6f) else SciFiCyan.copy(alpha = 0.4f),
+                    blurRadius = 10f
+                )
+            )
         )
         Box(
             modifier = Modifier
@@ -241,16 +294,30 @@ fun IntegrityGauge(
     maxIntegrity: Float,
     isHullCritical: Boolean,
     gameTime: Long,
-    interferenceTimer: Float = 0f
+    interferenceTimer: Float = 0f,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
     val gaugeHeight = (120f + (maxIntegrity - 100f) * 0.6f).coerceIn(100f, 250f).dp
     val isInterfered = interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 4.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
+    val heartBeat = rememberInfiniteTransition(label = "HeartBeat").animateFloat(0f, 1f, infiniteRepeatable(tween(1000, easing = androidx.compose.animation.core.LinearEasing), RepeatMode.Restart), label = "HeartBeatVal")
+    val heartScale = 1f + 0.15f * sin(heartBeat.value * 2f * PI.toFloat()).toFloat().coerceAtLeast(0f) * (1f - (heartBeat.value % 0.3f / 0.3f).coerceIn(0f, 1f))
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            "\u2764\uFE0F",
-            fontSize = 14.sp,
-            modifier = Modifier.padding(bottom = 4.dp).graphicsLayer(alpha = if (isHullCritical) (gameTime / 200 % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f)
+            text = "\u2764\uFE0F",
+            fontSize = 12.sp,
+            modifier = Modifier.padding(bottom = 2.dp).graphicsLayer {
+                alpha = if (isHullCritical) ((gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
+                scaleX = heartScale
+                scaleY = heartScale
+            },
+            color = if (isHullCritical) SciFiRed else SciFiGreen,
+            style = MaterialTheme.typography.labelSmall.copy(
+                shadow = Shadow(
+                    if (isHullCritical) SciFiRed.copy(alpha = 0.6f) else SciFiGreen.copy(alpha = 0.4f),
+                    blurRadius = 10f
+                )
+            )
         )
         Box(
             modifier = Modifier
@@ -276,6 +343,17 @@ fun IntegrityGauge(
                         drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
                     }
                 }
+                if (integrityRatio < 0.25f && !isInterfered) {
+                    repeat(2) { i ->
+                        val crackX = size.width * (0.3f + i * 0.4f)
+                        val crackPath = Path().apply {
+                            moveTo(crackX, size.height * (1f - integrityRatio))
+                            lineTo(crackX + 2f, size.height * (1f - integrityRatio) + size.height * 0.1f)
+                            lineTo(crackX - 1f, size.height * (1f - integrityRatio) + size.height * 0.2f)
+                        }
+                        drawPath(crackPath, SciFiRed.copy(alpha = 0.6f), style = Stroke(1f))
+                    }
+                }
             }
         }
     }
@@ -288,8 +366,10 @@ fun ComboHudBar(
     comboTarget: Int,
     comboTimeRemaining: Long,
     getWindowForCombo: (Int) -> Long,
-    screenWidth: Float
+    screenWidth: Float,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
+    val zoneAccent = zoneGaugeAccents[zone] ?: SciFiCyan
     Surface(
         color = SciFiSurface,
         shape = RoundedCornerShape(12.dp),
@@ -329,7 +409,7 @@ fun ComboHudBar(
                     .height(6.dp)
                     .background(SciFiWhite.copy(alpha = 0.1f), CircleShape)
             ) {
-                val barColor = if (timerRatio > 0.3f) SciFiCyan else SciFiRed
+                val barColor = if (timerRatio > 0.3f) zoneAccent else SciFiRed
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(timerRatio)
@@ -355,19 +435,24 @@ fun NotificationLayer(
     modifier: Modifier = Modifier,
     activeNotification: String?,
     notificationAlpha: Float,
-    screenWidth: Float
+    screenWidth: Float,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
     if (activeNotification != null) {
         val isHighAlert = activeNotification.contains("!!!") || activeNotification.contains(">>>")
+        val zoneAccent = zoneGaugeAccents[zone] ?: SciFiCyan
         Text(
             text = activeNotification,
             modifier = modifier.graphicsLayer(alpha = notificationAlpha).widthIn(max = screenWidth.dp * 0.9f),
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontWeight = FontWeight.Black,
                 letterSpacing = 2.sp,
-                shadow = Shadow(if (isHighAlert) SciFiRed.copy(alpha = 0.5f) else Color.Black, blurRadius = 15f)
+                shadow = Shadow(
+                    if (isHighAlert) SciFiRed.copy(alpha = 0.5f) else zoneAccent.copy(alpha = 0.4f),
+                    blurRadius = 15f
+                )
             ),
-            color = if (isHighAlert) SciFiRed else SciFiWhite,
+            color = if (isHighAlert) SciFiRed else zoneAccent,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -381,7 +466,8 @@ fun LeftGauges(
     fuel: Float, maxFuel: Float,
     heat: Float, maxHeat: Float, isOverheated: Boolean,
     gameTime: Long,
-    interferenceTimer: Float = 0f
+    interferenceTimer: Float = 0f,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
     Column(
         modifier = modifier
@@ -390,8 +476,8 @@ fun LeftGauges(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        FuelGauge(fuel = fuel, maxFuel = maxFuel, gameTime = gameTime, interferenceTimer = interferenceTimer)
-        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, gameTime = gameTime, interferenceTimer = interferenceTimer)
+        FuelGauge(fuel = fuel, maxFuel = maxFuel, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
+        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
     }
 }
 
@@ -401,7 +487,8 @@ fun RightGauges(
     shield: Float, maxShield: Float,
     integrity: Float, maxIntegrity: Float,
     gameTime: Long,
-    interferenceTimer: Float = 0f
+    interferenceTimer: Float = 0f,
+    zone: AltitudeZone = AltitudeZone.EARTH
 ) {
     Column(
         modifier = modifier
@@ -410,8 +497,8 @@ fun RightGauges(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = shield < maxShield * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer)
-        IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = integrity < maxIntegrity * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer)
+        ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = shield < maxShield * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
+        IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = integrity < maxIntegrity * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
     }
 }
 

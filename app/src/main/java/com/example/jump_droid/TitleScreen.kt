@@ -24,11 +24,15 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
@@ -41,33 +45,197 @@ import com.example.jump_droid.ui.theme.SciFiCyan
 import com.example.jump_droid.ui.theme.SciFiGold
 import com.example.jump_droid.ui.theme.SciFiRed
 import com.example.jump_droid.ui.theme.SciFiWhite
+import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.sin
 import kotlin.random.Random
+
+private data class TitleStar(
+    var x: Float, var y: Float, var speed: Float,
+    val baseAlpha: Float, var twinklePhase: Float,
+    val size: Float, val color: Color
+)
+
+private data class TitleSilhouette(
+    var x: Float, var y: Float, var speed: Float,
+    val baseY: Float, val type: Int
+)
+
+private val zoneColors = listOf(
+    Color(0xFF4CAF50), Color(0xFF00BCD4), Color(0xFF9C27B0),
+    Color(0xFFFFD700), Color(0xFF673AB7), Color(0xFFD32F2F)
+)
 
 @Composable
 fun TitleScreen(onNavigate: (GameState) -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.safeDrawingPadding()) {
-            val infiniteTransition = rememberInfiniteTransition(label = "TitleTransition")
-            val glowAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "GlowAlpha")
-            val rocketOffset by infiniteTransition.animateFloat(0f, -20f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "RocketOffset")
-            Canvas(Modifier.size(100.dp).offset { IntOffset(0, rocketOffset.dp.roundToPx()) }) {
-                val rx = size.width / 2; val ry = size.height / 2
-                drawRect(SciFiWhite.copy(alpha = 0.8f), topLeft = Offset(rx - 10f, ry - 15f), size = Size(20f, 40f))
-                drawPath(Path().apply { moveTo(rx - 10f, ry - 15f); lineTo(rx, ry - 30f); lineTo(rx + 10f, ry - 15f); close() }, SciFiRed)
-                drawPath(Path().apply { moveTo(rx - 5f, ry + 25f); lineTo(rx, ry + 40f + Random.nextFloat() * 10f); lineTo(rx + 5f, ry + 25f); close() }, SciFiGold)
+    val density = LocalDensity.current
+    val infiniteTransition = rememberInfiniteTransition(label = "TitleTransition")
+    val glowAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "GlowAlpha")
+    val rocketBob by infiniteTransition.animateFloat(0f, -20f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "RocketOffset")
+    val flameFlicker by infiniteTransition.animateFloat(0.7f, 1f, infiniteRepeatable(tween(80), RepeatMode.Reverse), label = "FlameFlicker")
+
+    val stars = remember {
+        List(120) {
+            TitleStar(
+                x = Random.nextFloat() * 2000f,
+                y = Random.nextFloat() * 2000f,
+                speed = 0.2f + Random.nextFloat() * 0.6f,
+                baseAlpha = 0.2f + Random.nextFloat() * 0.6f,
+                twinklePhase = Random.nextFloat() * 6.28f,
+                size = 0.5f + Random.nextFloat() * 2f,
+                color = zoneColors[Random.nextInt(zoneColors.size)]
+            )
+        }
+    }
+
+    val silhouettes = remember {
+        List(8) {
+            TitleSilhouette(
+                x = Random.nextFloat() * 2000f,
+                y = Random.nextFloat() * 2000f,
+                speed = 0.15f + Random.nextFloat() * 0.3f,
+                baseY = Random.nextFloat() * 2000f,
+                type = Random.nextInt(4)
+            )
+        }
+    }
+
+    val frameTime = remember { mutableStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(50)
+            frameTime.value += 50
+        }
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        Canvas(Modifier.fillMaxSize()) {
+            drawRect(Color(0xFF0a0a1a))
+            val ft = frameTime.value / 1000f
+            val w = size.width
+            val h = size.height
+
+            stars.forEach { s ->
+                s.y += s.speed
+                if (s.y > h + 10) { s.y = -10f; s.x = Random.nextFloat() * w }
+                val twinkle = sin(ft * 2f + s.twinklePhase) * 0.3f + 0.7f
+                val alpha = s.baseAlpha * twinkle
+                drawCircle(s.color.copy(alpha = alpha), radius = s.size, center = Offset(s.x, s.y))
             }
-            Spacer(Modifier.height(20.dp))
+
+            silhouettes.forEach { si ->
+                si.x -= si.speed
+                if (si.x < -100f) { si.x = w + 100f; si.y = si.baseY; if (si.y > h) si.y = Random.nextFloat() * h }
+                val sy = si.y + sin(ft * 0.3f + si.x * 0.01f) * 8f
+                when (si.type) {
+                    0 -> {
+                        drawCircle(Color(0xFF2E7D32).copy(alpha = 0.15f), radius = 30f, center = Offset(si.x, sy))
+                        drawCircle(Color(0xFF388E3C).copy(alpha = 0.25f), radius = 20f, center = Offset(si.x, sy))
+                        drawCircle(Color(0xFF4CAF50).copy(alpha = 0.3f), radius = 10f, center = Offset(si.x, sy))
+                    }
+                    1 -> {
+                        drawOval(Color(0xFF0097A7).copy(alpha = 0.12f), topLeft = Offset(si.x - 35f, sy - 12f), size = Size(70f, 24f))
+                        drawOval(Color(0xFF00BCD4).copy(alpha = 0.2f), topLeft = Offset(si.x - 25f, sy - 8f), size = Size(50f, 16f))
+                    }
+                    2 -> {
+                        val satPath = Path().apply {
+                            moveTo(si.x - 12f, sy); lineTo(si.x + 12f, sy)
+                            moveTo(si.x, sy - 8f); lineTo(si.x, sy + 8f)
+                        }
+                        drawPath(satPath, Color(0xFFFFD700).copy(alpha = 0.2f), style = androidx.compose.ui.graphics.drawscope.Stroke(1.5f))
+                        drawCircle(Color(0xFFFFD700).copy(alpha = 0.15f), radius = 4f, center = Offset(si.x, sy))
+                    }
+                    3 -> {
+                        drawCircle(Color(0xFF7B1FA2).copy(alpha = 0.12f), radius = 22f, center = Offset(si.x, sy))
+                        drawCircle(Color(0xFF9C27B0).copy(alpha = 0.18f), radius = 14f, center = Offset(si.x, sy))
+                    }
+                }
+            }
+
+            val gx = w / 2
+            val gy = h * 0.28f + rocketBob / density.density
+            val bodyW = 24f
+            val bodyH = 48f
+            val noseH = 22f
+
+            drawRoundRect(
+                SciFiWhite.copy(alpha = 0.85f),
+                topLeft = Offset(gx - bodyW / 2, gy - bodyH / 2),
+                size = Size(bodyW, bodyH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f, 6f)
+            )
+            drawRoundRect(
+                SciFiCyan.copy(alpha = 0.2f),
+                topLeft = Offset(gx - bodyW / 2 + 3f, gy - bodyH / 2 + 3f),
+                size = Size(bodyW - 6f, bodyH - 6f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
+            )
+            drawPath(
+                Path().apply { moveTo(gx - bodyW / 2, gy - bodyH / 2); lineTo(gx, gy - bodyH / 2 - noseH); lineTo(gx + bodyW / 2, gy - bodyH / 2); close() },
+                SciFiRed
+            )
+            drawPath(
+                Path().apply {
+                    moveTo(gx - bodyW / 2 + 4f, gy + bodyH / 2)
+                    lineTo(gx - bodyW / 2 - 6f, gy + bodyH / 2 + 14f)
+                    lineTo(gx - bodyW / 2 - 2f, gy + bodyH / 2 + 14f)
+                    lineTo(gx - bodyW / 2, gy + bodyH / 2 + 8f)
+                    close()
+                },
+                SciFiGold.copy(alpha = 0.7f)
+            )
+            drawPath(
+                Path().apply {
+                    moveTo(gx + bodyW / 2 - 4f, gy + bodyH / 2)
+                    lineTo(gx + bodyW / 2 + 6f, gy + bodyH / 2 + 14f)
+                    lineTo(gx + bodyW / 2 + 2f, gy + bodyH / 2 + 14f)
+                    lineTo(gx + bodyW / 2, gy + bodyH / 2 + 8f)
+                    close()
+                },
+                SciFiGold.copy(alpha = 0.7f)
+            )
+
+            drawPath(
+                Path().apply { moveTo(gx - 5f, gy + bodyH / 2); lineTo(gx, gy + bodyH / 2 + 16f * flameFlicker); lineTo(gx + 5f, gy + bodyH / 2); close() },
+                SciFiGold.copy(alpha = 0.9f)
+            )
+            drawPath(
+                Path().apply { moveTo(gx - 3f, gy + bodyH / 2); lineTo(gx, gy + bodyH / 2 + 24f * flameFlicker); lineTo(gx + 3f, gy + bodyH / 2); close() },
+                SciFiRed.copy(alpha = 0.8f)
+            )
+            drawCircle(
+                SciFiGold.copy(alpha = 0.15f),
+                radius = 18f,
+                center = Offset(gx, gy + bodyH / 2 + 16f * flameFlicker)
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .safeDrawingPadding()
+                .align(Alignment.Center)
+        ) {
+            Spacer(Modifier.height(120.dp))
             Text(
                 text = "JUMP DROID",
                 style = MaterialTheme.typography.displayLarge.copy(
-                    shadow = Shadow(SciFiCyan.copy(alpha = glowAlpha), Offset(0f, 0f), 20f),
+                    shadow = Shadow(SciFiCyan.copy(alpha = glowAlpha), Offset(0f, 0f), 24f),
                     letterSpacing = 8.sp
                 ),
                 color = SciFiWhite,
                 fontWeight = FontWeight.Black
             )
-            Spacer(Modifier.height(80.dp))
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "THE ASCENSION PROGRAM",
+                style = MaterialTheme.typography.labelMedium.copy(
+                    letterSpacing = 6.sp,
+                    fontSize = 11.sp
+                ),
+                color = SciFiWhite.copy(alpha = 0.4f)
+            )
+            Spacer(Modifier.height(100.dp))
             Button(
                 onClick = { onNavigate(GameState.MAIN_MENU) },
                 modifier = Modifier.width(240.dp).height(56.dp),
@@ -77,7 +245,14 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
                 Text("INITIATE ASCENT", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
             }
         }
-        Column(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+
+        Column(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text("THE ASCENSION PROGRAM // EST. 1984", color = SciFiWhite.copy(alpha = 0.3f), letterSpacing = 1.sp, fontSize = 10.sp)
             Spacer(Modifier.height(4.dp))
             Text("POWERED BY ASHWATH.AI // V1.2.0", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp)
