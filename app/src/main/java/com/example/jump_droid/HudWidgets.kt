@@ -138,8 +138,8 @@ fun FuelGauge(
             Spacer(Modifier.width(3.dp))
             Text(
                 text = "${fuel.toInt()}",
-                color = dropColor.copy(alpha = 0.7f),
-                fontSize = 8.sp,
+                color = dropColor,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -147,10 +147,7 @@ fun FuelGauge(
             modifier = Modifier
                 .width(GAUGE_WIDTH.dp)
                 .height(gaugeHeight)
-                .background(
-                    if (isLow) SciFiRed.copy(alpha = 0.08f) else zoneAccent.copy(alpha = 0.06f),
-                    RoundedCornerShape(GAUGE_BAR_RADIUS.dp)
-                )
+                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp))
                 .border(0.5.dp, dropColor.copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
             contentAlignment = Alignment.BottomCenter
         ) {
@@ -199,8 +196,8 @@ fun FuelGauge(
         }
         Text(
             text = "${(ratio * 100).toInt()}%",
-            color = dropColor.copy(alpha = 0.5f),
-            fontSize = 7.sp,
+            color = dropColor,
+            fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -248,8 +245,8 @@ fun HeatGauge(
             Spacer(Modifier.width(3.dp))
             Text(
                 text = "${heat.toInt()}",
-                color = heatColor.copy(alpha = 0.7f),
-                fontSize = 8.sp,
+                color = heatColor,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -257,10 +254,7 @@ fun HeatGauge(
             modifier = Modifier
                 .width(GAUGE_WIDTH.dp)
                 .height(gaugeHeight)
-                .background(
-                    if (isOverheated) SciFiRed.copy(alpha = 0.08f) else heatColor.copy(alpha = 0.06f),
-                    RoundedCornerShape(GAUGE_BAR_RADIUS.dp)
-                )
+                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp))
                 .border(0.5.dp, heatColor.copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
             contentAlignment = Alignment.BottomCenter
         ) {
@@ -292,8 +286,8 @@ fun HeatGauge(
         }
         Text(
             text = "${(heatRatio * 100).toInt()}%",
-            color = heatColor.copy(alpha = 0.5f),
-            fontSize = 7.sp,
+            color = heatColor,
+            fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -334,8 +328,8 @@ fun ShieldGauge(
             Spacer(Modifier.width(3.dp))
             Text(
                 text = "${shield.toInt()}",
-                color = (if (isShieldCritical) SciFiRed else SciFiCyan).copy(alpha = 0.7f),
-                fontSize = 8.sp,
+                color = if (isShieldCritical) SciFiRed else SciFiCyan,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -343,10 +337,7 @@ fun ShieldGauge(
             modifier = Modifier
                 .width(GAUGE_WIDTH.dp)
                 .height(gaugeHeight)
-                .background(
-                    if (isShieldCritical) SciFiRed.copy(alpha = 0.08f) else SciFiCyan.copy(alpha = 0.06f),
-                    RoundedCornerShape(GAUGE_BAR_RADIUS.dp)
-                )
+                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp))
                 .border(0.5.dp, (if (isShieldCritical) SciFiRed else SciFiCyan).copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
             contentAlignment = Alignment.BottomCenter
         ) {
@@ -381,8 +372,8 @@ fun ShieldGauge(
         }
         Text(
             text = "${(shieldRatio * 100).toInt()}%",
-            color = (if (isShieldCritical) SciFiRed else SciFiCyan).copy(alpha = 0.5f),
-            fontSize = 7.sp,
+            color = if (isShieldCritical) SciFiRed else SciFiCyan,
+            fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -425,8 +416,8 @@ fun IntegrityGauge(
             Spacer(Modifier.width(3.dp))
             Text(
                 text = "${integrity.toInt()}",
-                color = (if (isHullCritical) SciFiRed else SciFiGreen).copy(alpha = 0.7f),
-                fontSize = 8.sp,
+                color = if (isHullCritical) SciFiRed else SciFiGreen,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -434,10 +425,7 @@ fun IntegrityGauge(
             modifier = Modifier
                 .width(GAUGE_WIDTH.dp)
                 .height(gaugeHeight)
-                .background(
-                    if (isHullCritical) SciFiRed.copy(alpha = 0.08f) else SciFiGreen.copy(alpha = 0.06f),
-                    RoundedCornerShape(GAUGE_BAR_RADIUS.dp)
-                )
+                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp))
                 .border(0.5.dp, (if (isHullCritical) SciFiRed else SciFiGreen).copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
             contentAlignment = Alignment.BottomCenter
         ) {
@@ -480,8 +468,8 @@ fun IntegrityGauge(
         }
         Text(
             text = "${(integrityRatio * 100).toInt()}%",
-            color = (if (isHullCritical) SciFiRed else SciFiGreen).copy(alpha = 0.5f),
-            fontSize = 7.sp,
+            color = if (isHullCritical) SciFiRed else SciFiGreen,
+            fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -503,7 +491,7 @@ fun ComboHudBar(
         color = SciFiSurface,
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth(0.9f).shadow(6.dp, RoundedCornerShape(12.dp)),
-        border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, SciFiBorder.copy(alpha = 0.4f))
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -657,7 +645,7 @@ fun ZoneDiscoveryCard(
         modifier = Modifier
             .background(SciFiSurface, RoundedCornerShape(16.dp))
             .padding(horizontal = 32.dp, vertical = 24.dp)
-            .border(1.dp, SciFiBorder, RoundedCornerShape(16.dp))
+            .border(0.5.dp, SciFiBorder.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
     ) {
         Text(
             text = titleText,

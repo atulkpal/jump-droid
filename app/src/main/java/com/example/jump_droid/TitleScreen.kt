@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.jump_droid.ui.theme.SciFiCyan
 import com.example.jump_droid.ui.theme.SciFiGold
+import com.example.jump_droid.ui.theme.SciFiGreen
 import com.example.jump_droid.ui.theme.SciFiRed
 import com.example.jump_droid.ui.theme.SciFiWhite
 import androidx.compose.runtime.setValue
@@ -112,7 +114,6 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
     }
 
     val frameTime = remember { mutableStateOf(0L) }
-    var droneDetected by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(50)
@@ -183,7 +184,6 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
             val angleToRocket = atan2(dy, dx)
             val beamAngle = PI.toFloat() / 2f + sin(sweepAngle) * 0.5f
             val detected = dist < beamLen * 1.5f && abs(angleToRocket - beamAngle) < 0.4f
-            droneDetected = detected
 
             // Beam glow
             val beamAlpha = if (detected) 0.4f else 0.12f
@@ -313,6 +313,32 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
                 radius = 18f,
                 center = Offset(gx, gy + bodyH / 2 + 16f * flameFlicker)
             )
+
+            // --- Ambient scan rings ---
+            val ringPhase = ft * 0.8f
+            val ringBase = ringPhase % 1f
+            repeat(3) { i ->
+                val rp = (ringBase + i * 0.33f) % 1f
+                val ringRadius = 30f + rp * 80f
+                val ringAlpha = (1f - rp) * 0.15f
+                drawCircle(
+                    SciFiCyan.copy(alpha = ringAlpha),
+                    radius = ringRadius,
+                    center = Offset(gx, gy),
+                    style = Stroke(width = 1f)
+                )
+            }
+
+            // --- Floating data particles ---
+            repeat(6) { i ->
+                val seed = i * 137 + (ft / 0.5f).toInt()
+                val prng = Random(seed)
+                val px = gx + sin(ft * 0.5f + i * 1.2f) * 60f + prng.nextFloat() * 10f
+                val py = gy - 40f + cos(ft * 0.7f + i * 1.8f) * 40f + prng.nextFloat() * 10f
+                val pSize = 1f + prng.nextFloat() * 1.5f
+                val pColor = listOf(SciFiCyan, SciFiGold, SciFiGreen)[i % 3]
+                drawCircle(pColor.copy(alpha = 0.3f + sin(ft * 1.5f + i.toFloat()) * 0.15f), radius = pSize, center = Offset(px, py))
+            }
         }
 
         Column(
@@ -348,25 +374,6 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
                 colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
             ) {
                 Text("INITIATE ASCENT", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-            }
-        }
-
-        if (droneDetected) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .offset(y = 160.dp)
-            ) {
-                val pulseAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(150), RepeatMode.Reverse), label = "SignalPulse")
-                Text(
-                    "⚠ SIGNAL LOCKED",
-                    color = SciFiRed.copy(alpha = pulseAlpha),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 4.sp,
-                        shadow = Shadow(SciFiRed.copy(alpha = 0.6f), Offset(0f, 0f), 16f)
-                    )
-                )
             }
         }
 
