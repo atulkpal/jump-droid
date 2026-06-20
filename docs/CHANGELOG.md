@@ -4,6 +4,46 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-20
+
+**Sprint / Phase:** Visual Overhaul Sprint 2-3 — Premium Screen Polish
+
+**Branch:** `development`
+
+**Commits:** `35e03ce`, `47ee28e`, `afbecdc`, `47d4191`
+
+**Status:** Completed
+
+### Added
+- **TitleScreen scanning drone**: Cinematic patrol with Z-axis depth scaling, rotating radar sweep beam with layered glow, light column, rocket detection glow
+- **Ambient scan rings**: Pulsing concentric circles emanating from rocket on title screen
+- **Floating data particles**: 6 orbiting colored data dots around the rocket
+- **Animated starfields**: Drifting starfield with sine-wave twinkle on HangarScreen, SettingsScreen, AboutScreen, GameOverOverlay, PauseOverlay
+- **Status footers**: "HANGAR // ROCKET SELECT // {rank}", "SYSTEM PREFERENCES // AUDIO // DATA", "POWERED BY ASHWATH.AI // V1.2.0", "MISSION PAUSED // {ZONE} SECTOR"
+- **Gauge value labels**: Raw integer value beside emoji icons, percentage label below bar on all 4 gauges
+
+### Changed
+- **HudWidgets**: Widened gauge bars from 6dp → 10dp, replaced solid fills with vertical gradient fills, added 10-segment tick marks, shield shimmer effect, consistent RoundedCornerShape(4.dp)
+- **MainMenuScreen**: "COMMAND CENTER" text sizing from `headlineLarge` → `headlineMedium` with tighter `letterSpacing(2.sp)` to prevent wrapping
+- **Track backgrounds**: Reverted from zone-accented tint to neutral `SciFiSurface.copy(alpha = 0.4f)`
+- **Gauge number visibility**: Raw value 10sp full color, percentage 8sp full color
+- **Card borders**: ComboHudBar and ZoneDiscoveryCard borders thinned to 0.5dp with `alpha = 0.4f` for premium look
+- **Text shadows**: Added pulsing glow shadows to titles across all screens
+
+### Fixed
+- **TitleScreen drone**: Replaced triangle cone with thin radar sweep line, removed "⚠ HUMAN DETECTED" overlay text
+- **Text wrapping**: All screen titles now use `headlineMedium` with 2.sp letter spacing to prevent 2-line wrapping on narrow screens
+
+### Removed
+- Triangle scan cone from TitleScreen drone (replaced with sweep line)
+- Zone-tinted gauge track backgrounds (reverted to neutral dark)
+
+### Validation
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL across all 4 commits
+- All composable signatures unchanged — zero breakage risk for HUD revamp
+
+---
+
 ## 2026-06-19
 
 **Sprint / Phase:** Engine Expansion — Core Systems

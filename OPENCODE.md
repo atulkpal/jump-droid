@@ -42,11 +42,12 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 
 ## Current Active EPIC
 
-**EPIC 5: Survival Protocol** (Sprint B) — Threats, survival economy, destruction system. Base commit `aee2c37`.
+**EPIC 6: Visual Overhaul** (Sprint 2-3) — Screen polish, HUD revamp, animated starfields, premium feel. Active on `development`.
 
 ## Current Refactor Status
 
 **Sprint T1 + T2 — Tidying:** Fully complete.
+**Sprint 2-3 — Visual Overhaul:** Complete (premium pass on all screens + HUD).
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -95,6 +96,9 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 - ✅ Merged into `development` (`af3d0ae`)
 - ✅ Engine expansion: `ProjectileManager`, `InputBufferManager`, `Tether` physics, and `Fog` rendering implemented
 - ✅ `ActiveThreat` signature updated for E2E interaction support
+- ✅ **Visual Overhaul Sprint 2-3** (`35e03ce`): 9 threat rendering fixes, animated emoji gauge icons, main menu rewrite with animated starfield/scan radar/pulsing borders
+- ✅ **Premium Screen Pass** (`47ee28e`): TitleScreen scanning drone with Z-axis depth + radar sweep beam, animated starfields with twinkle on Hangar/Settings/About/GameOver/Pause screens, text wrapping fixes, status footers, text shadows
+- ✅ **HUD Revamp** (`afbecdc`, `47d4191`): Wider gauge bars (10dp), gradient fills, numeric value + percentage labels, segment ticks, shield shimmer, thinner premium card borders, neutral track backgrounds
 
 ## Open Refactor Tasks
 
@@ -134,9 +138,9 @@ Every notable engineering event gets a dated entry in `docs/CHANGELOG.md` with: 
 
 ## Current Known Technical Debt
 
-1. **GameScreen.kt at ~3,760 lines** — Structural changes and manager integration. Still large; future sprints may further decompose.
-2. **Deprecated `LinearProgressIndicator`** — Used in `GameScreen.kt:3284` and `ArchiveScreen.kt:116`. Should migrate to lambda-based overload.
-3. **Threat entity rendering inline** — ~826 lines of Canvas draw code. Deferred indefinitely.
+1. **GameScreen.kt at ~3,900 lines** — Threat rendering additions and visual polish. Still large; future sprints may further decompose.
+2. **Deprecated `LinearProgressIndicator`** — Used in ArchiveScreen. Should migrate to lambda-based overload.
+3. **Threat entity rendering inline** — ~920 lines of Canvas draw code. Deferred indefinitely.
 4. **`PowerupBadge` deleted** — Was unused with zero call sites. Removed in Phase 2.
 5. **Flat package structure** — All `.kt` files in `com.example.jump_droid`. Future: sub-packages for screens/overlays/hud/managers.
 6. **No automated UI tests** — All verification is manual. Extracted composables make future test addition feasible.
