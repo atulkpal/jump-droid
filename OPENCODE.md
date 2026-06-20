@@ -14,11 +14,12 @@ Jump Droid is an Android game built with Jetpack Compose. The player pilots a ro
 
 | Branch | Purpose |
 |--------|---------|
-| `refactor/t4-recovery` | **Active** — Sprint T4 stabilized |
-| `refactor/logic-extraction` | Sprint T3 logic extraction (merged) |
-| `development` | integration branch for all work (EPIC 5 Sprint C next) |
-| `refactor/ui-extraction` | Completed — Sprint T1 + T2 UI extraction, fully merged into `development` |
-| `main` | Base branch; contains pre-refactor code |
+| `development` | **Playable baseline** — stable, build-clean, contains all completed refactors + visual overhaul |
+| `feature/mission-system` | **Active WIP** — Mission system redesign (new package, 2-column glassmorphism cards, DataStore persistence, 47 missions across 14 categories) |
+| `refactor/t4-recovery` | Completed — Sprint T4 stabilized and merged |
+| `refactor/logic-extraction` | Completed — Sprint T3 logic extraction |
+| `refactor/ui-extraction` | Completed — Sprint T1 + T2 UI extraction |
+| `master` | Base branch; contains pre-refactor code |
 
 Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 
@@ -29,35 +30,40 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | `docs/CHANGELOG.md` | Dated engineering events |
 | `docs/architecture/Refactor_T1_Phase1.md` | Phase 1 extraction report (completed) |
 | `docs/architecture/Refactor_T1_Phase2_Plan.md` | Phase 2 implementation plan |
-| `docs/architecture/Refactor_T1_Phase2_Report.md` | Phase 2 completion report (completed) |
-| `docs/architecture/Refactor_T2_Plan.md` | T2 plan (T2A low risk + T2B medium risk) |
-| `docs/architecture/Refactor_T2A_Report.md` | T2A completion report (completed) |
-| `docs/architecture/Refactor_T2B_Report.md` | T2B completion report (completed) |
-| `docs/architecture/Refactor_T3_Plan.md` | T3 plan (logic extraction) |
-| `docs/architecture/Refactor_T3_Report.md` | T3 completion report (completed) |
-| `docs/architecture/Refactor_T4_Plan.md` | T4 plan (system delegation) |
-| `docs/architecture/Refactor_T4_Report.md` | T4 completion report (STABILIZED) |
+| `docs/architecture/Refactor_T1_Phase2_Report.md` | Phase 2 completion report |
+| `docs/architecture/Refactor_T2_Plan.md` | T2 plan |
+| `docs/architecture/Refactor_T2A_Report.md` | T2A completion report |
+| `docs/architecture/Refactor_T2B_Report.md` | T2B completion report |
+| `docs/architecture/Refactor_T3_Plan.md` | T3 plan |
+| `docs/architecture/Refactor_T3_Report.md` | T3 completion report |
+| `docs/architecture/Refactor_T4_Plan.md` | T4 plan |
+| `docs/architecture/Refactor_T4_Report.md` | T4 completion report |
 | `docs/design/ENGINE_EXTENSIONS.md` | Engine expansion system details |
+| `docs/gameplay/MISSION.md` | Mission system design doc |
 | `OPENCODE.md` | This file — session context |
 
-## Current Active EPIC
+## Current Active Work
 
-**EPIC 6: Visual Overhaul** (Sprint 2-3) — Screen polish, HUD revamp, animated starfields, premium feel. Active on `development`.
+**Mission System** — Active development on `feature/mission-system`. Redesigning from flat tier structure to a full mission system with:
+- **New package** `com.example.jump_droid.missions` with `Mission.kt`, `MissionRegistry.kt`, `MissionManager.kt`, `MissionRepository.kt`
+- **47 missions** across 14 categories with 4 tiers each, plus 7 hidden/locked missions
+- **2-column glassmorphism card grid** with tier-colored progress bars and CLAIM flow
+- **DataStore persistence** for mission state and progress across sessions
+- **Compose-reactive state** using `mutableStateMapOf` in MissionManager
+- **`development`** remains the stable, playable baseline — `feature/mission-system` branches from it and will be merged back when stable
 
-## Current Refactor Status
-
-**Sprint T1 + T2 — Tidying:** Fully complete.
-**Sprint 2-3 — Visual Overhaul:** Complete (premium pass on all screens + HUD).
+## Completed Refactor Status
 
 | Phase | Status | Description |
 |-------|--------|-------------|
 | T1 Phase 1 | ✅ Done | Extracted 15 UI files; fixed imports; resolved conflicts; build passing |
 | T1 Phase 2 | ✅ Done | Replaced all inline screens/HUD/overlays with extracted composable calls |
-| T2 Phase A | ✅ Done | Extracted 4 low-risk inline composables (TopRightUtilityButtons, MissionRow, FloatingTextsLayer, GaugeWrappers) |
-| T2 Phase B | ✅ Done | Extracted 8 Canvas effects into `CanvasEffects.kt` (ground, speed lines, particles, landing rings, powerups, flying rewards, impact flash, reality distortion) |
-| T3 | ✅ Done | Extracted `NotificationManager`, `FloatingTextManager`, `PlatformManager`, and expanded `ProgressionManager` |
+| T2 Phase A | ✅ Done | Extracted 4 low-risk inline composables |
+| T2 Phase B | ✅ Done | Extracted 8 Canvas effects into `CanvasEffects.kt` |
+| T3 | ✅ Done | Extracted `NotificationManager`, `FloatingTextManager`, `PlatformManager`, expanded `ProgressionManager` |
 | T4 | ✅ Done | System delegation of survival, director, and threat interaction logic (Stabilized) |
 | Engine | ✅ Done | Projectiles, Input Buffer, Tethers, Visual Fog, and E2E Expansion |
+| Visual Overhaul | ✅ Done | Premium pass on all screens + HUD revamp + animated starfields |
 
 ## Completed Refactor Phases
 
@@ -132,21 +138,21 @@ Every notable engineering event gets a dated entry in `docs/CHANGELOG.md` with: 
 
 | File | Reason |
 |------|--------|
-| `GameScreen.kt` | Core game loop + all state management. T1+T2 complete (3,109 lines). Do not touch lines 82–2500 (game loop, managers, physics). |
-| `RocketRenderer.kt` | EPIC 5 visual redesign in progress (destruction sequence, shield plates). Pre-existing uncommitted changes. |
-| Any `Threat*.kt`, `Mission*.kt`, `ComboManager.kt`, `ProgressionManager.kt`, `DiscoveryManager.kt` | Core gameplay managers. Not part of UI extraction scope. |
+| `GameScreen.kt` | Core game loop + all state management (~3,800 lines). Do not touch game loop, managers, physics. |
+| `RocketRenderer.kt` | Visual redesign in progress (destruction sequence, shield plates). |
+| Any `Threat*.kt`, `ComboManager.kt`, `ProgressionManager.kt`, `DiscoveryManager.kt` | Core gameplay managers. |
 
 ## Current Known Technical Debt
 
-1. **GameScreen.kt at ~3,900 lines** — Threat rendering additions and visual polish. Still large; future sprints may further decompose.
-2. **Deprecated `LinearProgressIndicator`** — Used in ArchiveScreen. Should migrate to lambda-based overload.
-3. **Threat entity rendering inline** — ~920 lines of Canvas draw code. Deferred indefinitely.
-4. **`PowerupBadge` deleted** — Was unused with zero call sites. Removed in Phase 2.
-5. **Flat package structure** — All `.kt` files in `com.example.jump_droid`. Future: sub-packages for screens/overlays/hud/managers.
-6. **No automated UI tests** — All verification is manual. Extracted composables make future test addition feasible.
+1. **GameScreen.kt at ~3,800 lines** — Still large; future sprints may further decompose.
+2. **Deprecated `LinearProgressIndicator`** — Used in ArchiveScreen and MissionScreen. Should migrate to lambda-based overload.
+3. **Mission system claim flow** — Not yet fully stable on `feature/mission-system`. 100% progress sometimes doesn't trigger COMPLETED transition.
+4. **Flat package structure** — All `.kt` files in `com.example.jump_droid`. The new `missions/` package is the first sub-package.
+5. **No automated UI tests** — All verification is manual.
+6. **Hidden mission visuals** — Newly unlocked hidden missions lack "SIGNAL RECEIVED" visual feedback on `feature/mission-system`.
 
 ## Next Recommended Engineering Tasks
 
-1. Resume EPIC 5 Sprint C work on `development`
-2. Move `MissionType.toIcon()` to `MissionType.kt`
-3. Migrate deprecated `LinearProgressIndicator` usages
+1. **Stabilize mission claim flow** on `feature/mission-system` — ensure COMPLETED transition fires reliably at 100%
+2. Merge `feature/mission-system` → `development` when mission system is stable
+3. Explore glassmorphism design system from `docs/gameplay/stitch_jump_droid_mission_screen.zip` for broader UI refresh

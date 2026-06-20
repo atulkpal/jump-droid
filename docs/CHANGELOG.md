@@ -6,6 +6,67 @@ All notable changes to this project are recorded as dated engineering events.
 
 ## 2026-06-20
 
+**Sprint / Phase:** Mission System — Redesign (Active WIP)
+
+**Branch:** `feature/mission-system`
+
+**Commit:** `b475fec`
+
+**Status:** Active Development — Not Yet Merged
+
+### Added
+- **New package structure**: `com.example.jump_droid.missions` with `missions/` sub-package (first sub-package in the project). Contains:
+  - `Mission.kt` — All enums (`MissionCategory`, `MissionTier`, `MissionState`, `ObjectiveType`, `UnlockType`) and data classes (`Mission`, `MissionObjective`, `Rewards`, `UnlockCondition`, `GameStats`)
+  - `MissionRegistry.kt` — 47 mission definitions across 14 categories with 4 tiers each, plus 7 hidden/locked missions
+  - `MissionManager.kt` — Coroutine runtime with `mutableStateMapOf` for Compose-reactive state, `pendingStartRun` race fix, COMPLETED persistence in `endRun()`, safety-net `claimRewards()` that accepts IN_PROGRESS at 100%
+  - `MissionRepository.kt` — DataStore persistence for mission states and progress
+  - `missions/ui/MissionScreen.kt` — 2-column glassmorphism card grid with tier-colored progress bars, CLAIM pills, hidden SIGNAL LOST overlays
+- **DataStore dependency**: `androidx.datastore.preferences` 1.1.4 added to version catalog and `build.gradle.kts`
+- **GameState.MISSIONS**: New state added to `Models.kt` for mission screen navigation
+- **ComboCircleTimer**: 32dp filled pie circle with sweep line replacing combo HUD bar
+- **Combo celebration**: "NEW COMBO HIGH!" text with punch-out animation, 30 particles, screen shake
+- **NotificationLayer**: White text with zone-colored shadow, repositioned to 180dp padding
+- **GameStats tracking**: `overheatCount`, `wasNearDeath`, `consecutiveWins` wired into game loop
+
+### Changed
+- **MissionManager**: Switched `_missionStates` and `_progress` from `mutableMapOf` to `mutableStateMapOf` for proper Compose snapshot tracking
+- **MissionManager.endRun()**: Now persists COMPLETED states to repository (was silently dropping them)
+- **MissionManager.startRun()**: No longer wipes progress with `_progress.clear()` — only resets AVAILABLE→IN_PROGRESS missions; skips missions whose saved progress already meets the target
+- **MissionManager.claimRewards()**: Safety-net — also accepts IN_PROGRESS state if progress >= 100%
+- **MainMenuScreen**: MISSIONS button replaces old MISSION DATA; shows ⏡ badge when claims pending
+- **Deleted old mission files**: `Mission.kt`, `MissionManager.kt`, `MissionRegistry.kt`, `MissionReward.kt`, `MissionRow.kt`, `MissionType.kt` (all replaced by `missions/` package)
+- **ProgressionManager**: Added `getTotalDiscoveries()` returning raw discovery count
+
+### Fixed
+- **500m altitude mission**: `maxAltitude = score * 10f` (score was altitude/10)
+- **COMBO_PRO mission**: `comboMaintainTime` changed from binary to cumulative timer
+- **DISCOVERY_HUNTER mission**: `codexUnlocked = progressionManager.getTotalDiscoveries()` (raw count, not %/10)
+- **BOOST_CHAMPION mission**: `totalDashes++` instead of conditional reset
+- **startRun() race**: `pendingStartRun` flag ensures start fires after async `initialize()`
+- **Hidden missions**: `hidden_heat_junkie` (OVERHEAT_COUNT), `hidden_near_death` (NEAR_DEATH_RUN), `hidden_perfect_storm` (CONSECUTIVE_WINS) redesigned with proper objectives
+- **`getVisibleMissions()`**: Now includes hidden LOCKED missions (previously filtered them out entirely)
+
+### Removed
+- Old `Mission*.kt` files from root `com.example.jump_droid` package
+
+### Known Issues
+- Claim flow not yet stable — 100% progress sometimes doesn't trigger COMPLETED transition
+- Hidden missions newly unlocked lack "SIGNAL RECEIVED" visual feedback
+- No cash wallet persistence yet — cash rewards displayed but not saved
+
+### Validation
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL (clean build)
+- APK installs and runs; mission grid renders with 2-column layout
+
+### Notes
+- `development` branch remains the stable playable baseline
+- `feature/mission-system` will be merged into `development` when the claim flow is stabilized
+- Design inspiration taken from `docs/gameplay/stitch_jump_droid_mission_screen.zip` (glassmorphism, pill badges, 2-column grid)
+
+---
+
+## 2026-06-20
+
 **Sprint / Phase:** Visual Overhaul Sprint 2-3 — Premium Screen Polish
 
 **Branch:** `development`

@@ -1,171 +1,115 @@
-# Jump Droid - Mission System Documentation
+# Jump Droid — Mission System
 
 ## Overview
 
 The Mission System provides players with long-term goals, rewards exploration, and drives engagement through tiered challenges. Missions are progression-driven, with higher tiers unlocking as players complete earlier objectives. Some missions remain hidden until specific conditions are met, creating discovery moments.
 
+**Status:** Active development on `feature/mission-system`. Not yet merged to `development`.
+
 ---
 
 ## Core Principles
 
-- **Progression-driven** – Missions unlock based on player achievements, not arbitrary gates.
-- **Tiered** – Each mission category has multiple tiers (e.g., Flight Time → 5min, 12min, 30min).
-- **Rewarding** – Completing missions gives in-game cash, unlockables, and Codex entries.
-- **Hidden** – Locked missions are invisible until their prerequisites are met (creates "discovery" moments).
-- **Persistent** – Progress is saved even if the player quits mid-mission.
+- **Progression-driven** — Missions unlock based on player achievements, not arbitrary gates.
+- **Tiered** — Each mission category has multiple tiers (e.g., Flight Time → 5min, 12min, 30min).
+- **Rewarding** — Completing missions gives in-game cash, unlockables, and Codex entries.
+- **Hidden** — Locked hidden missions show a SIGNAL LOST overlay until their prerequisites are met.
+- **Persistent** — Progress and state are saved via DataStore across sessions.
+
+---
+
+## Branch Status
+
+| Branch | Purpose | State |
+|--------|---------|-------|
+| `development` | Stable playable baseline (no mission system) | ✅ Build clean |
+| `feature/mission-system` | Active mission system WIP | 🔧 Build clean, claim flow not yet stable |
 
 ---
 
 ## Mission Categories & Tiers
 
-| Category | Tier 1 (Unlock) | Tier 2 | Tier 3 | Tier 4 (Elite) |
+47 missions across 14 categories with 4 tiers each, plus 7 hidden missions.
+
+| Category | Tier 1 (ROOKIE) | Tier 2 (EXPERIENCED) | Tier 3 (MASTER) | Tier 4 (GOD) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Flight Time** | 5 min total | 12 min | 30 min | 60 min |
-| **Platform Stay** | 5 min total on platforms | 15 min | 30 min | 60 min |
-| **No Heat** | 5 min flight with 0 heat | 12 min | 25 min | 45 min |
-| **Fuel Efficiency** | Collect 10 fuel pickups | 30 fuel | 75 fuel | 150 fuel |
-| **Combo Streak** | 20x combo | 50x combo | 100x combo | 250x combo |
-| **Boss Slayer** | Defeat 1 boss | 3 bosses | 7 bosses | 12 bosses |
-| **Discovery Hunter** | Unlock 5 Codex entries | 15 entries | 30 entries | 50 entries |
-| **Altitude Climber** | Reach 500m altitude | 1500m | 4000m | 10000m |
-| **Momentum Master** | Build 50 momentum | 150 momentum | 400 momentum | 800 momentum |
-| **Hazard Survivor** | Survive 10 hazard hits | 30 hazards | 60 hazards | 100 hazards |
-| **Perfect Run** | No damage taken for 2 min | 5 min | 10 min | 20 min |
-| **Collector** | Collect 5 artifacts | 15 artifacts | 30 artifacts | 50 artifacts |
+| **Flight Time** | 5 min | 12 min | 30 min | 60 min |
+| **Platform Stay** | 5 min on platforms | 15 min | 30 min | 60 min |
+| **No Heat** | 5 min at 0 heat | 12 min | 25 min | 45 min |
+| **Fuel Efficiency** | 10 fuel pickups | 30 | 75 | 150 |
+| **Combo Streak** | 20x combo | 50x | 100x | 250x |
+| **Boss Slayer** | 1 boss | 3 | 7 | 12 |
+| **Discovery Hunter** | 5 codex entries | 15 | 30 | 50 |
+| **Altitude Climber** | 500m | 1500m | 4000m | 10000m |
+| **Momentum Master** | 50 momentum | 150 | 400 | 800 |
+| **Hazard Survivor** | 10 hazard hits | 30 | 60 | 100 |
+| **Perfect Run** | 2 min no damage | 5 min | 10 min | 20 min |
+| **Collector** | 5 artifacts | 15 | 30 | 50 |
+| **Boost Champion** | 10 dashes/run | 30 dashes/run | — | — |
+| **Combo Pro** | 20x combo 30s maintain | 50x combo 30s maintain | — | — |
+
+Hidden missions (7): heat_junkie, near_death, perfect_storm, void_walker, long_haul, artifact_hunter, momentum_legend
 
 ---
 
-## Hidden/Locked Missions (Discovery-Based)
+## Architecture
 
-These missions are **invisible** until the player meets a specific trigger:
+### Package Structure (new in `feature/mission-system`)
 
-| Mission Name | Unlock Condition | Objective | Reward |
-| :--- | :--- | :--- | :--- |
-| **The Long Haul** | Reach 3000m altitude | Complete a single run lasting 10+ min | Rare artifact + 500 cash |
-| **Heat Junkie** | Overheat 3 times in one run | Reach 100% heat 5 times total | Special rocket skin + 300 cash |
-| **Near-Death Experience** | Survive with <5% health | Complete a run with <10% health remaining | Codex entry + 400 cash |
-| **Void Walker** | Reach the Void biome | Stay in Void biome for 2 continuous min | Void artifact + 600 cash |
-| **Perfect Storm** | Complete 3 missions | Complete 5 missions without dying | Legendary rocket skin |
-| **Artifact Hunter** | Collect 3 artifacts | Collect 5 different artifact types | Artifact bonus + 700 cash |
-| **Momentum Legend** | Build 200 momentum in one run | Build 400 momentum in one run | Legendary powerup + 800 cash |
+```
+com.example.jump_droid.missions/
+  Mission.kt              — Enums + data classes
+  MissionRegistry.kt      — 47 mission definitions
+  MissionManager.kt       — Coroutine runtime, state management
+  MissionRepository.kt    — DataStore persistence
+  ui/
+    MissionScreen.kt      — 2-column glassmorphism card grid
+```
 
----
+### Data Flow
 
-## Reward System
+1. `MissionRepository` reads/writes DataStore (suspend functions)
+2. `MissionManager` wraps repository with `mutableStateMapOf` for Compose reactivity
+3. `GameScreen.kt` calls `missionManager.update(gameStats)` each frame during PLAYING
+4. `MissionManager.update()` iterates all missions, checks objectives, transitions COMPLETED
+5. `MissionScreen` reads state via `getMissionState()` + `getProgressPercentage()` directly from snapshot-state maps
 
-### Reward Types
+### State Machine
 
-| Reward Type | Example | How It's Used |
-| :--- | :--- | :--- |
-| **Cash** | 100–1000 | In-game currency for unlocks |
-| **Rocket Skins** | "Scout Mk2" | Visual customisation |
-| **Codex Entries** | "Lore of the Leviathan" | Expands story/universe |
-| **Powerups** | "Fuel Boost" | Permanent upgrade |
-| **Unlockables** | "New Biome" | Unlocks new content |
-
-### Reward Tables per Tier
-
-| Tier | Cash Reward | Bonus Reward |
-| :--- | :--- | :--- |
-| **Tier 1 (Easy)** | 100 cash | 1 Codex entry |
-| **Tier 2 (Medium)** | 250 cash | 1 random powerup |
-| **Tier 3 (Hard)** | 500 cash | 1 rare artifact |
-| **Tier 4 (Elite)** | 1000 cash | 1 rocket skin or special unlockable |
+```
+LOCKED → AVAILABLE → IN_PROGRESS → COMPLETED → CLAIMED
+  ↑          ↑                          ↑
+  unlock     startRun()                 update()
+  condition                             (progress >= target)
+```
 
 ---
 
-## Data Model (Kotlin Implementation)
+## UI: MissionScreen
 
-### Mission.kt
+- **2-column grid** with glassmorphism cards (`background: rgba(26,26,46,80%)`)
+- Each card shows: emoji icon, mission name (14sp), tier pill badge, 4dp progress bar, percentage + state label
+- **COMPLETED**: tier-colored border glow + full-width CLAIM pill button
+- **CLAIMED**: dimmed tier tint + checkmark
+- **IN_PROGRESS**: faint tint + active dot
+- **LOCKED (hidden)**: red-tinted SIGNAL LOST overlay
+- **LOCKED (regular)**: dimmed, lock icon, gray LOCKED pill
 
-```kotlin
-// Mission.kt
-enum class MissionCategory {
-    FLIGHT_TIME,
-    PLATFORM_STAY,
-    NO_HEAT,
-    FUEL_EFFICIENCY,
-    COMBO_STREAK,
-    BOSS_SLAYER,
-    DISCOVERY_HUNTER,
-    ALTITUDE_CLIMBER,
-    MOMENTUM_MASTER,
-    HAZARD_SURVIVOR,
-    PERFECT_RUN,
-    COLLECTOR,
-    BOOST_CHAMPION,
-    COMBO_PRO
-}
+---
 
-enum class MissionTier {
-    TIER_1, TIER_2, TIER_3, TIER_4
-}
+## Known Issues
 
-enum class MissionState {
-    LOCKED,      // Not yet visible
-    AVAILABLE,   // Visible but not started
-    IN_PROGRESS, // Started but not complete
-    COMPLETED,   // Fully done
-    CLAIMED      // Reward collected
-}
+1. **Claim flow not stable** — 100% progress sometimes doesn't transition to COMPLETED state. Multiple fixes applied (`mutableStateMapOf`, fallback raw-progress check in `claimRewards()`, `startRun()` skips progress reset for already-met targets), but issue persists.
+2. **Hidden mission unlock feedback** — Newly unlocked hidden missions should show "SIGNAL RECEIVED" animation but currently just appear as normal cards.
+3. **Cash wallet** — Cash rewards are displayed but not persisted. No wallet exists yet.
+4. **MainMenuScreen badge** — MISSIONS button has badge (⏡/🔔) but it's computed from in-memory state only, not reactive.
 
-data class Mission(
-    val id: String,
-    val category: MissionCategory,
-    val tier: MissionTier,
-    val name: String,
-    val description: String,
-    val objective: MissionObjective,
-    val rewards: Rewards,
-    val unlockCondition: UnlockCondition? = null  // null = always visible
-)
+---
 
-data class MissionObjective(
-    val type: ObjectiveType,
-    val targetValue: Float,
-    val currentValue: Float = 0f,
-    val unit: String = "",
-    val comboThreshold: Float? = null  // Only used for COMBO_MAINTAIN_TIME
-)
+## Next Steps
 
-enum class ObjectiveType {
-    TOTAL_FLIGHT_TIME,     // seconds
-    TOTAL_PLATFORM_TIME,   // seconds
-    ZERO_HEAT_TIME,        // seconds
-    PICKUPS_COLLECTED,     // count
-    MAX_COMBO,             // count
-    BOSSES_DEFEATED,       // count
-    CODEX_UNLOCKED,        // count
-    MAX_ALTITUDE,          // meters
-    MAX_MOMENTUM,          // momentum points
-    HAZARD_HITS_SURVIVED,  // count
-    PERFECT_RUN_TIME,      // seconds
-    ARTIFACTS_COLLECTED,   // count
-    DASHES_PER_RUN,        // count
-    COMBO_MAINTAIN_TIME,   // seconds (with comboThreshold)
-    FUEL_PICKUPS_COLLECTED // count
-}
-
-data class Rewards(
-    val cash: Int,
-    val codexEntry: String? = null,
-    val powerup: String? = null,
-    val artifact: String? = null,
-    val rocketSkin: String? = null,
-    val unlockable: String? = null
-)
-
-data class UnlockCondition(
-    val type: UnlockType,
-    val value: Float,
-    val missionId: String? = null  // for mission-chain unlocks
-)
-
-enum class UnlockType {
-    REACH_ALTITUDE,
-    DEFEAT_BOSS,
-    COMPLETE_MISSION,
-    UNLOCK_CODEX_ENTRY,
-    REACH_BIOME,
-    COLLECT_ARTIFACT
-}
+1. Debug and stabilize the COMPLETED transition — ensure `update()` reliably fires when `progress >= targetValue`
+2. Add SIGNAL RECEIVED animation for newly unlocked hidden missions
+3. Implement cash wallet persistence
+4. Merge `feature/mission-system` → `development`
+5. Explore full glassmorphism design system from `docs/gameplay/stitch_jump_droid_mission_screen.zip`
