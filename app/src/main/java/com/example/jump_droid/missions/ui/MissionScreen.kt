@@ -87,9 +87,11 @@ fun MissionScreen(
                 val state = missionManager.getMissionState(mission.id)
                 val progress = missionManager.getProgressPercentage(mission.id)
                 val rawProgress = missionManager.getProgress(mission.id)
-                val isClaimable = state == MissionState.COMPLETED ||
+                val isClaimable = state != MissionState.CLAIMED && (
+                    state == MissionState.COMPLETED ||
                     (state == MissionState.IN_PROGRESS && progress > 0.99f) ||
                     (rawProgress >= mission.objective.targetValue)
+                )
                 MissionCard(mission, state, progress, isClaimable, onClaim = {
                     missionManager.claimRewards(mission.id, scope)
                     refreshKey++

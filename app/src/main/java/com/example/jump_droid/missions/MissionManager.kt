@@ -50,7 +50,7 @@ class MissionManager(private val repository: MissionRepository) {
         if (!isInitialized) { pendingStartRun = true; return }
         allMissions.forEach { mission ->
             val state = _missionStates[mission.id] ?: MissionState.LOCKED
-            if (state == MissionState.AVAILABLE) {
+            if (state == MissionState.AVAILABLE || state == MissionState.IN_PROGRESS) {
                 _missionStates[mission.id] = MissionState.IN_PROGRESS
                 val existing = _progress[mission.id] ?: 0f
                 if (existing >= mission.objective.targetValue && mission.objective.targetValue > 0f) {
@@ -105,19 +105,21 @@ class MissionManager(private val repository: MissionRepository) {
     }
 
     fun endRun(scope: CoroutineScope) {
+        val stateSnapshot = _missionStates.toMap()
+        val progressSnapshot = _progress.toMap()
         scope.launch {
-            _missionStates.forEach { (id, state) ->
+            stateSnapshot.forEach { (id, state) ->
                 when (state) {
-                    MissionState.IN_PROGRESS -> {
-                        _missionStates[id] = MissionState.AVAILABLE
-                        repository.saveMissionState(id, MissionState.AVAILABLE)
-                    }
-                    MissionState.COMPLETED -> {
-                        repository.saveMissionState(id, MissionState.COMPLETED)
-                    }
+                    MissionState.IN_PROGRESS -> repository.saveMissionState(id, MissionState.AVAILABLE)
+                    MissionState.COMPLETED -> repository.saveMissionState(id, MissionState.COMPLETED)
                     else -> {}
                 }
-                _progress[id]?.let { repository.saveProgress(id, it) }
+                progressSnapshot[id]?.let { repository.saveProgress(id, it) }
+            }
+        }
+        _missionStates.forEach { (id, state) ->
+            if (state == MissionState.IN_PROGRESS) {
+                _missionStates[id] = MissionState.AVAILABLE
             }
         }
         completionEvent = null
