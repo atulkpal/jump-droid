@@ -206,7 +206,7 @@ object ThreatRegistry {
             description = "A massive tactical vessel overseeing regional surveillance and drone deployments.",
             type = ThreatType.MINI_BOSS,
             tier = ThreatTier.TIER_4,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ORBIT), spawnChance = 0.05f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.05f)
         ))
 
         register(ThreatDefinition(
@@ -215,7 +215,7 @@ object ThreatRegistry {
             description = "Ancient orbital defense platform that creates rotating safe zones.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ORBIT), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f)
         ))
 
         register(ThreatDefinition(
@@ -224,7 +224,7 @@ object ThreatRegistry {
             description = "Massive cosmic organism that consumes light and energy.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f)
         ))
 
         register(ThreatDefinition(
@@ -242,7 +242,7 @@ object ThreatRegistry {
             description = "Gigantic living creature that creates moving slipstreams.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f)
         ))
 
         register(ThreatDefinition(

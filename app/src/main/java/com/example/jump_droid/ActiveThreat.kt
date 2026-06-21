@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import android.util.Log
 import androidx.compose.ui.graphics.Color
 import kotlin.math.*
 import kotlin.random.Random
@@ -28,6 +29,7 @@ class ActiveThreat(
     var state by mutableStateOf(ThreatState.SPAWNING)
     var lifetime by mutableFloatStateOf(0f)
     var health by mutableFloatStateOf(definition.baseHealth)
+    var difficultyMultiplier by mutableFloatStateOf(1f)
     var duration by mutableFloatStateOf(10f) // Default duration for temporary threats
     var patrolTimer by mutableFloatStateOf(0f)
     
@@ -51,6 +53,9 @@ class ActiveThreat(
     var pulseAlpha by mutableFloatStateOf(0f)
     var jamCooldown by mutableFloatStateOf(0f)
     var bossRewardDropped by mutableStateOf(false)
+    var shakeCooldown by mutableFloatStateOf(0f)
+    var projectileCooldown by mutableFloatStateOf(0f)
+    var threatSpawnCooldown by mutableFloatStateOf(0f)
     
     // Weak Point System
     var maxWeakPoints by mutableIntStateOf(0)
@@ -98,6 +103,7 @@ class ActiveThreat(
                 "HAZ_TURBULENCE" -> 18f
                 "HAZ_GRAVITY" -> 22f
                 "HAZ_EMP" -> 15f
+                "HAZ_VOID_ANOMALY" -> 15f
                 else -> duration
             }
 
@@ -290,11 +296,15 @@ class ActiveThreat(
                         // Swarm Surge: periodically expand and contract
                         scanPulse = (kotlin.math.sin(lifetime * 2f) * 0.5f + 0.5f)
                     }
+                }
+                else -> {}
+            }
 
                     if (definition.id == "MINI_BOSS_COMMANDER") {
                         localTimer += dt
                         gravityPulseTimer += dt
                         jamCooldown -= dt
+                        projectileCooldown -= dt
 
                         // Gravity Pulse Ring Effect logic - INCREASED FREQUENCY
                         if (gravityPulseTimer > 2.5f) {
@@ -373,6 +383,8 @@ class ActiveThreat(
                     // --- Boss Roster Expansion Support (Framework) ---
                     if (definition.id == "BOSS_GATEKEEPER") {
                         localTimer += dt
+                        projectileCooldown -= dt
+                        threatSpawnCooldown -= dt
                         if (!isArrived) {
                             arrivalTimer += dt
                             vy = 80f
@@ -413,6 +425,7 @@ class ActiveThreat(
                     }
                     if (definition.id == "BOSS_STAR_EATER") {
                         localTimer += dt
+                        projectileCooldown -= dt
                         if (!isArrived) {
                             arrivalTimer += dt
                             vy = 100f
@@ -452,7 +465,9 @@ class ActiveThreat(
                     }
                     if (definition.id == "BOSS_VOID_ENGINE") {
                         localTimer += dt
-                        gravityPulseTimer += dt
+                        shakeCooldown = max(0f, shakeCooldown - dt)
+                        projectileCooldown -= dt
+                        threatSpawnCooldown -= dt
                         if (!isArrived) {
                             arrivalTimer += dt
                             vy = 120f
@@ -460,7 +475,6 @@ class ActiveThreat(
                                 isArrived = true
                                 phase = 2
                                 localTimer = 0f
-                                gravityPulseTimer = 0f
                             }
                             return
                         }
@@ -470,12 +484,10 @@ class ActiveThreat(
                                 rotation += 240f * dt
                                 val pulsePhase = sin(lifetime * 2f)
                                 scanPulse = (pulsePhase * 0.5f + 0.5f)
-                                gravityPulseTimer = if (gravityPulseTimer > 2f) 0f else gravityPulseTimer
                                 x += (targetX - x) * 0.2f * dt
                                 if (localTimer > 12f || activeWeakPoints < maxWeakPoints) {
                                     phase = 3
                                     localTimer = 0f
-                                    gravityPulseTimer = 0f
                                 }
                             }
                             3 -> { // Gravity Destabilization
@@ -483,7 +495,6 @@ class ActiveThreat(
                                 scanPulse = (scanPulse + dt * 3.0f) % 1.0f
                                 val shift = sin(lifetime * 3f) * 2f
                                 x += (targetX - x) * (0.5f + shift * 0.1f) * dt
-                                gravityPulseTimer = if (gravityPulseTimer > 1.5f) 0f else gravityPulseTimer
                                 if (localTimer > 15f || activeWeakPoints <= 0) {
                                     phase = 4
                                     localTimer = 0f
@@ -497,6 +508,7 @@ class ActiveThreat(
                     }
                     if (definition.id == "BOSS_LEVIATHAN") {
                         localTimer += dt
+                        projectileCooldown -= dt
                         if (!isArrived) {
                             arrivalTimer += dt
                             vy = 90f
@@ -542,6 +554,7 @@ class ActiveThreat(
                     }
                     if (definition.id == "BOSS_SIGNAL") {
                         localTimer += dt
+                        projectileCooldown -= dt
                         if (!isArrived) {
                             arrivalTimer += dt
                             vy = 110f
@@ -588,11 +601,9 @@ class ActiveThreat(
                     }
 
                     if (definition.id == "ENT_ORBITAL_SENTRY") {
-                        // Orbital Sentry: Stationary rotation
                         rotation += 20f * dt
-                        
-                        // Periodic "Radar Scan" pulse
                         scanPulse = (scanPulse + dt * 0.3f) % 1.0f
+                        projectileCooldown -= dt
                     }
 
                     if (definition.id == "ENT_CORRUPTED_HULL") {
@@ -611,15 +622,16 @@ class ActiveThreat(
                         val dist = sqrt(dx*dx + dy*dy)
                         if (dist < 600f) {
                             if (!isTracking) isTracking = true
-                            val huntSpeed = 80f + alertLevel * 120f
+                            val huntSpeed = 120f + alertLevel * 120f
                             val dirX = if (dist > 0f) dx / dist else 0f
                             val dirY = if (dist > 0f) dy / dist else 0f
                             vx = dirX * huntSpeed
                             vy = dirY * huntSpeed
                             x += vx * dt
                             y += vy * dt
-                            alertLevel = min(1f, alertLevel + dt * 0.5f)
+                            alertLevel = min(1f, alertLevel + dt * 0.8f)
                             scanPulse = (scanPulse + dt * (1f + alertLevel * 2f)) % 1.0f
+                            projectileCooldown -= dt
                         } else {
                             isTracking = false
                             alertLevel = max(0f, alertLevel - dt * 0.3f)
@@ -627,7 +639,7 @@ class ActiveThreat(
                             y += vy * dt
                             scanPulse = (sin(lifetime * 0.5f) * 0.5f + 0.5f) * 0.3f
                         }
-                        if (dist > 1000f) isTracking = false
+                        if (dist > 1200f) isTracking = false
                     }
 
                     if (definition.id == "ENT_VOID_WRAITH") {
@@ -655,9 +667,6 @@ class ActiveThreat(
                         y += vy * dt
                         scanPulse = (sin(lifetime * 0.5f) * 0.5f + 0.5f) * 0.8f + 0.2f
                     }
-                }
-                else -> {}
-            }
         }
     }
 
@@ -688,7 +697,8 @@ class ActiveThreat(
         onAnchoredText: (FloatingText) -> Unit,
         onEscalationEvent: (x: Float, y: Float, source: ActiveThreat) -> Unit,
         activeThreats: List<ActiveThreat> = emptyList(),
-        onSpawnProjectile: (x: Float, y: Float, vx: Float, vy: Float, type: ProjectileType, owner: ProjectileOwner, damage: Float, color: Color, size: Float, life: Float) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> }
+        onSpawnProjectile: (x: Float, y: Float, vx: Float, vy: Float, type: ProjectileType, owner: ProjectileOwner, damage: Float, color: Color, size: Float, life: Float) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> },
+        onSpawnThreat: (id: String, x: Float, y: Float, vx: Float, vy: Float) -> Unit = { _, _, _, _, _ -> }
     ) {
         if (state != ThreatState.ACTIVE) return
 
@@ -791,6 +801,11 @@ class ActiveThreat(
                         hasInteracted = true
                         onNotification("LOCKED ON", null)
                     }
+                    if (projectileCooldown <= 0f) {
+                        val ang = atan2(dy, dx)
+                        onSpawnProjectile(x, y, cos(ang) * 400f, sin(ang) * 400f, ProjectileType.BOLT, ProjectileOwner.THREAT, 8f, Color(0xFFFF9800), 6f, 3f)
+                        projectileCooldown = 2.0f
+                    }
                 } else {
                     hasInteracted = false
                 }
@@ -860,14 +875,14 @@ class ActiveThreat(
                                 }
                                 "BOSS_STAR_EATER" -> Pair(x, y)
                                 "BOSS_LEVIATHAN" -> {
-                                    val ox = sin(lifetime * 1000f - i * 0.5f) * 100f
+                                    val ox = sin(lifetime * 1.5f - i * 0.5f) * 100f
                                     Pair(x + ox, y + i * 60f)
                                 }
                                 "BOSS_VOID_ENGINE" -> {
                                     val angle = (rotation + i * 180f) * (PI.toFloat() / 180f)
                                     Pair(x + cos(angle) * 150f, y + sin(angle) * 150f)
                                 }
-                                "BOSS_SIGNAL" -> Pair(x + (Random(instanceId.hashCode()).nextFloat()-0.5f)*200f, y + (Random(instanceId.hashCode()).nextFloat()-0.5f)*200f)
+                                "BOSS_SIGNAL" -> Pair(x + (Random.nextFloat()-0.5f)*200f, y + (Random.nextFloat()-0.5f)*200f)
                                 else -> Pair(x, y)
                             }
 
@@ -914,10 +929,25 @@ class ActiveThreat(
                                  }
                                  jamCooldown = 1.2f
                              }
+                               if (projectileCooldown <= 0f) {
+                                   val baseAngle = atan2(dy, dx)
+                                  onSpawnProjectile(x, y, cos(baseAngle) * 600f, sin(baseAngle) * 600f, ProjectileType.BOLT, ProjectileOwner.THREAT, 20f, Color(0xFFFF1744), 8f, 3f)
+                                  onSpawnProjectile(x, y, cos(baseAngle + 0.3f) * 600f, sin(baseAngle + 0.3f) * 600f, ProjectileType.BOLT, ProjectileOwner.THREAT, 20f, Color(0xFFFF1744), 8f, 3f)
+                                  onSpawnProjectile(x, y, cos(baseAngle - 0.3f) * 600f, sin(baseAngle - 0.3f) * 600f, ProjectileType.BOLT, ProjectileOwner.THREAT, 20f, Color(0xFFFF1744), 8f, 3f)
+                                  projectileCooldown = 1.5f
+                              }
                         }
                     }
                     "BOSS_GATEKEEPER" -> {
                         val dist = sqrt(distSq)
+                        if (phase == 2 && projectileCooldown <= 0f) {
+                            val baseAngle = atan2(dy, dx)
+                            for (i in -1..1) {
+                                val a = baseAngle + i * 0.35f
+                                onSpawnProjectile(x, y, cos(a) * 500f, sin(a) * 500f, ProjectileType.BOLT, ProjectileOwner.THREAT, 15f, Color(0xFFFF9800), 6f, 4f)
+                            }
+                            projectileCooldown = 2.0f
+                        }
                         if (dist in 150f..350f) {
                             val angle = atan2(dy, dx) * (180f / PI.toFloat())
                             val relAngle = (angle - rotation + 360f) % 360f
@@ -931,6 +961,11 @@ class ActiveThreat(
                         if (phase == 3 && dist < 600f) {
                             player.velocityX -= (dx / dist) * 1500f * sdt
                             player.velocityY -= (dy / dist) * 1500f * sdt
+                        }
+                        if (phase == 3 && threatSpawnCooldown <= 0f) {
+                            onSpawnThreat("ENT_SCOUT_DRONE", x + Random.nextFloat() * 200f - 100f, y + 200f, 0f, -100f)
+                            onSpawnThreat("ENT_SCOUT_DRONE", x + Random.nextFloat() * 200f - 100f, y + 300f, 0f, -150f)
+                            threatSpawnCooldown = 4.0f
                         }
                     }
                     "BOSS_STAR_EATER" -> {
@@ -953,6 +988,15 @@ class ActiveThreat(
                                 pu.x += (pdx / pdist) * 800f * sdt
                             }
                         }
+                        if (phase == 2 && projectileCooldown <= 0f) {
+                            onSpawnProjectile(x, y - 30f, cos(atan2(dy, dx)) * 300f, sin(atan2(dy, dx)) * 300f, ProjectileType.WAVE, ProjectileOwner.THREAT, 12f, Color(0xFFE040FB), 20f, 5f)
+                            projectileCooldown = 4.0f
+                        }
+                        if (phase == 3 && projectileCooldown <= 0f) {
+                            val ang = atan2(dy, dx)
+                            onSpawnProjectile(x, y - 30f, cos(ang) * 400f, sin(ang) * 400f, ProjectileType.MISSILE, ProjectileOwner.THREAT, 15f, Color(0xFF9C27B0), 10f, 4f)
+                            projectileCooldown = 2.5f
+                        }
                     }
                     "BOSS_LEVIATHAN" -> {
                         val speedMul = if (phase == 3) 1.5f else 1.0f
@@ -965,51 +1009,137 @@ class ActiveThreat(
                             val sdx = player.x - segX
                             val sdy = player.y - segY
                             if (sdx*sdx + sdy*sdy < 300f * 300f) {
-                                val forceStrength = (1f - sqrt(sdx*sdx + sdy*sdy) / 300f) * 3000f * speedMul
+                                val tailMul = if (i >= 4) 3f else 1f
+                                val forceStrength = (1f - sqrt(sdx*sdx + sdy*sdy) / 300f) * 3000f * speedMul * tailMul
                                 player.velocityX += (sdx / max(1f, sqrt(sdx*sdx + sdy*sdy))) * forceStrength * sdt
                                 if (sdy > 20f && sdx*sdx + sdy*sdy < 200f * 200f) {
-                                    player.velocityY -= 4500f * sdt
+                                    player.velocityY -= 4500f * sdt * tailMul
                                     if (Random.nextFloat() < 0.4f) {
                                         onBurst(player.x, player.y + 50f, 10, Color.Cyan, 300f)
                                     }
                                 }
                             }
                         }
+                        if (phase == 2) {
+                            val shrinkMargin = 100f + (1f - activeWeakPoints.toFloat() / maxWeakPoints) * 100f
+                            if (player.x < shrinkMargin) player.velocityX += 3000f * sdt
+                            if (player.x > screenWidth - shrinkMargin) player.velocityX -= 3000f * sdt
+                        }
                         if (phase == 3 && (player.x < 50f || player.x > screenWidth - 50f)) {
-                            player.velocityY -= 2000f * sdt
+                            player.velocityY -= 100000f * sdt
+                        }
+                        if (phase == 3) {
+                            val dxMaw = player.x - x
+                            val dyMaw = player.y - y
+                            if (dxMaw*dxMaw + dyMaw*dyMaw < 80f * 80f) {
+                                player.heat = min(Constants.MAX_HEAT, player.heat + 100f * sdt)
+                                onVisualFeedback(25f, 0.4f)
+                                if (Random.nextFloat() < 0.02f) {
+                                    onFloatingText("MAW CORE", player.x, player.y, Color.Cyan, true, 1.0f)
+                                }
+                            }
+                        }
+                        if (phase >= 2 && projectileCooldown <= 0f) {
+                            val ang = atan2(dy, dx)
+                            if (phase == 2) {
+                                onSpawnProjectile(x, y + 40f, cos(ang) * 500f, sin(ang) * 500f, ProjectileType.BOLT, ProjectileOwner.THREAT, 10f, Color(0xFF00BCD4), 8f, 4f)
+                                projectileCooldown = 3.0f
+                            }
+                            if (phase == 3) {
+                                onSpawnProjectile(x, y + 40f, cos(ang) * 600f, sin(ang) * 600f, ProjectileType.BEAM, ProjectileOwner.THREAT, 15f, Color(0xFF00BCD4), 6f, 3f)
+                                projectileCooldown = 2.0f
+                            }
                         }
                     }
                     "BOSS_VOID_ENGINE" -> {
                         if (phase >= 2) {
-                            val shiftStrength = if (phase == 3) 7200f else 4800f
-                            val shiftDir = if (sin(lifetime * (if (phase == 3) 4f else 2f)) > 0f) 1f else -1f
-                            player.velocityX += shiftStrength * shiftDir * sdt
-                            onVisualFeedback(10f, 0.4f)
-                        }
-                        if (phase == 3) {
-                            if (Random.nextFloat() < 0.012f) {
-                                player.controlInversionTimer = 2.5f
-                                onFloatingText("CONTROL INVERTED", player.x, player.y, Color(0xFFE91E63), true, 1.0f)
-                                onBurst(player.x, player.y, 20, Color(0xFFFF1744), 400f)
+                            if (phase == 2) {
+                                val shiftStrength = 4800f
+                                val shiftDir = if (sin(lifetime * 2f) > 0f) 1f else -1f
+                                player.velocityX += shiftStrength * shiftDir * sdt
+                                if (shakeCooldown <= 0f) {
+                                    onVisualFeedback(10f, 0.4f)
+                                    shakeCooldown = 0.5f
+                                }
+                                if (threatSpawnCooldown <= 0f) {
+                                    onSpawnThreat("HAZ_VOID_ANOMALY", x + Random.nextFloat() * 300f - 150f, y + 100f, 0f, -50f)
+                                    threatSpawnCooldown = 5.0f
+                                }
                             }
+                            if (phase == 3) {
+                                player.velocityY += 4800f * sdt
+                                if (shakeCooldown <= 0f) {
+                                    onVisualFeedback(10f, 0.4f)
+                                    shakeCooldown = 0.5f
+                                }
+                                if (Random.nextFloat() < 0.012f) {
+                                    onFloatingText("GRAVITY FLUX", player.x, player.y - 60f, Color(0xFFFF1744), true, 1.5f)
+                                    onVisualFeedback(20f, 0.6f)
+                                    onBurst(player.x, player.y, 30, Color(0xFFFF1744), 500f)
+                                    player.controlInversionTimer = 2.5f
+                                    onFloatingText("CONTROL INVERTED", player.x, player.y, Color(0xFFE91E63), true, 1.0f)
+                                }
+                            }
+                        }
+                        if (phase == 2 && projectileCooldown <= 0f) {
+                            onSpawnProjectile(x, y, 0f, 200f, ProjectileType.WAVE, ProjectileOwner.THREAT, 8f, Color(0xFFE91E63), 25f, 4f)
+                            projectileCooldown = 3.5f
+                        }
+                        if (phase == 3 && projectileCooldown <= 0f) {
+                            val ang = atan2(dy, dx)
+                            for (i in -1..1) {
+                                val a = ang + i * 0.35f
+                                onSpawnProjectile(x, y, cos(a) * 500f, sin(a) * 500f, ProjectileType.BOLT, ProjectileOwner.THREAT, 12f, Color(0xFFE91E63), 8f, 3f)
+                            }
+                            projectileCooldown = 2.0f
                         }
                     }
                     "BOSS_SIGNAL" -> {
+                        if (phase == 3 && activeWeakPoints <= 0) {
+                            phase = 4
+                            localTimer = 0f
+                            onFloatingText("OVERLOAD INITIATED", x, y - 80f, Color.Cyan, true, 2.0f)
+                        }
                         if (distSq < 800f * 800f) {
-                            if (Random.nextFloat() < (if (phase == 3) 0.1f else 0.05f)) {
-                                onNotification("SIGNAL LOSS...", 0.5f)
-                            }
-                            if (Random.nextFloat() < (if (phase == 3) 0.04f else 0.02f)) {
-                                player.hudInterferenceTimer = 2.5f
+                            if (phase == 2) {
+                                if (Random.nextFloat() < 0.05f) {
+                                    onNotification("SIGNAL LOSS...", 0.5f)
+                                }
+                                if (Random.nextFloat() < (0.01f + localTimer * 0.002f)) {
+                                    player.hudInterferenceTimer = 2.5f + localTimer * 0.3f
+                                }
                             }
                             if (phase == 3) {
+                                if (Random.nextFloat() < 0.1f) {
+                                    onNotification("SIGNAL LOSS...", 0.5f)
+                                }
                                 player.heat += 40f * sdt
+                                player.velocityX *= (1f - sdt)
+                                player.velocityY *= (1f - sdt)
+                                health = min(definition.baseHealth, health + 20f * sdt)
                                 if (Random.nextFloat() < 0.01f) {
                                     onFloatingText("MIRAGE", player.x, player.y - 60f, Color(0xFFE91E63), true, 1.0f)
                                 }
                             }
+                            if (phase == 4) {
+                                player.velocityY += 4000f * sdt
+                                player.velocityX *= (1f - sdt * 2f)
+                                onVisualFeedback(15f, 0.3f)
+                            }
                         }
-                        if (phase >= 2) {
+                        if (phase == 2 && projectileCooldown <= 0f) {
+                            val jitterX = (Random.nextFloat() - 0.5f) * 40f
+                            val jitterY = (Random.nextFloat() - 0.5f) * 40f
+                            val ang = atan2(dy + jitterY, dx + jitterX)
+                            onSpawnProjectile(x + jitterX, y + jitterY, cos(ang) * 450f, sin(ang) * 450f, ProjectileType.BOLT, ProjectileOwner.THREAT, 10f, Color(0xFFFF1744), 7f, 4f)
+                            projectileCooldown = 3.0f
+                        }
+                        if (phase == 3 && projectileCooldown <= 0f) {
+                            val ang = atan2(dy, dx)
+                            onSpawnProjectile(x, y, cos(ang) * 550f, sin(ang) * 550f, ProjectileType.BEAM, ProjectileOwner.THREAT, 12f, Color(0xFFFF1744), 5f, 2.5f)
+                            projectileCooldown = 1.5f
+                        }
+                        if (phase >= 2 && phase <= 3) {
                             val ghostRate = if (phase == 3) 0.25f else 0.15f
                             if (Random.nextFloat() < ghostRate) {
                                 onSpawnGhostPlatform(Random.nextFloat() * screenWidth, cameraY + Random.nextFloat() * screenHeight)
@@ -1024,6 +1154,11 @@ class ActiveThreat(
                             onVisualFeedback(10f + alertLevel * 15f, 0.2f)
                             onBurst(x, y, 5, Color(0xFFFF1744), 200f)
                         }
+                        if (alertLevel > 0.5f && projectileCooldown <= 0f) {
+                            val ang = atan2(dy, dx)
+                            onSpawnProjectile(x, y, cos(ang) * 500f, sin(ang) * 500f, ProjectileType.BOLT, ProjectileOwner.THREAT, 8f, Color(0xFFFF1744), 5f, 3f)
+                            projectileCooldown = 1.5f
+                        }
                     }
                     "ENT_VOID_WRAITH" -> {
                         if (isMaterialized && distSq < 100f * 100f && player.invulnerabilityTimer <= 0f) {
@@ -1037,11 +1172,11 @@ class ActiveThreat(
                     "ENT_VOID_WHALE" -> {
                         val dist = sqrt(distSq)
                         if (dist < 500f) {
-                            val force = (1f - dist / 500f) * 2000f
+                            val force = (1f - dist / 500f) * 30000f
                             val side = if (vx > 0f) -1f else 1f
                             player.velocityX += side * force * sdt
                             if (dist < 200f) {
-                                player.velocityY -= 3000f * sdt
+                                player.velocityY -= 45000f * sdt
                                 onVisualFeedback(5f, 0f)
                             }
                         }

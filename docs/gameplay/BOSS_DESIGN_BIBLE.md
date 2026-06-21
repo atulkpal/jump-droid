@@ -24,7 +24,7 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 ### 1. The Gatekeeper
 **ID:** `BOSS_GATEKEEPER`  
-**Status:** Partial  
+**Status:** Implemented  
 **Biome:** Upper Atmosphere / Space Boundary  
 **Difficulty:** ⭐⭐⭐ (Medium)  
 **Weak Points:** 4  
@@ -33,8 +33,8 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 | Phase | Description |
 | :--- | :--- |
 | **Phase 1** | Deploys a rotating energy shield. Must destroy weak points to lower shield. |
-| **Phase 2** | Fires 3-way projectile patterns (PROJECTILE_SHOOTER behavior). |
-| **Phase 3** | Spawns Surveyor Probes to assist. Speeds up projectile frequency. |
+| **Phase 2** | Fires 3-way BOLT projectile patterns every 2s via ProjectileManager. |
+| **Phase 3** | Spawns Scout Drones to assist. Continues wall-pressure pull toward center. |
 
 **Strategy:** Focus on weak points in phase 1. Use momentum dashes to dodge projectile spreads. Clear adds before focusing on damage.
 
@@ -63,16 +63,16 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 **Status:** Implemented  
 **Biome:** Void / Deep Space Edge  
 **Difficulty:** ⭐⭐⭐⭐⭐ (Very Hard)  
-**Weak Points:** 3 (Tail deals 3× damage)  
+**Weak Points:** 3 (Tail segments 4–5 deal 3× damage)  
 **Visual Appearance:** 6 organic ellipse body segments with armor plate overlay, arranged vertically with sine-wave offset. Each segment has bioluminescent vein patterns and directional slipstream arrows showing push direction. Head segment has a glowing red eye. Weak points (magenta circles with white dot) on even segments (0, 2, 4). Tail whip telegraph lines extend from last 2 segments in phase 3. Wall-pressure red edge glow on screen sides when player is near boundaries.
 
 | Phase | Description |
 | :--- | :--- |
-| **Phase 1** | S-curve movement (VOID_SERPENT behavior). Only tail takes full damage. |
-| **Phase 2** | Devours edges of screen — **playable area shrinks** over time. |
-| **Phase 3** | Opens massive maw. Must boost *into* mouth, hit core from inside, then dash out before it closes. |
+| **Phase 1** | S-curve movement (VOID_SERPENT behavior). Tail segments (4–5) deal 3× knockback force. |
+| **Phase 2** | Devours edges of screen — **playable area shrinks** proportionally to weak points remaining. Player pushed inward from margins. |
+| **Phase 3** | Opens massive maw (80px core zone). Standing inside the core rapidly heats the player. If pushed to screen edge, massive downward force applied. |
 
-**Strategy:** Chase the tail during phase 1. Stay centered in phase 2 to maintain mobility. Execute the inside-core attack quickly — hesitation is fatal.
+**Strategy:** Chase the tail during phase 1. Stay centered in phase 2 to maintain mobility. Avoid the maw core in phase 3.
 
 ---
 
@@ -86,9 +86,9 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 | Phase | Description |
 | :--- | :--- |
-| **Phase 1** | Summons Void Anomalies that drift toward player (WIND_MAKER behavior). |
-| **Phase 2** | Creates localized gravity wells that **pull downward**; must boost upward to counter. |
-| **Phase 3** | Gravity flips — controls invert momentarily. Exposes core after each gravity pulse. |
+| **Phase 1** | Lateral gravity shifts push player sideways. Summons Void Anomalies every 5s that drift toward player. |
+| **Phase 2** | Creates **downward gravity wells** (4800f/s² constant downward force); must boost upward to counter. Control inversion triggers randomly at ~1.2% chance per frame (GRAVITY FLUX telegraph + flash). |
+| **Phase 3** | Gravity lateral shifts intensify (7200f/s²). Control inversion with full GRAVITY FLUX warning + screen flash + burst. |
 
 **Strategy:** Destroy anomalies before they multiply. Save fuel for phase 2 boost-fighting. Time attacks right after gravity flips.
 
@@ -104,11 +104,11 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 | Phase | Description |
 | :--- | :--- |
-| **Phase 1** | Jams HUD — **hides fuel and heat bars** (SIGNAL_JAMMER behavior). |
-| **Phase 2** | Drains Momentum to heal (ITEM_STEALER behavior). |
-| **Phase 3** | Massive pulse pushes rocket downward. Must **boost against pulse** to reach core. |
+| **Phase 1** | Jams HUD — **increases flicker duration** over time (starts short at 2.5s, grows with phase duration up to ~8s). Fuel/heat bars briefly hidden during flicker. |
+| **Phase 2** | Drains player velocity (momentum) to heal (20 HP/s). Ghost platform spawn rate increases. |
+| **Phase 3** | OVERLOAD initiated after weak points destroyed. Massive **downward pulse** (4000f/s²) pushes rocket down. Horizontal velocity heavily damped. Must **boost against pulse** to survive. |
 
-**Strategy:** Memorize your fuel/heat rhythm before HUD scrambles. Use Momentum before phase 2 so it has less to steal. Full boost + upward momentum is required for phase 3.
+**Strategy:** Memorize your fuel/heat rhythm before HUD scrambles. Use burst damage before phase 2 so it has less to steal. Full boost + upward momentum is required for phase 3.
 
 ---
 
@@ -151,17 +151,19 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 ### 1. Commander Unit
 **ID:** `MINI_BOSS_COMMANDER`  
 **Status:** Complete  
-**Biome:** Upper Atmosphere  
+**Biome:** Cloud Layer / Upper Atmosphere / Orbit / Deep Space / Void  
 **Weak Points:** 3  
 **Visual Appearance:** Large cruiser (300x120px) with phase-color shift: blue hull (P2), red hull (P3+), orange hull (flee). Cyan shield bubble when weak points remain. Bridge tower with phase-color window strip. 2 antennae with red tips. Rotating radar dish. Fast-flashing yellow hull lights (rate increases with phase). Phase-color engine glows (cyan/red/orange). 2 red scanning beam triangles (P3+). 3 magenta weak point squares with rotating white beacon. Jam-wave pulsing cyan ring. Gravity pulse ring with debris particles.
 
 | Behavior | Description |
 | :--- | :--- |
-| Spawns Scout Drones to assist. |
-| Fires accurate projectile bursts. |
+| Spawns Scout Drones to assist (via EncounterDirector in P3/P4). |
+| Fires 3-way BOLT projectile bursts at player every 1.5s in P3+. |
+| Gravity pulse ring pushes player upward on contact. |
+| Jam-wave disables up to 2 nearby platforms. |
 | Retreats when weak points are destroyed. |
 
-**Strategy:** Clear drones first. Target weak points systematically.
+**Strategy:** Clear drones first. Target weak points systematically. Dodge projectile bursts while avoiding gravity pulses.
 
 ---
 
@@ -275,19 +277,32 @@ All bosses and mini-bosses have one or more weak points. Destroying all weak poi
 
 Boss health, damage, and attack speed scale with:
 
-1. **Altitude** — higher zones are harder.
-2. **Player progress** — Codex completion increases challenge.
-3. **Combo streaks** — longer combos may trigger harder boss phases.
-4. **Rocket class** — Tank receives less speed penalty; Scout deals more weak-point damage.
+1. **Altitude** — higher zones apply a difficulty multiplier to boss base health.
+2. **Player progress** — Codex completion increases challenge. *(Planned)*
+3. **Combo streaks** — longer combos may trigger harder boss phases. *(Planned)*
+4. **Rocket class** — Tank receives less speed penalty; Scout deals more weak-point damage. *(Planned)*
 
 ### Scaling Table
 
-| Factor | Scaling Multiplier |
+| Factor | Scaling Multiplier | Implementation |
+| :--- | :--- | :--- |
+| Base Health | ×1.0 (Earth) to ×3.0 (Void) | **Implemented** — `difficultyMultiplier` applied at spawn in EncounterDirector. |
+| Damage Output | ×1.0 to ×2.5 | **Planned** — to be applied via `difficultyMultiplier` in processInteraction. |
+| Attack Speed | ×1.0 to ×2.0 | **Planned** — to be used for phase transition timer scaling. |
+| Phase Transition Threshold | ×1.0 to ×1.5 | **Planned** — later transitions in higher zones. |
+
+### Zone Multiplier Table
+
+| Zone | Multiplier |
 | :--- | :--- |
-| Base Health | ×1.0 (altitude 0) to ×3.0 (altitude max) |
-| Damage Output | ×1.0 to ×2.5 |
-| Attack Speed | ×1.0 to ×2.0 |
-| Phase Transition Threshold | ×1.0 to ×1.5 (later transitions) |
+| Earth | ×1.0 |
+| Cloud Layer | ×1.3 |
+| Upper Atmosphere | ×1.6 |
+| Orbit | ×2.0 |
+| Deep Space | ×2.5 |
+| Void | ×3.0 |
+
+Multiplier is computed in `EncounterDirector.update()` and passed to `ThreatManager.spawnThreat()` as `difficultyMultiplier`. Boss HP at spawn = `definition.baseHealth * difficultyMultiplier`.
 
 ---
 
@@ -295,11 +310,11 @@ Boss health, damage, and attack speed scale with:
 
 Current implementation in `ActiveThreat.kt` and `ThreatRegistry.kt` differs from original design in several key areas:
 
-*   **The Signal:** Currently uses **Ghost Platforms** (trap platforms that vanish on touch) as its primary mechanic.
-*   **Star-Eater:** Currently uses **Power-Up Suction** (pulling items into its core to deny the player) as its primary mechanic.
-*   **Commander Unit:** Currently uses **Platform Jamming** (disabling nearby platforms) as its primary mechanic.
-*   **Projectile System:** A global projectile system does **not currently exist** in the game engine. Bosses using `PROJECTILE_SHOOTER` currently rely on alternative proximity or area effects.
-*   **Phase Logic:** Actual implemented phases in `ActiveThreat.kt` often focus on movement patterns and proximity interaction rather than complex bullet hell patterns or control reversals.
+*   **The Signal:** Currently uses **Ghost Platforms** (trap platforms that vanish on touch) + **velocity drain/heal** + **downward pulse** + **HUD flicker duration scaling** as its primary mechanics.
+*   **Star-Eater:** Currently uses **Power-Up Suction** (pulling items into its core to deny the player) as its primary mechanic. Phases 1–3 are pending full rewrite per design bible (regen-break → nova + debris → split).
+*   **Commander Unit:** Currently uses **Platform Jamming** + **projectile bursts** + **gravity pulse** as its primary mechanics.
+*   **Projectile System:** A global projectile system exists in `ProjectileManager.kt` and is used by Commander (P3+ bursts) and Gatekeeper (P2 3-way patterns). Bosses use `onSpawnProjectile` callback.
+*   **Phase Logic:** Actual implemented phases in `ActiveThreat.kt` often focus on movement patterns and proximity interaction rather than complex bullet hell patterns or control reversals. Sprint C added projectile support via `onSpawnThreat` callback for spawning minions.
 
 ---
 
@@ -330,12 +345,12 @@ Purpose: Record concepts that may overlap thematically and could require future 
 
 | Name | Type | Status | Zone | Notes | Visual Appearance |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Command Cruiser** | Mini-Boss | **Complete** | Orbit | Platform Jamming implemented | Large dark cruiser with bridge, antennae, radar dish, hull lights, engine glows, scanning beams, weak point squares |
-| **The Gatekeeper** | Boss | **Partial** | Orbit | Gaps and barriers functional; missing projectiles | Massive rotating ring with 4 cyan/red barrier arcs, magenta weak point nodes, central pulsing eye |
-| **Star-Eater** | Boss | **Partial** | Deep Space | Power-Up suction implemented; missing split phase | Black/purple suction aura, spiraling magenta particles, dark core with eye weak point, 12 tendrils |
-| **The Leviathan** | Boss | **Implemented** | Deep Space | Segmented body + slipstream; wall pressure in phase 3 | 6 connected blue segments with cyan outlines, slipstream lines, 3 magenta weak points |
-| **Void Engine** | Boss | **Implemented** | Void | Reality warping with gravity shifts and control inversion | Pink radial aura, 3 rotating arms with weak point tips, white energy arcs, shift direction arrows |
-| **The Signal** | Boss | **Implemented** | Void | Ghost platform deception; HUD interference; heat drain | Flickering visibility, red/white glitch rectangles, magenta weak point, large scanning pulse ring |
+| **Command Cruiser** | Mini-Boss | **Complete** | Cloud Layer, Upper Atmosphere, Orbit, Deep Space, Void | Platform Jamming + projectile bursts + gravity pulse + drone spawning | Large dark cruiser with bridge, antennae, radar dish, hull lights, engine glows, scanning beams, weak point squares |
+| **The Gatekeeper** | Boss | **Implemented** | Orbit, Deep Space, Void | Rotating barriers + 3-way projectiles (P2) + Scout Drone spawning (P3) | Massive rotating ring with 4 cyan/red barrier arcs, magenta weak point nodes, central pulsing eye |
+| **Star-Eater** | Boss | **Partial** | Deep Space, Void | Power-Up suction + P2 Hunger Wave / P3 Cosmic Spores; missing full phase rewrite | Black/purple suction aura, spiraling magenta particles, dark core with eye weak point, 12 tendrils |
+| **The Leviathan** | Boss | **Implemented** | Deep Space, Void | Tail 3× damage + P2 screen shrink + P3 maw core + slipstream + P2 Spike Bolt / P3 Maw Beam | 6 connected blue segments with cyan outlines, slipstream lines, 3 magenta weak points |
+| **Void Engine** | Boss | **Implemented** | Void | P1 anomalies + P2 downward wells + P3 control inversion + gravity shifts + P2 Reality Ripple / P3 3-way Shards | Pink radial aura, 3 rotating arms with weak point tips, white energy arcs, shift direction arrows |
+| **The Signal** | Boss | **Implemented** | Void | P1 HUD flicker scaling + P2 velocity drain/heal + P3 downward pulse + ghost platforms + P2 Glitch Bolt / P3 Static Beam | Flickering visibility, red/white glitch rectangles, magenta weak point, large scanning pulse ring |
 | **Chrono Warden** | Boss | **Planned** | Chrono-Rift | Design concept only |
 | **Magma-Core Titan** | Boss | **Planned** | Subterranean | Design concept only |
 | **Frost Wyrmling** | Mini-Boss | **Planned** | Ice Fields | Design concept only |
@@ -348,8 +363,9 @@ Purpose: Record concepts that may overlap thematically and could require future 
 
 | Version | Changes |
 | :--- | :--- |
-| **v1.0** | Added Visual Appearance field to all implemented bosses, mini-bosses, and standard enemies. Updated statuses: Sky Ray → Complete, Gravity Distortion → Complete, Void Anomaly → Complete. Documented 3 invisible enemies (STALKER, VOID_WHALE, VOID_WRAITH) as known rendering gaps. |
+| **v1.2** | **Sprint C Mechanics**: Gatekeeper → Implemented (P2 projectiles, P3 drone spawning). Commander → projectile bursts in P3+. Leviathan → tail 3× damage, P2 screen shrink, P3 maw core heat. Void Engine → P1 anomaly summoning, P2 downward gravity wells (was lateral). Signal → P1 flicker duration scaling, P2 velocity drain/heal, P3 downward pulse. Difficulty Scaling → zone-based HP multiplier implemented (×1.0–×3.0). `onSpawnThreat` callback added for boss minion spawning. Documentation updated for all changes. |
 | **v1.1** | **Visual Overhaul v1.0**: Complete rework of all boss/mini-boss visual appearances to communicate abilities at a glance. Gatekeeper: green/red safe-gap coloring, solid barrier walls, iris-tracking eye. Star-Eater: dentition ring, power-up suction streams, hunger-meter. Leviathan: organic ellipse segments, directional slipstream arrows, wall-pressure glow. Void Engine: reality-tear rim, arm afterimages, inversion buildup tint. Signal: screen-tear bands, binary rain, decoy copies, static-noise ring. Commander: phase-color shift hull, shield bubble, rotating beacon weak points, jam-wave ring. |
+| **v1.0** | Added Visual Appearance field to all implemented bosses, mini-bosses, and standard enemies. Updated statuses: Sky Ray → Complete, Gravity Distortion → Complete, Void Anomaly → Complete. Documented 3 invisible enemies (STALKER, VOID_WHALE, VOID_WRAITH) as known rendering gaps. |
 | **v0.95** | Added Standard Enemies tabular section. Merged implementation and approved concept rosters. |
 | **v0.9** | Synchronized with THREATS.md audit. Added Status fields and Implementation Matrix. |
 | **v0.8** | Added Chrono Warden, Magma-Core Titan. Updated Signal behavior. |

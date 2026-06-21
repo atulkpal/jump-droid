@@ -1,5 +1,6 @@
 package com.example.jump_droid
 
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
 
@@ -18,8 +19,9 @@ class ProjectileManager {
         size: Float = 10f,
         life: Float = 5.0f
     ) {
-        if (!DevConfig.ENABLE_PROJECTILE_ENGINE) return
-        
+        if (!DevConfig.ENABLE_PROJECTILE_ENGINE) {
+            return
+        }
         projectiles.add(Projectile(x, y, vx, vy, type, owner, damage, color, size, life))
     }
 

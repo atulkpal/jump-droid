@@ -38,7 +38,7 @@ class ThreatManager {
     /**
      * Spawns a new threat instance based on a definition.
      */
-    fun spawnThreat(definition: ThreatDefinition, x: Float, y: Float, vx: Float = 0f, vy: Float = 0f): ActiveThreat {
+    fun spawnThreat(definition: ThreatDefinition, x: Float, y: Float, vx: Float = 0f, vy: Float = 0f, difficultyMultiplier: Float = 1f): ActiveThreat {
         val instance = ActiveThreat(
             instanceId = UUID.randomUUID().toString(),
             definition = definition,
@@ -47,6 +47,8 @@ class ThreatManager {
             initialVx = vx,
             initialVy = vy,
         )
+        instance.difficultyMultiplier = difficultyMultiplier
+        instance.health = definition.baseHealth * difficultyMultiplier
         activeThreats.add(instance)
         return instance
     }

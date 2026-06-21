@@ -72,7 +72,7 @@ fun FloatingTextsLayer(
             Text(
                 text = ft.text,
                 color = ft.color.copy(alpha = alpha),
-                style = if (isCritical) MaterialTheme.typography.headlineSmall.copy(
+                style = if (isCritical) MaterialTheme.typography.titleSmall.copy(
                     shadow = Shadow(ft.shadowColor, offset = Offset(0f, 0f), blurRadius = ft.shadowBlur * textScale)
                 ) else MaterialTheme.typography.labelSmall.copy(
                     shadow = Shadow(ft.shadowColor, offset = Offset(1f, 1f), blurRadius = ft.shadowBlur.coerceIn(0f, 6f))

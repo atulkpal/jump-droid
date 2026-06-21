@@ -105,7 +105,7 @@ Patrol ──(player enters 400px range)──▶ Detect Player
 
 | Name | ID | Zone | Status | Core Mechanic | Effects on Player | Visual Appearance |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Command Cruiser** | `MINI_BOSS_COMMANDER`| Orbit | **Complete** | Platform Jamming | Pushes player down; Disables platforms | Phase-color shift hull (blue P2, red P3+, orange flee); shield bubble when weak points remain; cyan bridge window strip; 2 antennae with red tips; rotating radar dish; fast-flashing hull lights in higher phases; phase-color engine glows; 2 red scanning beams (P3+); 3 magenta weak point squares with rotating white beacon; jam-wave pulsing ring; gravity pulse with debris particles |
+| **Command Cruiser** | `MINI_BOSS_COMMANDER`| Cloud Layer, Upper Atmosphere, Orbit, Deep Space, Void | **Complete** | Platform Jamming + Projectile Bursts + Gravity Pulse | Pushes player down; Disables platforms; Fires 3-way BOLT spreads at player in P3+ | Phase-color shift hull (blue P2, red P3+, orange flee); shield bubble when weak points remain; cyan bridge window strip; 2 antennae with red tips; rotating radar dish; fast-flashing hull lights in higher phases; phase-color engine glows; 2 red scanning beams (P3+); 3 magenta weak point squares with rotating white beacon; jam-wave pulsing ring; gravity pulse with debris particles |
 
 ---
 
@@ -113,11 +113,11 @@ Patrol ──(player enters 400px range)──▶ Detect Player
 
 | Name | ID | Zone | Status | Core Mechanic | Weak Points | Visual Appearance |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **The Gatekeeper** | `BOSS_GATEKEEPER` | Orbit | **Partial** | Rotating radial gaps | 4 Nodes on ring | Massive rotating orbital ring with afterimage ghost rings; green safe-gap / red danger arc coloring; solid energy barrier walls; push-back force lines toward player; weak point nodes with rotating cyan shield; central eye with iris pupil tracking player |
-| **Star-Eater** | `BOSS_STAR_EATER` | Deep Space | **Partial** | Power-Up Suction | 1 Central Eye | Black/purple suction aura; after-image ghost copy; power-up suction stream trails; 16 dentition energy-teeth ring around maw; dark pulsing core + magenta eye weak point; tendrils that glow brighter when player is near; hunger-meter pulse ring |
-| **The Leviathan** | `BOSS_LEVIATHAN` | Deep Space | **Implemented** | Segmented body + slipstream; wall pressure in phase 3 | 3 Segments (even) | 6 organic ellipse segments with armor plate overlay; bioluminescent vein patterns; directional slipstream arrows per segment; head segment with glowing eye; tail whip telegraph lines in phase 3; wall-pressure red edge glow |
-| **The Void Engine** | `BOSS_VOID_ENGINE` | Void | **Implemented** | Reality warping; gravity shifts; control inversion in phase 3 | 2 Arm Nodes | Reality-tear jagged rim around aura; 3 rotating arms with ghost afterimages; core instability arc bursts; control-inversion buildup pink screen tint; screen-wide gravity-shift arrows + large background arrow |
-| **The Signal** | `BOSS_SIGNAL` | Void | **Implemented** | Ghost platform deception; HUD interference; heat drain in phase 3 | 1 Glitching Node | Static-noise TV ring; 20 glitch rectangles (up from 15); screen-tear horizontal bands; binary-rain particle columns; ghost platform preview flicker; decoy Signal copies in phase 3; flickering visibility; magenta glitching weak point |
+| **The Gatekeeper** | `BOSS_GATEKEEPER` | Orbit | **Implemented** | Rotating radial gaps + 3-way projectiles (P2) + Scout Drone spawning (P3) | 4 Nodes on ring | Massive rotating orbital ring with afterimage ghost rings; green safe-gap / red danger arc coloring; solid energy barrier walls; push-back force lines toward player; weak point nodes with rotating cyan shield; central eye with iris pupil tracking player |
+| **Star-Eater** | `BOSS_STAR_EATER` | Deep Space | **Partial** | Power-Up Suction + P2 Hunger Wave / P3 Cosmic Spores | 1 Central Eye | Black/purple suction aura; after-image ghost copy; power-up suction stream trails; 16 dentition energy-teeth ring around maw; dark pulsing core + magenta eye weak point; tendrils that glow brighter when player is near; hunger-meter pulse ring |
+| **The Leviathan** | `BOSS_LEVIATHAN` | Deep Space | **Implemented** | Tail 3× damage + P2 screen shrink + P3 maw core + slipstream + P2 Spike Bolt / P3 Maw Beam | 3 Segments (even) | 6 organic ellipse segments with armor plate overlay; bioluminescent vein patterns; directional slipstream arrows per segment; head segment with glowing eye; tail whip telegraph lines in phase 3; wall-pressure red edge glow |
+| **The Void Engine** | `BOSS_VOID_ENGINE` | Void | **Implemented** | P1 anomaly summoning + P2 downward wells + P3 control inversion + gravity shifts + P2 Reality Ripple / P3 3-way Shards | 2 Arm Nodes | Reality-tear jagged rim around aura; 3 rotating arms with ghost afterimages; core instability arc bursts; control-inversion buildup pink screen tint; screen-wide gravity-shift arrows + large background arrow |
+| **The Signal** | `BOSS_SIGNAL` | Void | **Implemented** | P1 HUD flicker scaling + P2 velocity drain/heal + P3 downward pulse + ghost platforms + P2 Glitch Bolt / P3 Static Beam | 1 Glitching Node | Static-noise TV ring; 20 glitch rectangles (up from 15); screen-tear horizontal bands; binary-rain particle columns; ghost platform preview flicker; decoy Signal copies in phase 3; flickering visibility; magenta glitching weak point |
 
 ---
 
@@ -125,6 +125,7 @@ Patrol ──(player enters 400px range)──▶ Detect Player
 
 | Date | Changes |
 | :--- | :--- |
+| 2026-06-21 | **Sprint C Mechanics Update**: Gatekeeper → Implemented (P2 projectiles, P3 drone spawning). Commander → projectile bursts. Leviathan → tail 3×, screen shrink, maw core. Void Engine → anomaly summoning, downward wells. Signal → flicker scaling, velocity drain/heal, downward pulse. Difficulty scaling implemented. All boss entries and priorities updated. |
 | 2026-06-20 | Added Visual Appearance column to all threat tables. Updated statuses: Sky Ray → Complete, Gravity Distortion → Complete, Void Anomaly → Complete. Flagged 3 invisible enemies (ENT_STALKER, ENT_VOID_WHALE, ENT_VOID_WRAITH) as missing rendering. |
 | 2026-06-20 | **Visual Overhaul v1.0**: Complete rework of all 24 threat renderings to communicate abilities at a glance. Added rendering for 3 previously invisible enemies. Split HAZ_GUST/HAZ_CROSSWIND/HAZ_THERMAL from no-op stubs. See `threat_visual_overhaul_2026-06-20_0240.md` for full changelog. |
 
@@ -140,3 +141,16 @@ Patrol ──(player enters 400px range)──▶ Detect Player
 - [x] **BOSS_LEVIATHAN Completion:** Enhanced slipstream forces, wall pressure in phase 3, scanPulse visual sync.
 - [x] **BOSS_VOID_ENGINE Completion:** Reality warp burst particles, stronger gravity shifts, more frequent control inversion.
 - [x] **BOSS_SIGNAL Completion:** Increased ghost platform frequency, "MIRAGE" deception text, stronger HUD interference.
+- [x] **Commander Projectile Bursts:** 3-way BOLT spreads in P3+ via `ProjectileManager`.
+- [x] **Gatekeeper Projectiles:** 3-way BOLT patterns in P2 + Scout Drone spawning in P3.
+- [x] **Leviathan Tail 3× Damage:** Segments 4–5 deal triple knockback force.
+- [x] **Leviathan P2 Screen Shrink:** Inward push from margins proportional to weak points remaining.
+- [x] **Leviathan P3 Maw Core:** 80px core zone applies rapid heat buildup.
+- [x] **Void Engine P1 Anomalies:** Summons HAZ_VOID_ANOMALY every 5s in phase 2.
+- [x] **Void Engine P2 Downward Wells:** Changed lateral shift to constant downward pull in phase 3.
+- [x] **Signal P1 Flicker Scaling:** `hudInterferenceTimer` grows with `localTimer` from 2.5s to ~8s.
+- [x] **Signal P2 Velocity Drain/Heal:** Drains player velocityX/Y, heals boss 20 HP/s.
+- [x] **Signal P3 Downward Pulse:** 4000f/s² downward force after overload.
+- [x] **Difficulty Scaling System:** Zone-based HP multiplier (×1.0–×3.0) for bosses at spawn.
+- [x] **onSpawnThreat Callback:** Added to `processInteraction` for boss minion spawning.
+- [ ] **Star-Eater Phase Rewrite:** Full 3-phase rewrite (regen-break → nova+debris → split) — deferred.

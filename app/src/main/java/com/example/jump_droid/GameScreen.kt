@@ -1,6 +1,7 @@
 package com.example.jump_droid
 
 import android.content.Context
+import android.util.Log
 import androidx.core.content.edit
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -976,6 +977,11 @@ fun GameScreen() {
                                     activeThreats = threatManager.activeThreats,
                                     onSpawnProjectile = { x, y, vx, vy, type, owner, damage, color, size, life ->
                                         projectileManager.spawn(x, y, vx, vy, type, owner, damage, color, size, life)
+                                    },
+                                    onSpawnThreat = { id, x, y, vx, vy ->
+                                        ThreatRegistry.getById(id)?.let { def ->
+                                            threatManager.spawnThreat(def, x, y, vx, vy)
+                                        }
                                     }
                                 )
                             }
@@ -2631,6 +2637,9 @@ fun GameScreen() {
                                     val bodyRadius = 15f + alertLevel * 10f
                                     val bodyColor = if (alertLevel > 0.5f) Color(0xFFFF6D00) else Color(0xFF880E4F)
                                     val heatAlpha = 0.3f + alertLevel * 0.5f
+                                    val isTracking = threat.isTracking
+                                    val px = player.x
+                                    val py = player.y - cameraY
 
                                     // Engine glow
                                     drawCircle(
@@ -2643,6 +2652,22 @@ fun GameScreen() {
                                         center = Offset(tx, ty)
                                     )
 
+                                    // Targeting laser when tracking the player at high alert
+                                    if (isTracking && alertLevel > 0.3f) {
+                                        val laserAlpha = (sin(gameTime / 50f) * 0.3f + 0.7f) * alertLevel
+                                        val laserEndX = px + (px - tx) * 3f
+                                        val laserEndY = py + (py - ty) * 3f
+                                        drawLine(Color(0xFFFF1744).copy(alpha = 0.15f * laserAlpha), Offset(tx, ty), Offset(laserEndX, laserEndY), strokeWidth = 1f)
+                                        drawLine(Color.White.copy(alpha = 0.05f * laserAlpha), Offset(tx, ty), Offset(laserEndX, laserEndY), strokeWidth = 3f)
+                                    }
+
+                                    // MAX ALERT warning glow at full alert
+                                    if (alertLevel > 0.9f) {
+                                        val maxPulse = (sin(gameTime / 30f) * 0.5f + 0.5f)
+                                        drawCircle(Color(0xFFFF1744).copy(alpha = 0.08f * maxPulse), radius = bodyRadius * 5f, center = Offset(tx, ty), style = Stroke(width = 4f))
+                                        drawCircle(Color(0xFFFF1744).copy(alpha = 0.04f * maxPulse), radius = bodyRadius * 6f, center = Offset(tx, ty), style = Stroke(width = 2f))
+                                    }
+
                                     // Triangular body with horizontal segmentation lines
                                     val bodyPath = Path().apply {
                                         moveTo(tx, ty - bodyRadius * 1.5f)
@@ -2652,6 +2677,15 @@ fun GameScreen() {
                                     }
                                     drawPath(bodyPath, bodyColor)
                                     drawPath(bodyPath, Color.White.copy(alpha = 0.3f * (0.5f + alertLevel * 0.5f)), style = Stroke(width = 2f))
+
+                                    // Antenna spires on top
+                                    repeat(2) { i ->
+                                        val dir = if (i == 0) -1f else 1f
+                                        val antX = tx + dir * bodyRadius * 0.4f
+                                        val antTipY = ty - bodyRadius * 2.2f + sin(gameTime / 120f + i * 2f) * 4f
+                                        drawLine(Color(0xFFFFAB00).copy(alpha = 0.3f + alertLevel * 0.4f), Offset(antX, ty - bodyRadius * 1.4f), Offset(antX, antTipY), strokeWidth = 2f)
+                                        drawCircle(Color(0xFFFF1744).copy(alpha = 0.5f + alertLevel * 0.4f), radius = 2f, center = Offset(antX, antTipY))
+                                    }
 
                                     // Body segmentation glows (brighter with alert)
                                     repeat(2) { i ->
@@ -2667,7 +2701,7 @@ fun GameScreen() {
                                     }
 
                                     // Alert-level bar (top of body)
-                                    drawRect(Color(0xFF1A1A1A).copy(alpha = 0.5f), Offset(tx - 15f, ty - bodyRadius * 1.8f), Size(30f * alertLevel, 4f))
+                                    drawRect(Color(0xFF1A1A1A).copy(alpha = 0.5f), Offset(tx - 15f, ty - bodyRadius * 1.8f), Size(30f, 4f))
                                     drawRect(Color(0xFFFF1744).copy(alpha = 0.7f), Offset(tx - 15f, ty - bodyRadius * 1.8f), Size(30f * alertLevel, 4f))
 
                                     // Scanning eye
@@ -2680,10 +2714,10 @@ fun GameScreen() {
                                         repeat((alertLevel * 6).toInt().coerceAtLeast(1)) { i ->
                                             val seed = threat.instanceId.hashCode() + i * 7 + (gameTime / 100).toInt()
                                             val rng = Random(seed)
-                                            val px = tx + (rng.nextFloat() - 0.5f) * 30f
-                                            val py = ty + bodyRadius + rng.nextFloat() * 40f * alertLevel
-                                            val particleAlpha = (1f - (py - ty - bodyRadius) / (40f * alertLevel)) * 0.6f
-                                            drawCircle(Color(0xFFFF6D00).copy(alpha = particleAlpha), radius = 1f + rng.nextFloat() * 3f * alertLevel, center = Offset(px, py))
+                                            val hpx = tx + (rng.nextFloat() - 0.5f) * 30f
+                                            val hpy = ty + bodyRadius + rng.nextFloat() * 40f * alertLevel
+                                            val particleAlpha = (1f - (hpy - ty - bodyRadius) / (40f * alertLevel)) * 0.6f
+                                            drawCircle(Color(0xFFFF6D00).copy(alpha = particleAlpha), radius = 1f + rng.nextFloat() * 3f * alertLevel, center = Offset(hpx, hpy))
                                         }
                                     }
 
@@ -2699,7 +2733,8 @@ fun GameScreen() {
                                     val tx = threat.x
                                     val ty = threat.y - cameraY
                                     val pulse = (sin(gameTime / 800f) * 0.15f + 0.85f)
-                                    val bodyRadius = 160f // scaled up from 120
+                                    val tailSweep = sin(gameTime / 600f) * 20f
+                                    val bodyRadius = 160f
 
                                     // Ethereal glow aura
                                     drawCircle(
@@ -2712,6 +2747,16 @@ fun GameScreen() {
                                         center = Offset(tx, ty)
                                     )
 
+                                    // Ambient floating particles around the whale
+                                    repeat(12) { i ->
+                                        val seed = threat.instanceId.hashCode() + i * 13 + (gameTime / 300).toInt()
+                                        val rng = Random(seed)
+                                        val ax = tx + cos(gameTime / 500f + i * 1.2f) * (bodyRadius * 0.8f + rng.nextFloat() * bodyRadius)
+                                        val ay = ty + sin(gameTime / 400f + i * 1.7f) * (bodyRadius * 0.4f + rng.nextFloat() * bodyRadius * 0.5f)
+                                        val aColor = when (rng.nextInt(3)) { 0 -> Color.Cyan; 1 -> Color(0xFFCE93D8); else -> Color.White }
+                                        drawCircle(aColor.copy(alpha = 0.06f * pulse), radius = 1f + rng.nextFloat() * 2f, center = Offset(ax, ay))
+                                    }
+
                                     // Main body curve (whale silhouette)
                                     val bodyPath = Path().apply {
                                         moveTo(tx - bodyRadius * pulse, ty)
@@ -2722,16 +2767,43 @@ fun GameScreen() {
                                     drawPath(bodyPath, Color(0xFF006064).copy(alpha = 0.3f * pulse))
                                     drawPath(bodyPath, Color.Cyan.copy(alpha = 0.2f * pulse), style = Stroke(width = 3f))
 
-                                    // Tail fin
+                                    // Dorsal ridge crest along top
+                                    repeat(5) { i ->
+                                        val rf = i.toFloat() / 4f
+                                        val rx = tx + (rf - 0.3f) * bodyRadius * 1.4f
+                                        val ry = ty - bodyRadius * 0.45f + sin(gameTime / 200f + i * 1.5f) * 5f
+                                        val rh = 10f + rf * 15f
+                                        drawLine(Color(0xFF00BCD4).copy(alpha = 0.2f * pulse), Offset(rx, ry), Offset(rx, ry - rh), strokeWidth = 3f)
+                                        drawLine(Color.Cyan.copy(alpha = 0.1f * pulse), Offset(rx, ry), Offset(rx, ry - rh), strokeWidth = 1f)
+                                    }
+
+                                    // Ventral bioluminescent lines (underside glow)
+                                    repeat(3) { i ->
+                                        val vx = tx + (i - 1) * bodyRadius * 0.3f
+                                        val vy = ty + bodyRadius * 0.15f
+                                        val vLen = 20f + i * 8f
+                                        val vPulse = (sin(gameTime / 400f + i * 1.8f) * 0.4f + 0.6f)
+                                        drawLine(Color(0xFF00E5FF).copy(alpha = 0.15f * vPulse * pulse), Offset(vx - vLen, vy), Offset(vx + vLen, vy), strokeWidth = 2f)
+                                    }
+
+                                    // Glowing eye at the head
+                                    val eyeX = tx + bodyRadius * 0.75f
+                                    val eyeY = ty - bodyRadius * 0.15f
+                                    val eyeGlow = (sin(gameTime / 200f) * 0.3f + 0.7f)
+                                    drawCircle(Color(0xFFFF1744).copy(alpha = 0.1f * eyeGlow * pulse), radius = 12f, center = Offset(eyeX, eyeY))
+                                    drawCircle(Color.White.copy(alpha = 0.6f * eyeGlow * pulse), radius = 6f, center = Offset(eyeX, eyeY))
+                                    drawCircle(Color(0xFFFF1744).copy(alpha = 0.8f * eyeGlow * pulse), radius = 3f, center = Offset(eyeX, eyeY))
+
+                                    // Tail fin with sweep animation
                                     val tailPath = Path().apply {
                                         moveTo(tx - bodyRadius * 0.9f, ty)
-                                        lineTo(tx - bodyRadius * 1.4f, ty - bodyRadius * 0.4f)
-                                        lineTo(tx - bodyRadius * 1.3f, ty)
-                                        lineTo(tx - bodyRadius * 1.4f, ty + bodyRadius * 0.4f)
+                                        lineTo(tx - bodyRadius * 1.4f, ty - bodyRadius * 0.4f + tailSweep)
+                                        lineTo(tx - bodyRadius * 1.3f, ty + tailSweep * 0.5f)
+                                        lineTo(tx - bodyRadius * 1.4f, ty + bodyRadius * 0.4f + tailSweep)
                                         close()
                                     }
-                                    drawPath(tailPath, Color(0xFF00838F).copy(alpha = 0.2f * pulse))
-                                    drawPath(tailPath, Color.Cyan.copy(alpha = 0.15f * pulse), style = Stroke(width = 2f))
+                                    drawPath(tailPath, Color(0xFF00838F).copy(alpha = 0.25f * pulse))
+                                    drawPath(tailPath, Color.Cyan.copy(alpha = 0.2f * pulse), style = Stroke(width = 2f))
 
                                     // Pectoral fins
                                     val finPath = Path().apply {
@@ -2740,18 +2812,19 @@ fun GameScreen() {
                                         close()
                                     }
                                     drawPath(finPath, Color(0xFF00838F).copy(alpha = 0.15f * pulse))
+                                    drawPath(finPath, Color.Cyan.copy(alpha = 0.1f * pulse), style = Stroke(width = 1f))
 
                                     // Nebula star-field body fill
-                                    repeat(40) { i ->
+                                    repeat(60) { i ->
                                         val seed = threat.instanceId.hashCode() + i + (gameTime / 500).toInt()
                                         val rng = Random(seed)
                                         val nx = tx + (rng.nextFloat() - 0.5f) * bodyRadius * 1.6f
                                         val ny = ty + (rng.nextFloat() - 0.5f) * bodyRadius * 0.8f
-                                        val starColor = when (rng.nextInt(3)) { 0 -> Color.Cyan; 1 -> Color(0xFFCE93D8); else -> Color.White }
-                                        drawCircle(starColor.copy(alpha = 0.2f * rng.nextFloat() * pulse), radius = 1f + rng.nextFloat() * 2f, center = Offset(nx, ny))
+                                        val starColor = when (rng.nextInt(4)) { 0 -> Color.Cyan; 1 -> Color(0xFFCE93D8); 2 -> Color(0xFF80D8FF); else -> Color.White }
+                                        drawCircle(starColor.copy(alpha = 0.25f * rng.nextFloat() * pulse), radius = 1f + rng.nextFloat() * 2.5f, center = Offset(nx, ny))
                                     }
 
-                                    // Bioluminescent star dots (existing, kept)
+                                    // Bioluminescent skin dots
                                     repeat(8) { i ->
                                         val angleFrac = i.toFloat() / 8f
                                         val bx = tx + cos(angleFrac * PI.toFloat() * 2f) * bodyRadius * 0.7f
@@ -2761,11 +2834,12 @@ fun GameScreen() {
                                     }
 
                                     // Trailing star particles
-                                    repeat(5) { i ->
-                                        val trailPhase = ((gameTime / 2000f + i * 0.2f) % 1f)
-                                        val dist = trailPhase * bodyRadius * 1.5f
-                                        val offsetY = sin(trailPhase * PI.toFloat() * 2f) * 30f
-                                        drawCircle(Color.White.copy(alpha = (1f - trailPhase) * 0.3f * pulse), radius = 1f + (1f - trailPhase) * 2f, center = Offset(tx - dist * 0.7f, ty + offsetY))
+                                    repeat(8) { i ->
+                                        val trailPhase = ((gameTime / 2000f + i * 0.15f) % 1f)
+                                        val dist = trailPhase * bodyRadius * 1.8f
+                                        val offsetY = sin(trailPhase * PI.toFloat() * 2f + i) * 35f
+                                        val tColor = when (i % 3) { 0 -> Color.Cyan; 1 -> Color(0xFFCE93D8); else -> Color.White }
+                                        drawCircle(tColor.copy(alpha = (1f - trailPhase) * 0.35f * pulse), radius = 1f + (1f - trailPhase) * 3f, center = Offset(tx - dist * 0.7f, ty + offsetY))
                                     }
 
                                     // Slipstream direction arrows + lines when player is near
@@ -2808,9 +2882,16 @@ fun GameScreen() {
                                     val tx = threat.x
                                     val ty = threat.y - cameraY
                                     val mat = threat.isMaterialized
-                                    val visAlpha = if (mat) 1f else 0.2f
+                                    val visAlpha = if (mat) 1f else 0.03f
 
-                                    // State-indicator glow: purple when materialized, gray when phased
+                                    // Danger aura ring when materialized
+                                    if (mat) {
+                                        val dangerPulse = (sin(gameTime / 80f) * 0.3f + 0.7f)
+                                        drawCircle(Color(0xFFFF1744).copy(alpha = 0.1f * dangerPulse), radius = 100f, center = Offset(tx, ty), style = Stroke(width = 3f))
+                                        drawCircle(Color(0xFFFF1744).copy(alpha = 0.05f * dangerPulse), radius = 120f, center = Offset(tx, ty), style = Stroke(width = 1f))
+                                    }
+
+                                    // State-indicator glow: purple when materialized, nearly invisible when phased
                                     val auraColor = if (mat) Color(0xFF4A148C) else Color(0xFF616161)
                                     drawCircle(
                                         brush = androidx.compose.ui.graphics.Brush.radialGradient(
@@ -2822,7 +2903,7 @@ fun GameScreen() {
                                         center = Offset(tx, ty)
                                     )
 
-                                    // Crackling energy (materialized) or wireframe glitch (phased)
+                                    // Crackling energy when materialized only
                                     if (mat) {
                                         repeat(6) { i ->
                                             val seed = threat.instanceId.hashCode() + i * 5 + (gameTime / 80).toInt()
@@ -2830,27 +2911,6 @@ fun GameScreen() {
                                             val ex = tx + (rng.nextFloat() - 0.5f) * 100f
                                             val ey = ty + (rng.nextFloat() - 0.5f) * 100f
                                             drawLine(Color(0xFFD500F9).copy(alpha = 0.4f), Offset(tx, ty), Offset(ex, ey), strokeWidth = 1f + rng.nextFloat() * 2f)
-                                        }
-                                    } else {
-                                        // Wireframe outline only when phased
-                                        val bodyAlpha = 0.08f
-                                        val outlineColor = Color(0xFF4A148C).copy(alpha = bodyAlpha * 0.7f)
-                                        drawCircle(outlineColor, radius = 20f, center = Offset(tx, ty - 40f), style = Stroke(width = 2f))
-                                        val torsoPath = Path().apply {
-                                            moveTo(tx - 25f, ty - 25f); lineTo(tx + 25f, ty - 25f)
-                                            lineTo(tx + 20f, ty + 30f); lineTo(tx - 20f, ty + 30f); close()
-                                        }
-                                        drawPath(torsoPath, outlineColor, style = Stroke(width = 1f))
-                                        drawLine(outlineColor, Offset(tx - 25f, ty - 15f), Offset(tx - 50f, ty + 30f), strokeWidth = 1f)
-                                        drawLine(outlineColor, Offset(tx + 25f, ty - 15f), Offset(tx + 50f, ty + 30f), strokeWidth = 1f)
-                                        drawLine(outlineColor, Offset(tx - 12f, ty + 30f), Offset(tx - 20f, ty + 55f), strokeWidth = 1f)
-                                        drawLine(outlineColor, Offset(tx + 12f, ty + 30f), Offset(tx + 20f, ty + 55f), strokeWidth = 1f)
-
-                                        // Occasional glitch rect
-                                        if ((gameTime / 200) % 2 == 0L) {
-                                            val gx = tx + (Random(gameTime / 100).nextFloat() - 0.5f) * 60f
-                                            val gy = ty + (Random(gameTime / 100 + 1).nextFloat() - 0.5f) * 60f
-                                            drawRect(Color(0xFF4A148C).copy(alpha = 0.15f), topLeft = Offset(gx, gy), size = Size(4f, 6f))
                                         }
                                     }
 
