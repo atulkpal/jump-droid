@@ -127,7 +127,7 @@ withFrameNanos { currentTime →
 | File | Responsibility |
 |------|---------------|
 | `SurvivalManager.kt` | Centralizes damage distribution (Shield → Hull) and the 3-phase catastrophic destruction sequence. |
-| `EncounterDirector.kt` | The "AI Director": decides hazard spawn types, zone-specific weights, and boss arrival thresholds. |
+| `EncounterDirector.kt` | The "AI Director": decides hazard spawn types, zone-specific weights, boss arrival thresholds, **Difficulty Scaling (HP multipliers)**, and **Escalation Logic (Minion Summons)**. |
 | `PlatformManager.kt` | Owns the mathematical generation of platforms and tracks streak counters (Breakable, Phase, Magnetic). |
 | `NotificationManager.kt` | Encapsulates the message queue, priority alerts, and alpha/timer fading logic. |
 | `FloatingTextManager.kt` | Manages the lifecycle and upward drift of status popups (e.g., "HULL IMPACT"). |
@@ -139,7 +139,7 @@ withFrameNanos { currentTime →
 
 | File | Responsibility |
 |------|---------------|
-| `ActiveThreat.kt` | **Delegated Intelligence**: Handles its own interaction rules against player and other entities (E2E). |
+| `ActiveThreat.kt` | **Delegated Intelligence**: Handles its own interaction rules against player and other entities (E2E). Owns a **Phase-based AI State Machine** and triggers projectiles/minions via callbacks. |
 | `Projectile.kt` | Data model for ranged attacks with support for bolts, missiles, beams, and waves. |
 | `Tether.kt` | Physics sub-routine for distance-constrained restorative forces (Physical links). |
 | `Models.kt` | `Player` class (mutable state), `PowerUp`, `Particle`, `FloatingText`, enums (`GameState`, `RocketType`, etc.). |
@@ -177,6 +177,21 @@ Game Loop (per substep):
     └── Collision Resolution ──► Player ↔ Platform AABB check
 ```
 
+### Escalation Flow (Intelligence Network)
+
+```
+ActiveThreat (Scout Drone) ──► Detects Player ──► Transmits (5s)
+    │
+    ▼
+GameScreen.onEscalationEvent(zone)
+    │
+    ▼
+EncounterDirector.getEscalationThreat(zone) ──► Hazard / Reinforcement
+    │
+    ▼
+ThreatManager.spawnThreat(...)
+```
+
 ### Persistence Flow
 
 ```
@@ -212,6 +227,7 @@ Jump Droid began as a monolithic proof-of-concept where a single file (`GameScre
 1.  **Sprints T1–T2 (UI Extraction)**: Removed 1,200+ lines of UI code. Partitioned the app into specialized Screens and HUD widgets. Created `CanvasEffects.kt` to clean up rendering flourishes.
 2.  **Sprint T3 (Logic Extraction)**: Modularized utility state. Extracted Notification and Floating Text handling. Moved high score and achievement audits into `ProgressionManager`.
 3.  **Sprint T4 (The Architectural Shift)**: Transitioned from an inline logic model to a delegated manager model. Extracted the "Brains" of the game into the `SurvivalManager` and `EncounterDirector`.
+4.  **Sprint C (Combat & Escalation)**: Finalized the transition from "Prototype Bosses" to "Production AI". Implemented global projectile systems, zone-based difficulty scaling, and the Scout Drone escalation network. Fixed the MINI_BOSS/BOSS logic branch.
 
 The resulting architecture is now robust, modular, and ready for high-velocity feature development.
 
@@ -230,6 +246,7 @@ The resulting architecture is now robust, modular, and ready for high-velocity f
 | New achievements | Add to `AchievementsList` in `Achievements.kt` | "Reach 25000m" |
 | New ambient objects | Add to `AmbientType` enum + render case | New `COMET` ambient |
 | New boss behaviors | Add phase logic in `ActiveThreat.kt` | New boss attack pattern |
+| New minion spawns | Add to `EncounterDirector` escalation table | Boss summoning new enemy types |
 
 ---
 
