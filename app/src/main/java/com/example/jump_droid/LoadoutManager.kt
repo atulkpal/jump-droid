@@ -63,8 +63,15 @@ class LoadoutManager(private val sharedPrefs: SharedPreferences) {
 
     /**
      * Returns a list of active Module instances based on currently equipped IDs.
+     * Only returns modules that the player actually owns.
      */
-    fun getActiveModules(): List<Module> {
-        return _equippedModuleIds.mapNotNull { it?.let { id -> ModuleRegistry.getById(id) } }
+    fun getActiveModules(progressionManager: ProgressionManager): List<Module> {
+        return _equippedModuleIds.mapNotNull { 
+            it?.let { id -> 
+                if (progressionManager.isModuleOwned(id)) {
+                    ModuleRegistry.getById(id)
+                } else null
+            }
+        }
     }
 }

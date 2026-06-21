@@ -10,6 +10,8 @@ import androidx.compose.runtime.mutableStateListOf
 class MissionManager {
     // Current active missions being tracked (max 3)
     val activeMissions = mutableStateListOf<Mission>()
+
+    var onMissionCompleted: ((Mission) -> Unit)? = null
     
     // Tracks IDs of missions completed during this session to prevent repetition
     private val completedIdsInRun = mutableSetOf<String>()
@@ -57,6 +59,7 @@ class MissionManager {
 
             if (mission.checkCompletion()) {
                 completedIdsInRun.add(mission.id)
+                onMissionCompleted?.invoke(mission)
                 android.util.Log.i("MissionTruth", "MISSION COMPLETED: ${mission.id}")
             }
         }
@@ -70,6 +73,7 @@ class MissionManager {
             if (!it.isCompleted) {
                 it.isCompleted = true
                 completedIdsInRun.add(it.id)
+                onMissionCompleted?.invoke(it)
                 android.util.Log.i("MissionTruth", "MISSION EXPLICITLY COMPLETED: ${it.id}")
             }
         }

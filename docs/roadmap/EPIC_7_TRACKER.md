@@ -97,20 +97,21 @@ Transform **Rocket = Vehicle** into **Rocket = Build**. The player should eventu
 ## Phase 6 — Progression (Sprint 7.6)
 *Goal: Modules earned through gameplay.*
 
-- [ ] Boss reward module drops
-- [ ] Discovery milestone rewards
-- [ ] Artifact collection rewards
-- [ ] Mission track rewards
+- [x] Boss reward module drops
+- [x] Discovery milestone rewards
+- [x] Artifact collection rewards
+- [x] Mission track rewards
 
 ---
 
 ## Phase 7 — Balance & Validation (Sprint 7.7)
 *Goal: Valid builds and fair progression.*
 
-- [ ] Build Validation (Brawler, Explorer, Tank, Experimental)
-- [ ] Module stat balancing
-- [ ] Class native trait balancing
-- [ ] Progression curve tuning
+- [x] Build Validation (Explorer, Striker, Heavy, Prototype)
+- [x] Module stat balancing review
+- [x] Class native trait balancing review
+- [x] Progression curve tuning audit
+- [x] Asset Readiness Audit
 
 ---
 
@@ -156,6 +157,13 @@ Purpose: Track systems that were added during implementation but were not part o
 - [x] Trait-Specific Visual FX
 - [x] Rule-Breaking Physics Branching
 - [x] Class Metadata Display
+
+### Sprint 7.6 Emergent Features
+- [x] Persistent Mission Counter
+- [x] Module Ownership Set
+- [x] Requirement Evaluation Engine
+- [x] Ownership Guard System
+- [x] Celebration Pipeline
 
 ---
 

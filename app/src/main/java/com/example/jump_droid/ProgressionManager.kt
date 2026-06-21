@@ -35,6 +35,9 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
     var artifactsCollected by mutableStateOf<Map<String, ArtifactRecord>>(emptyMap())
         private set
 
+    var ownedModuleIds by mutableStateOf<Set<String>>(emptySet())
+        private set
+
     var currentRank by mutableStateOf(AscensionRank.EXPLORER_I)
         private set
 
@@ -42,6 +45,9 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         private set
 
     var permanentMaxShield by mutableFloatStateOf(Constants.BASE_SHIELD)
+        private set
+
+    var missionsCompleted by mutableIntStateOf(0)
         private set
 
     var highScore by mutableIntStateOf(0)
@@ -70,6 +76,9 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         }
         artifactsCollected = loadedArtifacts
         
+        ownedModuleIds = sharedPrefs.getStringSet("owned_modules", emptySet()) ?: emptySet()
+        missionsCompleted = sharedPrefs.getInt("missions_completed", 0)
+
         permanentMaxIntegrity = sharedPrefs.getFloat("max_integrity", Constants.BASE_INTEGRITY)
         permanentMaxShield = sharedPrefs.getFloat("max_shield", Constants.BASE_SHIELD)
 
@@ -105,6 +114,24 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         
         artifactsCollected = artifactsCollected + (name to newRecord)
         updateRank()
+    }
+
+    fun grantModule(moduleId: String): Boolean {
+        if (ownedModuleIds.contains(moduleId)) return false
+        ownedModuleIds = ownedModuleIds + moduleId
+        sharedPrefs.edit {
+            putStringSet("owned_modules", ownedModuleIds)
+        }
+        return true
+    }
+
+    fun isModuleOwned(moduleId: String): Boolean {
+        return ownedModuleIds.contains(moduleId)
+    }
+
+    fun recordMissionCompletion() {
+        missionsCompleted++
+        sharedPrefs.edit { putInt("missions_completed", missionsCompleted) }
     }
 
     fun updateRank() {
@@ -143,6 +170,8 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         sharedPrefs.edit { clear() }
         highScore = 0
         artifactsCollected = emptyMap()
+        ownedModuleIds = emptySet()
+        missionsCompleted = 0
         currentRank = AscensionRank.EXPLORER_I
         permanentMaxIntegrity = Constants.BASE_INTEGRITY
         permanentMaxShield = Constants.BASE_SHIELD
@@ -168,7 +197,8 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         player: Player,
         onRocketUnlock: (RocketType) -> Unit,
         onAchievementUnlock: (Achievement) -> Unit,
-        onLoreDiscovery: (DiscoveryType) -> Unit
+        onLoreDiscovery: (DiscoveryType) -> Unit,
+        onModuleUnlock: (Module) -> Unit
     ) {
         // 1. Rocket Unlocks
         RocketType.entries.forEach { type ->
@@ -178,7 +208,33 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
             }
         }
 
-        // 2. Lore Discoveries (Score-based)
+        // 2. Module Auto-Unlocks
+        ModuleRegistry.getAll().forEach { module ->
+            if (!isModuleOwned(module.id)) {
+                val req = module.unlockRequirement
+                val met = when (req.type) {
+                    UnlockType.SCORE -> score >= req.threshold
+                    UnlockType.ALTITUDE -> score >= req.threshold
+                    UnlockType.ARTIFACT -> artifactsCollected.size >= req.threshold
+                    UnlockType.DISCOVERY -> {
+                        val totalDisc = DiscoveryType.values().count { sharedPrefs.getBoolean("discovery_$it", false) }
+                        if (module.id == "MOD_SHIELD_FAST_RECHARGE") {
+                            sharedPrefs.getBoolean("discovery_SHIELD_CAPSULE", false)
+                        } else {
+                            totalDisc >= req.threshold
+                        }
+                    }
+                    UnlockType.MISSION -> missionsCompleted >= req.threshold
+                }
+
+                if (met) {
+                    grantModule(module.id)
+                    onModuleUnlock(module)
+                }
+            }
+        }
+
+        // 3. Lore Discoveries (Score-based)
         if (score >= 0) onLoreDiscovery(player.rocketType.discovery)
         if (score >= 100) onLoreDiscovery(DiscoveryType.LORE_ASCENSION)
         if (score >= 5000) onLoreDiscovery(DiscoveryType.LORE_SIGNAL)

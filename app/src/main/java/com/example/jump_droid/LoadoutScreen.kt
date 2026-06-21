@@ -21,6 +21,7 @@ import com.example.jump_droid.ui.theme.*
 @Composable
 fun LoadoutScreen(
     loadoutManager: LoadoutManager,
+    progressionManager: ProgressionManager,
     onNavigate: (GameState) -> Unit
 ) {
     var selectedSlot by remember { mutableStateOf(0) }
@@ -37,7 +38,7 @@ fun LoadoutScreen(
                 letterSpacing = 2.sp
             )
             Text(
-                "EQUIP MODULES TO AUGMENT PERFORMANCE",
+                "EQUIP OWNED MODULES TO AUGMENT PERFORMANCE",
                 color = SciFiWhite.copy(alpha = 0.6f),
                 style = MaterialTheme.typography.labelSmall
             )
@@ -81,35 +82,61 @@ fun LoadoutScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            Text("AVAILABLE MODULES", color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text("MODULE LIBRARY", color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Spacer(Modifier.height(12.dp))
 
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 allModules.forEach { module ->
                     val isEquipped = equippedIds.contains(module.id)
+                    val isOwned = progressionManager.isModuleOwned(module.id)
                     
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .clickable(!isEquipped) {
+                            .clickable(isOwned && !isEquipped) {
                                 loadoutManager.equipModule(module.id, selectedSlot)
                             },
-                        color = if (isEquipped) SciFiSurface.copy(alpha = 0.5f) else SciFiSurface,
+                        color = when {
+                            isEquipped -> SciFiSurface.copy(alpha = 0.5f)
+                            !isOwned -> Color.Black.copy(alpha = 0.3f)
+                            else -> SciFiSurface
+                        },
                         shape = RoundedCornerShape(8.dp),
-                        border = if (isEquipped) null else BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.1f))
+                        border = if (isOwned && !isEquipped) BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.1f)) else null
                     ) {
                         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(32.dp).background(module.iconColor.copy(alpha = 0.2f), RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
-                                Text(module.category.name.take(1), color = module.iconColor, fontWeight = FontWeight.Black)
+                            Box(Modifier.size(32.dp).background(
+                                if (isOwned) module.iconColor.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f), 
+                                RoundedCornerShape(4.dp)
+                            ), contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = if (isOwned) module.category.name.take(1) else "?", 
+                                    color = if (isOwned) module.iconColor else Color.Gray, 
+                                    fontWeight = FontWeight.Black
+                                )
                             }
                             Spacer(Modifier.width(16.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(module.name, color = if (isEquipped) SciFiWhite.copy(alpha = 0.3f) else SciFiWhite, fontWeight = FontWeight.Bold)
-                                Text(module.description, color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp)
+                                Text(
+                                    text = if (isOwned) module.name else "LOCKED MODULE", 
+                                    color = when {
+                                        isEquipped -> SciFiWhite.copy(alpha = 0.3f)
+                                        !isOwned -> Color.Gray
+                                        else -> SciFiWhite
+                                    }, 
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = if (isOwned) module.description else "Unlock: ${module.unlockRequirement.description}", 
+                                    color = SciFiWhite.copy(alpha = 0.5f), 
+                                    fontSize = 10.sp
+                                )
                             }
                             if (isEquipped) {
                                 Text("EQUIPPED", color = SciFiCyan, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                            } else if (!isOwned) {
+                                Text("LOCKED", color = SciFiRed.copy(alpha = 0.5f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

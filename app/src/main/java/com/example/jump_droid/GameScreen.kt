@@ -92,7 +92,13 @@ fun GameScreen() {
 
     val discoveryManager = remember { DiscoveryManager(sharedPrefs) }
     val progressionManager = remember { ProgressionManager(sharedPrefs) }
-    val missionManager = remember { MissionManager() }
+    val missionManager = remember { 
+        MissionManager().apply {
+            onMissionCompleted = { mission ->
+                progressionManager.recordMissionCompletion()
+            }
+        }
+    }
     val threatManager = remember { ThreatManager() }
     val comboManager = remember { ComboManager() }
     val missionCeremonies = remember { mutableStateMapOf<String, Float>() }
@@ -386,6 +392,10 @@ fun GameScreen() {
             },
             onLoreDiscovery = { type ->
                 checkDiscovery(type, forceTutorialState = false)
+            },
+            onModuleUnlock = { module ->
+                notificationManager.post("NEW MODULE: ${module.name.uppercase()}")
+                floatingTextManager.add(FloatingText("MODULE UNLOCKED: ${module.name}", player.x, player.y - 250f, color = module.iconColor, isCritical = true))
             }
         )
     }
@@ -621,7 +631,7 @@ fun GameScreen() {
         // Native Traits Initialization
         player.discoveryRangeMultiplier = if (player.rocketType == RocketType.BALANCED) 1.2f else 1.0f
 
-        loadoutManager.getActiveModules().forEach {
+        loadoutManager.getActiveModules(progressionManager).forEach {
             player.activeModules.add(it)
             it.onEquip(player)
         }
@@ -3711,6 +3721,7 @@ fun GameScreen() {
             GameState.LOADOUT -> {
                 LoadoutScreen(
                     loadoutManager = loadoutManager,
+                    progressionManager = progressionManager,
                     onNavigate = { gameState = it }
                 )
             }
