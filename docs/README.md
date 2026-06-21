@@ -73,6 +73,14 @@ Normal, Moving, Boost, Ice, Breakable, Phase, Fuel, Cooling, Stability, Magnetic
 - **1 Mini-Boss:** Command Cruiser (3-phase AI)
 - **5 Bosses:** Gatekeeper, Star-Eater, Leviathan, Void Engine, The Signal — each with destructible weak points
 
+### Attack System (Collision-Based)
+
+Jump Droid features a unique, weapon-less combat system where the rocket itself is the primary offensive tool.
+
+- **Weak Point Targeting**: Damage is dealt to bosses and mini-bosses by physically colliding with their highlighted weak points.
+- **Hit Feedback**: Successful strikes trigger an automatic upward knockback (`-400 vy`) to prevent multi-hit overlap and provide a safe window for repositioning.
+- **Invulnerability**: The player receives a brief `0.5s` invulnerability window immediately after destroying a weak point.
+
 ### Survival Systems
 
 - **Fuel** — Consumed during thrust (27/s), recharges while coasting (40/s). Base 100 capacity.
