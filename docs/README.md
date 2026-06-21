@@ -68,8 +68,8 @@ Normal, Moving, Boost, Ice, Breakable, Phase, Fuel, Cooling, Stability, Magnetic
 
 ### Threat System (31 Entries)
 
-- **7 Hazards:** Lightning, Turbulence, Debris, Radiation, Solar Flare, Gravity Distortion, EMP
-- **6 Enemies:** Surveyor Probe, Sky Ray, Aerosol Swarm, Orbital Sentry, Derelict Echo, Shadow Entity
+- **8 Hazards:** Lightning, Turbulence, Debris, Radiation, Solar Flare, EMP, Gravity Distortion, Void Anomaly
+- **8 Enemies:** Surveyor Probe, Sky Ray, Aerosol Swarm, Orbital Sentry, Derelict Echo, Void Tracker, Cosmic Leviathan, Shadow Entity
 - **1 Mini-Boss:** Command Cruiser (3-phase AI)
 - **5 Bosses:** Gatekeeper, Star-Eater, Leviathan, Void Engine, The Signal — each with destructible weak points
 

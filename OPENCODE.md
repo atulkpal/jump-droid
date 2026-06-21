@@ -16,7 +16,7 @@ Jump Droid is an Android game built with Jetpack Compose. The player pilots a ro
 |--------|---------|
 | `refactor/t4-recovery` | **Active** — Sprint T4 stabilized |
 | `refactor/logic-extraction` | Sprint T3 logic extraction (merged) |
-| `development` | integration branch for all work (EPIC 5 Sprint C next) |
+| `development` | integration branch for all work (EPIC 5 Sprint C complete) |
 | `refactor/ui-extraction` | Completed — Sprint T1 + T2 UI extraction, fully merged into `development` |
 | `main` | Base branch; contains pre-refactor code |
 
@@ -58,6 +58,7 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 | T3 | ✅ Done | Extracted `NotificationManager`, `FloatingTextManager`, `PlatformManager`, and expanded `ProgressionManager` |
 | T4 | ✅ Done | System delegation of survival, director, and threat interaction logic (Stabilized) |
 | Engine | ✅ Done | Projectiles, Input Buffer, Tethers, Visual Fog, and E2E Expansion |
+| Sprint C | ✅ Done | Structural fixes, Boss/Enemy Projectile systems, Zone redistribution |
 
 ## Completed Refactor Phases
 
@@ -99,6 +100,7 @@ Git tags: `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2`
 - ✅ **Visual Overhaul Sprint 2-3** (`35e03ce`): 9 threat rendering fixes, animated emoji gauge icons, main menu rewrite with animated starfield/scan radar/pulsing borders
 - ✅ **Premium Screen Pass** (`47ee28e`): TitleScreen scanning drone with Z-axis depth + radar sweep beam, animated starfields with twinkle on Hangar/Settings/About/GameOver/Pause screens, text wrapping fixes, status footers, text shadows
 - ✅ **HUD Revamp** (`afbecdc`, `47d4191`): Wider gauge bars (10dp), gradient fills, numeric value + percentage labels, segment ticks, shield shimmer, thinner premium card borders, neutral track backgrounds
+- ✅ **Sprint C Completion** (`a1accfb`): Structural fix for boss AI, projectile systems for all 6 bosses and 2 enemies, zone redistribution, difficulty scaling, and 11 entity bug fixes.
 
 ## Open Refactor Tasks
 
@@ -147,6 +149,7 @@ Every notable engineering event gets a dated entry in `docs/CHANGELOG.md` with: 
 
 ## Next Recommended Engineering Tasks
 
-1. Resume EPIC 5 Sprint C work on `development`
-2. Move `MissionType.toIcon()` to `MissionType.kt`
-3. Migrate deprecated `LinearProgressIndicator` usages
+1. EPIC 5 Sprint C is complete on `development`
+2. Future sprints: gameplay balance pass, Star-Eater phase rewrite, new zone bosses
+3. Move `MissionType.toIcon()` to `MissionType.kt`
+4. Migrate deprecated `LinearProgressIndicator` usages

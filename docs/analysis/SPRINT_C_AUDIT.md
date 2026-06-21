@@ -1,8 +1,8 @@
 # Sprint C — Consolidated Audit Report
 
-**Date:** 2026-06-19
-**Branch:** `development` (uncommitted)
-**Scope:** Reality Warp Update, Scout Drone Escalation, Hostile Entity Completion, Boss Completion, Verification
+**Date:** 2026-06-22 (Updated)
+**Branch:** `development` (`sprintc-fixes` merged)
+**Scope:** Reality Warp Update, Scout Drone Escalation, Hostile Entity Completion, Boss Completion, Structural Fix, Boss Projectile Systems, Enemies Projectiles, Zone Redistribution, Verification
 
 ---
 
@@ -324,39 +324,47 @@ None known for the messaging system.
 
 ---
 
-## 11. Sprint C Status
+## 11. Sprint C Status (Post-Fix Session)
 
 | Task | Status | Completion |
 |------|--------|------------|
 | Reality Warp: Scout Drone Escalation | ✅ Complete | 100% |
 | Reality Warp: Void Anomaly | ✅ Complete | 100% |
-| Reality Warp: BOSS_VOID_ENGINE | ✅ Complete | 100% (with known bugs) |
+| Reality Warp: BOSS_VOID_ENGINE | ✅ Complete | 100% (bugs fixed) |
 | Reality Warp: BOSS_SIGNAL | ✅ Complete | 100% (ghost platform bug fixed) |
-| Reality Warp: BOSS_LEVIATHAN | ✅ Complete | 100% (with known bug) |
+| Reality Warp: BOSS_LEVIATHAN | ✅ Complete | 100% (bugs fixed) |
 | Messaging Investigation | ✅ Complete | 100% — all 7 issues fixed |
-| Hostile Completion: ENT_STALKER | ✅ Complete | 100% — AI + interaction + spawn |
-| Hostile Completion: ENT_VOID_WRAITH | ✅ Complete | 100% — AI + interaction + spawn |
-| Hostile Completion: ENT_VOID_WHALE | ✅ Complete | 100% — AI + interaction + spawn |
+| Hostile Completion: ENT_STALKER | ✅ Complete | 100% — AI + interaction + spawn + projectile |
+| Hostile Completion: ENT_VOID_WRAITH | ✅ Complete | 100% — AI + interaction + spawn + rendering |
+| Hostile Completion: ENT_VOID_WHALE | ✅ Complete | 100% — AI + interaction + spawn + rendering + tuning |
 | Dev Menu redesign | ✅ Complete | 100% — no-theme, groups, SHIELD/HULL |
 | Sprint C Verification | ✅ Complete | 100% — all features classified |
-| Gameplay balance pass | ❌ Not Started | Planned as separate follow-up |
+| Structural Bug Fix | ✅ Complete | Boss update code moved outside ENEMY-only `when` block |
+| Boss Projectile Systems | ✅ Complete | All 6 bosses fire projectiles in relevant phases |
+| Enemy Projectiles | ✅ Complete | Defense Node (BOLT) + Void Tracker (BOLT) |
+| Zone Redistribution | ✅ Complete | Earth boss-free, all bosses expanded to native zone + above |
+| Difficulty + Threat Density Scaling | ✅ Complete | HP multiplier ×1–3, intensityFactor applied |
 
-**Overall Assessment:** All implementation tasks are complete. Features that require force/damage value multipliers to be game-impactful are identified in the recommendations. The codebase is stable with no crashes or blocking bugs.
+**Overall Assessment:** All Sprint C implementation tasks are complete. The structural bug that prevented MINI_BOSS/BOSS AI from running has been fixed. All 6 bosses now fire projectiles. Zone availability for bosses has been expanded. Two enemies (Defense Node, Void Tracker) fire projectiles. Difficulty and threat density scaling are operational. The codebase is stable with no crashes or blocking bugs. Star-Eater full phase rewrite deferred to future boss expansion sprint.
 
 ---
 
 ## Appendix A: Key Values Reference
 
-| Entity | Speed/Range | Damage/Force | Timers | Weak Points |
-|--------|------------|-------------|--------|-------------|
-| ENT_SCOUT_DRONE | detection 400px, follow 20%/s | N/A | transmit 5s, flee 3s, patrol 3s | N/A |
-| ENT_STALKER | detection 600px, speed 80-200 px/s | heat 10-30 (0.8s invuln) | alertLevel ramp 2s | N/A |
-| ENT_VOID_WRAITH | speed 40-120 px/s, detect 100px | integrity 15 + fuel 30 (1.5s invuln) | phase 5s (3+2) | N/A |
-| ENT_VOID_WHALE | screen-wrap ±300px, slipstream 500px | slipstream 2000, vacuum 3000 | N/A | N/A |
-| HAZ_VOID_ANOMALY | pull 500px | force 1200, jitter ±400 | lifecycle default 10s | N/A |
-| BOSS_VOID_ENGINE | weak pts 150px radius | gravity 4800/7200, inversion 2.5s | arrival 5s, P2 12s, P3 15s | 2 |
-| BOSS_SIGNAL | interference 800px, heat 40/s | heat drain 40/s, HUD jam 2.5s | arrival 5s, P2 15s, P3 20s | 1 |
-| BOSS_LEVIATHAN | segments 300px, wall 50px | slipstream 3000-4500, slam 4500 | arrival 5s, P2 15s, P3 15s | 3 |
+| Entity | Speed/Range | Damage/Force | Timers | Weak Points | Projectiles |
+|--------|------------|-------------|--------|-------------|------------|
+| ENT_SCOUT_DRONE | detection 400px, follow 20%/s | N/A | transmit 5s, flee 3s, patrol 3s | N/A | None |
+| ENT_STALKER | detection 600px, speed 80-200 px/s | heat 10-30 (0.8s invuln) | alertLevel ramp 2s | N/A | BOLT 8dmg (1.5s, alertLevel > 0.5) |
+| ENT_VOID_WRAITH | speed 40-120 px/s, detect 100px | integrity 15 + fuel 30 (1.5s invuln) | phase 5s (3+2) | N/A | None |
+| ENT_VOID_WHALE | screen-wrap ±300px, slipstream 500px | slipstream 32000, vacuum 48000 | N/A | N/A | None |
+| ENT_ORBITAL_SENTRY | detection 400px | combo freeze + fuel drain 10/s | scanPulse 3.3s | N/A | BOLT 8dmg (2s) |
+| HAZ_VOID_ANOMALY | pull 500px | force 1200, jitter ±400 | lifecycle default 10s | N/A | None |
+| MINI_BOSS_COMMANDER | detection 400px | fuel drain 5/s, gravity 2500 | jam 1.2s, gravity 2.5s | 3 | 3-way BOLT 10dmg (1.5s, P3+) |
+| BOSS_GATEKEEPER | interaction 500px | fuel 20, heat 30 (1s invuln) | arrival 5s, P2 12s, P3 20s | 4 | BOLT 10dmg (3s P2), BEAM 15dmg (2s P3) |
+| BOSS_STAR_EATER | weak pt 80px | fuel + heat proximity | arrival 5s, P2 15s, P3 20s | 1 | WAVE 12dmg (4s P2), MISSILE 15dmg (2.5s P3) |
+| BOSS_VOID_ENGINE | weak pts 150px radius | gravity 4800/7200, inversion 2.5s | arrival 5s, P2 12s, P3 15s | 2 | WAVE 8dmg (3.5s P2), 3-way BOLT 12dmg (2s P3) |
+| BOSS_SIGNAL | interference 800px, heat 40/s | heat drain 40/s, HUD jam 2.5s | arrival 5s, P2 15s, P3 20s | 1 | BOLT 10dmg (3s P2), BEAM 12dmg (1.5s P3) |
+| BOSS_LEVIATHAN | segments 300px, wall 50px | slipstream 3000-4500, slam 4500 | arrival 5s, P2 15s, P3 15s | 3 | BOLT 10dmg (3s P2), BEAM 15dmg (2s P3) |
 
 ## Appendix B: FloatingText Fields
 

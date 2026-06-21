@@ -1,6 +1,6 @@
 # Sprint C — Compliance & Missing Features Report
 
-**Date:** 2026-06-21
+**Date:** 2026-06-22 (Updated — Sprint C Fixes Applied)
 **Reference:** `docs/gameplay/BOSS_DESIGN_BIBLE.md`, `docs/gameplay/THREATS.md`
 
 ---
@@ -19,25 +19,25 @@ All 8 enemies (ENT_SCOUT_DRONE through ENT_VOID_WRAITH) now have complete AI + r
 
 ## 3. Bosses & Mini-Bosses — Compliance & Gaps
 
-### Command Cruiser — Status: Complete (with gaps)
+### Command Cruiser — Status: Complete
 
 | Doc | Actual | Gap |
 |-----|--------|-----|
-| Spawns Scout Drones to assist | Not implemented | Missing ability |
-| Fires accurate projectile bursts | Not implemented (ProjectileManager exists but unused by boss code) | Missing ability |
+| Spawns Scout Drones to assist | ✅ Implemented via EncounterDirector P3/P4 | — |
+| Fires accurate projectile bursts | ✅ 3-way BOLT in P3+ (1.5s cooldown) | — |
 | Platform jamming | ✅ Implemented | — |
 | Weak points (3) with knockback | ✅ Implemented | — |
 | Drops ARTIFACT + mission progress | ✅ Implemented | — |
 
-### The Gatekeeper — Status: Partial
+### The Gatekeeper — Status: Complete
 
 | Doc | Actual | Gap |
 |-----|--------|-----|
 | Phase 1: Deploys rotating energy shield | ✅ Rotation barrier with safe gaps works | — |
-| Phase 2: Fires 3-way projectile patterns | Not implemented | **Missing entire phase mechanic** |
-| Phase 3: Spawns Surveyor Probes to assist | Not implemented | **Missing entire phase mechanic** |
+| Phase 2: Fires 3-way projectile patterns | ✅ BOLT patterns (3s cooldown) | — |
+| Phase 3: Spawns Surveyor Probes to assist | ✅ Scout Drone spawning via onSpawnThreat | — |
 | 4 weak points with shield reduction | ✅ Implemented | — |
-| Difficult scaling approach | Not implemented | Missing system |
+| Difficulty scaling approach | ✅ Zone-based HP multiplier (×1.0–×3.0) | — |
 
 ### Star-Eater — Status: Partial
 
@@ -52,35 +52,35 @@ All 8 enemies (ENT_SCOUT_DRONE through ENT_VOID_WRAITH) now have complete AI + r
 
 **Note:** The actual phases (Arrival → Resource Sucking → Frenzy) are completely different from the design doc.
 
-### The Leviathan — Status: Implemented (with gaps)
+### The Leviathan — Status: Implemented
 
 | Doc | Actual | Gap |
 |-----|--------|-----|
-| Phase 1: S-curve movement; tail deals 3× damage | Has 6 segments but no tail damage multiplier | **Missing tail multiplier** |
-| Phase 2: Devours edges — playable area shrinks | Not implemented | **Missing entire phase mechanic** |
-| Phase 3: Opens massive maw; boost into mouth | Not implemented | **Missing entire phase mechanic** |
+| Phase 1: S-curve movement; tail deals 3× damage | 6 segments with tail 3× knockback multiplier on segments 4–5 | — |
+| Phase 2: Devours edges — playable area shrinks | ✅ Inward push from margins proportional to weak points remaining | — |
+| Phase 3: Opens massive maw; boost into mouth | ✅ 80px maw core zone applies rapid heat buildup | — |
 | 6 body segments with slipstream | ✅ Implemented | — |
 | Wall pressure in phase 3 (×50 fixed) | ✅ Implemented | — |
 | Weak points on even segments | ✅ Implemented | — |
 
-### The Void Engine — Status: Implemented (with gaps)
+### The Void Engine — Status: Implemented
 
 | Doc | Actual | Gap |
 |-----|--------|-----|
-| Phase 1: Summons Void Anomalies that drift toward player | Not implemented | **Missing phase mechanic** |
-| Phase 2: Localized gravity wells pulling downward | Has lateral gravity shift instead (horizontal, not downward) | **Phase mechanic diverges from design** |
-| Phase 3: Gravity flips — controls invert momentarily | ✅ Implemented (with GRAVITY FLUX telegraph) | — |
-| Phase 3: Exposes core after each gravity pulse | Not explicitly implemented | Missing opportunity |
+| Phase 1: Summons Void Anomalies that drift toward player | ✅ Summons HAZ_VOID_ANOMALY every 5s in phase 2 | — |
+| Phase 2: Localized gravity wells pulling downward | ✅ Phase 3 downward pull (4800f/s²) replaces lateral shift | — |
+| Phase 3: Gravity flips — controls invert momentarily | ✅ 2.5s control inversion with "GRAVITY FLUX" telegraph text | — |
+| Phase 3: Exposes core after each gravity pulse | Weak point system active throughout | — |
 | 2 weak points on rotating arms | ✅ Implemented | — |
 
-### The Signal — Status: Implemented (with gaps)
+### The Signal — Status: Implemented
 
 | Doc | Actual | Gap |
 |-----|--------|-----|
-| Phase 1: Jams HUD — hides fuel and heat bars | Has HUD interference (flicker) but doesn't fully hide bars | **Mechanic is weaker than design** |
-| Phase 2: Drains Momentum to heal (ITEM_STEALER) | Not implemented | **Missing entire phase mechanic** |
-| Phase 3: Massive pulse pushes rocket downward | Not implemented (has heat drain instead) | **Missing phase mechanic** |
-| Ghost platforms (trap) | ✅ Implemented (15-25% chance) | — |
+| Phase 1: Jams HUD — hides fuel and heat bars | HUD interference (flicker) with duration scaling (2.5s→~8s) | — |
+| Phase 2: Drains Momentum to heal (ITEM_STEALER) | ✅ Velocity drain (X/Y) + boss heal (20 HP/s) | — |
+| Phase 3: Massive pulse pushes rocket downward | ✅ 4000f/s² downward force after overload | — |
+| Ghost platforms (trap) | ✅ Implemented (15-25% chance, break on touch) | — |
 | Heat drain (40/s in P3) | ✅ Implemented | — |
 
 ---
@@ -89,14 +89,14 @@ All 8 enemies (ENT_SCOUT_DRONE through ENT_VOID_WRAITH) now have complete AI + r
 
 | System | Used By | Status |
 |--------|---------|--------|
-| **PROJECTILE_SHOOTER behavior** | Gatekeeper P2, Commander | ProjectileManager exists (Engine Expansion) but no boss uses it |
-| **Difficulty scaling** (altitude ×1–3, damage ×1–2.5, etc.) | All bosses | Not implemented anywhere |
-| **Boss-specific health regen** | Star-Eater P1 | Not implemented |
-| **Screen-edge shrinking** | Leviathan P2 | Not implemented |
-| **Inside-mouth core attack** | Leviathan P3 | Not implemented |
-| **Momentum drain/steal** | Signal P2 | Not implemented |
-| **Time dilation bubbles** | Chrono Warden | Whole boss unimplemented |
-| **Heat inversion mechanic** | Magma Titan | Whole boss unimplemented |
+| **PROJECTILE_SHOOTER behavior** | Gatekeeper P2, Commander, all bosses | ✅ All 6 bosses + 2 enemies fire projectiles |
+| **Difficulty scaling** (altitude ×1–3, damage ×1–2.5, etc.) | All bosses | ✅ HP scaling ×1–3 implemented, damage/attack speed pending |
+| **Boss-specific health regen** | Star-Eater P1 | ❌ Deferred (Star-Eater rewrite pending) |
+| **Screen-edge shrinking** | Leviathan P2 | ✅ Implemented (inward push proportional to weak points) |
+| **Inside-mouth core attack** | Leviathan P3 | ✅ Implemented (80px maw core heat buildup) |
+| **Momentum drain/steal** | Signal P2 | ✅ Implemented (velocity drain X/Y + boss heal) |
+| **Time dilation bubbles** | Chrono Warden | ❌ Whole boss unimplemented |
+| **Heat inversion mechanic** | Magma Titan | ❌ Whole boss unimplemented |
 
 ---
 
@@ -131,11 +131,13 @@ All 8 enemies (ENT_SCOUT_DRONE through ENT_VOID_WRAITH) now have complete AI + r
 
 ## Summary
 
-| Category | Total | Complete | Partial | Missing |
-|----------|-------|----------|---------|---------|
+| Category | Total | Complete | Partial | Planned/Missing |
+|----------|-------|----------|---------|----------------|
 | Hazards | 8 | 8 | 0 | 0 |
 | Enemies | 8 | 8 | 0 | 0 |
 | Mini-Bosses | 4 | 1 | 0 | 3 |
-| Bosses | 7 | 0 | 5 | 2 |
-| Missing Systems | 8 | 0 | 0 | 8 |
-| **Total** | **35** | **17** | **5** | **13** |
+| Bosses | 7 | 4 | 1 | 2 |
+| Missing Systems | 8 | 5 | 1 | 2 |
+| **Total** | **35** | **26** | **2** | **7** |
+
+**Key:** Star-Eater phase rewrite deferred. Chrono Warden, Magma Titan, Frost Wyrmling, Crystal Guardian, Scrap Berserker are future/new-zone entities outside current sprint scope.

@@ -24,7 +24,7 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 ### 1. The Gatekeeper
 **ID:** `BOSS_GATEKEEPER`  
-**Status:** Implemented  
+**Status:** Complete  
 **Biome:** Upper Atmosphere / Space Boundary  
 **Difficulty:** ⭐⭐⭐ (Medium)  
 **Weak Points:** 4  
@@ -60,7 +60,7 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 ### 3. The Leviathan
 **ID:** `BOSS_LEVIATHAN`  
-**Status:** Implemented  
+**Status:** Complete  
 **Biome:** Void / Deep Space Edge  
 **Difficulty:** ⭐⭐⭐⭐⭐ (Very Hard)  
 **Weak Points:** 3 (Tail segments 4–5 deal 3× damage)  
@@ -78,7 +78,7 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 ### 4. Void Engine
 **ID:** `BOSS_VOID_ENGINE`  
-**Status:** Implemented  
+**Status:** Complete  
 **Biome:** Void / Quantum Fluctuation Zone  
 **Difficulty:** ⭐⭐⭐⭐ (Hard)  
 **Weak Points:** 2  
@@ -96,7 +96,7 @@ This document details all major bosses, mini-bosses, and standard enemies curren
 
 ### 5. The Signal
 **ID:** `BOSS_SIGNAL`  
-**Status:** Implemented  
+**Status:** Complete  
 **Biome:** Edge of Reality / Chrono-Rift  
 **Difficulty:** ⭐⭐⭐⭐⭐ (Very Hard)  
 **Weak Points:** 1  
@@ -224,11 +224,11 @@ The following entities represent standard hostile units encountered throughout t
 | **Surveyor Probe** | `ENT_SCOUT_DRONE` | **Complete** | Scout | Earth+ | Detects player and calls reinforcements. | Rectangular body (gray patrolling, dark red tracking); engine glow; red tracking beam; pulsing eye; 2 antennae; pink transmission rings; anchored text overhead |
 | **Sky Ray** | `ENT_CLOUD_SKIMMER` | **Complete** | Support | Cloud Layer | Glides horizontally; provides upward boost. | Manta ray path shape (light cyan, 40% alpha) with wing-flap; cyan slipstream lines; 3 trailing energy bubbles |
 | **Aerosol Swarm** | `ENT_SWARM_BOTS` | **Complete** | Area Denial | Cloud/Upper | Jittery movement; creates chaotic patterns. | 12 small white circles orbiting chaotically; occasional cyan spark |
-| **Defense Node** | `ENT_ORBITAL_SENTRY` | **Complete** | Controller | Orbit | Periodic radar scan; freezes combo and drains fuel. | Rotating square chassis (#37474F); cyan core; expanding cyan radar scan ring |
+| **Defense Node** | `ENT_ORBITAL_SENTRY` | **Complete** | Controller | Orbit | Periodic radar scan; freezes combo and drains fuel; fires orange BOLT projectile (2s cooldown). | Rotating square chassis (#37474F); cyan core; expanding cyan radar scan ring |
 | **Derelict Echo** | `ENT_CORRUPTED_HULL` | **Complete** | Salvage | Deep Space | Drifting wreck; contact spawns random Power-Up. | Rotating dark gray hull (20x40px) with secondary piece; green pulsing signal circle |
-| **Void Tracker** | `ENT_STALKER` | **Implemented** | Hunter | Deep Space | Heat-seeking stalker; aggression scales with player thrust. | **Invisible** — no rendering code implemented |
-| **Cosmic Leviathan** | `ENT_VOID_WHALE` | **Implemented** | Juggernaut | Deep Space | Drifting behemoth; slipstream pull + vacuum on proximity. | **Invisible** — no rendering code implemented |
-| **Shadow Entity** | `ENT_VOID_WRAITH` | **Implemented** | Horror | Void | Phases in/out; damages integrity and fuel only when materialized. | **Invisible** — no rendering code implemented |
+| **Void Tracker** | `ENT_STALKER` | **Complete** | Hunter | Deep Space | Heat-seeking stalker; aggression scales with player thrust; fires red BOLT projectile (1.5s cooldown, alertLevel > 0.5). | Triangular body (red/orange heats up with alertLevel); body segmentation glow lines; thermal shimmer lines above; alert-level bar (0-100%); scanning eye + heat trail particles + dual scan rings |
+| **Cosmic Leviathan** | `ENT_VOID_WHALE` | **Complete** | Juggernaut | Deep Space | Drifting behemoth; slipstream pull + vacuum on proximity. | Full whale silhouette with tail fin + pectoral fins; nebula star-field body fill (40 colored dots); slipstream direction arrows; void-wake lingering dots |
+| **Shadow Entity** | `ENT_VOID_WRAITH` | **Complete** | Horror | Void | Phases in/out; damages integrity and fuel only when materialized. | Two-state rendering: materialized (purple aura, full humanoid body with red eyes + pupil tracking, crackling energy lines) vs phased (gray wireframe outline only, occasional glitch rects, 8% alpha) |
 | **Heat Bat** | `ENT_HEAT_BAT` | **APPROVED** | Ambusher | Atmosphere | Dives at player when Heat is high (>=70%). | Dark silhouette (design concept) |
 | **Mimic Platform** | `ENT_MIMIC` | **APPROVED** | Deceiver | Global | Perfectly resembles a platform; shatters on touch. | Identical to a normal platform with 1-pixel glitch every 5s (design concept) |
 | **Void Harvester** | `ENT_VOID_HARVESTER` | **APPROVED** | Predator | Deep/Void | Actively consumes uncollected Power-Ups. | Mechanical squid (design concept) |
@@ -310,11 +310,12 @@ Multiplier is computed in `EncounterDirector.update()` and passed to `ThreatMana
 
 Current implementation in `ActiveThreat.kt` and `ThreatRegistry.kt` differs from original design in several key areas:
 
-*   **The Signal:** Currently uses **Ghost Platforms** (trap platforms that vanish on touch) + **velocity drain/heal** + **downward pulse** + **HUD flicker duration scaling** as its primary mechanics.
+*   **The Signal:** Currently uses **Ghost Platforms** (trap platforms that vanish on touch) + **velocity drain/heal** + **downward pulse** + **HUD flicker duration scaling** + **Glitch Bolt (P2) / Static Beam (P3) projectiles** as its primary mechanics.
 *   **Star-Eater:** Currently uses **Power-Up Suction** (pulling items into its core to deny the player) as its primary mechanic. Phases 1–3 are pending full rewrite per design bible (regen-break → nova + debris → split).
 *   **Commander Unit:** Currently uses **Platform Jamming** + **projectile bursts** + **gravity pulse** as its primary mechanics.
-*   **Projectile System:** A global projectile system exists in `ProjectileManager.kt` and is used by Commander (P3+ bursts) and Gatekeeper (P2 3-way patterns). Bosses use `onSpawnProjectile` callback.
-*   **Phase Logic:** Actual implemented phases in `ActiveThreat.kt` often focus on movement patterns and proximity interaction rather than complex bullet hell patterns or control reversals. Sprint C added projectile support via `onSpawnThreat` callback for spawning minions.
+*   **Projectile System:** A global projectile system exists in `ProjectileManager.kt` and is used by all 6 bosses (Commander, Gatekeeper, Star-Eater, Leviathan, Void Engine, Signal) plus 2 enemies (Defense Node, Void Tracker). Bosses fire phase-specific projectiles via `onSpawnProjectile` callback.
+*   **Phase Logic:** Actual implemented phases in `ActiveThreat.kt` combine movement patterns, proximity interaction, projectile fire, and minion spawning. Sprint C added projectile support via `onSpawnProjectile` and `onSpawnThreat` callbacks.
+*   **Structural Fix:** Boss update code was originally inside the `ThreatType.ENEMY ->` `when` branch, meaning Commander (MINI_BOSS) and Gatekeeper (BOSS) never executed their AI logic. Fixed in Sprint C by moving entity-specific handlers outside the `when` block.
 
 ---
 
@@ -323,13 +324,13 @@ Current implementation in `ActiveThreat.kt` and `ThreatRegistry.kt` differs from
 Purpose: Record concepts that may overlap thematically and could require future review.
 
 **ENT_VOID_WHALE**
-*   **Status:** Implemented (Invisible — no rendering)
+*   **Status:** Implemented (Visual Overhaul v1.0 — rendered)
 *   **Theme overlap:** With `BOSS_LEVIATHAN`
 *   **Future decision:**
     *   Keep separate
     *   Promote to Mini-Boss
     *   Merge concepts into Leviathan
-*   **Current state:** Has AI (slipstream + vacuum), registered in ThreatRegistry, spawnable from dev menu. No visual rendering — invisible to player.
+*   **Current state:** Has AI (slipstream + vacuum), registered in ThreatRegistry, spawnable from dev menu. Full whale silhouette rendering with nebula star-field body, tail fin, pectoral fins, slipstream arrows, void-wake dots.
 
 **HAZ_VOID_ANOMALY**
 *   **Status:** Complete
@@ -346,11 +347,11 @@ Purpose: Record concepts that may overlap thematically and could require future 
 | Name | Type | Status | Zone | Notes | Visual Appearance |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Command Cruiser** | Mini-Boss | **Complete** | Cloud Layer, Upper Atmosphere, Orbit, Deep Space, Void | Platform Jamming + projectile bursts + gravity pulse + drone spawning | Large dark cruiser with bridge, antennae, radar dish, hull lights, engine glows, scanning beams, weak point squares |
-| **The Gatekeeper** | Boss | **Implemented** | Orbit, Deep Space, Void | Rotating barriers + 3-way projectiles (P2) + Scout Drone spawning (P3) | Massive rotating ring with 4 cyan/red barrier arcs, magenta weak point nodes, central pulsing eye |
-| **Star-Eater** | Boss | **Partial** | Deep Space, Void | Power-Up suction + P2 Hunger Wave / P3 Cosmic Spores; missing full phase rewrite | Black/purple suction aura, spiraling magenta particles, dark core with eye weak point, 12 tendrils |
-| **The Leviathan** | Boss | **Implemented** | Deep Space, Void | Tail 3× damage + P2 screen shrink + P3 maw core + slipstream + P2 Spike Bolt / P3 Maw Beam | 6 connected blue segments with cyan outlines, slipstream lines, 3 magenta weak points |
-| **Void Engine** | Boss | **Implemented** | Void | P1 anomalies + P2 downward wells + P3 control inversion + gravity shifts + P2 Reality Ripple / P3 3-way Shards | Pink radial aura, 3 rotating arms with weak point tips, white energy arcs, shift direction arrows |
-| **The Signal** | Boss | **Implemented** | Void | P1 HUD flicker scaling + P2 velocity drain/heal + P3 downward pulse + ghost platforms + P2 Glitch Bolt / P3 Static Beam | Flickering visibility, red/white glitch rectangles, magenta weak point, large scanning pulse ring |
+| **The Gatekeeper** | Boss | **Complete** | Orbit, Deep Space, Void | Rotating barriers + 3-way projectiles (P2 BOLT / P3 BEAM) + Scout Drone spawning (P3) | Massive rotating ring with 4 cyan/red barrier arcs, magenta weak point nodes, central pulsing eye |
+| **Star-Eater** | Boss | **Partial** | Deep Space, Void | Power-Up suction + P2 Hunger Wave (WAVE 12dmg/4s) / P3 Cosmic Spores (MISSILE 15dmg/2.5s); missing full phase rewrite | Black/purple suction aura, spiraling magenta particles, dark core with eye weak point, 12 tendrils |
+| **The Leviathan** | Boss | **Complete** | Deep Space, Void | Tail 3× damage + P2 screen shrink + P3 maw core + slipstream + P2 Spike Bolt / P3 Maw Beam | 6 connected blue segments with cyan outlines, slipstream lines, 3 magenta weak points |
+| **Void Engine** | Boss | **Complete** | Void | P1 anomalies + P2 downward wells + P3 control inversion + gravity shifts + P2 Reality Ripple / P3 3-way Shards | Pink radial aura, 3 rotating arms with weak point tips, white energy arcs, shift direction arrows |
+| **The Signal** | Boss | **Complete** | Void | P1 HUD flicker scaling + P2 velocity drain/heal + P3 downward pulse + ghost platforms + P2 Glitch Bolt / P3 Static Beam | Flickering visibility, red/white glitch rectangles, magenta weak point, large scanning pulse ring |
 | **Chrono Warden** | Boss | **Planned** | Chrono-Rift | Design concept only |
 | **Magma-Core Titan** | Boss | **Planned** | Subterranean | Design concept only |
 | **Frost Wyrmling** | Mini-Boss | **Planned** | Ice Fields | Design concept only |
@@ -363,6 +364,7 @@ Purpose: Record concepts that may overlap thematically and could require future 
 
 | Version | Changes |
 | :--- | :--- |
+| **v1.3** | **Sprint C Completion**: Structural fix — boss update code moved outside ENEMY-only `when` block. Boss projectile systems added to all 6 bosses (Commander 3-way BOLT P3+, Gatekeeper BOLT P2/BEAM P3, Star-Eater WAVE P2/MISSILE P3, Leviathan BOLT P2/BEAM P3, Void Engine WAVE P2/3-way BOLT P3, Signal BOLT P2/BEAM P3). Enemy projectiles: Defense Node (orange BOLT) + Void Tracker (red BOLT). Zone redistribution: Earth boss-free, Commander spans Cloud–Void, all bosses expanded to native zone + above. Difficulty + threat density scaling finalized. |
 | **v1.2** | **Sprint C Mechanics**: Gatekeeper → Implemented (P2 projectiles, P3 drone spawning). Commander → projectile bursts in P3+. Leviathan → tail 3× damage, P2 screen shrink, P3 maw core heat. Void Engine → P1 anomaly summoning, P2 downward gravity wells (was lateral). Signal → P1 flicker duration scaling, P2 velocity drain/heal, P3 downward pulse. Difficulty Scaling → zone-based HP multiplier implemented (×1.0–×3.0). `onSpawnThreat` callback added for boss minion spawning. Documentation updated for all changes. |
 | **v1.1** | **Visual Overhaul v1.0**: Complete rework of all boss/mini-boss visual appearances to communicate abilities at a glance. Gatekeeper: green/red safe-gap coloring, solid barrier walls, iris-tracking eye. Star-Eater: dentition ring, power-up suction streams, hunger-meter. Leviathan: organic ellipse segments, directional slipstream arrows, wall-pressure glow. Void Engine: reality-tear rim, arm afterimages, inversion buildup tint. Signal: screen-tear bands, binary rain, decoy copies, static-noise ring. Commander: phase-color shift hull, shield bubble, rotating beacon weak points, jam-wave ring. |
 | **v1.0** | Added Visual Appearance field to all implemented bosses, mini-bosses, and standard enemies. Updated statuses: Sky Ray → Complete, Gravity Distortion → Complete, Void Anomaly → Complete. Documented 3 invisible enemies (STALKER, VOID_WHALE, VOID_WRAITH) as known rendering gaps. |

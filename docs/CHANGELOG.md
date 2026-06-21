@@ -4,6 +4,47 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-22
+
+**Sprint / Phase:** Sprint C Completion — Structural Fix, Boss Projectiles, Enemy Projectiles, Zone Redistribution
+
+**Branch:** `development` (merged from `sprintc-fixes`)
+
+**Commit:** `a1accfb`
+
+**Status:** Completed
+
+### Fixed
+- **Critical structural bug**: Boss `update()` code was inside `ThreatType.ENEMY ->` `when` branch. Commander (MINI_BOSS) and Gatekeeper (BOSS) never executed their AI logic. Moved entity-specific handlers outside the `when` block.
+- **BOSS_VOID_ENGINE**: `onVisualFeedback(10f, 0.4f)` now fires max once per 0.5s instead of every sub-step (240/sec). `gravityPulseTimer` dead code removed.
+- **BOSS_LEVIATHAN**: Weak point oscillation corrected from `sin(life×1000f)` to `sin(life×1.5f)`. Wall pressure increased 50× to 100000.
+- **BOSS_SIGNAL**: Phase 3 now checks `activeWeakPoints <= 0` for exit. Weak point position uses per-frame Random instead of seeded.
+- **ENT_VOID_WHALE**: Slipstream force multiplied 16× (2000 → 32000), vacuum 16× (3000 → 48000) for noticeable gameplay impact.
+- **ENT_VOID_WRAITH**: Visual distinction between materialized (purple aura, full body, crackling energy) and phased (gray wireframe, 8% alpha, glitch rects).
+- **ENT_STALKER**: Base speed increased, alertLevel ramp rate increased.
+- **HAZ_VOID_ANOMALY**: Zone-specific duration override for longer-lasting Void anomalies.
+- **BOLT rendering**: Reverted to original size (5-trail, no 2.5× scale, no pulsing glow).
+- **Floating text**: Critical text font size reduced from `headlineSmall` to `titleSmall` (~42% smaller).
+
+### Added
+- **Boss projectile systems**: All 6 bosses fire phase-specific projectiles. Commander (P3+ 3-way BOLT). Gatekeeper (P2 BOLT / P3 BEAM). Star-Eater (P2 WAVE / P3 MISSILE). Leviathan (P2 BOLT / P3 BEAM). Void Engine (P2 WAVE / P3 3-way BOLT). Signal (P2 BOLT / P3 BEAM).
+- **Enemy projectiles**: Defense Node fires orange BOLT (8dmg, 2s cooldown) when locked-on. Void Tracker fires red BOLT (8dmg, 1.5s cooldown) at alertLevel > 0.5.
+- **Zone redistribution**: Earth is boss-free. Commander spans Cloud Layer–Void. Gatekeeper: Orbit+. Star-Eater/Leviathan: Deep Space+. Void Engine/Signal: Void. All bosses expanded to native zone + all zones above.
+- **Difficulty scaling**: Zone-based HP multiplier (×1.0–×3.0) for bosses at spawn via `difficultyMultiplier`.
+- **Threat density scaling**: `intensityFactor` applied to EncounterDirector spawn intervals and caps.
+- **EncounterDirector zone gating**: Milestone boss spawns check `currentZone in def.spawnRules.allowedZones`.
+- **Cloud Commander fallback**: Spawn chance reduced 60% (×0.4 multiplier).
+- **`onSpawnThreat` callback**: Wired in GameScreen.kt for boss minion spawning.
+
+### Documentation
+- **THREAT_MASTER_TABLE.md**: Created with Status, AI Behavior, and Projectiles columns for all 22 entities.
+- **THREATS.md**: Updated all boss/projectile entries. Checklist finalized. Changelog entries added.
+- **BOSS_DESIGN_BIBLE.md**: Updated boss entries, zone expansions, enemy projectiles, structural fix note, v1.3 changelog.
+- **SPRINT_C_AUDIT.md**: Updated with current session fixes, bug resolutions, Appendix A projectile data.
+- **SPRINT_C_COMPLIANCE_GAP.md**: Updated gap closure status.
+
+---
+
 ## 2026-06-20
 
 **Sprint / Phase:** Visual Overhaul Sprint 2-3 — Premium Screen Polish

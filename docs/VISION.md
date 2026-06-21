@@ -115,7 +115,7 @@ The feeling at every stage should be: **"There is something higher waiting for m
 | Mini-Bosses | Implemented (Command Cruiser) |
 | Zone Bosses | Implemented (5 bosses) |
 | Enemy Behaviors | Implemented (6 enemy types) |
-| Projectile Systems | Future |
+| Projectile Systems | Implemented |
 | Combat Encounters | Implemented |
 | Boss Discoveries | Implemented |
 | Boss Archive Entries | Implemented |
