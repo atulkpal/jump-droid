@@ -32,9 +32,20 @@ class SurvivalManager {
 
         var remainingDamage = amount
 
+        // EPIC 7: Module Damage Hook
+        player.activeModules.forEach {
+            remainingDamage = it.onDamageTaken(player, remainingDamage, onVisualFeedback, onBurst)
+        }
+
         // 1. Shield Absorption
         if (player.shield > 0 && !player.infiniteShield) {
             val shieldDamage = min(player.shield, remainingDamage)
+            
+            // EPIC 7: Module Shield Hit Hook
+            player.activeModules.forEach {
+                it.onShieldHit(player, shieldDamage, onVisualFeedback, onBurst)
+            }
+
             player.shield -= shieldDamage
             remainingDamage -= shieldDamage
 

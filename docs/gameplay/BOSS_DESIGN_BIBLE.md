@@ -257,6 +257,20 @@ The following entities represent standard hostile units encountered throughout t
 
 All bosses and mini-bosses have one or more weak points. Destroying all weak points is typically required to progress to the next phase.
 
+### Interaction Mechanics
+
+Since Jump Droid does not currently feature a dedicated weapon system, **weak points are attacked via physical collision**. The player must skillfully pilot their rocket into the specific coordinates of a weak point to damage it.
+
+*   **Collision Detection**: The game checks the distance between the center of the rocket and the calculated position of each active weak point.
+*   **Hit Radius**: 
+    *   `BOSS_STAR_EATER`: 80 pixels.
+    *   All other Bosses/Mini-Bosses: 50 pixels.
+*   **Attack Feedback**:
+    *   **Knockback**: On a successful hit, the player is automatically knocked upward (`velocityY = -400f`) to prevent multi-hit frame overlapping.
+    *   **Invulnerability**: The player receives a brief **0.5s invulnerability window** to allow for safe repositioning.
+    *   **Visuals**: A purple energy burst (`onBurst`) and "WEAK POINT DESTROYED" floating text appear.
+*   **Destruction**: Once a weak point is hit once, it is destroyed. When `activeWeakPoints` reaches zero, the boss typically transitions to a retreat or final phase.
+
 | Boss | Weak Points | Damage Multiplier | Special Effect | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | Gatekeeper | 4 | ×1.5 | Each destroyed reduces shield | **Implemented** |

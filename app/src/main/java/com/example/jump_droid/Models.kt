@@ -4,7 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 
 enum class GameState {
-    TITLE, MAIN_MENU, HANGAR, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK
+    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK
 }
 
 enum class PowerUpType {
@@ -84,16 +84,18 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
 
 enum class RocketType(
     val title: String,
+    val traitName: String,
+    val traitDescription: String,
     val thrustMult: Float,
     val fuelMult: Float,
     val heatMult: Float,
     val unlockScore: Int,
     val discovery: DiscoveryType
 ) {
-    BALANCED("Balanced", 1.0f, 1.0f, 1.0f, 0, DiscoveryType.ROCKET_BALANCED),
-    SCOUT("Scout", 1.25f, 0.7f, 0.9f, 2000, DiscoveryType.ROCKET_SCOUT),
-    TANK("Tank", 0.85f, 1.5f, 0.8f, 5000, DiscoveryType.ROCKET_TANK),
-    EXPERIMENTAL("Experimental", 1.5f, 1.0f, 1.4f, 10000, DiscoveryType.ROCKET_EXPERIMENTAL)
+    BALANCED("Explorer", "Sensor Array", "Native +20% discovery range.", 1.0f, 1.0f, 1.0f, 0, DiscoveryType.ROCKET_BALANCED),
+    SCOUT("Striker", "Target Lock", "Precision strikes on weak points.", 1.25f, 0.7f, 0.9f, 2000, DiscoveryType.ROCKET_SCOUT),
+    TANK("Heavy", "Kinetic Mass", "Impact shockwaves on weak point destruction.", 0.85f, 1.5f, 0.8f, 5000, DiscoveryType.ROCKET_TANK),
+    EXPERIMENTAL("Prototype", "Overclocked Core", "Retain steering authority while overheated.", 1.5f, 1.0f, 1.4f, 10000, DiscoveryType.ROCKET_EXPERIMENTAL)
 }
 
 data class Achievement(
@@ -190,4 +192,9 @@ class Player(
     var destructionTimer by mutableFloatStateOf(0f) // Task 3: Destruction sequence
     var activeTether by mutableStateOf<Tether?>(null)
     var inputLatency by mutableFloatStateOf(0f)
+    var discoveryRangeMultiplier by mutableFloatStateOf(1.0f)
+
+    // EPIC 7: Module System
+    val activeModules = mutableStateListOf<Module>()
+    val moduleCooldowns = mutableStateMapOf<String, Float>()
 }

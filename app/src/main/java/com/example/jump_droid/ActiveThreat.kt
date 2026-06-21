@@ -706,6 +706,15 @@ class ActiveThreat(
         val dy = player.y - y
         val distSq = dx * dx + dy * dy
 
+        // EPIC 7: Survey Scanner support (Earlier discovery)
+        definition.discoveryType?.let { discoveryType ->
+            val baseDiscDist = 500f
+            val discDist = baseDiscDist * player.discoveryRangeMultiplier
+            if (distSq < discDist * discDist) {
+                onDiscovery(discoveryType)
+            }
+        }
+
         when (definition.id) {
             "HAZ_LIGHTNING" -> {
                 if (distSq < 200f * 200f) {
@@ -888,15 +897,23 @@ class ActiveThreat(
 
                             val ddx = player.x - wx
                             val ddy = player.y - wy
-                            val hitDist = if (definition.id == "BOSS_STAR_EATER") 80f else 50f
+                            val hitDist = if (definition.id == "BOSS_STAR_EATER") 80f else {
+                                if (player.rocketType == RocketType.SCOUT) 70f else 50f
+                            }
 
                             if (sqrt(ddx*ddx + ddy*ddy) < hitDist && player.invulnerabilityTimer <= 0f) {
                                 activeWeakPoints--
                                 player.invulnerabilityTimer = 0.5f
-                                player.velocityY = -400f 
+                                player.velocityY = -400f
                                 onBurst(wx, wy, 25, Color(0xFF9C27B0), 300f) // SciFiPurple
                                 onVisualFeedback(20f, 0f)
                                 onFloatingText("WEAK POINT DESTROYED", player.x, player.y, Color(0xFF9C27B0), true, 1.0f)
+
+                                // Trait: Kinetic Mass (Heavy)
+                                if (player.rocketType == RocketType.TANK) {
+                                    onBurst(wx, wy, 60, Color.White, 800f)
+                                    onVisualFeedback(40f, 0.6f)
+                                }
 
                                 if (activeWeakPoints <= 0) {
                                     phase = 5 

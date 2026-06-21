@@ -159,6 +159,10 @@ fun HangarScreen(
                         Text("ARCHIVE", color = SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
                         Text("VIEW >", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onNavigate(GameState.LOADOUT) }) {
+                        Text("LOADOUT", color = SciFiPurple, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                        Text("EDIT >", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -232,6 +236,14 @@ fun HangarScreen(
                                         else if (isActive) Text("ACTIVE", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 2.sp)
                                     }
                                     if (unlocked) {
+                                        Spacer(Modifier.height(8.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("TRAIT:", color = SciFiGold, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black)
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(type.traitName.uppercase(), color = SciFiWhite, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                        }
+                                        Text(type.traitDescription, color = SciFiWhite.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
+
                                         Spacer(Modifier.height(12.dp))
                                         Text("THRUST: ${(type.thrustMult * 100).toInt()}% // FUEL: ${(type.fuelMult * 100).toInt()}% // THERMAL: ${(type.heatMult * 100).toInt()}%", color = SciFiCyan.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                                         Spacer(Modifier.height(4.dp))

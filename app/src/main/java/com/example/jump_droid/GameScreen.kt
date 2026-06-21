@@ -144,6 +144,7 @@ fun GameScreen() {
     val encounterDirector = remember { EncounterDirector() }
     val projectileManager = remember { ProjectileManager() }
     val inputBufferManager = remember { InputBufferManager() }
+    val loadoutManager = remember { LoadoutManager(sharedPrefs) }
 
     // Escalation & Major Warning State
     var majorWarningText by remember { mutableStateOf<String?>(null) }
@@ -274,6 +275,9 @@ fun GameScreen() {
         }
 
         if (platform != null) {
+            // EPIC 7: Module Landing Hook
+            player.activeModules.forEach { it.onLanding(player, platform) }
+
             if (!alreadyLanded) {
                 // Task 1: Generic landing missions audit
                 missionManager.updateProgress(MissionType.PLATFORMING) { it.id.startsWith("plat_land_") }
@@ -610,6 +614,18 @@ fun GameScreen() {
         player.activeTether = null
         player.inputLatency = 0f
 
+        // EPIC 7: Module Initialization
+        player.activeModules.clear()
+        player.moduleCooldowns.clear()
+
+        // Native Traits Initialization
+        player.discoveryRangeMultiplier = if (player.rocketType == RocketType.BALANCED) 1.2f else 1.0f
+
+        loadoutManager.getActiveModules().forEach {
+            player.activeModules.add(it)
+            it.onEquip(player)
+        }
+
         gameTime = 0L
         runDurationTimer = 0f
         airborneTimer = 0f
@@ -698,6 +714,15 @@ fun GameScreen() {
                         val dt = (currentTime - lastFrameTime) / 1_000_000_000f
                         lastFrameTime = currentTime
                         if (screenWidth <= 0f) return@withFrameNanos
+
+                        // EPIC 7: Module Update Hook
+                        player.activeModules.forEach { module ->
+                            module.onUpdate(player, dt, onSpawnPlatform = { x, y, type ->
+                                if (platforms.size < 50) {
+                                    platforms.add(Platform(x, y, 150f, type))
+                                }
+                            })
+                        }
 
                         // Update systems
                         inputBufferManager.recordInput(isThrusting, thrustTarget, gameTime)
@@ -1008,43 +1033,71 @@ fun GameScreen() {
                             }
 
                             // d. Player Physics
-                            if (effectiveThrust && (player.fuel > 0f || infiniteFuel) && !player.isOverheated) {
-                                val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * (if (player.turboTimer > 0) 1.2f else 1.0f)
-                                val currentConsumption = if (infiniteFuel) 0f else BASE_FUEL_CONSUMPTION * player.rocketType.fuelMult * (if (player.efficiencyTimer > 0) 0.8f else 1.0f)
+                            val canThrustNormal = effectiveThrust && (player.fuel > 0f || infiniteFuel) && !player.isOverheated
+                            val canSteerPrototype = effectiveThrust && player.isOverheated && player.rocketType == RocketType.EXPERIMENTAL
+                            
+                            if (canThrustNormal || canSteerPrototype) {
+                                // EPIC 7: Module Thrust/Fuel/Heat Hook
+                                var thrustMult = 1.0f
+                                var fuelMult = 1.0f
+                                var steerMult = 1.0f
+                                var heatGenMult = 1.0f
 
-                                player.velocityY -= currentThrust * sdt
+                                player.activeModules.forEach {
+                                    thrustMult *= it.onThrust(player, sdt)
+                                    fuelMult *= it.onFuelConsume(player, sdt)
+                                    steerMult *= it.onSteer(player, sdt)
+                                }
+
+                                val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * (if (player.turboTimer > 0) 1.2f else 1.0f) * thrustMult
+
+                                if (canThrustNormal) {
+                                    player.velocityY -= currentThrust * sdt
+                                    val currentConsumption = if (infiniteFuel) 0f else BASE_FUEL_CONSUMPTION * player.rocketType.fuelMult * (if (player.efficiencyTimer > 0) 0.8f else 1.0f) * fuelMult
+
+                                    player.fuel = max(0f, player.fuel - currentConsumption * sdt)
+                                    if (!disableHeat) {
+                                        player.activeModules.forEach {
+                                            heatGenMult *= it.onHeatChange(player, player.heat)
+                                        }
+                                        player.heat = min(MAX_HEAT, player.heat + HEAT_GENERATION_RATE * player.rocketType.heatMult * heatGenMult * sdt)
+                                    }
+
+                                    // Thrust trail particles
+                                    if (Random.nextFloat() < 0.4f) {
+                                        particles.add(Particle(
+                                            x = player.x + (Random.nextFloat() - 0.5f) * 15f,
+                                            y = player.y + ROCKET_HEIGHT / 2,
+                                            vx = (Random.nextFloat() - 0.5f) * 40f,
+                                            vy = 100f + Random.nextFloat() * 150f,
+                                            life = 0.3f + Random.nextFloat() * 0.3f,
+                                            color = if (player.turboTimer > 0) Color.Cyan else Color(0xFFFF9800),
+                                            size = 3f + Random.nextFloat() * 5f
+                                        ))
+                                    }
+                                }
+
+                                // Steering Authority (Common to both normal and prototype)
                                 val dx = effectiveTarget.x - player.x
                                 val maxSteerDist = screenWidth / 3f
-                                val steerMult = if (player.stabilityTimer > 0) 1.2f else 0.7f
+                                val baseSteerMult = if (player.stabilityTimer > 0) 1.2f else 0.7f
                                 val steerForce = (dx / maxSteerDist).coerceIn(-1f, 1f) * (if (player.controlInversionTimer > 0f) -1f else 1f)
-                                player.velocityX += steerForce * currentThrust * steerMult * sdt
+                                player.velocityX += steerForce * currentThrust * baseSteerMult * steerMult * sdt
 
-                                player.fuel = max(0f, player.fuel - currentConsumption * sdt)
-                                if (!disableHeat) {
-                                    player.heat = min(MAX_HEAT, player.heat + HEAT_GENERATION_RATE * player.rocketType.heatMult * sdt)
-                                }
-
-                                // Thrust trail particles
-                                if (Random.nextFloat() < 0.4f) {
-                                    particles.add(Particle(
-                                        x = player.x + (Random.nextFloat() - 0.5f) * 15f,
-                                        y = player.y + ROCKET_HEIGHT / 2,
-                                        vx = (Random.nextFloat() - 0.5f) * 40f,
-                                        vy = 100f + Random.nextFloat() * 150f,
-                                        life = 0.3f + Random.nextFloat() * 0.3f,
-                                        color = if (player.turboTimer > 0) Color.Cyan else Color(0xFFFF9800),
-                                        size = 3f + Random.nextFloat() * 5f
-                                    ))
-                                }
-
-                                if (player.heat > MAX_HEAT * 0.7f) checkDiscovery(DiscoveryType.HEAT_SYSTEM)
-                                if (player.heat >= MAX_HEAT && !player.isOverheated) {
-                                    player.isOverheated = true
-                                    player.overheatTimer = OVERHEAT_COOLDOWN_TIME
-                                    isThrusting = false
+                                if (canThrustNormal) {
+                                    if (player.heat > MAX_HEAT * 0.7f) checkDiscovery(DiscoveryType.HEAT_SYSTEM)
+                                    if (player.heat >= MAX_HEAT && !player.isOverheated) {
+                                        player.isOverheated = true
+                                        player.overheatTimer = OVERHEAT_COOLDOWN_TIME
+                                        isThrusting = false
+                                    }
                                 }
                             } else if (!player.isOverheated) {
-                                player.heat = max(0f, player.heat - COOLING_RATE * sdt)
+                                var coolingMult = 1.0f
+                                player.activeModules.forEach {
+                                    coolingMult *= it.onCooling(player, sdt)
+                                }
+                                player.heat = max(0f, player.heat - COOLING_RATE * coolingMult * sdt)
                             }
 
                             player.velocityY += BASE_GRAVITY * sdt
@@ -1293,6 +1346,9 @@ fun GameScreen() {
                                         screenShake = 10f
                                         impactFlashAlpha = 0.6f
                                         notificationManager.post("ARTIFACT RECOVERED!")
+
+                                        // EPIC 7: Module Artifact Hook
+                                        player.activeModules.forEach { it.onArtifactCollected(player) }
                                     }
                                     PowerUpType.ALTITUDE_BOOSTER -> {
                                         player.velocityY = -2500f // Massive boost
@@ -3592,6 +3648,19 @@ fun GameScreen() {
                         rewards = flyingRewards.toList()
                     )
 
+                    // EPIC 7: Module Visual Hook
+                    player.activeModules.forEach { module ->
+                        module.onDraw(
+                            drawScope = this,
+                            player = player,
+                            cameraY = cameraY,
+                            gameTime = gameTime,
+                            activeThreats = threatManager.activeThreats.toList(),
+                            powerUps = powerUps.toList(),
+                            platforms = platforms.toList()
+                        )
+                    }
+
                     // Render Rocket via RocketRenderer
                     rocketRenderer.render(
                         drawScope = this,
@@ -3636,6 +3705,12 @@ fun GameScreen() {
                     highScore = progressionManager.highScore,
                     progressionManager = progressionManager,
                     sharedPrefs = sharedPrefs,
+                    onNavigate = { gameState = it }
+                )
+            }
+            GameState.LOADOUT -> {
+                LoadoutScreen(
+                    loadoutManager = loadoutManager,
                     onNavigate = { gameState = it }
                 )
             }

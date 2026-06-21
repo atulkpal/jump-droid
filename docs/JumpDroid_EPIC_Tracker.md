@@ -74,12 +74,12 @@
 
 ## Friendly Entities
 
-- [x] Surveyor Probe (ENT_SCOUT_DRONE - Scout behavior)
 - [x] Sky Ray (ENT_CLOUD_SKIMMER - Updraft)
 - [x] Derelict Echo (ENT_CORRUPTED_HULL - Salvage)
 
 ## Hostile Entities (Standard)
 
+- [x] Surveyor Probe (ENT_SCOUT_DRONE - Scout behavior)
 - [x] Aerosol Swarm (ENT_SWARM_BOTS)
 - [x] Defense Node (ENT_ORBITAL_SENTRY - Ranged)
 - [x] Void Tracker (ENT_STALKER - Ranged)
@@ -97,20 +97,96 @@
 
 ---
 
-# EPIC 7 - Rocket Evolution (NEXT)
+# EPIC 7 - Rocket Evolution (IN PROGRESS)
+*Detailed Tracker: [docs/roadmap/EPIC_7_TRACKER.md](roadmap/EPIC_7_TRACKER.md)*
 
-- [x] Rocket Classes (Base 4 classes: Balanced, Scout, Tank, Experimental)
-- [ ] Hull Upgrade Modules
-- [ ] Shield Capacitor Upgrades
-- [ ] Engine Performance Tuning
-- [ ] Fuel Injection Systems
-- [ ] Heat Sink Management
-- [ ] Utility Slot Modules
-- [ ] Cosmetic Skins / Trails
+- [x] Rocket Classes (Base 4 classes: Explorer, Striker, Heavy, Prototype)
+- [x] Module Framework (Registry, Hooks, LoadoutManager)
+- [x] Hull Modules (Reinforced Hull, Impact Dampeners, Self Repair Matrix)
+- [x] Shield Modules (Fast Recharge, Emergency Shield, Reflective Shield)
+- [x] Engine Modules (Burst Thrusters, Long Burn Thrusters, Vector Thrusters)
+- [x] Heat Modules (Cooling Matrix, Thermal Battery, Heat Sink)
+- [x] Exploration Modules (Survey Scanner, Artifact Locator, Threat Scanner)
+- [x] Support Modules (Auto Repair Drone, Emergency Beacon)
+- [ ] Progression & Unlocks (Sprint 7.6)
+- [ ] Balance & Validation (Sprint 7.7)
 
 ---
 
-# EPIC 8 - The Archive Expands
+# EPIC 8 - Missions & Progression
+
+Status: Planned (Existing Prototype Branch Available)
+
+## Mission Framework
+
+- [ ] Mission System Recovery Audit
+- [ ] Mission State Architecture
+- [ ] Mission Persistence Validation
+- [ ] Mission Unlock Flow
+- [ ] Mission Claim Flow
+- [ ] Mission Reward Pipeline
+
+## Core Mission Tracks
+
+- [ ] Flight Time Missions
+- [ ] Platform Stay Missions
+- [ ] Fuel Efficiency Missions
+- [ ] No Heat Missions
+- [ ] Combo Missions
+- [ ] Discovery Missions
+- [ ] Altitude Missions
+- [ ] Boss Slayer Missions
+- [ ] Momentum Missions
+- [ ] Hazard Survival Missions
+- [ ] Perfect Run Missions
+- [ ] Collection Missions
+
+## Tiered Progression
+
+- [ ] Tier 1 Mission Set
+- [ ] Tier 2 Mission Set
+- [ ] Tier 3 Mission Set
+- [ ] Tier 4 Mission Set
+
+## Hidden Missions
+
+- [ ] Secret Mission Framework
+- [ ] Hidden Achievement Missions
+- [ ] Discovery-Based Unlocks
+
+## Reward Systems
+
+- [ ] Module Rewards
+- [ ] Artifact Rewards
+- [ ] Archive Rewards
+- [ ] Cosmetic Rewards
+- [ ] Fleet Expansion Rewards
+
+## Integration
+
+- [ ] Rocket Evolution Integration
+- [ ] Archive Integration
+- [ ] Discovery Integration
+- [ ] Boss Reward Integration
+
+## Existing Assets
+
+- [x] Mission Design Document
+- [x] 48 Tiered Mission Structure
+- [x] Hidden Mission Concepts
+- [x] Prototype UI Branch
+- [x] Prototype Mission Manager
+- [x] Prototype Persistence System
+
+## Notes
+
+Existing work located in: feature/mission-system
+Recover and integrate after EPIC 7 completion.
+Do not implement during EPIC 7. Track only.
+
+---
+
+# EPIC 9 - The Archive Expands
 
 - [ ] Artifact Set Bonuses
 - [ ] Discovery Collection Rewards
@@ -121,7 +197,7 @@
 
 ---
 
-# EPIC 9 - The Outer Reaches (New Biomes)
+# EPIC 10 - The Outer Reaches (New Biomes)
 
 - [ ] Additional Altitude Zones
 - [ ] Deep Space Sectors
@@ -132,7 +208,7 @@
 
 ---
 
-# EPIC 10 - Ascension (The End)
+# EPIC 11 - Ascension (The End)
 
 - [ ] Final Peak Zones
 - [ ] Legendary Relics
@@ -140,6 +216,78 @@
 - [ ] Mastery Challenge Ranks
 - [ ] 100% Completion Ceremony
 - [ ] Ascension Prestige Events
+
+---
+
+# EPIC 12 - Fleet Expansion
+
+Status: Planned
+
+## Fleet Framework
+
+- [ ] Rocket Class Framework (Explorer, Striker, Heavy, Prototype)
+- [ ] Multiple Chassis per Class
+- [ ] Chassis Selection System
+- [ ] Chassis Progression System
+- [ ] Fleet Collection System
+
+## Explorer Fleet
+
+- [ ] Pathfinder
+- [ ] Nomad
+- [ ] Surveyor
+
+## Striker Fleet
+
+- [ ] Interceptor
+- [ ] Raptor
+- [ ] Phantom
+
+## Heavy Fleet
+
+- [ ] Atlas
+- [ ] Bulwark
+- [ ] Leviathan
+
+## Prototype Fleet
+
+- [ ] X-01
+- [ ] X-07
+- [ ] Singularity
+
+## Progression
+
+- [ ] Chassis Unlock Progression
+- [ ] Fleet Collection Rewards
+- [ ] Fleet Mastery System
+- [ ] Fleet Completion Achievements
+
+## Cosmetics
+
+- [ ] Class-Specific Visual Themes
+- [ ] Alternate Hull Configurations
+- [ ] Engine Trail Customization
+- [ ] Paint Scheme System
+- [ ] Premium Cosmetic Variants
+
+## Design Rules
+
+- [ ] Classes define gameplay identity
+- [ ] Chassis define stat profiles
+- [ ] Modules define customization
+- [ ] No pay-to-win progression
+- [ ] All gameplay-affecting ships unlockable through play
+
+## Dependencies
+
+Requires:
+- EPIC 7 - Rocket Evolution
+- EPIC 8 - Missions & Progression
+- EPIC 9 - The Archive Expands
+- EPIC 10 - The Outer Reaches
+- EPIC 11 - Ascension
+
+Track only. Do not implement.
 
 ---
 
@@ -151,3 +299,4 @@
 - [x] **Cloud Spawn Reduction**: Tuned early game difficulty by reducing Commander fallback spawns in Cloud Layer by 60%.
 - [x] **Intensity Scaling**: EncounterDirector now applies `intensityFactor` to global spawn timers and caps.
 - [x] **Callback API**: Added `onSpawnProjectile` and `onSpawnThreat` to decouple logic from the renderer.
+- [x] **Weak Point Mechanics**: Documented the collision-based attack system in the Boss Design Bible.
