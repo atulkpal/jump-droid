@@ -118,6 +118,7 @@ object ThreatRegistry {
             description = "A rift in reality that distorts space and pulls everything toward it.",
             type = ThreatType.HAZARD,
             tier = ThreatTier.TIER_4,
+            discoveryType = DiscoveryType.HAZARD_VOID_ANOMALY,
             spawnRules = ThreatSpawnRules(
                 allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID),
                 spawnChance = 0.15f

@@ -115,15 +115,18 @@
 
 # EPIC 8 - Missions & Progression
 
-Status: Planned (Existing Prototype Branch Available)
+Status: In Progress
+Migration Branch: `epic8-mission-migration`
+Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
 
 ## Mission Framework
 
-- [ ] Mission System Recovery Audit
-- [ ] Mission State Architecture
-- [ ] Mission Persistence Validation
-- [ ] Mission Unlock Flow
-- [ ] Mission Claim Flow
+- [x] Mission System Recovery Audit
+- [x] Mission Data Migration (Phase 1)
+- [x] Intelligence Network (Phase 2)
+- [x] Mission Reward Integration (Phase 3)
+- [x] Mission Claim Flow (Phase 4)
+- [x] Mission UX & Gameplay Communication (Phase 5)
 - [ ] Mission Reward Pipeline
 
 ## Core Mission Tracks

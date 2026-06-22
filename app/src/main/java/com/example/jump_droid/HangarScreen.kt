@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.jump_droid.ui.theme.SciFiBackground
+import com.example.jump_droid.ui.theme.SciFiButtonShape
 import com.example.jump_droid.ui.theme.SciFiBorder
 import com.example.jump_droid.ui.theme.SciFiCyan
 import com.example.jump_droid.ui.theme.SciFiGold
@@ -134,58 +135,40 @@ fun HangarScreen(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .background(SciFiSurface, RoundedCornerShape(8.dp))
-                        .border(1.dp, SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                        .padding(12.dp),
+                        .background(SciFiSurface, RoundedCornerShape(12.dp))
+                        .border(1.dp, SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                        .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     val (pFound, pTotal) = progressionManager.getCompletionStats("PLATFORMS")
                     val (zFound, zTotal) = progressionManager.getCompletionStats("AREAS")
                     val (aFound, aTotal) = progressionManager.getCompletionStats("ARTIFACTS")
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("PLATFORMS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
-                        Text("$pFound/$pTotal", color = SciFiCyan, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("ZONES", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
-                        Text("$zFound/$zTotal", color = SciFiCyan, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("ARTIFACTS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
-                        Text("$aFound/$aTotal", color = SciFiPurple, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onNavigate(GameState.ARCHIVE) }) {
-                        Text("ARCHIVE", color = SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
-                        Text("VIEW >", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onNavigate(GameState.LOADOUT) }) {
-                        Text("LOADOUT", color = SciFiPurple, fontSize = 8.sp, fontWeight = FontWeight.Black)
-                        Text("EDIT >", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
+                    HangarNavWidget(Modifier.clickable { onNavigate(GameState.ARCHIVE) }, "ARCHIVE", "VIEW >", SciFiCyan)
+                    HangarNavWidget(Modifier.clickable { onNavigate(GameState.LOADOUT) }, "LOADOUT", "EDIT >", SciFiPurple)
+                    HangarNavWidget(Modifier.clickable { onNavigate(GameState.MISSIONS) }, "MISSIONS", "${progressionManager.missionsCompleted} DONE >", SciFiGold)
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .background(SciFiSurface.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                        .border(1.dp, SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                        .padding(10.dp),
+                        .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .border(1.dp, SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                        .padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("MAX HULL", color = SciFiGreen.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                        Text("${progressionManager.permanentMaxIntegrity.toInt()}", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("MAX SHIELD", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                        Text("${progressionManager.permanentMaxShield.toInt()}", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("REGEN RATE", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                        Text("${Constants.SHIELD_REGEN_RATE.toInt()} U/S", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                    val stats = listOf(
+                        "MAX HULL" to "${progressionManager.permanentMaxIntegrity.toInt()}",
+                        "MAX SHIELD" to "${progressionManager.permanentMaxShield.toInt()}",
+                        "REGEN" to "${Constants.SHIELD_REGEN_RATE.toInt()} U/S"
+                    )
+                    stats.forEach { (label, value) ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(label, color = SciFiWhite.copy(alpha = 0.5f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                            Text(value, color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        }
                     }
                 }
 
@@ -258,7 +241,7 @@ fun HangarScreen(
                 Button(
                     onClick = { onNavigate(GameState.MAIN_MENU) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = SciFiButtonShape,
                     colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
                     border = BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse))
                 ) {
@@ -268,5 +251,13 @@ fun HangarScreen(
                 Text("HANGAR // ROCKET SELECT // ${progressionManager.currentRank.title}", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
             }
         }
+    }
+}
+
+@Composable
+private fun HangarNavWidget(modifier: Modifier, label: String, sublabel: String, color: Color) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, color = color, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+        Text(sublabel, color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }

@@ -84,22 +84,40 @@ fun GameScreen() {
     var runDurationTimer by remember { mutableFloatStateOf(0f) }
     var airborneTimer by remember { mutableFloatStateOf(0f) }
     var noOverheatTimer by remember { mutableFloatStateOf(0f) }
+    var platformStayTimer by remember { mutableFloatStateOf(0f) }
+    var perfectRunTimer by remember { mutableFloatStateOf(0f) }
+    var hasTakenDamageThisRun by remember { mutableStateOf(false) }
+    var totalHazardHits by remember { mutableIntStateOf(0) }
+    var totalFuelPickups by remember { mutableIntStateOf(0) }
+    var totalPlatformLandings by remember { mutableIntStateOf(0) }
+    var totalBossesDefeated by remember { mutableIntStateOf(0) }
+    var totalArtifactsCollected by remember { mutableIntStateOf(0) }
+    var totalDashes by remember { mutableIntStateOf(0) }
+    var momentumValue by remember { mutableFloatStateOf(0f) }
+    var comboMaintainTimer by remember { mutableFloatStateOf(0f) }
+    var overheatCount by remember { mutableIntStateOf(0) }
+    var wasNearDeath by remember { mutableStateOf(false) }
+    var consecutiveWins by remember { mutableIntStateOf(0) }
     
     var gameState by remember { mutableStateOf(GameState.TITLE) }
+    var previousState by remember { mutableStateOf(GameState.MAIN_MENU) }
     var activeDiscovery by remember { mutableStateOf<DiscoveryType?>(null) }
     var unlockedRocket by remember { mutableStateOf<RocketType?>(null) }
     var codexNotification by remember { mutableStateOf<DiscoveryType?>(null) }
 
     val discoveryManager = remember { DiscoveryManager(sharedPrefs) }
     val progressionManager = remember { ProgressionManager(sharedPrefs) }
-    val missionManager = remember { 
-        MissionManager().apply {
-            onMissionCompleted = { mission ->
-                progressionManager.recordMissionCompletion()
+    val missionManager = remember { MissionManager(progressionManager) }
+
+    val threatManager = remember { 
+        ThreatManager().apply {
+            onThreatDestroyed = { def ->
+                if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
+                    totalBossesDefeated++
+                }
             }
         }
     }
-    val threatManager = remember { ThreatManager() }
     val comboManager = remember { ComboManager() }
     val missionCeremonies = remember { mutableStateMapOf<String, Float>() }
     val flyingRewards = remember { mutableStateListOf<FlyingReward>() }
@@ -121,10 +139,14 @@ fun GameScreen() {
     val particles = remember { mutableStateListOf<Particle>() }
     val floatingTextManager = remember { FloatingTextManager() }
 
+    SideEffect {
+        missionManager.onMissionCompleted = { mission ->
+            progressionManager.recordMissionCompletion(mission.id)
+        }
+    }
+
     var missionHintRotationTimer by remember { mutableFloatStateOf(0f) }
     var globalShowObjective by remember { mutableStateOf(false) }
-    var newMissionOverlay by remember { mutableStateOf<Mission?>(null) }
-    var newMissionOverlayTimer by remember { mutableFloatStateOf(0f) }
 
     var gameTime by remember { mutableLongStateOf(0L) }
     var powerUpSpawnTimer by remember { mutableFloatStateOf(0f) }
@@ -199,6 +221,7 @@ fun GameScreen() {
         
         if (type.category == "ARTIFACTS") {
             progressionManager.recordArtifactDiscovery(type, score, altitudeManager.currentZone)
+            totalArtifactsCollected++
         }
 
         if (isNew) {
@@ -237,13 +260,18 @@ fun GameScreen() {
         }
         val rewardName = when (reward) {
             is ComboReward.Fuel -> "FUEL RECOVERED"
-            is ComboReward.PowerUp -> "${reward.type.name.replace("_", " ")}"
+            is ComboReward.PowerUp -> reward.type.name.replace("_", " ")
             is ComboReward.AltitudeBoost -> "ALTITUDE BOOST"
             is ComboReward.Artifact -> "ARTIFACT DISCOVERED"
         }
 
-        // Task 4: Reward notifications near rocket
+        // Tactical feedback near rocket (Always shown)
         floatingTextManager.add(FloatingText(rewardName, player.x, player.y - 100f, color = rewardColor, isCritical = reward is ComboReward.Artifact))
+
+        // High-priority notifications only
+        if (reward is ComboReward.Artifact || reward is ComboReward.AltitudeBoost) {
+            notificationManager.post(rewardName)
+        }
 
         when (reward) {
             is ComboReward.Fuel -> {
@@ -287,6 +315,7 @@ fun GameScreen() {
             if (!alreadyLanded) {
                 // Task 1: Generic landing missions audit
                 missionManager.updateProgress(MissionType.PLATFORMING) { it.id.startsWith("plat_land_") }
+                totalPlatformLandings++
             }
 
             when (platform.type) {
@@ -513,6 +542,10 @@ fun GameScreen() {
     }
 
     fun applyDamage(amount: Float) {
+        if (amount > 0) {
+            totalHazardHits++
+            hasTakenDamageThisRun = true
+        }
         survivalManager.applyDamage(
             amount = amount,
             player = player,
@@ -520,6 +553,30 @@ fun GameScreen() {
             onGameOver = {
                 gameState = GameState.GAMEOVER
                 saveHighScore(score)
+                
+                // Commit to Intelligence Network
+                val stats = GameStats(
+                    totalFlightTime = airborneTimer,
+                    totalPlatformTime = platformStayTimer,
+                    zeroHeatTime = noOverheatTimer,
+                    fuelPickupsCollected = totalFuelPickups,
+                    platformLandings = totalPlatformLandings,
+                    maxCombo = comboManager.bestComboThisRun,
+                    currentCombo = comboManager.currentCombo,
+                    comboMaintainTime = comboMaintainTimer,
+                    bossesDefeated = totalBossesDefeated,
+                    codexUnlocked = progressionManager.getTotalDiscoveries(),
+                    maxAltitude = score.toFloat(),
+                    maxMomentum = momentumValue,
+                    hazardHitsSurvived = totalHazardHits,
+                    perfectRunTime = perfectRunTimer,
+                    artifactsCollected = progressionManager.artifactsCollected.size,
+                    dashesPerRun = totalDashes,
+                    overheatCount = player.totalOverheats,
+                    wasNearDeath = wasNearDeath,
+                    consecutiveWins = consecutiveWins
+                )
+                progressionManager.commitSessionStats(stats)
             },
             onVisualFeedback = { shake, flash ->
                 screenShake = shake
@@ -540,17 +597,19 @@ fun GameScreen() {
         // Handle Completed Missions (Rewards)
         missionManager.activeMissions.filter { it.isCompleted }.forEach { mission ->
             // Grant Reward
-            when (val r = mission.reward) {
-                is MissionReward.PowerUp -> {
-                    val count = r.amount
-                    repeat(count) {
-                        powerUps.add(PowerUp(player.x, cameraY - 100f, r.type))
+            mission.rewards.forEach { reward ->
+                when (val r = reward) {
+                    is MissionReward.PowerUp -> {
+                        val count = r.amount
+                        repeat(count) {
+                            powerUps.add(PowerUp(player.x, cameraY - 100f, r.type))
+                        }
                     }
+                    is MissionReward.Artifact -> {
+                        checkDiscovery(r.discoveryType, forceTutorialState = false)
+                    }
+                    else -> {}
                 }
-                is MissionReward.Artifact -> {
-                    checkDiscovery(r.discoveryType, forceTutorialState = false)
-                }
-                else -> {}
             }
 
             // Visuals
@@ -640,6 +699,19 @@ fun GameScreen() {
         runDurationTimer = 0f
         airborneTimer = 0f
         noOverheatTimer = 0f
+        platformStayTimer = 0f
+        perfectRunTimer = 0f
+        hasTakenDamageThisRun = false
+        totalHazardHits = 0
+        totalFuelPickups = 0
+        totalPlatformLandings = 0
+        totalBossesDefeated = 0
+        totalArtifactsCollected = 0
+        totalDashes = 0
+        momentumValue = 0f
+        comboMaintainTimer = 0f
+        overheatCount = 0
+        wasNearDeath = false
 
         powerUpSpawnTimer = 0f
         globalFogAlpha = 0f
@@ -880,6 +952,36 @@ fun GameScreen() {
                         if (player.controlInversionTimer > 0) player.controlInversionTimer = max(0f, player.controlInversionTimer - dt)
                         if (player.hudInterferenceTimer > 0) player.hudInterferenceTimer = max(0f, player.hudInterferenceTimer - dt)
 
+                        // --- Intelligence Network (Real-time Stats) ---
+                        runDurationTimer += dt
+                        if (comboManager.currentCombo >= 20) comboMaintainTimer += dt // Threshold based on lowest combo pro mission
+                        
+                        momentumValue = max(momentumValue, abs(player.velocityY))
+
+                        val stats = GameStats(
+                            totalFlightTime = airborneTimer,
+                            totalPlatformTime = platformStayTimer,
+                            zeroHeatTime = noOverheatTimer,
+                            fuelPickupsCollected = totalFuelPickups,
+                            platformLandings = totalPlatformLandings,
+                            maxCombo = comboManager.bestComboThisRun,
+                            currentCombo = comboManager.currentCombo,
+                            comboMaintainTime = comboMaintainTimer,
+                            bossesDefeated = totalBossesDefeated,
+                            codexUnlocked = progressionManager.getTotalDiscoveries(),
+                            maxAltitude = score.toFloat(),
+                            maxMomentum = momentumValue,
+                            hazardHitsSurvived = totalHazardHits,
+                            perfectRunTime = perfectRunTimer,
+                            artifactsCollected = progressionManager.artifactsCollected.size,
+                            dashesPerRun = totalDashes,
+                            overheatCount = player.totalOverheats,
+                            wasNearDeath = wasNearDeath,
+                            consecutiveWins = consecutiveWins
+                        )
+                        missionManager.updateProgressAll(stats)
+                        missionManager.checkUnlocks()
+
                         // Major warning timer
                         if (majorWarningTimer > 0f) {
                             majorWarningTimer -= dt
@@ -911,6 +1013,11 @@ fun GameScreen() {
                         val sdt = dt / subSteps
                         repeat(subSteps) {
                             player.isOnPlatform = false // Reset per substep for accurate airborne tracking
+
+                            // --- Intelligence Network Tracking ---
+                            if (player.velocityY < 0f) airborneTimer += sdt
+                            if (player.heat == 0f) noOverheatTimer += sdt
+                            if (!hasTakenDamageThisRun) perfectRunTimer += sdt
 
                             player.activeTether?.applyPhysics(player, sdt, cameraY)
 
@@ -1213,6 +1320,9 @@ fun GameScreen() {
                                     if (abs(player.velocityY) < 50f) player.velocityY = 0f
                                 }
                             }
+
+                            // --- Intelligence Network (Platform tracking) ---
+                            if (player.isOnPlatform) platformStayTimer += sdt
                         }
 
                         // Trigger Overheat Visuals if it just happened
@@ -1425,44 +1535,21 @@ fun GameScreen() {
                             globalShowObjective = !globalShowObjective
                         }
 
-                        if (newMissionOverlayTimer > 0f) {
-                            newMissionOverlayTimer -= dt
-                            if (newMissionOverlayTimer <= 0f) newMissionOverlay = null
-                        }
-
-                        // Intro Card Trigger
-                        missionManager.activeMissions.find { it.isNew }?.let {
-                            it.isNew = false
-                            newMissionOverlay = it
-                            newMissionOverlayTimer = 3.0f
-                        }
-
-                        // Handle Completed Missions (Ceremony & Rewards)
+                        // Handle Completed Missions (Lightweight Feedback)
                         missionManager.activeMissions.forEach { mission ->
-                            if (mission.isCompleted) {
-                                when (mission.ceremonyStage) {
-                                    CeremonyStage.GLOW -> {
-                                        // Wait a brief moment or start immediately
-                                        mission.ceremonyStage = CeremonyStage.COMPLETED_TEXT
-                                        screenShake = max(screenShake, 10f)
-                                    }
-                                    CeremonyStage.COMPLETED_TEXT -> {
-                                        // Transition handled by UI but we can add logic here if needed
-                                        // For now, move to spawn reward after a delay
-                                        // We can use a dedicated timer per mission for precise stages if needed
-                                    }
-                                    CeremonyStage.REWARD_SPAWNED -> {
-                                        // Reward is already in flyingRewards, waiting for it to finish
-                                    }
-                                    else -> {}
-                                }
+                            if (mission.isCompleted && missionCeremonies[mission.id] == null) {
+                                missionCeremonies[mission.id] = 0f
+                                notificationManager.post("MISSION COMPLETE: ${mission.name.uppercase()}")
+                                floatingTextManager.add(FloatingText("MISSION COMPLETE", player.x, player.y - 180f, color = SciFiGreen, isCritical = true))
+                                
+                                // One-time burst at player
+                                spawnBurst(player.x, player.y, 40, SciFiGreen, 350f)
+                                screenShake = max(screenShake, 12f)
+                                impactFlashAlpha = max(impactFlashAlpha, 0.4f)
                             }
                         }
 
-                        missionManager.activeMissions.filter { it.isCompleted && missionCeremonies[it.id] == null }.forEach { mission ->
-                             missionCeremonies[mission.id] = 0f // Start ceremony
-                        }
-
+                        // Ceremony cleanup (no reward spawning here anymore)
                         val ceremonyKeys = missionCeremonies.keys.toList()
                         ceremonyKeys.forEach { mid ->
                             val m = missionManager.activeMissions.find { it.id == mid }
@@ -1472,118 +1559,9 @@ fun GameScreen() {
                             val newTime = prevTime + dt
                             missionCeremonies[mid] = newTime
 
-                            // Task 3 & 6: Card disintegration and Category Personality
-                            if (newTime < 2.0f) {
-                                val missionIdx = missionManager.activeMissions.indexOf(m)
-                                if (missionIdx >= 0) {
-                                    val totalMissions = missionManager.activeMissions.size
-                                    val startX = (screenWidth - (totalMissions * 110f)) / 2f
-                                    val cardX = startX + (missionIdx * 110f) + 55f
-                                    val cardY = 100f * densityValue
-                                    
-                                    // Task 1: Increased density for visible fracturing
-                                    val particleChance = if (newTime < 1.0f) 0.4f else 0.8f
-                                    if (Random.nextFloat() < particleChance) {
-                                        repeat(if (newTime > 1.5f) 5 else 2) {
-                                            val pColor = when(m.type) {
-                                                MissionType.EXPLORATION -> Color(0xFFFFD700) // Gold
-                                                MissionType.PLATFORMING -> Color(0xFFFF5722) // Sparks/Orange
-                                                MissionType.SURVIVAL -> Color(0xFF03A9F4) // Energy/Cyan
-                                                MissionType.DISCOVERY -> Color(0xFF9C27B0) // Artifact/Purple
-                                                MissionType.BOSS -> Color(0xFFFFC107) // Yellow/Shock
-                                                else -> Color.White
-                                            }
-                                            particles.add(Particle(
-                                                x = cardX + (Random.nextFloat() - 0.5f) * 110f,
-                                                y = (cardY + cameraY) + (Random.nextFloat() - 0.5f) * 65f, // Account for cameraY when spawning from HUD
-                                                vx = (Random.nextFloat() - 0.5f) * 80f,
-                                                vy = (Random.nextFloat() - 0.5f) * 80f + 30f,
-                                                life = 1.5f,
-                                                color = pColor,
-                                                size = 3f + Random.nextFloat() * 5f
-                                            ))
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Stage transitions
-                            if (prevTime < 1.0f && newTime >= 1.0f) {
-                                m.ceremonyStage = CeremonyStage.COMPLETED_TEXT
-                                
-                                val missionIdx = missionManager.activeMissions.indexOf(m)
-                                if (missionIdx >= 0) {
-                                    val totalMissions = missionManager.activeMissions.size
-                                    val startX = (screenWidth - (totalMissions * 110f)) / 2f
-                                    val cardX = startX + (missionIdx * 110f) + 55f
-                                    val cardY = 100f * densityValue
-                                    
-                                    // Task 4: Restore star/sparkle burst on mission completion
-                                    repeat(40) {
-                                        val angle = Random.nextFloat() * 2f * PI.toFloat()
-                                        val speed = 150f + Random.nextFloat() * 300f
-                                        particles.add(Particle(
-                                            x = cardX, y = cardY + cameraY, // Account for cameraY when spawning from HUD
-                                            vx = cos(angle) * speed, vy = sin(angle) * speed,
-                                            life = 1.2f + Random.nextFloat() * 1.0f,
-                                            color = if (Random.nextBoolean()) SciFiWhite else SciFiGold,
-                                            size = 4f + Random.nextFloat() * 5f // Larger size triggers star rendering
-                                        ))
-                                    }
-                                }
-
-                                // Task 5: Hierarchy
-                                val isSignificant = m.type == MissionType.DISCOVERY || m.type == MissionType.BOSS || m.id.contains("exp_void") || m.id == "surv_cool_2"
-                                if (isSignificant) {
-                                    screenShake = max(screenShake, 15f)
-                                    impactFlashAlpha = max(impactFlashAlpha, 0.3f)
-                                } else {
-                                    screenShake = max(screenShake, 8f)
-                                }
-                            }
-                            if (prevTime < 2.0f && newTime >= 2.0f) {
-                                // Spawn Reward
-                                val missionIdx = missionManager.activeMissions.indexOf(m)
-                                val cardX = if (missionIdx >= 0) {
-                                    val totalMissions = missionManager.activeMissions.size
-                                    val startX = (screenWidth - (totalMissions * 110f)) / 2f
-                                    startX + (missionIdx * 110f) + 55f
-                                } else screenWidth / 2f
-
-                                val comboReward = when (val r = m.reward) {
-                                    is MissionReward.PowerUp -> ComboReward.PowerUp(r.type)
-                                    is MissionReward.Artifact -> ComboReward.Artifact(r.discoveryType)
-                                    else -> ComboReward.Fuel(50f)
-                                }
-
-                                flyingRewards.add(FlyingReward(
-                                    type = comboReward,
-                                    x = cardX,
-                                    y = 100f * densityValue, // top area
-                                    scale = 4.0f // Task 2: Increased scale
-                                ))
-                                m.ceremonyStage = CeremonyStage.REWARD_SPAWNED
-                                spawnBurst(cardX, 100f * densityValue, 40, SciFiGold, 350f)
-                            }
-                            if (prevTime < 3.5f && newTime >= 3.5f) {
+                            if (newTime >= 3.0f) {
                                 m.ceremonyStage = CeremonyStage.REPLACING
                                 missionCeremonies.remove(mid)
-                                
-                                // Mission Synergy Bonus: Small progress to other active tracks
-                                missionManager.activeMissions.filter { !it.isCompleted && it.id != m.id }.forEach { other ->
-                                    when (other.type) {
-                                        MissionType.PLATFORMING -> {
-                                            other.currentProgress = min(other.targetValue, other.currentProgress + 1)
-                                            other.checkCompletion()
-                                        }
-                                        MissionType.SURVIVAL -> {
-                                            val bonus = if (other.id.startsWith("surv_air")) 2f else 5f
-                                            if (other.id.startsWith("surv_air")) airborneTimer += bonus
-                                            else noOverheatTimer += bonus
-                                        }
-                                        else -> {}
-                                    }
-                                }
                             }
                         }
 
@@ -3705,7 +3683,10 @@ fun GameScreen() {
             GameState.MAIN_MENU -> {
                 MainMenuScreen(
                     onLaunch = { restartGame() },
-                    onNavigate = { gameState = it },
+                    onNavigate = { 
+                        previousState = GameState.MAIN_MENU
+                        gameState = it 
+                    },
                     onExit = { (context as? android.app.Activity)?.finish() }
                 )
             }
@@ -3715,7 +3696,10 @@ fun GameScreen() {
                     highScore = progressionManager.highScore,
                     progressionManager = progressionManager,
                     sharedPrefs = sharedPrefs,
-                    onNavigate = { gameState = it }
+                    onNavigate = { 
+                        previousState = GameState.HANGAR
+                        gameState = it 
+                    }
                 )
             }
             GameState.LOADOUT -> {
@@ -3742,6 +3726,14 @@ fun GameScreen() {
             }
             GameState.ABOUT -> {
                 AboutScreen(onDismiss = { gameState = GameState.MAIN_MENU })
+            }
+            GameState.MISSIONS -> {
+                MissionScreen(
+                    missionManager = missionManager,
+                    progressionManager = progressionManager,
+                    player = player,
+                    onDismiss = { gameState = previousState }
+                )
             }
             GameState.LEADERBOARD -> {
                 LeaderboardScreen(onDismiss = { gameState = GameState.MAIN_MENU })
@@ -3771,6 +3763,17 @@ fun GameScreen() {
                         zone = altitudeManager.currentZone
                     )
 
+                    ComboDisplay(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(16.dp)
+                            .statusBarsPadding(),
+                        currentCombo = comboManager.currentCombo,
+                        comboTimeRemaining = comboManager.comboTimeRemaining,
+                        getWindowForCombo = { comboManager.getWindowForCombo(it) },
+                        zone = altitudeManager.currentZone
+                    )
+
                     RightGauges(
                         modifier = Modifier.align(Alignment.CenterEnd),
                         shield = player.shield, maxShield = player.maxShield,
@@ -3795,20 +3798,7 @@ fun GameScreen() {
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            MissionRow(
-                                missions = missionManager.activeMissions.toList(),
-                                globalShowObjective = globalShowObjective
-                            )
-
-                            ComboHudBar(
-                                currentCombo = comboManager.currentCombo,
-                                bestComboThisRun = comboManager.bestComboThisRun,
-                                comboTarget = comboManager.comboTarget,
-                                comboTimeRemaining = comboManager.comboTimeRemaining,
-                                getWindowForCombo = { comboManager.getWindowForCombo(it) },
-                                screenWidth = screenWidth,
-                                zone = altitudeManager.currentZone
-                            )
+                            // MissionRow removed as per Phase 5 communication audit
                         }
                     }
 

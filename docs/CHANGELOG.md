@@ -6,6 +6,28 @@ All notable changes to this project are recorded as dated engineering events.
 
 ## 2026-06-22
 
+**Sprint / Phase:** EPIC 8 — Missions & Progression (Phase 1-3)
+
+**Branch:** `epic8-mission-migration`
+
+**Status:** In Progress
+
+### Added
+- **Intelligence Network**: Real-time gameplay stat tracking across physics and combat loops.
+- **GameStats Model**: Unified 19-point metric schema for run evaluation.
+- **Mission Reward Sealed Classes**: Added `Cash` and `ModuleUnlock` support to the reward pipeline.
+- **Persistent Lifetime Stats**: Added cumulative flight time and encounter tracking to `ProgressionManager`.
+- **EPIC 8 Tracker**: Detailed tracking for mission migration.
+
+### Changed
+- **Mission Model Refactor**: Aligned legacy mission data with EPIC 7 sealed reward classes.
+- **Mission Registry Port**: Migrated 48 missions from prototype branch to production architecture.
+- **Manager Integration**: Unified `MissionManager` with `ProgressionManager` for central reward handling.
+
+---
+
+## 2026-06-22
+
 **Sprint / Phase:** Sprint C Completion — Structural Fix, Boss Projectiles, Enemy Projectiles, Zone Redistribution
 
 **Branch:** `development` (merged from `sprintc-fixes`)

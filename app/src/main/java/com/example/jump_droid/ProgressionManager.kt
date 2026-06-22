@@ -38,6 +38,12 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
     var ownedModuleIds by mutableStateOf<Set<String>>(emptySet())
         private set
 
+    var completedMissionIds by mutableStateOf<Set<String>>(emptySet())
+        private set
+
+    var claimedMissionIds by mutableStateOf<Set<String>>(emptySet())
+        private set
+
     var currentRank by mutableStateOf(AscensionRank.EXPLORER_I)
         private set
 
@@ -47,11 +53,24 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
     var permanentMaxShield by mutableFloatStateOf(Constants.BASE_SHIELD)
         private set
 
-    var missionsCompleted by mutableIntStateOf(0)
-        private set
+    val missionsCompleted: Int get() = claimedMissionIds.size
 
     var highScore by mutableIntStateOf(0)
         internal set
+
+    // --- Lifetime Stats (Intelligence Network) ---
+    var lifetimeFlightTime by mutableFloatStateOf(0f)
+        private set
+    var lifetimePlatformTime by mutableFloatStateOf(0f)
+        private set
+    var lifetimeBossesDefeated by mutableIntStateOf(0)
+        private set
+    var lifetimeArtifactsCollected by mutableIntStateOf(0)
+        private set
+    var lifetimeHazardHitsSurvived by mutableIntStateOf(0)
+        private set
+    var lifetimeMissionsCompleted by mutableIntStateOf(0)
+        private set
 
     init {
         loadProgression()
@@ -59,6 +78,15 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
 
     private fun loadProgression() {
         highScore = sharedPrefs.getInt("highScore", 0)
+        
+        // Load Lifetime Stats
+        lifetimeFlightTime = sharedPrefs.getFloat("stat_lifetime_flight_time", 0f)
+        lifetimePlatformTime = sharedPrefs.getFloat("stat_lifetime_platform_time", 0f)
+        lifetimeBossesDefeated = sharedPrefs.getInt("stat_lifetime_bosses", 0)
+        lifetimeArtifactsCollected = sharedPrefs.getInt("stat_lifetime_artifacts", 0)
+        lifetimeHazardHitsSurvived = sharedPrefs.getInt("stat_lifetime_hazards", 0)
+        lifetimeMissionsCompleted = sharedPrefs.getInt("missions_completed", 0)
+
         val artifactTypes = DiscoveryType.values().filter { it.category == "ARTIFACTS" }
         val loadedArtifacts = mutableMapOf<String, ArtifactRecord>()
         
@@ -77,7 +105,8 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         artifactsCollected = loadedArtifacts
         
         ownedModuleIds = sharedPrefs.getStringSet("owned_modules", emptySet()) ?: emptySet()
-        missionsCompleted = sharedPrefs.getInt("missions_completed", 0)
+        completedMissionIds = sharedPrefs.getStringSet("completed_missions", emptySet()) ?: emptySet()
+        claimedMissionIds = sharedPrefs.getStringSet("claimed_missions", emptySet()) ?: emptySet()
 
         permanentMaxIntegrity = sharedPrefs.getFloat("max_integrity", Constants.BASE_INTEGRITY)
         permanentMaxShield = sharedPrefs.getFloat("max_shield", Constants.BASE_SHIELD)
@@ -129,9 +158,66 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         return ownedModuleIds.contains(moduleId)
     }
 
-    fun recordMissionCompletion() {
-        missionsCompleted++
-        sharedPrefs.edit { putInt("missions_completed", missionsCompleted) }
+    fun recordMissionCompletion(missionId: String) {
+        if (completedMissionIds.contains(missionId)) return
+        completedMissionIds = completedMissionIds + missionId
+        sharedPrefs.edit { putStringSet("completed_missions", completedMissionIds) }
+        
+        lifetimeMissionsCompleted = completedMissionIds.size
+    }
+
+    fun recordMissionClaim(missionId: String) {
+        if (claimedMissionIds.contains(missionId)) return
+        claimedMissionIds = claimedMissionIds + missionId
+        sharedPrefs.edit { putStringSet("claimed_missions", claimedMissionIds) }
+    }
+
+    /**
+     * Updates lifetime statistics from session results.
+     */
+    fun commitSessionStats(stats: GameStats) {
+        lifetimeFlightTime += stats.totalFlightTime
+        lifetimePlatformTime += stats.totalPlatformTime
+        lifetimeBossesDefeated += stats.bossesDefeated
+        lifetimeArtifactsCollected += stats.artifactsCollected
+        lifetimeHazardHitsSurvived += stats.hazardHitsSurvived
+        
+        sharedPrefs.edit {
+            putFloat("stat_lifetime_flight_time", lifetimeFlightTime)
+            putFloat("stat_lifetime_platform_time", lifetimePlatformTime)
+            putInt("stat_lifetime_bosses", lifetimeBossesDefeated)
+            putInt("stat_lifetime_artifacts", lifetimeArtifactsCollected)
+            putInt("stat_lifetime_hazards", lifetimeHazardHitsSurvived)
+        }
+    }
+
+    /**
+     * Grants a mission reward to the player's permanent account.
+     */
+    fun grantReward(reward: MissionReward, player: Player) {
+        when (reward) {
+            is MissionReward.Artifact -> {
+                // Record discovery (Altitude/Zone approximated)
+                recordArtifactDiscovery(reward.discoveryType, 0, AltitudeZone.EARTH)
+            }
+            is MissionReward.PowerUp -> {
+                // Instantly grant in-run benefit (handled in GameScreen completion callback usually)
+                // For Phase 3, we focus on permanent progression
+            }
+            is MissionReward.Unlock -> {
+                sharedPrefs.edit { putBoolean("unlock_${reward.rocketType.name}", true) }
+            }
+            is MissionReward.Achievement -> {
+                sharedPrefs.edit { putBoolean("achievement_${reward.id}", true) }
+            }
+            is MissionReward.ModuleUnlock -> {
+                grantModule(reward.moduleId)
+            }
+            is MissionReward.Cash -> {
+                // Cash system placeholder
+            }
+            is MissionReward.None -> {}
+        }
     }
 
     fun updateRank() {
@@ -163,6 +249,10 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         return if (total > 0) (discovered * 100) / total else 0
     }
 
+    fun getTotalDiscoveries(): Int {
+        return DiscoveryType.entries.count { sharedPrefs.getBoolean("discovery_$it", false) }
+    }
+
     /**
      * Wipes all progression data.
      */
@@ -171,7 +261,8 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         highScore = 0
         artifactsCollected = emptyMap()
         ownedModuleIds = emptySet()
-        missionsCompleted = 0
+        completedMissionIds = emptySet()
+        claimedMissionIds = emptySet()
         currentRank = AscensionRank.EXPLORER_I
         permanentMaxIntegrity = Constants.BASE_INTEGRITY
         permanentMaxShield = Constants.BASE_SHIELD
