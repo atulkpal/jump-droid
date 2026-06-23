@@ -10,7 +10,12 @@ enum class PlatformType {
     MOVING,
     BOOST,
     ICE,
-    BREAKABLE
+    BREAKABLE,
+    PHASE,     // Task 1: Timing challenge
+    FUEL,      // Task 2: Energy variants
+    COOLING,   // Task 2
+    STABILITY, // Task 2
+    MAGNETIC   // Task 3: Gravity influence
 }
 
 class Platform(
@@ -20,7 +25,7 @@ class Platform(
     val type: PlatformType = PlatformType.NORMAL,
     val isMoving: Boolean = false,
     initialSpeed: Float = 0f,
-    val totalBreakTime: Float = 3f // Randomized between 2-4 in generator
+    val totalBreakTime: Float = 2.4f // Sprint E Tuning: 20% faster than previous 3s default
 ) {
     var x by mutableFloatStateOf(initialX)
     var speed by mutableFloatStateOf(initialSpeed)
@@ -32,4 +37,10 @@ class Platform(
     // For Boss interactions
     var isJammed by mutableStateOf(false)
     var jamTimer by mutableFloatStateOf(0f)
+
+    // For mission/combo reliability
+    var hasBeenLandedOn by mutableStateOf(false)
+
+    // For trap/ghost platforms (BOSS_SIGNAL)
+    var isTrapPlatform by mutableStateOf(false)
 }

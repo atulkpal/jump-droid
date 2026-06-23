@@ -93,6 +93,15 @@ class AmbientManager {
         val spawnX = if (vx > 0) -100f else screenWidth + 100f
         val spawnY = (cameraY * parallax) + (random.nextFloat() * 800f) - 200f
 
+        val ambientBase = when (zone) {
+            AltitudeZone.EARTH -> Color.White
+            AltitudeZone.CLOUD_LAYER -> Color(0xFF80DEEA)
+            AltitudeZone.UPPER_ATMOSPHERE -> Color(0xFFCE93D8)
+            AltitudeZone.ORBIT -> Color(0xFFFFD700)
+            AltitudeZone.DEEP_SPACE -> Color(0xFF64B5F6)
+            AltitudeZone.VOID -> Color(0xFFEF9A9A)
+        }
+
         activeObjects.add(AmbientObject(
             x = spawnX,
             y = spawnY,
@@ -101,7 +110,7 @@ class AmbientManager {
             parallaxFactor = parallax,
             type = type,
             scale = 0.5f + random.nextFloat() * 1.5f,
-            color = Color.White.copy(alpha = 0.3f + random.nextFloat() * 0.5f)
+            color = ambientBase.copy(alpha = 0.3f + random.nextFloat() * 0.5f)
         ))
     }
 

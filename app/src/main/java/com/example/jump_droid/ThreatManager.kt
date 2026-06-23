@@ -13,11 +13,19 @@ class ThreatManager {
     /**
      * Updates all active threats and handles cleanup.
      */
-    fun update(dt: Float, cameraY: Float, screenHeight: Float, screenWidth: Float, targetX: Float = 0f, targetY: Float = 0f) {
+    fun update(
+        dt: Float, 
+        cameraY: Float, 
+        screenHeight: Float, 
+        screenWidth: Float, 
+        targetX: Float = 0f, 
+        targetY: Float = 0f,
+        powerUps: List<PowerUp> = emptyList()
+    ) {
         val iterator = activeThreats.iterator()
         while (iterator.hasNext()) {
             val threat = iterator.next()
-            threat.update(dt, screenWidth, targetX, targetY)
+            threat.update(dt, screenWidth, targetX, targetY, powerUps, activeThreats)
 
             // Cleanup logic: Remove if destroyed or way off-screen
             val isWayOffScreen = (threat.y > cameraY + screenHeight + 1000f) || (threat.y < cameraY - 2000f)
@@ -30,7 +38,7 @@ class ThreatManager {
     /**
      * Spawns a new threat instance based on a definition.
      */
-    fun spawnThreat(definition: ThreatDefinition, x: Float, y: Float, vx: Float = 0f, vy: Float = 0f): ActiveThreat {
+    fun spawnThreat(definition: ThreatDefinition, x: Float, y: Float, vx: Float = 0f, vy: Float = 0f, difficultyMultiplier: Float = 1f): ActiveThreat {
         val instance = ActiveThreat(
             instanceId = UUID.randomUUID().toString(),
             definition = definition,
@@ -39,6 +47,8 @@ class ThreatManager {
             initialVx = vx,
             initialVy = vy,
         )
+        instance.difficultyMultiplier = difficultyMultiplier
+        instance.health = definition.baseHealth * difficultyMultiplier
         activeThreats.add(instance)
         return instance
     }
