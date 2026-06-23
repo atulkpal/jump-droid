@@ -134,7 +134,7 @@ fun GameScreen() {
     val rocketRenderer = remember { RocketRenderer() }
     val platformRenderer = remember { PlatformRenderer() }
     val platforms = remember { mutableStateListOf<Platform>() }
-    val powerUps = remember { mutableStateListOf<PowerUp>() }
+    val powerUpManager = remember { PowerUpManager() }
     val landingEffects = remember { mutableStateListOf<LandingEffect>() }
     val particles = remember { mutableStateListOf<Particle>() }
     val floatingTextManager = remember { FloatingTextManager() }
@@ -149,7 +149,6 @@ fun GameScreen() {
     var globalShowObjective by remember { mutableStateOf(false) }
 
     var gameTime by remember { mutableLongStateOf(0L) }
-    var powerUpSpawnTimer by remember { mutableFloatStateOf(0f) }
     var cameraY by remember { mutableFloatStateOf(0f) }
     var isThrusting by remember { mutableStateOf(value = false) }
     var thrustTarget by remember { mutableStateOf(Offset.Zero) }
@@ -279,7 +278,7 @@ fun GameScreen() {
                 spawnBurst(player.x, player.y, 20, SciFiGreen, 200f)
             }
             is ComboReward.PowerUp -> {
-                powerUps.add(PowerUp(player.x, player.y - 100f, reward.type, isMissionReward = true))
+                powerUpManager.add(player.x, player.y - 100f, reward.type, isMissionReward = true)
             }
             is ComboReward.AltitudeBoost -> {
                 player.velocityY = -2500f
@@ -598,15 +597,14 @@ fun GameScreen() {
         missionManager.activeMissions.filter { it.isCompleted }.forEach { mission ->
             // Grant Reward
             mission.rewards.forEach { reward ->
-                when (val r = reward) {
+                when (reward) {
                     is MissionReward.PowerUp -> {
-                        val count = r.amount
-                        repeat(count) {
-                            powerUps.add(PowerUp(player.x, cameraY - 100f, r.type))
+                        repeat(reward.amount) {
+                            powerUpManager.add(player.x, cameraY - 100f, reward.type)
                         }
                     }
                     is MissionReward.Artifact -> {
-                        checkDiscovery(r.discoveryType, forceTutorialState = false)
+                        checkDiscovery(reward.discoveryType, forceTutorialState = false)
                     }
                     else -> {}
                 }
@@ -713,7 +711,7 @@ fun GameScreen() {
         overheatCount = 0
         wasNearDeath = false
 
-        powerUpSpawnTimer = 0f
+        powerUpManager.spawnTimer = 0f
         globalFogAlpha = 0f
         effectiveThrust = false
         effectiveTarget = Offset.Zero
@@ -724,7 +722,7 @@ fun GameScreen() {
         cameraY = 0f
         continuesUsed = 0
         platforms.clear()
-        powerUps.clear()
+        powerUpManager.powerUps.clear()
         landingEffects.clear()
         particles.clear()
         threatManager.clear()
@@ -814,7 +812,7 @@ fun GameScreen() {
                         effectiveTarget = frameEffTarget
 
                         discoveryManager.update(dt)
-                        threatManager.update(dt, cameraY, screenHeight, screenWidth, player.x, player.y, powerUps)
+                        threatManager.update(dt, cameraY, screenHeight, screenWidth, player.x, player.y, powerUpManager.powerUps)
                         projectileManager.update(dt)
                         ambientManager.update(dt, cameraY, screenWidth, screenHeight, altitudeManager.currentZone)
 
@@ -1056,7 +1054,7 @@ fun GameScreen() {
                                     sdt = sdt,
                                     isThrusting = isThrusting,
                                     platforms = platforms,
-                                    powerUps = powerUps,
+                                    powerUps = powerUpManager.powerUps,
                                     gameTime = gameTime,
                                     screenWidth = screenWidth,
                                     screenHeight = screenHeight,
@@ -1352,133 +1350,83 @@ fun GameScreen() {
                             }
                         }
 
-                        powerUpSpawnTimer += dt
-                        if (powerUpSpawnTimer > 20f) { // Task 0: Reduced frequency
-                            val types = PowerUpType.entries.filter { it != PowerUpType.ARTIFACT }
-                            val rand = Random.nextFloat()
-                            val type = when {
-                                rand < 0.05f -> PowerUpType.ARTIFACT
-                                else -> types.random()
-                            }
-                            // Task 0: Higher spawn for visibility
-                            powerUps.add(PowerUp(Random.nextFloat() * (screenWidth - 60f) + 30f, cameraY - 100f, type))
-                            powerUpSpawnTimer = 0f
-                        }
+                        powerUpManager.updateAutoSpawn(dt, screenWidth, cameraY)
+                        powerUpManager.updateMovement(dt, gameTime, player, platforms, cameraY, screenHeight)
 
-                        val powerUpIterator = powerUps.iterator()
-                        while (powerUpIterator.hasNext()) {
-                            val pu = powerUpIterator.next()
-                            pu.life -= dt
+                        for (pu in powerUpManager.checkCollection(player)) {
+                            when (pu.type) {
+                                PowerUpType.FUEL_TANK -> {
+                                    if (player.maxFuel < Constants.MAX_FUEL_CAPACITY_LIMIT) {
+                                        player.maxFuel = min(Constants.MAX_FUEL_CAPACITY_LIMIT, player.maxFuel + 25f)
+                                        player.fuel = player.maxFuel
+                                        notificationManager.post("FUEL CAPACITY UP!")
+                                    } else {
+                                        player.fuel = player.maxFuel
+                                        notificationManager.post("FUEL REFILLED")
+                                    }
+                                    spawnBurst(pu.x, pu.y, 30, SciFiGold, 300f)
+                                    screenShake = 5f
+                                    checkDiscovery(DiscoveryType.FUEL_TANK)
+                                }
+                                PowerUpType.TURBO_BOOSTER -> {
+                                    player.turboTimer = 8f
+                                    spawnBurst(pu.x, pu.y, 30, SciFiCyan, 300f)
+                                    screenShake = 5f
+                                    notificationManager.post("TURBO ACTIVE!")
+                                    checkDiscovery(DiscoveryType.TURBO_BOOSTER)
+                                }
+                                PowerUpType.EFFICIENCY_MODULE -> {
+                                    player.efficiencyTimer = 8f
+                                    spawnBurst(pu.x, pu.y, 30, SciFiGreen, 300f)
+                                    screenShake = 5f
+                                    notificationManager.post("FUEL EFFICIENCY UP!")
+                                    checkDiscovery(DiscoveryType.EFFICIENCY_MODULE)
+                                }
+                                PowerUpType.HEAT_SINK -> {
+                                    player.heat = max(0f, player.heat - MAX_HEAT * 0.5f)
+                                    player.isOverheated = false
+                                    spawnBurst(pu.x, pu.y, 30, SciFiWhite, 300f)
+                                    screenShake = 5f
+                                    notificationManager.post("ENGINES COOLED!")
+                                    checkDiscovery(DiscoveryType.HEAT_SINK)
+                                }
+                                PowerUpType.SHIELD_CAPSULE -> {
+                                    player.shield = min(player.maxShield, player.shield + 25f)
+                                    spawnBurst(pu.x, pu.y, 30, SciFiCyan, 400f)
+                                    notificationManager.post("SHIELD RECHARGE")
+                                    floatingTextManager.add(FloatingText("+25 SHIELD", player.x, player.y - 120f, color = SciFiCyan))
+                                }
+                                PowerUpType.HULL_REPAIR -> {
+                                    player.integrity = min(player.maxIntegrity, player.integrity + 20f)
+                                    spawnBurst(pu.x, pu.y, 30, SciFiGreen, 400f)
+                                    notificationManager.post("HULL REPAIRED")
+                                    floatingTextManager.add(FloatingText("+20 HULL", player.x, player.y - 120f, color = SciFiGreen))
+                                }
+                                PowerUpType.ARTIFACT -> {
+                                    val artifact = listOf(
+                                        DiscoveryType.ART_RECORDER, DiscoveryType.ART_ALLOY,
+                                        DiscoveryType.ART_BEACON, DiscoveryType.ART_DRONE
+                                    ).random()
+                                    checkDiscovery(artifact)
+                                    spawnBurst(pu.x, pu.y, 50, SciFiPurple, 400f)
+                                    screenShake = 10f
+                                    impactFlashAlpha = 0.6f
+                                    notificationManager.post("ARTIFACT RECOVERED!")
+
+                                    player.activeModules.forEach { it.onArtifactCollected(player) }
+                                }
+                                PowerUpType.ALTITUDE_BOOSTER -> {
+                                    player.velocityY = -2500f
+                                    spawnBurst(pu.x, pu.y, 40, SciFiWhite, 400f)
+                                    screenShake = 10f
+                                    notificationManager.post("ALTITUDE BOOST!")
+                                }
+                            }
 
                             if (pu.isMissionReward) {
-                                // Mission Reward: Magnetic and fast
-                                val dx = player.x - pu.x
-                                val dy = player.y - pu.y
-                                val distSq = dx*dx + dy*dy
-                                val dist = sqrt(distSq)
-                                val pull = 1000f * dt
-                                pu.x += (dx / dist) * pull
-                                pu.y += (dy / dist) * pull
-                            } else {
-                                // Normal Powerup: Task 1 logic
-                                if (pu.hoverTimer > 0) {
-                                    pu.hoverTimer -= dt
-                                    // Slight hover bobbing
-                                    pu.y += sin(gameTime / 200f) * 0.5f 
-                                } else {
-                                    // Task 1: Restore descent speed (200f) and add acceleration
-                                    pu.velocityY += 300f * dt 
-                                    pu.y += (200f + pu.velocityY) * dt
-                                }
-
-                                // Task 4: Magnetic Reward Interaction
-                                platforms.forEach { plat ->
-                                    if (plat.type == PlatformType.MAGNETIC) {
-                                        val dx = pu.x - (plat.x + plat.width / 2f)
-                                        val dy = pu.y - (plat.y + PLATFORM_HEIGHT / 2f)
-                                        val distSq = dx * dx + dy * dy
-                                        val radius = 250f
-                                        if (distSq < radius * radius) {
-                                            val dist = sqrt(distSq)
-                                            val pull = 400f * dt * (1f - dist / radius)
-                                            pu.x -= (dx / dist) * pull
-                                            pu.y -= (dy / dist) * pull
-                                        }
-                                    }
-                                }
+                                spawnBurst(player.x, player.y, 40, SciFiGold, 400f)
                             }
 
-                            if (abs(player.x - pu.x) < 80f && abs(player.y - pu.y) < 100f) { // Task 0: Increased radius
-                                when (pu.type) {
-                                    PowerUpType.FUEL_TANK -> {
-                                        if (player.maxFuel < Constants.MAX_FUEL_CAPACITY_LIMIT) {
-                                            player.maxFuel = min(Constants.MAX_FUEL_CAPACITY_LIMIT, player.maxFuel + 25f)
-                                            player.fuel = player.maxFuel
-                                        } else {
-                                            player.fuel = player.maxFuel
-                                        }
-                                        spawnBurst(pu.x, pu.y, 30, SciFiGold, 300f)
-                                        screenShake = 5f
-                                        checkDiscovery(DiscoveryType.FUEL_TANK)
-                                    }
-                                    PowerUpType.TURBO_BOOSTER -> {
-                                        player.turboTimer = 8f
-                                        spawnBurst(pu.x, pu.y, 30, SciFiCyan, 300f)
-                                        screenShake = 5f
-                                        checkDiscovery(DiscoveryType.TURBO_BOOSTER)
-                                    }
-                                    PowerUpType.EFFICIENCY_MODULE -> {
-                                        player.efficiencyTimer = 8f
-                                        spawnBurst(pu.x, pu.y, 30, SciFiGreen, 300f)
-                                        screenShake = 5f
-                                        checkDiscovery(DiscoveryType.EFFICIENCY_MODULE)
-                                    }
-                                    PowerUpType.HEAT_SINK -> {
-                                        player.heat = max(0f, player.heat - MAX_HEAT * 0.5f)
-                                        player.isOverheated = false
-                                        spawnBurst(pu.x, pu.y, 30, SciFiWhite, 300f)
-                                        screenShake = 5f
-                                        checkDiscovery(DiscoveryType.HEAT_SINK)
-                                    }
-                                    PowerUpType.SHIELD_CAPSULE -> {
-                                        player.shield = min(player.maxShield, player.shield + 25f)
-                                        spawnBurst(pu.x, pu.y, 30, SciFiCyan, 400f)
-                                        floatingTextManager.add(FloatingText("+25 SHIELD", player.x, player.y - 120f, color = SciFiCyan))
-                                    }
-                                    PowerUpType.HULL_REPAIR -> {
-                                        player.integrity = min(player.maxIntegrity, player.integrity + 20f)
-                                        spawnBurst(pu.x, pu.y, 30, SciFiGreen, 400f)
-                                        floatingTextManager.add(FloatingText("+20 HULL", player.x, player.y - 120f, color = SciFiGreen))
-                                    }
-                                    PowerUpType.ARTIFACT -> {
-                                        val artifact = listOf(
-                                            DiscoveryType.ART_RECORDER, DiscoveryType.ART_ALLOY,
-                                            DiscoveryType.ART_BEACON, DiscoveryType.ART_DRONE
-                                        ).random()
-                                        checkDiscovery(artifact)
-                                        spawnBurst(pu.x, pu.y, 50, SciFiPurple, 400f)
-                                        screenShake = 10f
-                                        impactFlashAlpha = 0.6f
-                                        notificationManager.post("ARTIFACT RECOVERED!")
-
-                                        // EPIC 7: Module Artifact Hook
-                                        player.activeModules.forEach { it.onArtifactCollected(player) }
-                                    }
-                                    PowerUpType.ALTITUDE_BOOSTER -> {
-                                        player.velocityY = -2500f // Massive boost
-                                        spawnBurst(pu.x, pu.y, 40, SciFiWhite, 400f)
-                                        screenShake = 10f
-                                        notificationManager.post("ALTITUDE BOOST!")
-                                    }
-                                }
-
-                                if (pu.isMissionReward) {
-                                    // Secondary celebration burst for mission rewards
-                                    spawnBurst(player.x, player.y, 40, SciFiGold, 400f)
-                                }
-
-                                powerUpIterator.remove()
-                            } else if (pu.y > cameraY + screenHeight + 200f || pu.life <= 0f) powerUpIterator.remove()
                         }
 
                         if (platforms.isNotEmpty()) {
@@ -3638,7 +3586,7 @@ fun GameScreen() {
                     }
 
                     drawPowerUps(
-                        powerUps = powerUps.toList(),
+                        powerUps = powerUpManager.powerUps.toList(),
                         cameraY = cameraY,
                         gameTime = gameTime
                     )
@@ -3655,7 +3603,7 @@ fun GameScreen() {
                             cameraY = cameraY,
                             gameTime = gameTime,
                             activeThreats = threatManager.activeThreats.toList(),
-                            powerUps = powerUps.toList(),
+                            powerUps = powerUpManager.powerUps.toList(),
                             platforms = platforms.toList()
                         )
                     }
