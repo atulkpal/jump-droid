@@ -115,6 +115,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
                 
                 // If this mission is also in activeHUD, it will update automatically via state
                 if (mission.checkCompletion()) {
+                    mission.ceremonyStage = CeremonyStage.GLOW
                     completedIdsInRun.add(mission.id)
                     onMissionCompleted?.invoke(mission)
                     android.util.Log.i("IntelligenceNetwork", "MISSION COMPLETED: ${mission.id}")
@@ -191,6 +192,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
             }
 
             if (mission.checkCompletion()) {
+                mission.ceremonyStage = CeremonyStage.GLOW
                 completedIdsInRun.add(mission.id)
                 onMissionCompleted?.invoke(mission)
                 android.util.Log.i("MissionTruth", "MISSION COMPLETED: ${mission.id}")

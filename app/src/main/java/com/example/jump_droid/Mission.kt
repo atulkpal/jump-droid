@@ -73,7 +73,6 @@ class Mission(
     fun checkCompletion(): Boolean {
         if (!isCompleted && currentProgress >= targetValue) {
             isCompleted = true
-            ceremonyStage = CeremonyStage.GLOW
             return true
         }
         return false

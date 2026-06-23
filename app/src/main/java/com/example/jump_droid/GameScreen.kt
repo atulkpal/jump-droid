@@ -1555,6 +1555,24 @@ fun GameScreen() {
                             if (newTime >= 3.0f) {
                                 m.ceremonyStage = CeremonyStage.REPLACING
                                 missionCeremonies.remove(mid)
+                                
+                                // Mission Synergy Bonus: Small progress to other active tracks
+                                missionManager.activeMissions.filter { !it.isCompleted && it.id != m.id }.forEach { other ->
+                                    when (other.type) {
+                                        MissionType.PLATFORMING -> {
+                                            other.currentProgress = min(other.targetValue, other.currentProgress + 1)
+                                            if (other.checkCompletion()) {
+                                                other.ceremonyStage = CeremonyStage.GLOW
+                                            }
+                                        }
+                                        MissionType.SURVIVAL -> {
+                                            val bonus = if (other.id.startsWith("surv_air")) 2f else 5f
+                                            if (other.id.startsWith("surv_air")) airborneTimer += bonus
+                                            else noOverheatTimer += bonus
+                                        }
+                                        else -> {}
+                                    }
+                                }
                             }
                         }
 
