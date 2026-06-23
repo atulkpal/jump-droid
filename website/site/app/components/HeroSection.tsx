@@ -10,7 +10,7 @@ export default function HeroSection() {
             Pilot the ultimate droid explorer. Break atmosphere. Reach the void.
           </h1>
           <p className="mx-auto max-w-3xl text-lg leading-8 text-slate-300 sm:text-xl">
-            Jump Droid is a tactical vertical expedition with physics-driven thrust, phase-based bosses, and a hidden Codex waiting beyond the storm.
+            Touch to thrust. Manage fuel, heat, and shield as you climb through 6 atmospheric zones. Land on platforms, build combos, face bosses, unlock new rockets, and discover the truth hidden in the void.
           </p>
         </div>
         <div className="mx-auto flex flex-col items-center justify-center gap-4 sm:flex-row">
