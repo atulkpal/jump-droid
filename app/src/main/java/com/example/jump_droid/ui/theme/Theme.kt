@@ -10,6 +10,20 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.shape.GenericShape
+
+val SciFiButtonShape = GenericShape { size, _ ->
+    val cut = 16f
+    moveTo(cut, 0f)
+    lineTo(size.width - cut, 0f)
+    lineTo(size.width, cut)
+    lineTo(size.width, size.height - cut)
+    lineTo(size.width - cut, size.height)
+    lineTo(cut, size.height)
+    lineTo(0f, size.height - cut)
+    lineTo(0f, cut)
+    close()
+}
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,

@@ -25,9 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.jump_droid.ui.theme.SciFiButtonShape
 import com.example.jump_droid.ui.theme.SciFiBackground
 import com.example.jump_droid.ui.theme.SciFiBorder
 import com.example.jump_droid.ui.theme.SciFiCyan
@@ -85,7 +87,7 @@ fun AboutScreen(onDismiss: () -> Unit) {
 
             Column(Modifier.padding(32.dp).verticalScroll(rememberScrollState()).safeDrawingPadding()) {
                 Text(
-                    "MISSION DATA",
+                    "SYSTEM PROTOCOL",
                     style = MaterialTheme.typography.headlineMedium.copy(
                         shadow = Shadow(SciFiCyan.copy(alpha = 0.4f), blurRadius = 12f)
                     ),
@@ -95,7 +97,7 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.height(32.dp))
                 Text(
-                    text = "Jump Droid is an advanced vertical exploration simulator focusing on precision propulsion control and multi-layered atmospheric discovery.",
+                    text = "Jump Droid is an advanced vertical exploration simulator focusing on precision propulsion control and multi-layered atmospheric discovery.\n\nProject developed to explore modular physics and tiered progression systems in reactive UI environments.",
                     color = SciFiWhite.copy(alpha = 0.8f),
                     lineHeight = 24.sp
                 )
@@ -107,18 +109,19 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 Text("V1.2.0 // ASCENSION EXPANSION", color = SciFiWhite.copy(alpha = 0.6f), letterSpacing = 1.sp)
                 Spacer(Modifier.height(32.dp))
                 Text("PROJECT ROADMAP", style = MaterialTheme.typography.titleLarge, color = SciFiGold, fontWeight = FontWeight.Bold)
-                Text("• ADVANCED ENTITY AI\n• DEEP SPACE ANOMALIES\n• INTERSTELLAR TERMINAL", color = SciFiWhite.copy(alpha = 0.6f), lineHeight = 24.sp, letterSpacing = 1.sp)
+                Text("• ADVANCED ENTITY AI\n• DEEP SPACE ANOMALIES\n• INTERSTELLAR TERMINAL\n• FLEET EXPANSION", color = SciFiWhite.copy(alpha = 0.6f), lineHeight = 24.sp, letterSpacing = 1.sp)
                 Spacer(Modifier.height(48.dp))
                 Button(
                     onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = SciFiButtonShape,
                     colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
                     border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
                 ) {
                     Text("DISMISS", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
-                Spacer(Modifier.height(8.dp))
-                Text("POWERED BY ASHWATH.AI // V1.2.0", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(16.dp))
+                Text("POWERED BY ASHWATH.AI // V1.2.0", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
             }
         }
     }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.height
@@ -197,7 +198,7 @@ fun FuelGauge(
         Text(
             text = "${(ratio * 100).toInt()}%",
             color = dropColor,
-            fontSize = 8.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -287,7 +288,7 @@ fun HeatGauge(
         Text(
             text = "${(heatRatio * 100).toInt()}%",
             color = heatColor,
-            fontSize = 8.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -373,7 +374,7 @@ fun ShieldGauge(
         Text(
             text = "${(shieldRatio * 100).toInt()}%",
             color = if (isShieldCritical) SciFiRed else SciFiCyan,
-            fontSize = 8.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -469,7 +470,7 @@ fun IntegrityGauge(
         Text(
             text = "${(integrityRatio * 100).toInt()}%",
             color = if (isHullCritical) SciFiRed else SciFiGreen,
-            fontSize = 8.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -477,71 +478,73 @@ fun IntegrityGauge(
 }
 
 @Composable
-fun ComboHudBar(
+fun ComboDisplay(
+    modifier: Modifier = Modifier,
     currentCombo: Int,
-    bestComboThisRun: Int,
-    comboTarget: Int,
     comboTimeRemaining: Long,
     getWindowForCombo: (Int) -> Long,
-    screenWidth: Float,
     zone: AltitudeZone = AltitudeZone.EARTH
 ) {
-    val zoneAccent = zoneGaugeAccents[zone] ?: SciFiCyan
-    Surface(
-        color = SciFiSurface,
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth(0.9f).shadow(6.dp, RoundedCornerShape(12.dp)),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, SciFiBorder.copy(alpha = 0.4f))
+    if (currentCombo <= 0) return
+
+    val timerRatio = (comboTimeRemaining.toFloat() / getWindowForCombo(currentCombo)).coerceIn(0f, 1f)
+    
+    val ringColor = when {
+        timerRatio > 0.6f -> SciFiGreen
+        timerRatio > 0.3f -> SciFiGold
+        timerRatio > 0.15f -> Color(0xFFFF9800) // Orange
+        else -> SciFiRed
+    }
+
+    Box(
+        modifier = modifier
+            .size(52.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    "BEST THIS RUN: x$bestComboThisRun",
-                    color = SciFiWhite.copy(alpha = 0.5f),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontSize = 7.sp,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    "COMBO x$currentCombo",
-                    color = if (currentCombo >= comboTarget) SciFiGold else SciFiWhite,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 12.sp,
-                    letterSpacing = 0.5.sp
-                )
-            }
+        // Background Ring (Scanner/Radar style)
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawCircle(
+                color = Color.White.copy(alpha = 0.05f),
+                style = Stroke(width = 2.dp.toPx())
+            )
+            
+            // Outer faint pulse
+            drawCircle(
+                color = ringColor.copy(alpha = 0.1f * timerRatio),
+                radius = size.minDimension / 2,
+                style = Stroke(width = 1.dp.toPx())
+            )
+        }
+        
+        // Progress Ring (Shrinking Arc)
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            drawArc(
+                color = ringColor.copy(alpha = 0.8f),
+                startAngle = -90f,
+                sweepAngle = 360f * timerRatio,
+                useCenter = false,
+                style = Stroke(width = 3.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Butt)
+            )
+            
+            // Scanner Sweep (Radar effect)
+            val sweepAngle = (System.currentTimeMillis() % 2000) / 2000f * 360f
+            drawArc(
+                color = Color.White.copy(alpha = 0.2f),
+                startAngle = sweepAngle - 20f,
+                sweepAngle = 40f,
+                useCenter = true,
+            )
+        }
 
-            val timerRatio = if (currentCombo > 0)
-                (comboTimeRemaining.toFloat() / getWindowForCombo(currentCombo)).coerceIn(0f, 1f)
-            else 0f
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(6.dp)
-                    .background(SciFiWhite.copy(alpha = 0.1f), CircleShape)
-            ) {
-                val barColor = if (timerRatio > 0.3f) zoneAccent else SciFiRed
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(timerRatio)
-                        .fillMaxHeight()
-                        .background(barColor, CircleShape)
-                )
-            }
-
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "TARGET: x$comboTarget",
-                color = SciFiWhite.copy(alpha = 0.8f),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                letterSpacing = 0.5.sp
+                text = "x$currentCombo",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Black,
+                    shadow = Shadow(ringColor.copy(alpha = 0.4f), blurRadius = 6f)
+                ),
+                color = SciFiWhite,
+                fontSize = 16.sp
             )
         }
     }
