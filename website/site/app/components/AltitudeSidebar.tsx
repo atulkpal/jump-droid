@@ -1,5 +1,5 @@
 export default function AltitudeSidebar() {
-  const marks = ["0m", "3km", "7km", "12km", "18km", "15000m+"];
+  const marks = ["Earth", "Cloud", "Orbit", "Deep Space", "The Void", "Signal"];
 
   return (
     <aside className="pointer-events-none fixed right-6 top-1/2 hidden h-[70vh] -translate-y-1/2 xl:block">

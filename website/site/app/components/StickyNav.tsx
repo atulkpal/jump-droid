@@ -2,9 +2,9 @@ import Link from "next/link";
 
 const links = [
   { href: "#hero", label: "Surface" },
-  { href: "#ascent", label: "Ascent" },
-  { href: "#hangar", label: "Hangar" },
-  { href: "#archive", label: "Archive" },
+  { href: "#ascent", label: "Zones" },
+  { href: "#hangar", label: "Rockets" },
+  { href: "#archive", label: "Codex" },
   { href: "#mission-control", label: "Mission" },
 ];
 
