@@ -198,7 +198,7 @@ fun FuelGauge(
         Text(
             text = "${(ratio * 100).toInt()}%",
             color = dropColor,
-            fontSize = 8.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -288,7 +288,7 @@ fun HeatGauge(
         Text(
             text = "${(heatRatio * 100).toInt()}%",
             color = heatColor,
-            fontSize = 8.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -374,7 +374,7 @@ fun ShieldGauge(
         Text(
             text = "${(shieldRatio * 100).toInt()}%",
             color = if (isShieldCritical) SciFiRed else SciFiCyan,
-            fontSize = 8.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )
@@ -470,7 +470,7 @@ fun IntegrityGauge(
         Text(
             text = "${(integrityRatio * 100).toInt()}%",
             color = if (isHullCritical) SciFiRed else SciFiGreen,
-            fontSize = 8.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)
         )

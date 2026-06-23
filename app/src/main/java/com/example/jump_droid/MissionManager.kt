@@ -72,7 +72,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
                 unlockCondition = template.unlockCondition,
                 icon = template.icon,
                 isHidden = template.isHidden,
-                initialProgress = 0
+                initialProgress = progressionManager.getMissionProgress(template.id)
             )
 
             // Sync with persistent state
@@ -84,12 +84,16 @@ class MissionManager(private val progressionManager: ProgressionManager) {
     }
 
     /**
-     * Re-syncs mission states with progression manager.
+     * Re-syncs mission states and progress with progression manager.
      */
     fun syncState() {
         allMissionInstances.values.forEach { mission ->
             mission.isCompleted = progressionManager.completedMissionIds.contains(mission.id)
             mission.isClaimed = progressionManager.claimedMissionIds.contains(mission.id)
+            val savedProgress = progressionManager.getMissionProgress(mission.id)
+            if (savedProgress > mission.currentProgress) {
+                mission.currentProgress = savedProgress
+            }
         }
     }
 
@@ -107,6 +111,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
             // Only move forward (especially for altitude/cumulative stats)
             if (progress.toInt() > before) {
                 mission.currentProgress = progress.toInt()
+                progressionManager.saveMissionProgress(mission.id, mission.currentProgress)
                 
                 // If this mission is also in activeHUD, it will update automatically via state
                 if (mission.checkCompletion()) {
@@ -120,8 +125,8 @@ class MissionManager(private val progressionManager: ProgressionManager) {
 
     private fun calculateProgress(mission: Mission, stats: GameStats): Float {
         return when (mission.category) {
-            MissionCategory.FLIGHT_TIME -> stats.totalFlightTime
-            MissionCategory.PLATFORM_STAY -> stats.totalPlatformTime
+            MissionCategory.FLIGHT_TIME -> progressionManager.lifetimeFlightTime + stats.totalFlightTime
+            MissionCategory.PLATFORM_STAY -> progressionManager.lifetimePlatformTime + stats.totalPlatformTime
             MissionCategory.NO_HEAT -> stats.zeroHeatTime
             MissionCategory.FUEL_EFFICIENCY -> stats.fuelPickupsCollected.toFloat()
             MissionCategory.COMBO_STREAK -> stats.maxCombo.toFloat()
@@ -158,6 +163,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
                 progressionManager.grantReward(reward, player)
             }
             mission.isClaimed = true
+            progressionManager.saveMissionProgress(mission.id, mission.currentProgress)
             progressionManager.recordMissionClaim(mission.id)
             android.util.Log.i("MissionManager", "MISSION REWARDS CLAIMED: ${mission.id}")
         }
@@ -180,6 +186,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
             }
             
             if (before != mission.currentProgress) {
+                progressionManager.saveMissionProgress(mission.id, mission.currentProgress)
                 android.util.Log.d("MissionTruth", "MISSION PROGRESS: ${mission.id} $before -> ${mission.currentProgress} (Target: ${mission.targetValue}) [Source: $type]")
             }
 
@@ -211,6 +218,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
     fun resetProgress(type: MissionType, predicate: ((Mission) -> Boolean)? = null) {
         activeMissions.filter { it.type == type && !it.isCompleted && (predicate?.invoke(it) ?: true) }.forEach {
             it.reset()
+            progressionManager.saveMissionProgress(it.id, 0)
             android.util.Log.d("MissionTruth", "MISSION RESET: ${it.id}")
         }
     }
@@ -227,7 +235,9 @@ class MissionManager(private val progressionManager: ProgressionManager) {
         coreTracks.forEach { type ->
             if (activeMissions.none { it.type == type }) {
                 val nextTemplate = MissionRegistry.getAllTemplates().find { template ->
-                    template.type == type && !completedIdsInRun.contains(template.id)
+                    template.type == type &&
+                    !completedIdsInRun.contains(template.id) &&
+                    allMissionInstances[template.id]?.isCompleted != true
                 }
                 
                 nextTemplate?.let { 

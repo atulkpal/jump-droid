@@ -1,7 +1,10 @@
 # EPIC 8 — Missions & Progression Tracker
 
-**Status:** In Progress
+**Status:** Functionally Complete — Awaiting Runtime Signoff
+**Next:** EPIC 8.5 Architecture Decomposition (see `EPIC_8_5_DECOMPOSITION_PLAN.md`)
 **Migration Branch:** `epic8-mission-migration`
+**Last Validated:** 2026-06-23
+**Latest Build:** `BUILD SUCCESSFUL` (1s, all up-to-date)
 
 ## Sprint 8.1 — Migration & Logic
 *Goal: Port content from prototype and build new backend.*
@@ -54,7 +57,25 @@
 - [x] **Route Mismatch**: Resolved MISSION DATA naming collision; created ABOUT screen.
 - [x] **Communication Audit**: Completed priority-based notification filtering.
 
-## Technical Debt & Polish
+## Technical Audit Sprints (EPIC 8 Stabilization + Polish + Mission Events)
+- [x] **Stabilization Sprint** — 6 issues fixed: mission progress persistence, lifetimeMissionsCompleted, cumulative mission progress, Hangar counter, artifact double-count, multi-reward display
+- [x] **Polish Sprint** — 7 tasks completed: terminal routing, celebration cleanup, notification spam, combo ring, claim feedback, dashboard readability, gauge font sizes
+- [x] **Mission Event Audit** — Fixed repeated mission completion notifications at run start by preventing re-activation of completed missions and clearing ceremony state on restart
+
+## EPIC 8.5 — Architecture Decomposition (Planned)
+See `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` for the full 8-sprint structure.
+
+**Goals:**
+- Decompose GameScreen.kt (3,901 lines) and ActiveThreat.kt (1,224 lines) God Objects
+- Extract game engine, threat renderers, threat AI strategies, collision system
+- Split ProgressionManager into domain services
+- Migrate navigation to NavHost
+- Eliminate dead code (MissionRow.kt, zombie fields)
+- Reduce duplication (GaugeBar, StarfieldBackground)
+
+## Deferred Polish (Post-EPIC 8.5 — Future Work)
 - [ ] Track mission category specific stats (e.g. "Platform Stay")
-- [ ] Implement multi-reward mission support
+- [ ] Implement multi-reward mission backend support
 - [ ] Balance pass on god-tier mission thresholds
+- [ ] Visual noise during high-combo streaks (excessive floating text)
+- [ ] Capture EPIC 8 screenshots for documentation

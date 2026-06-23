@@ -53,6 +53,8 @@ fun MissionScreen(
     onDismiss: () -> Unit
 ) {
     val allMissions = missionManager.getAllMissions()
+    var claimEffectAlpha by remember { mutableStateOf(0f) }
+    var claimEffectText by remember { mutableStateOf("") }
     
     LaunchedEffect(Unit) {
         missionManager.syncState()
@@ -128,6 +130,8 @@ fun MissionScreen(
                             mission = currentMission,
                             onClaim = {
                                 missionManager.claimMissionRewards(currentMission.id, progressionManager, player)
+                                claimEffectAlpha = 1f
+                                claimEffectText = "${track.name.uppercase()} — CLAIMED"
                             }
                         )
                     }
@@ -140,6 +144,8 @@ fun MissionScreen(
                         missions = allMissions.filter { it.isHidden },
                         onClaim = { id ->
                             missionManager.claimMissionRewards(id, progressionManager, player)
+                            claimEffectAlpha = 1f
+                            claimEffectText = "SIGNAL RECOVERED"
                         }
                     )
                 }
@@ -154,6 +160,36 @@ fun MissionScreen(
             ) {
                 Text("BACK TO COMMAND", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
+
+            // Claim celebration overlay
+            if (claimEffectAlpha > 0f) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(200.dp)
+                            .background(
+                                SciFiGold.copy(alpha = claimEffectAlpha * 0.15f),
+                                RoundedCornerShape(100.dp)
+                            )
+                    )
+                    Text(
+                        text = claimEffectText,
+                        color = SciFiGold.copy(alpha = claimEffectAlpha),
+                        fontSize = (14 + 6 * claimEffectAlpha).sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                LaunchedEffect(claimEffectAlpha) {
+                    kotlinx.coroutines.delay(800)
+                    claimEffectAlpha = 0f
+                    claimEffectText = ""
+                }
+            }
         }
     }
 }
@@ -161,8 +197,8 @@ fun MissionScreen(
 @Composable
 private fun SummaryItem(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 7.sp, color = SciFiWhite.copy(alpha = 0.5f), fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-        Text(value, fontSize = 16.sp, color = color, fontWeight = FontWeight.Black)
+        Text(label, fontSize = 9.sp, color = SciFiWhite.copy(alpha = 0.5f), fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+        Text(value, fontSize = 18.sp, color = color, fontWeight = FontWeight.Black)
     }
 }
 
@@ -193,7 +229,7 @@ private fun TrackRow(
                     Text(
                         text = if (mission.isClaimed) "MAXED" else mission.tier.displayName,
                         color = if (mission.isClaimed) SciFiGreen else SciFiWhite.copy(alpha = 0.4f),
-                        fontSize = 8.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -208,19 +244,24 @@ private fun TrackRow(
 
                 if (!mission.isClaimed) {
                     Spacer(Modifier.height(4.dp))
-                    val rewardText = mission.rewards.firstOrNull()?.let {
-                        when (it) {
-                            is MissionReward.Cash -> "+${it.amount} CASH"
-                            is MissionReward.ModuleUnlock -> "MODULE UNLOCK"
-                            is MissionReward.Artifact -> "ARTIFACT: ${it.discoveryType.title}"
-                            is MissionReward.PowerUp -> "${it.type.name.replace("_", " ")}"
-                            is MissionReward.Unlock -> "ROCKET: ${it.rocketType.title}"
+                    val rewardTexts = mission.rewards.mapNotNull { reward ->
+                        when (reward) {
+                            is MissionReward.Cash -> "+${reward.amount} CASH"
+                            is MissionReward.ModuleUnlock -> "MODULE"
+                            is MissionReward.Artifact -> "ARTIFACT"
+                            is MissionReward.PowerUp -> reward.type.name.replace("_", " ")
+                            is MissionReward.Unlock -> "ROCKET"
                             is MissionReward.Achievement -> "ACHIEVEMENT"
-                            else -> ""
+                            is MissionReward.None -> null
                         }
-                    } ?: ""
-                    if (rewardText.isNotEmpty()) {
-                        Text("REWARD: $rewardText", color = SciFiGold, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                    }
+                    val extraCount = mission.rewards.count { it !is MissionReward.None } - rewardTexts.size
+                    val rewardDisplay = buildString {
+                        append(rewardTexts.joinToString(" + "))
+                        if (extraCount > 0) append(" +${extraCount} MORE")
+                    }
+                    if (rewardDisplay.isNotEmpty()) {
+                        Text("REWARD: $rewardDisplay", color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Black)
                     }
 
                     Spacer(Modifier.height(6.dp))
@@ -281,7 +322,7 @@ private fun HiddenSignalsCard(
                 Text("HIDDEN SIGNALS", color = SciFiPurple, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                 Text("$count / $total SIGNALS RECOVERED", color = SciFiWhite.copy(alpha = 0.6f), fontSize = 9.sp)
                 if (claimable != null) {
-                    Text("ENCRYPTION BROKEN - CLICK TO RECOVER DATA", color = SciFiGold, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                    Text("ENCRYPTION BROKEN - CLICK TO RECOVER DATA", color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Black)
                 }
             }
             if (claimable != null) {

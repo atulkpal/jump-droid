@@ -115,9 +115,32 @@
 
 # EPIC 8 - Missions & Progression
 
-Status: In Progress
+Status: Functionally Complete — Awaiting Runtime Signoff
 Migration Branch: `epic8-mission-migration`
 Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
+
+# EPIC 8.5 - Architecture Decomposition
+
+Status: Planned (EPIC 9 deferred until completion)
+Detailed Plan: [docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md](roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md)
+
+- [ ] Sprint 8.5.0: Baseline Capture (tag, build verify, file metrics, screenshots, baseline report)
+- [ ] Sprint 8.5.1: Low-Risk Cleanup (dead code, zombie fields, pure functions)
+- [ ] Sprint 8.5.2: HUD Decomposition (GaugeBar, Starfield, MissionScreen extract)
+- [ ] Sprint 8.5.3: Notification & Celebration Extraction (ceremony lifecycle, ComboManager)
+- [ ] Sprint 8.5.4: Threat Rendering Extraction (per-type ThreatRenderer interface)
+- [ ] Sprint 8.5.5: Game Engine Boundary Creation (physics loop, update orchestration)
+- [ ] Sprint 8.5.6: ActiveThreat Strategy Architecture (ThreatBehavior, CollisionSystem, event bus)
+- [ ] Sprint 8.5.7: Progression Service Decomposition (IntelligenceNetwork, UnlockService, MissionTracker)
+- [ ] Sprint 8.5.8: Navigation Migration (NavHost, 14 screen routes)
+
+## Post-8.5 Target File Sizes
+| File | Before | After |
+|------|--------|-------|
+| GameScreen.kt | 3,901 lines | ~1,500 |
+| ActiveThreat.kt | 1,224 lines | ~250 |
+| ProgressionManager.kt | 334 lines | ~80 (facade) |
+| HudWidgets.kt | 654 lines | ~400 |
 
 ## Mission Framework
 
@@ -190,6 +213,8 @@ Do not implement during EPIC 7. Track only.
 ---
 
 # EPIC 9 - The Archive Expands
+
+**Status: DEFERRED — will commence after EPIC 8.5 Architecture Decomposition completes**
 
 - [ ] Artifact Set Bonuses
 - [ ] Discovery Collection Rewards

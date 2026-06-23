@@ -32,6 +32,10 @@ enum class AscensionRank(val title: String, val level: Int) {
  */
 class ProgressionManager(private val sharedPrefs: SharedPreferences) {
 
+    companion object {
+        private const val PROGRESS_PREFIX = "mission_progress_"
+    }
+
     var artifactsCollected by mutableStateOf<Map<String, ArtifactRecord>>(emptyMap())
         private set
 
@@ -53,7 +57,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
     var permanentMaxShield by mutableFloatStateOf(Constants.BASE_SHIELD)
         private set
 
-    val missionsCompleted: Int get() = claimedMissionIds.size
+    val missionsCompleted: Int get() = completedMissionIds.size
 
     var highScore by mutableIntStateOf(0)
         internal set
@@ -158,10 +162,24 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         return ownedModuleIds.contains(moduleId)
     }
 
+    fun saveMissionProgress(missionId: String, progress: Int) {
+        val prev = sharedPrefs.getInt("$PROGRESS_PREFIX$missionId", 0)
+        if (progress != prev) {
+            sharedPrefs.edit { putInt("$PROGRESS_PREFIX$missionId", progress) }
+        }
+    }
+
+    fun getMissionProgress(missionId: String): Int {
+        return sharedPrefs.getInt("$PROGRESS_PREFIX$missionId", 0)
+    }
+
     fun recordMissionCompletion(missionId: String) {
         if (completedMissionIds.contains(missionId)) return
         completedMissionIds = completedMissionIds + missionId
-        sharedPrefs.edit { putStringSet("completed_missions", completedMissionIds) }
+        sharedPrefs.edit {
+            putStringSet("completed_missions", completedMissionIds)
+            putInt("missions_completed", completedMissionIds.size)
+        }
         
         lifetimeMissionsCompleted = completedMissionIds.size
     }
@@ -188,6 +206,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
             putInt("stat_lifetime_bosses", lifetimeBossesDefeated)
             putInt("stat_lifetime_artifacts", lifetimeArtifactsCollected)
             putInt("stat_lifetime_hazards", lifetimeHazardHitsSurvived)
+            putInt("missions_completed", lifetimeMissionsCompleted)
         }
     }
 
@@ -263,6 +282,12 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         ownedModuleIds = emptySet()
         completedMissionIds = emptySet()
         claimedMissionIds = emptySet()
+        lifetimeFlightTime = 0f
+        lifetimePlatformTime = 0f
+        lifetimeBossesDefeated = 0
+        lifetimeArtifactsCollected = 0
+        lifetimeHazardHitsSurvived = 0
+        lifetimeMissionsCompleted = 0
         currentRank = AscensionRank.EXPLORER_I
         permanentMaxIntegrity = Constants.BASE_INTEGRITY
         permanentMaxShield = Constants.BASE_SHIELD

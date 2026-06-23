@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-06-22
-**Project Status:** EPIC 8 Recovery Stable
+**Last Updated:** 2026-06-23
+**Project Status:** EPIC 8 Functionally Complete (Awaiting Runtime Signoff) → EPIC 8.5 Architecture Decomposition Planned
 **Current Stable Tag:** `epic8-recovery-stable`
-**Commit:** `afbc562`
+**Base Commit:** `afbc562`
 
 ---
 
@@ -34,13 +34,15 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Current Branch**: `epic8-mission-migration`
 *   **Current Stable Tag**: `epic8-recovery-stable`
 *   **Stable Commit**: `afbc562`
-*   **Current EPIC**: EPIC 8 — Missions & Progression
-*   **Current Status**: **STABILIZED**. The mission architecture has been recovered from legacy prototypes and unified with the production engine.
+*   **Current EPIC**: EPIC 8.5 — Architecture Decomposition
+*   **Current Status**: **PLANNING COMPLETE**. EPIC 8 validation passed (all 6 stabilization + 7 polish + mission event audit). EPIC 8.5 created as a dedicated architecture decomposition sprint to address 2 CRITICAL God Objects before Phase 9 feature work.
 *   **Known Issues**: 
-    *   Hangar mission counter requires one final sync fix with the new Set-based logic.
-    *   Visual noise during high-combo streaks (excessive floating text).
-*   **Current Priorities**: Documentation closure and institutional memory preservation.
-*   **Next Planned Work**: EPIC 8 Phase 6 (Hidden Signals & Dynamic Unlocks).
+    *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
+    *   Multi-reward mission backend support — display works, backend grants all listed rewards.
+    *   GameScreen.kt at 3,901 lines — primary development bottleneck (EPIC 8.5.5 target)
+    *   ActiveThreat.kt at 1,224 lines — second God Object (EPIC 8.5.6 target)
+*   **Current Priorities**: EPIC 8.5 Architecture Decomposition per `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md`.
+*   **Next Planned Work**: EPIC 9 (Hidden Signals & Dynamic Unlocks) — DEFERRED until EPIC 8.5 completes.
 
 ---
 
@@ -51,6 +53,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **EPIC 6: Hostile Skies**: Framework for advanced AI entities, projectile systems, and multi-phase Boss encounters.
 *   **EPIC 7: Rocket Evolution**: Transformed the rocket into a customizable "Build" with Rocket Classes and a 17-module Registry.
 *   **EPIC 8: Missions & Progression (Recovery)**: Reconciled legacy prototype data with the production engine. Implemented the **Intelligence Network** for real-time stat tracking.
+*   **EPIC 8.5: Architecture Decomposition (Planned)**: Structural sprint to decompose `GameScreen.kt` (3,901 lines) and `ActiveThreat.kt` (1,224 lines) God Objects before Phase 9 feature work begins.
 
 ---
 
@@ -65,6 +68,11 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Tag**: `epic8-recovery-stable`
 *   **Commit**: `afbc562`
 *   **Outcome**: Mission architecture recovered. 12-track dashboard established. Protocol screen separated. HUD simplified. Governance introduced.
+
+### **EPIC 8.5 Architecture Decomposition (Planned)**
+*   **Tag**: TBD
+*   **Planned Start**: After EPIC 8 validation signoff
+*   **Outcome**: GameScreen.kt reduced from 3,901 to ~1,500 lines. ActiveThreat.kt reduced from 1,224 to ~250 lines. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and NavHost extracted.
 
 ---
 
@@ -96,6 +104,12 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Monetization** | `docs/roadmap/MONETIZATION_VISION.md` | (Strategy Only) |
 | **Assets** | `docs/analysis/Asset_Integration_Audit.md` | `docs/analysis/Asset_Readiness_Report.md` |
 | **Roadmaps** | `docs/JumpDroid_EPIC_Tracker.md` | `docs/roadmap/EPIC_8_TRACKER.md` |
+| **EPIC 8 Stabilization** | `docs/REPORTS/EPIC8_STABILIZATION_REPORT.md` | `docs/REPORTS/EPIC8_TECHNICAL_QA_REPORT.md` |
+| **EPIC 8 Polish** | `docs/REPORTS/EPIC8_POLISH_SPRINT_REPORT.md` | `docs/screenshots/EPIC8_POLISH/` |
+| **EPIC 8 Validation** | `docs/REPORTS/EPIC8_VALIDATION_REPORT.md` | `docs/analysis/EPIC8_MISSION_EVENT_AUDIT.md` |
+| **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
+| **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` |
+| **EPIC 8.5 Planning** | `docs/REPORTS/EPIC8_5_PLANNING_REPORT.md` | (Sprint Planning) |
 
 ---
 

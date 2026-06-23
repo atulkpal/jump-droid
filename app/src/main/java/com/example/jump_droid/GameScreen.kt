@@ -570,7 +570,7 @@ fun GameScreen() {
                     maxMomentum = momentumValue,
                     hazardHitsSurvived = totalHazardHits,
                     perfectRunTime = perfectRunTimer,
-                    artifactsCollected = progressionManager.artifactsCollected.size,
+                    artifactsCollected = totalArtifactsCollected,
                     dashesPerRun = totalDashes,
                     overheatCount = player.totalOverheats,
                     wasNearDeath = wasNearDeath,
@@ -717,6 +717,7 @@ fun GameScreen() {
         globalFogAlpha = 0f
         effectiveThrust = false
         effectiveTarget = Offset.Zero
+        missionCeremonies.clear()
         score = 0
         altitudeManager.updateAltitude(0)
         highestYReached = groundY
@@ -973,7 +974,7 @@ fun GameScreen() {
                             maxMomentum = momentumValue,
                             hazardHitsSurvived = totalHazardHits,
                             perfectRunTime = perfectRunTimer,
-                            artifactsCollected = progressionManager.artifactsCollected.size,
+                            artifactsCollected = totalArtifactsCollected,
                             dashesPerRun = totalDashes,
                             overheatCount = player.totalOverheats,
                             wasNearDeath = wasNearDeath,
@@ -1413,10 +1414,8 @@ fun GameScreen() {
                                         if (player.maxFuel < Constants.MAX_FUEL_CAPACITY_LIMIT) {
                                             player.maxFuel = min(Constants.MAX_FUEL_CAPACITY_LIMIT, player.maxFuel + 25f)
                                             player.fuel = player.maxFuel
-                                            notificationManager.post("FUEL CAPACITY UP!")
                                         } else {
                                             player.fuel = player.maxFuel
-                                            notificationManager.post("FUEL REFILLED")
                                         }
                                         spawnBurst(pu.x, pu.y, 30, SciFiGold, 300f)
                                         screenShake = 5f
@@ -1426,14 +1425,12 @@ fun GameScreen() {
                                         player.turboTimer = 8f
                                         spawnBurst(pu.x, pu.y, 30, SciFiCyan, 300f)
                                         screenShake = 5f
-                                        notificationManager.post("TURBO ACTIVE!")
                                         checkDiscovery(DiscoveryType.TURBO_BOOSTER)
                                     }
                                     PowerUpType.EFFICIENCY_MODULE -> {
                                         player.efficiencyTimer = 8f
                                         spawnBurst(pu.x, pu.y, 30, SciFiGreen, 300f)
                                         screenShake = 5f
-                                        notificationManager.post("FUEL EFFICIENCY UP!")
                                         checkDiscovery(DiscoveryType.EFFICIENCY_MODULE)
                                     }
                                     PowerUpType.HEAT_SINK -> {
@@ -1441,19 +1438,16 @@ fun GameScreen() {
                                         player.isOverheated = false
                                         spawnBurst(pu.x, pu.y, 30, SciFiWhite, 300f)
                                         screenShake = 5f
-                                        notificationManager.post("ENGINES COOLED!")
                                         checkDiscovery(DiscoveryType.HEAT_SINK)
                                     }
                                     PowerUpType.SHIELD_CAPSULE -> {
                                         player.shield = min(player.maxShield, player.shield + 25f)
                                         spawnBurst(pu.x, pu.y, 30, SciFiCyan, 400f)
-                                        notificationManager.post("SHIELD RECHARGE")
                                         floatingTextManager.add(FloatingText("+25 SHIELD", player.x, player.y - 120f, color = SciFiCyan))
                                     }
                                     PowerUpType.HULL_REPAIR -> {
                                         player.integrity = min(player.maxIntegrity, player.integrity + 20f)
                                         spawnBurst(pu.x, pu.y, 30, SciFiGreen, 400f)
-                                        notificationManager.post("HULL REPAIRED")
                                         floatingTextManager.add(FloatingText("+20 HULL", player.x, player.y - 120f, color = SciFiGreen))
                                     }
                                     PowerUpType.ARTIFACT -> {
@@ -1540,7 +1534,6 @@ fun GameScreen() {
                             if (mission.isCompleted && missionCeremonies[mission.id] == null) {
                                 missionCeremonies[mission.id] = 0f
                                 notificationManager.post("MISSION COMPLETE: ${mission.name.uppercase()}")
-                                floatingTextManager.add(FloatingText("MISSION COMPLETE", player.x, player.y - 180f, color = SciFiGreen, isCritical = true))
                                 
                                 // One-time burst at player
                                 spawnBurst(player.x, player.y, 40, SciFiGreen, 350f)
