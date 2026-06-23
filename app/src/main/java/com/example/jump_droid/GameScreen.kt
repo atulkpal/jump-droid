@@ -3791,7 +3791,15 @@ fun GameScreen() {
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // MissionRow removed as per Phase 5 communication audit
+                            ComboHudBar(
+                                currentCombo = comboManager.currentCombo,
+                                bestComboThisRun = comboManager.bestComboThisRun,
+                                comboTarget = comboManager.comboTarget,
+                                comboTimeRemaining = comboManager.comboTimeRemaining,
+                                getWindowForCombo = { comboManager.getWindowForCombo(it) },
+                                screenWidth = screenWidth,
+                                zone = altitudeManager.currentZone
+                            )
                         }
                     }
 
