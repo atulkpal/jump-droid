@@ -1529,7 +1529,7 @@ fun GameScreen() {
                             globalShowObjective = !globalShowObjective
                         }
 
-                        // Handle Completed Missions (Lightweight Feedback)
+                        // Handle Completed Missions (Ceremony & Rewards)
                         missionManager.activeMissions.forEach { mission ->
                             if (mission.isCompleted && missionCeremonies[mission.id] == null) {
                                 missionCeremonies[mission.id] = 0f

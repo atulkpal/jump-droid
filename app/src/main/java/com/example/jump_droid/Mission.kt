@@ -68,7 +68,6 @@ class Mission(
 
     // UI Presentation State
     var ceremonyStage by mutableStateOf(CeremonyStage.NONE)
-    var isNew by mutableStateOf(true)
 
     /**
      * Checks if the mission goal has been met.
