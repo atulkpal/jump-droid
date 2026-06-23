@@ -3921,7 +3921,6 @@ fun MissionType.toIcon(): String = when(this) {
     MissionType.SURVIVAL -> "❄️"
     MissionType.DISCOVERY -> "📡"
     MissionType.BOSS -> "⚠️"
-    MissionType.COMBO -> "🔥"
 }
 
 
