@@ -38,8 +38,6 @@ data class MissionUnlockCondition(
 enum class CeremonyStage {
     NONE,
     GLOW,
-    COMPLETED_TEXT,
-    REWARD_SPAWNED,
     REPLACING
 }
 
