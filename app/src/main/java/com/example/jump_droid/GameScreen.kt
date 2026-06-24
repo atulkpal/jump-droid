@@ -3678,7 +3678,6 @@ fun GameScreen() {
             GameState.MISSIONS -> {
                 MissionScreen(
                     missionManager = missionManager,
-                    progressionManager = progressionManager,
                     player = player,
                     onDismiss = { gameState = previousState }
                 )

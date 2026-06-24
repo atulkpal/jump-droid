@@ -30,22 +30,22 @@ enum class AscensionRank(val title: String, val level: Int) {
 /**
  * Manages permanent account progression, artifact collection, and ranks.
  */
-class ProgressionManager(private val sharedPrefs: SharedPreferences) {
+class ProgressionManager(private val sharedPrefs: SharedPreferences) : ProgressionService {
 
     companion object {
         private const val PROGRESS_PREFIX = "mission_progress_"
     }
 
-    var artifactsCollected by mutableStateOf<Map<String, ArtifactRecord>>(emptyMap())
+    override var artifactsCollected by mutableStateOf<Map<String, ArtifactRecord>>(emptyMap())
         private set
 
     var ownedModuleIds by mutableStateOf<Set<String>>(emptySet())
         private set
 
-    var completedMissionIds by mutableStateOf<Set<String>>(emptySet())
+    override var completedMissionIds by mutableStateOf<Set<String>>(emptySet())
         private set
 
-    var claimedMissionIds by mutableStateOf<Set<String>>(emptySet())
+    override var claimedMissionIds by mutableStateOf<Set<String>>(emptySet())
         private set
 
     var currentRank by mutableStateOf(AscensionRank.EXPLORER_I)
@@ -59,15 +59,15 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
 
     val missionsCompleted: Int get() = completedMissionIds.size
 
-    var highScore by mutableIntStateOf(0)
+    override var highScore by mutableIntStateOf(0)
         internal set
 
     // --- Lifetime Stats (Intelligence Network) ---
-    var lifetimeFlightTime by mutableFloatStateOf(0f)
+    override var lifetimeFlightTime by mutableFloatStateOf(0f)
         private set
-    var lifetimePlatformTime by mutableFloatStateOf(0f)
+    override var lifetimePlatformTime by mutableFloatStateOf(0f)
         private set
-    var lifetimeBossesDefeated by mutableIntStateOf(0)
+    override var lifetimeBossesDefeated by mutableIntStateOf(0)
         private set
     var lifetimeArtifactsCollected by mutableIntStateOf(0)
         private set
@@ -162,14 +162,14 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         return ownedModuleIds.contains(moduleId)
     }
 
-    fun saveMissionProgress(missionId: String, progress: Int) {
+    override fun saveMissionProgress(missionId: String, progress: Int) {
         val prev = sharedPrefs.getInt("$PROGRESS_PREFIX$missionId", 0)
         if (progress != prev) {
             sharedPrefs.edit { putInt("$PROGRESS_PREFIX$missionId", progress) }
         }
     }
 
-    fun getMissionProgress(missionId: String): Int {
+    override fun getMissionProgress(missionId: String): Int {
         return sharedPrefs.getInt("$PROGRESS_PREFIX$missionId", 0)
     }
 
@@ -184,7 +184,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         lifetimeMissionsCompleted = completedMissionIds.size
     }
 
-    fun recordMissionClaim(missionId: String) {
+    override fun recordMissionClaim(missionId: String) {
         if (claimedMissionIds.contains(missionId)) return
         claimedMissionIds = claimedMissionIds + missionId
         sharedPrefs.edit { putStringSet("claimed_missions", claimedMissionIds) }
@@ -213,7 +213,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
     /**
      * Grants a mission reward to the player's permanent account.
      */
-    fun grantReward(reward: MissionReward, player: Player) {
+    override fun grantReward(reward: MissionReward, player: Player) {
         when (reward) {
             is MissionReward.Artifact -> {
                 // Record discovery (Altitude/Zone approximated)
@@ -268,7 +268,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) {
         return if (total > 0) (discovered * 100) / total else 0
     }
 
-    fun getTotalDiscoveries(): Int {
+    override fun getTotalDiscoveries(): Int {
         return DiscoveryType.entries.count { sharedPrefs.getBoolean("discovery_$it", false) }
     }
 

@@ -8,7 +8,7 @@ import androidx.compose.runtime.mutableStateMapOf
  * Maintains 3 active mission tracks and tracks completion history.
  * Objective: Simple, Reliable, Trustworthy.
  */
-class MissionManager(private val progressionManager: ProgressionManager) {
+class MissionManager(private val progressionService: ProgressionService) {
     // Current active missions being tracked (max 3)
     val activeMissions = mutableStateListOf<Mission>()
 
@@ -60,20 +60,20 @@ class MissionManager(private val progressionManager: ProgressionManager) {
                     allMissionInstances[prereqId]?.isCompleted == true
                 }
                 MissionUnlockType.REACH_ALTITUDE -> {
-                    progressionManager.highScore >= condition.value
+                    progressionService.highScore >= condition.value
                 }
                 MissionUnlockType.DEFEAT_BOSS -> {
-                    progressionManager.lifetimeBossesDefeated >= condition.value
+                    progressionService.lifetimeBossesDefeated >= condition.value
                 }
                 MissionUnlockType.UNLOCK_CODEX_ENTRY -> {
-                    progressionManager.getTotalDiscoveries() >= condition.value
+                    progressionService.getTotalDiscoveries() >= condition.value
                 }
                 MissionUnlockType.REACH_BIOME -> {
                     // Approximate by altitude for now
-                    progressionManager.highScore >= 5000f
+                    progressionService.highScore >= 5000f
                 }
                 MissionUnlockType.COLLECT_ARTIFACT -> {
-                    progressionManager.artifactsCollected.size >= condition.value
+                    progressionService.artifactsCollected.size >= condition.value
                 }
             }
 
@@ -98,12 +98,12 @@ class MissionManager(private val progressionManager: ProgressionManager) {
                 unlockCondition = template.unlockCondition,
                 icon = template.icon,
                 isHidden = template.isHidden,
-                initialProgress = progressionManager.getMissionProgress(template.id)
+                initialProgress = progressionService.getMissionProgress(template.id)
             )
 
             // Sync with persistent state
-            mission.isCompleted = progressionManager.completedMissionIds.contains(mission.id)
-            mission.isClaimed = progressionManager.claimedMissionIds.contains(mission.id)
+            mission.isCompleted = progressionService.completedMissionIds.contains(mission.id)
+            mission.isClaimed = progressionService.claimedMissionIds.contains(mission.id)
 
             allMissionInstances[template.id] = mission
         }
@@ -114,9 +114,9 @@ class MissionManager(private val progressionManager: ProgressionManager) {
      */
     fun syncState() {
         allMissionInstances.values.forEach { mission ->
-            mission.isCompleted = progressionManager.completedMissionIds.contains(mission.id)
-            mission.isClaimed = progressionManager.claimedMissionIds.contains(mission.id)
-            val savedProgress = progressionManager.getMissionProgress(mission.id)
+            mission.isCompleted = progressionService.completedMissionIds.contains(mission.id)
+            mission.isClaimed = progressionService.claimedMissionIds.contains(mission.id)
+            val savedProgress = progressionService.getMissionProgress(mission.id)
             if (savedProgress > mission.currentProgress) {
                 mission.currentProgress = savedProgress
             }
@@ -137,7 +137,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
             // Only move forward (especially for altitude/cumulative stats)
             if (progress.toInt() > before) {
                 mission.currentProgress = progress.toInt()
-                progressionManager.saveMissionProgress(mission.id, mission.currentProgress)
+                progressionService.saveMissionProgress(mission.id, mission.currentProgress)
                 
                 // If this mission is also in activeHUD, it will update automatically via state
                 if (mission.checkCompletion()) {
@@ -152,8 +152,8 @@ class MissionManager(private val progressionManager: ProgressionManager) {
 
     private fun calculateProgress(mission: Mission, stats: GameStats): Float {
         return when (mission.category) {
-            MissionCategory.FLIGHT_TIME -> progressionManager.lifetimeFlightTime + stats.totalFlightTime
-            MissionCategory.PLATFORM_STAY -> progressionManager.lifetimePlatformTime + stats.totalPlatformTime
+            MissionCategory.FLIGHT_TIME -> progressionService.lifetimeFlightTime + stats.totalFlightTime
+            MissionCategory.PLATFORM_STAY -> progressionService.lifetimePlatformTime + stats.totalPlatformTime
             MissionCategory.NO_HEAT -> stats.zeroHeatTime
             MissionCategory.FUEL_EFFICIENCY -> stats.fuelPickupsCollected.toFloat()
             MissionCategory.COMBO_STREAK -> stats.maxCombo.toFloat()
@@ -183,15 +183,15 @@ class MissionManager(private val progressionManager: ProgressionManager) {
     /**
      * Finalizes a mission and grants all associated rewards.
      */
-    fun claimMissionRewards(missionId: String, progressionManager: ProgressionManager, player: Player) {
+    fun claimMissionRewards(missionId: String, player: Player) {
         val mission = allMissionInstances[missionId] ?: return
         if (mission.isCompleted && !mission.isClaimed) {
             mission.rewards.forEach { reward ->
-                progressionManager.grantReward(reward, player)
+                progressionService.grantReward(reward, player)
             }
             mission.isClaimed = true
-            progressionManager.saveMissionProgress(mission.id, mission.currentProgress)
-            progressionManager.recordMissionClaim(mission.id)
+            progressionService.saveMissionProgress(mission.id, mission.currentProgress)
+            progressionService.recordMissionClaim(mission.id)
             android.util.Log.i("MissionManager", "MISSION REWARDS CLAIMED: ${mission.id}")
         }
     }
@@ -213,7 +213,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
             }
             
             if (before != mission.currentProgress) {
-                progressionManager.saveMissionProgress(mission.id, mission.currentProgress)
+                progressionService.saveMissionProgress(mission.id, mission.currentProgress)
                 android.util.Log.d("MissionTruth", "MISSION PROGRESS: ${mission.id} $before -> ${mission.currentProgress} (Target: ${mission.targetValue}) [Source: $type]")
             }
 
@@ -246,7 +246,7 @@ class MissionManager(private val progressionManager: ProgressionManager) {
     fun resetProgress(type: MissionType, predicate: ((Mission) -> Boolean)? = null) {
         activeMissions.filter { it.type == type && !it.isCompleted && (predicate?.invoke(it) ?: true) }.forEach {
             it.reset()
-            progressionManager.saveMissionProgress(it.id, 0)
+            progressionService.saveMissionProgress(it.id, 0)
             android.util.Log.d("MissionTruth", "MISSION RESET: ${it.id}")
         }
     }

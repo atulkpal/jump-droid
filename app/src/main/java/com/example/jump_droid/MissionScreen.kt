@@ -48,7 +48,6 @@ private val MISSION_TRACKS = listOf(
 @Composable
 fun MissionScreen(
     missionManager: MissionManager,
-    progressionManager: ProgressionManager,
     player: Player,
     onDismiss: () -> Unit
 ) {
@@ -129,7 +128,7 @@ fun MissionScreen(
                             track = track,
                             mission = currentMission,
                             onClaim = {
-                                missionManager.claimMissionRewards(currentMission.id, progressionManager, player)
+                                missionManager.claimMissionRewards(currentMission.id, player)
                                 claimEffectAlpha = 1f
                                 claimEffectText = "${track.name.uppercase()} — CLAIMED"
                             }
@@ -143,7 +142,7 @@ fun MissionScreen(
                         total = allMissions.count { it.isHidden },
                         missions = allMissions.filter { it.isHidden },
                         onClaim = { id ->
-                            missionManager.claimMissionRewards(id, progressionManager, player)
+                            missionManager.claimMissionRewards(id, player)
                             claimEffectAlpha = 1f
                             claimEffectText = "SIGNAL RECOVERED"
                         }

@@ -30,6 +30,16 @@ data class FlyingReward(
 )
 
 class ComboManager {
+    companion object {
+        val TIERS = listOf(
+            ComboTier(1, 5, 7, "BASIC", listOf(ComboReward.Fuel(50f)), ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE)),
+            ComboTier(2, 8, 11, "IMPROVED", listOf(ComboReward.PowerUp(PowerUpType.TURBO_BOOSTER)), ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE)),
+            ComboTier(3, 12, 15, "ADVANCED", listOf(ComboReward.AltitudeBoost), ComboReward.PowerUp(PowerUpType.HULL_REPAIR)),
+            ComboTier(4, 16, 20, "ELITE", listOf(ComboReward.PowerUp(PowerUpType.ARTIFACT)), ComboReward.PowerUp(PowerUpType.HULL_REPAIR)),
+            ComboTier(5, 21, 999, "LEGENDARY", listOf(ComboReward.Artifact(DiscoveryType.ART_RECORDER)))
+        )
+    }
+
     var currentCombo by mutableIntStateOf(0)
     var bestComboThisRun by mutableIntStateOf(0)
     var comboTimeRemaining by mutableLongStateOf(0L)
@@ -45,23 +55,15 @@ class ComboManager {
     // Task 6: Survival Rewards
     val immediateSurvivalRewards = mutableListOf<ComboReward>()
 
-    private val tiers = listOf(
-        ComboTier(1, 5, 7, "BASIC", listOf(ComboReward.Fuel(50f)), ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE)),
-        ComboTier(2, 8, 11, "IMPROVED", listOf(ComboReward.PowerUp(PowerUpType.TURBO_BOOSTER)), ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE)),
-        ComboTier(3, 12, 15, "ADVANCED", listOf(ComboReward.AltitudeBoost), ComboReward.PowerUp(PowerUpType.HULL_REPAIR)),
-        ComboTier(4, 16, 20, "ELITE", listOf(ComboReward.PowerUp(PowerUpType.ARTIFACT)), ComboReward.PowerUp(PowerUpType.HULL_REPAIR)),
-        ComboTier(5, 21, 999, "LEGENDARY", listOf(ComboReward.Artifact(DiscoveryType.ART_RECORDER)))
-    )
-
     fun onLanding() {
         currentCombo++
         
         // Survival drops: check if we just entered a new tier
-        tiers.firstOrNull { currentCombo == it.minCombo }?.survivalDrop?.let {
+        TIERS.firstOrNull { currentCombo == it.minCombo }?.survivalDrop?.let {
             immediateSurvivalRewards.add(it)
         }
         // Post-legendary: every 5 combos past max tier
-        if (currentCombo > (tiers.lastOrNull()?.maxCombo ?: 25) && currentCombo % 5 == 0) {
+        if (currentCombo > (TIERS.lastOrNull()?.maxCombo ?: 25) && currentCombo % 5 == 0) {
             calculateReward(currentCombo)?.let { immediateSurvivalRewards.add(it) }
         }
 
@@ -104,7 +106,7 @@ class ComboManager {
     }
 
     private fun calculateReward(streak: Int): ComboReward? {
-        val tier = tiers.findLast { streak >= it.minCombo }
+        val tier = TIERS.findLast { streak >= it.minCombo }
         return tier?.breakRewards?.randomOrNull()
     }
 
