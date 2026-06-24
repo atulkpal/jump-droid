@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-06-23
-**Project Status:** EPIC 8 Functionally Complete (Awaiting Runtime Signoff) → EPIC 8.5 Architecture Decomposition Planned
-**Current Stable Tag:** `epic8-recovery-stable`
-**Base Commit:** `afbc562`
+**Last Updated:** 2026-06-24
+**Project Status:** EPIC 8.5 Architecture Decomposition — COMPLETE ✅
+**Current Stable Tag:** `epic8.5-structured`
+**Base Commit:** `9363434`
 
 ---
 
@@ -31,18 +31,17 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `epic8-mission-migration`
-*   **Current Stable Tag**: `epic8-recovery-stable`
-*   **Stable Commit**: `afbc562`
-*   **Current EPIC**: EPIC 8.5 — Architecture Decomposition
-*   **Current Status**: **PLANNING COMPLETE**. EPIC 8 validation passed (all 6 stabilization + 7 polish + mission event audit). EPIC 8.5 created as a dedicated architecture decomposition sprint to address 2 CRITICAL God Objects before Phase 9 feature work.
+*   **Current Branch**: `epic8.5-rebased`
+*   **Current Stable Tag**: `epic8.5-structured`
+*   **Stable Commit**: `9363434`
+*   **Current EPIC**: EPIC 9 — Hidden Signals & Dynamic Unlocks (Next)
+*   **Current Status**: **EPIC 8.5 COMPLETE**. All 5 decomposition sprints validated. GameScreen.kt reduced from 3,901 to 2,011 lines. ActiveThreat.kt reduced from 1,224 to 123 lines. 26 threat renderers extracted. Mission system purified. HUD components extracted. Rollback tag established.
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
     *   Multi-reward mission backend support — display works, backend grants all listed rewards.
-    *   GameScreen.kt at 3,901 lines — primary development bottleneck (EPIC 8.5.5 target)
-    *   ActiveThreat.kt at 1,224 lines — second God Object (EPIC 8.5.6 target)
-*   **Current Priorities**: EPIC 8.5 Architecture Decomposition per `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md`.
-*   **Next Planned Work**: EPIC 9 (Hidden Signals & Dynamic Unlocks) — DEFERRED until EPIC 8.5 completes.
+    *   GameScreen.kt at 2,011 lines — remaining God Object (game loop + rendering still mixed). Future extraction planned for EPIC 12.
+*   **Current Priorities**: EPIC 9 feature work — Hidden Signals, Dynamic Unlocks, Discovery expansion.
+*   **Next Planned Work**: EPIC 9 (Hidden Signals & Dynamic Unlocks). Deferred arch cleanup: GameEngine loop extraction, GameRenderer extraction, folder restructuring.
 
 ---
 
@@ -53,7 +52,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **EPIC 6: Hostile Skies**: Framework for advanced AI entities, projectile systems, and multi-phase Boss encounters.
 *   **EPIC 7: Rocket Evolution**: Transformed the rocket into a customizable "Build" with Rocket Classes and a 17-module Registry.
 *   **EPIC 8: Missions & Progression (Recovery)**: Reconciled legacy prototype data with the production engine. Implemented the **Intelligence Network** for real-time stat tracking.
-*   **EPIC 8.5: Architecture Decomposition (Planned)**: Structural sprint to decompose `GameScreen.kt` (3,901 lines) and `ActiveThreat.kt` (1,224 lines) God Objects before Phase 9 feature work begins.
+*   **EPIC 8.5: Architecture Decomposition**: Structural sprint decomposed `GameScreen.kt` (3,901→2,011 lines) and `ActiveThreat.kt` (1,224→123 lines) God Objects. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and HUD components extracted.
 
 ---
 
@@ -69,10 +68,10 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Commit**: `afbc562`
 *   **Outcome**: Mission architecture recovered. 12-track dashboard established. Protocol screen separated. HUD simplified. Governance introduced.
 
-### **EPIC 8.5 Architecture Decomposition (Planned)**
-*   **Tag**: TBD
-*   **Planned Start**: After EPIC 8 validation signoff
-*   **Outcome**: GameScreen.kt reduced from 3,901 to ~1,500 lines. ActiveThreat.kt reduced from 1,224 to ~250 lines. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and NavHost extracted.
+### **EPIC 8.5 Architecture Decomposition**
+*   **Tag**: `epic8.5-structured`
+*   **Commit**: `9363434`
+*   **Outcome**: GameScreen.kt reduced from 3,901 to 2,011 lines (48% reduction). ActiveThreat.kt reduced from 1,224 to 123 lines (90% reduction). 26 threat renderers extracted. Mission system purified: `MissionRow.kt` deleted, `isNew` removed, `CeremonyStage` collapsed, `checkCompletion()` made pure. HUD components extracted: `StarfieldBackground`, `GaugeBar`, `HudContext`. ProgressionService interface decouples MissionManager from ProgressionManager. GameEngine state container created.
 
 ---
 
@@ -110,6 +109,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
 | **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` |
 | **EPIC 8.5 Planning** | `docs/REPORTS/EPIC8_5_PLANNING_REPORT.md` | (Sprint Planning) |
+| **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
 
 ---
 

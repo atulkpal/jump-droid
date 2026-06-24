@@ -121,26 +121,31 @@ Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
 
 # EPIC 8.5 - Architecture Decomposition
 
-Status: Planned (EPIC 9 deferred until completion)
+**Status: COMPLETE ✅** (Rollback tag: `epic8.5-structured`, Commit: `9363434`)
 Detailed Plan: [docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md](roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md)
 
-- [ ] Sprint 8.5.0: Baseline Capture (tag, build verify, file metrics, screenshots, baseline report)
-- [ ] Sprint 8.5.1: Low-Risk Cleanup (dead code, zombie fields, pure functions)
-- [ ] Sprint 8.5.2: HUD Decomposition (GaugeBar, Starfield, MissionScreen extract)
-- [ ] Sprint 8.5.3: Notification & Celebration Extraction (ceremony lifecycle, ComboManager)
-- [ ] Sprint 8.5.4: Threat Rendering Extraction (per-type ThreatRenderer interface)
-- [ ] Sprint 8.5.5: Game Engine Boundary Creation (physics loop, update orchestration)
-- [ ] Sprint 8.5.6: ActiveThreat Strategy Architecture (ThreatBehavior, CollisionSystem, event bus)
-- [ ] Sprint 8.5.7: Progression Service Decomposition (IntelligenceNetwork, UnlockService, MissionTracker)
-- [ ] Sprint 8.5.8: Navigation Migration (NavHost, 14 screen routes)
+- [x] Sprint 8.5.0: Baseline Capture (tag `epic8.5-baseline`, build verify, file metrics)
+- [x] Sprint 8.5.1: Low-Risk Cleanup (MissionRow deleted, `isNew` removed, `CeremonyStage` collapsed, `checkCompletion()` pure)
+- [x] Sprint 8.5.2: HUD Decomposition (GaugeBar, StarfieldBackground, HudContext, MissionScreen track extraction)
+- [x] Sprint 8.5.3: State/Ceremony Extraction (ceremony lifecycle, ComboManager unified, ProgressionService interface)
+- [x] Sprint 8.5.4: Threat Rendering Extraction (ThreatRenderer interface + 26 per-threat renderers)
+- [ ] Sprint 8.5.5: Game Engine Boundary Creation — **DEFERRED to EPIC 12**
+- [x] Sprint 8.5.6: ActiveThreat Decomposition (1,224→123 lines via ThreatAIUpdater + ThreatInteractionProcessor)
+- [ ] Sprint 8.5.7: Progression Service Decomposition — **DEFERRED to EPIC 12**
+- [ ] Sprint 8.5.8: Navigation Migration — **DEFERRED to EPIC 12**
 
-## Post-8.5 Target File Sizes
-| File | Before | After |
-|------|--------|-------|
-| GameScreen.kt | 3,901 lines | ~1,500 |
-| ActiveThreat.kt | 1,224 lines | ~250 |
-| ProgressionManager.kt | 334 lines | ~80 (facade) |
-| HudWidgets.kt | 654 lines | ~400 |
+## Post-8.5 File Sizes (Actual)
+
+| File | Before | After | Reduction |
+|------|--------|-------|-----------|
+| GameScreen.kt | 3,901 lines | 2,011 | **48%** |
+| ActiveThreat.kt | 1,224 lines | 123 | **90%** |
+| HudWidgets.kt | 654 lines | 576 | 12% |
+| GameEngine.kt | — | 110 (new) | N/A |
+
+## Next (EPIC 9 — Hidden Signals & Dynamic Unlocks)
+
+**Status: Ready to start** ✅
 
 ## Mission Framework
 
@@ -214,7 +219,7 @@ Do not implement during EPIC 7. Track only.
 
 # EPIC 9 - The Archive Expands
 
-**Status: DEFERRED — will commence after EPIC 8.5 Architecture Decomposition completes**
+**Status: READY — EPIC 8.5 complete**
 
 - [ ] Artifact Set Bonuses
 - [ ] Discovery Collection Rewards

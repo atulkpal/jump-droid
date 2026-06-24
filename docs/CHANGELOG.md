@@ -4,6 +4,49 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-24
+
+**Sprint / Phase:** EPIC 8.5 Execution — Architecture Decomposition Complete
+
+**Branch:** `epic8.5-rebased`
+
+**Status:** Complete ✅
+
+### Added
+- **26 Threat Renderers**: One file per threat (11 hazards, 8 enemies, 6 bosses + 3 shared). `ThreatRenderer` interface + `ThreatRendererRegistry` with eager map dispatch.
+- **ThreatAIUpdater.kt**: Extracted AI behavior `when`-block from `ActiveThreat.update()` (566 lines).
+- **ThreatInteractionProcessor.kt**: Extracted collision/damage `when`-block from `ActiveThreat.processInteraction()` (551 lines).
+- **StarfieldBackground.kt**: Shared animated starfield composable (replaced 6 copy-paste implementations).
+- **GaugeBar.kt**: Base gauge composable with shared clipPath + seg ticks + interference lines (4 gauges refactored).
+- **HudContext.kt**: Bundles `gameTime` + `interferenceTimer` + `zone` — eliminates 12 parameter passthroughs.
+- **GameEngine.kt**: State container with all managers + 40+ observable game state vars.
+- **ProgressionService.kt**: Interface decoupling MissionManager from ProgressionManager.
+- **GameStats.kt**: Data class for session stat commit.
+- **MissionScreen.kt**: Created from earlier extraction.
+- **PowerUpManager.kt**: PowerUp lifecycle extracted from GameScreen.
+
+### Changed
+- **ActiveThreat.kt**: 1,224 → 123 lines (90% reduction). AI and interaction logic delegated to extension functions.
+- **GameScreen.kt**: 3,901 → 2,011 lines (48% reduction). Threat rendering extracted to 26 files. Ceremony lifecycle extracted. PowerUpManager extracted.
+- **Mission.kt**: `checkCompletion()` made pure (side-effect moved to callers).
+- **MissionManager.kt**: Added `getBestMissionForTrack()`. Decoupled from ProgressionManager via interface. Ceremony lifecycle extracted from GameScreen.
+- **ComboManager.kt**: Rewards merged (unified tier + survival drop table). Tier table externalized to `TIERS` companion.
+- **HudWidgets.kt**: 4 gauges refactored to use shared `GaugeBar` composable. `HudContext` hoisted.
+- **MainMenuScreen.kt, AboutScreen.kt, SettingsScreen.kt, PauseOverlay.kt, GameOverOverlay.kt, HangarScreen.kt**: Starfield replaced with shared `StarfieldBackground` composable.
+- **AGENTS.md**: Updated for EPIC 8.5 completion. Points to `epic8.5-structured` tag.
+
+### Removed
+- **MissionRow.kt**: Deleted (ceremony lifecycle moved elsewhere).
+- **`isNew` property**: Removed from `Mission.kt`.
+- **`MissionType.COMBO`**: Removed.
+- **`CeremonyStage`**: Simplified to NONE/GLOW/REPLACING.
+- **Duplicate ComboDisplay**: Removed from center HUD.
+
+### Tag
+- **`epic8.5-structured`**: Rollback point at commit `9363434`.
+
+---
+
 ## 2026-06-23
 
 **Sprint / Phase:** EPIC 8.5 Planning — Architecture Decomposition Roadmap
