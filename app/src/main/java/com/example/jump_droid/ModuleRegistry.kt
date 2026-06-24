@@ -68,7 +68,7 @@ class ReinforcedHullModule : Module {
     override val category = ModuleCategory.HULL
     override val rarity = ModuleRarity.COMMON
     override val iconColor = SciFiGreen
-    override val unlockRequirement = UnlockRequirement(UnlockType.ALTITUDE, 1000, "Reach 1000m")
+    override val unlockRequirement = UnlockRequirement(UnlockType.ALTITUDE, value = 1000f)
 
     override fun onEquip(player: Player) {
         player.maxIntegrity += 25f
@@ -86,7 +86,7 @@ class ImpactDampenersModule : Module {
     override val category = ModuleCategory.HULL
     override val rarity = ModuleRarity.RARE
     override val iconColor = SciFiGreen
-    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, 5000, "Achieve a score of 5000")
+    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, value = 5000f)
 
     override fun onDamageTaken(
         player: Player,
@@ -105,7 +105,7 @@ class SelfRepairMatrixModule : Module {
     override val category = ModuleCategory.HULL
     override val rarity = ModuleRarity.EPIC
     override val iconColor = SciFiGreen
-    override val unlockRequirement = UnlockRequirement(UnlockType.ARTIFACT, 5, "Collect 5 Artifacts")
+    override val unlockRequirement = UnlockRequirement(UnlockType.ARTIFACT, value = 5f)
 
     private val REPAIR_INTERVAL = 5f // seconds
     private val REPAIR_AMOUNT = 2f
@@ -134,7 +134,7 @@ class FastRechargeModule : Module {
     override val category = ModuleCategory.SHIELD
     override val rarity = ModuleRarity.COMMON
     override val iconColor = SciFiCyan
-    override val unlockRequirement = UnlockRequirement(UnlockType.DISCOVERY, 1, "Discover Shield Capsules")
+    override val unlockRequirement = UnlockRequirement(UnlockType.DISCOVERY, target = "SHIELD_CAPSULE")
 
     override fun onUpdate(player: Player, dt: Float, onSpawnPlatform: (Float, Float, PlatformType) -> Unit) {
         if (player.shieldRegenPauseTimer > 0f) {
@@ -150,7 +150,7 @@ class EmergencyShieldModule : Module {
     override val category = ModuleCategory.SHIELD
     override val rarity = ModuleRarity.RARE
     override val iconColor = SciFiCyan
-    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, 10000, "Achieve a score of 10000")
+    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, value = 10000f)
 
     private val COOLDOWN = 60f
     private val TRIGGER_THRESHOLD = 0.2f // 20% Hull
@@ -187,7 +187,7 @@ class ReflectiveShieldModule : Module {
     override val category = ModuleCategory.SHIELD
     override val rarity = ModuleRarity.EPIC
     override val iconColor = SciFiCyan
-    override val unlockRequirement = UnlockRequirement(UnlockType.MISSION, 10, "Complete 10 Missions")
+    override val unlockRequirement = UnlockRequirement(UnlockType.MISSION, target = "flight_time_2")
 
     override fun onShieldHit(
         player: Player,
@@ -211,7 +211,7 @@ class BurstThrustersModule : Module {
     override val category = ModuleCategory.ENGINE
     override val rarity = ModuleRarity.RARE
     override val iconColor = SciFiRed
-    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, 7500, "Achieve score of 7500")
+    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, value = 7500f)
 
     override fun onThrust(player: Player, dt: Float): Float = 1.3f
     override fun onHeatChange(player: Player, currentHeat: Float): Float = 1.5f
@@ -224,7 +224,7 @@ class LongBurnThrustersModule : Module {
     override val category = ModuleCategory.ENGINE
     override val rarity = ModuleRarity.RARE
     override val iconColor = SciFiGold
-    override val unlockRequirement = UnlockRequirement(UnlockType.ALTITUDE, 5000, "Reach 5000m")
+    override val unlockRequirement = UnlockRequirement(UnlockType.ALTITUDE, value = 5000f)
 
     override fun onThrust(player: Player, dt: Float): Float = 0.85f
     override fun onFuelConsume(player: Player, dt: Float): Float = 0.7f
@@ -237,7 +237,7 @@ class VectorThrustersModule : Module {
     override val category = ModuleCategory.ENGINE
     override val rarity = ModuleRarity.EPIC
     override val iconColor = SciFiCyan
-    override val unlockRequirement = UnlockRequirement(UnlockType.MISSION, 15, "Complete 15 Missions")
+    override val unlockRequirement = UnlockRequirement(UnlockType.MISSION, target = "momentum_master_2")
 
     override fun onSteer(player: Player, dt: Float): Float = 1.6f
 }
@@ -251,7 +251,7 @@ class CoolingMatrixModule : Module {
     override val category = ModuleCategory.HEAT
     override val rarity = ModuleRarity.RARE
     override val iconColor = SciFiWhite
-    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, 12000, "Achieve score of 12000")
+    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, value = 12000f)
 
     override fun onCooling(player: Player, dt: Float): Float = 1.5f
 }
@@ -263,7 +263,7 @@ class ThermalBatteryModule : Module {
     override val category = ModuleCategory.HEAT
     override val rarity = ModuleRarity.EPIC
     override val iconColor = SciFiRed
-    override val unlockRequirement = UnlockRequirement(UnlockType.ARTIFACT, 8, "Collect 8 Artifacts")
+    override val unlockRequirement = UnlockRequirement(UnlockType.ARTIFACT, value = 8f)
 
     override fun onEquip(player: Player) {
         player.maxHeat += 40f
@@ -281,7 +281,7 @@ class HeatSinkModule : Module {
     override val category = ModuleCategory.HEAT
     override val rarity = ModuleRarity.EPIC
     override val iconColor = SciFiCyan
-    override val unlockRequirement = UnlockRequirement(UnlockType.DISCOVERY, 5, "Discover 5 Power-Up Types")
+    override val unlockRequirement = UnlockRequirement(UnlockType.DISCOVERY, target = "HEAT_SINK")
 
     override fun onLanding(player: Player, platform: Platform) {
         player.heat = max(0f, player.heat - 30f)
@@ -297,7 +297,7 @@ class SurveyScannerModule : Module {
     override val category = ModuleCategory.UTILITY
     override val rarity = ModuleRarity.COMMON
     override val iconColor = SciFiCyan
-    override val unlockRequirement = UnlockRequirement(UnlockType.ALTITUDE, 2000, "Reach 2000m")
+    override val unlockRequirement = UnlockRequirement(UnlockType.ALTITUDE, value = 2000f)
 
     override fun onEquip(player: Player) {
         player.discoveryRangeMultiplier = 2.0f
@@ -326,7 +326,7 @@ class ArtifactLocatorModule : Module {
     override val category = ModuleCategory.UTILITY
     override val rarity = ModuleRarity.RARE
     override val iconColor = SciFiPurple
-    override val unlockRequirement = UnlockRequirement(UnlockType.ARTIFACT, 3, "Collect 3 Artifacts")
+    override val unlockRequirement = UnlockRequirement(UnlockType.ARTIFACT, value = 3f)
 
     override fun onDraw(drawScope: DrawScope, player: Player, cameraY: Float, gameTime: Long, activeThreats: List<ActiveThreat>, powerUps: List<PowerUp>, platforms: List<Platform>) {
         powerUps.filter { it.type == PowerUpType.ARTIFACT }.forEach { artifact ->
@@ -357,7 +357,7 @@ class ThreatScannerModule : Module {
     override val category = ModuleCategory.UTILITY
     override val rarity = ModuleRarity.RARE
     override val iconColor = SciFiRed
-    override val unlockRequirement = UnlockRequirement(UnlockType.MISSION, 5, "Complete 5 Missions")
+    override val unlockRequirement = UnlockRequirement(UnlockType.MISSION, target = "boss_slayer_1")
 
     override fun onDraw(drawScope: DrawScope, player: Player, cameraY: Float, gameTime: Long, activeThreats: List<ActiveThreat>, powerUps: List<PowerUp>, platforms: List<Platform>) {
         activeThreats.forEach { threat ->
@@ -397,7 +397,7 @@ class AutoRepairDroneModule : Module {
     override val category = ModuleCategory.UTILITY
     override val rarity = ModuleRarity.EPIC
     override val iconColor = SciFiGreen
-    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, 15000, "Achieve score of 15000")
+    override val unlockRequirement = UnlockRequirement(UnlockType.SCORE, value = 15000f)
 
     private val REPAIR_INTERVAL = 8f
     private val REPAIR_AMOUNT = 1f
@@ -445,7 +445,7 @@ class EmergencyBeaconModule : Module {
     override val category = ModuleCategory.UTILITY
     override val rarity = ModuleRarity.LEGENDARY
     override val iconColor = SciFiGold
-    override val unlockRequirement = UnlockRequirement(UnlockType.ALTITUDE, 10000, "Reach 10000m")
+    override val unlockRequirement = UnlockRequirement(UnlockType.ALTITUDE, value = 10000f)
 
     private val COOLDOWN = 120f
     private val FUEL_THRESHOLD = 15f

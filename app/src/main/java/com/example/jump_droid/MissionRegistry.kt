@@ -42,6 +42,19 @@ object MissionRegistry {
             listOf(MissionReward.Cash(800), MissionReward.Unlock(RocketType.TANK)),
             MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "platform_stay_3"), icon = "\uD83C\uDFD7\uFE0F"))
 
+        // --- PLATFORM LANDINGS (PLATFORMING) ---
+        register(Mission("plat_land_1", "Touchdown", "Land on 50 platforms total",
+            MissionType.PLATFORMING, MissionCategory.LANDINGS, MissionTier.TIER_1, 50,
+            listOf(MissionReward.Cash(100), MissionReward.Artifact(DiscoveryType.NORMAL_PLATFORM)), icon = "\uD83D\uDEEB"))
+        register(Mission("plat_land_2", "Precision Pilot", "Land on 200 platforms total",
+            MissionType.PLATFORMING, MissionCategory.LANDINGS, MissionTier.TIER_2, 200,
+            listOf(MissionReward.Cash(300), MissionReward.PowerUp(PowerUpType.TURBO_BOOSTER)),
+            MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "plat_land_1"), icon = "\uD83D\uDEEB"))
+        register(Mission("plat_land_3", "Surface Master", "Land on 1000 platforms total",
+            MissionType.PLATFORMING, MissionCategory.LANDINGS, MissionTier.TIER_3, 1000,
+            listOf(MissionReward.Cash(600), MissionReward.Artifact(DiscoveryType.ART_ALLOY)),
+            MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "plat_land_2"), icon = "\uD83D\uDEEB"))
+
         // --- NO HEAT (SURVIVAL) ---
         register(Mission("no_heat_1", "Cool Operator", "Fly 5 minutes without overheating",
             MissionType.SURVIVAL, MissionCategory.NO_HEAT, MissionTier.TIER_1, 300,
@@ -197,31 +210,38 @@ object MissionRegistry {
         register(Mission("hidden_long_haul", "The Long Haul", "Complete a single run lasting 10+ minutes",
             MissionType.SURVIVAL, MissionCategory.FLIGHT_TIME, MissionTier.TIER_3, 600,
             listOf(MissionReward.Cash(500), MissionReward.Artifact(DiscoveryType.ART_RECORDER)),
-            MissionUnlockCondition(MissionUnlockType.REACH_ALTITUDE, 3000f), icon = "\uD83D\uDE80", isHidden = true))
+            MissionUnlockCondition(MissionUnlockType.REACH_ALTITUDE, 3000f), icon = "\uD83D\uDE80", isHidden = true,
+            crypticHint = "A whisper from the deep... — Survive beyond 3,000m"))
         register(Mission("hidden_heat_junkie", "Heat Junkie", "Overheat 5 times total",
-            MissionType.SURVIVAL, MissionCategory.NO_HEAT, MissionTier.TIER_2, 5,
+            MissionType.SURVIVAL, MissionCategory.OVERHEAT, MissionTier.TIER_2, 5,
             listOf(MissionReward.Cash(300), MissionReward.Artifact(DiscoveryType.OVERHEAT_SYSTEM)),
-            MissionUnlockCondition(MissionUnlockType.REACH_ALTITUDE, 1500f), icon = "\u2744\uFE0F", isHidden = true))
+            MissionUnlockCondition(MissionUnlockType.REACH_ALTITUDE, 1500f), icon = "\u2744\uFE0F", isHidden = true,
+            crypticHint = "The core runs hot... — Push the limits below 1,500m"))
         register(Mission("hidden_near_death", "Near-Death Experience", "Complete a run below 10% health",
             MissionType.SURVIVAL, MissionCategory.PERFECT_RUN, MissionTier.TIER_2, 1,
             listOf(MissionReward.Cash(400), MissionReward.Artifact(DiscoveryType.LORE_LOGS)),
-            MissionUnlockCondition(MissionUnlockType.REACH_ALTITUDE, 1000f), icon = "\uD83C\uDFC6", isHidden = true))
+            MissionUnlockCondition(MissionUnlockType.REACH_ALTITUDE, 1000f), icon = "\uD83C\uDFC6", isHidden = true,
+            crypticHint = "The edge of destruction... — Test fate below 1,000m"))
         register(Mission("hidden_void_walker", "Void Walker", "Reach the Void biome",
             MissionType.EXPLORATION, MissionCategory.ALTITUDE_CLIMBER, MissionTier.TIER_3, 5000,
             listOf(MissionReward.Cash(600), MissionReward.Artifact(DiscoveryType.AREA_VOID)),
-            MissionUnlockCondition(MissionUnlockType.REACH_BIOME, 0f), icon = "\u26F0\uFE0F", isHidden = true))
+            MissionUnlockCondition(MissionUnlockType.REACH_BIOME, 0f), icon = "\u26F0\uFE0F", isHidden = true,
+            crypticHint = "The sky has a floor... — Find it."))
         register(Mission("hidden_perfect_storm", "Perfect Storm", "Complete 5 missions without dying",
             MissionType.SURVIVAL, MissionCategory.PERFECT_RUN, MissionTier.TIER_3, 5,
             listOf(MissionReward.Cash(750), MissionReward.Artifact(DiscoveryType.HAZARD_LIGHTNING)),
-            MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "flight_time_2"), icon = "\uD83C\uDFC6", isHidden = true))
+            MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "flight_time_2"), icon = "\uD83C\uDFC6", isHidden = true,
+            crypticHint = "Perfection is a pattern... — Complete flight_time_2 first"))
         register(Mission("hidden_artifact_hunter", "Artifact Hunter", "Collect 5 different artifact types",
             MissionType.DISCOVERY, MissionCategory.COLLECTOR, MissionTier.TIER_2, 5,
             listOf(MissionReward.Cash(700), MissionReward.Artifact(DiscoveryType.ART_DRONE)),
-            MissionUnlockCondition(MissionUnlockType.COLLECT_ARTIFACT, 3f), icon = "\uD83D\uDCE6", isHidden = true))
+            MissionUnlockCondition(MissionUnlockType.COLLECT_ARTIFACT, 3f), icon = "\uD83D\uDCE6", isHidden = true,
+            crypticHint = "They left things behind... — Collect 3 artifacts to begin"))
         register(Mission("hidden_momentum_legend", "Momentum Legend", "Build 400 momentum in one run",
             MissionType.EXPLORATION, MissionCategory.MOMENTUM_MASTER, MissionTier.TIER_3, 400,
             listOf(MissionReward.Cash(800), MissionReward.Artifact(DiscoveryType.ART_ALLOY)),
-            MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "momentum_master_2"), icon = "\uD83C\uDF0A", isHidden = true))
+            MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "momentum_master_2"), icon = "\uD83C\uDF0A", isHidden = true,
+            crypticHint = "Speed is weight... — Master momentum_master_2 first"))
     }
 
     /**

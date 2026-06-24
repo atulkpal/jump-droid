@@ -48,7 +48,7 @@ fun ArchiveScreen(
     progressionManager: ProgressionManager,
     onNavigate: (GameState) -> Unit
 ) {
-    val categories = listOf("ROCKETS", "PLATFORMS", "POWERUPS", "AREAS", "THREATS", "ARTIFACTS", "LORE", "ACHIEVEMENTS")
+    val categories = listOf("ROCKETS", "PLATFORMS", "POWERUPS", "AREAS", "THREATS", "ARTIFACTS", "SETS", "LOGS", "LORE", "ACHIEVEMENTS")
     var selectedCat by remember { mutableStateOf("ROCKETS") }
     Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
         Column(Modifier.padding(16.dp).safeDrawingPadding()) {
@@ -77,6 +77,19 @@ fun ArchiveScreen(
                     AchievementsList.forEach { ach ->
                         val unlocked = sharedPrefs.getBoolean("achievement_${ach.id}", false)
                         CodexCard(ach.title, if (unlocked) ach.description else "DATA ENCRYPTED: REACH OBJECTIVE TO UNLOCK.", "", unlocked)
+                    }
+                } else if (selectedCat == "SETS") {
+                    ArtifactSet.ALL_SETS.forEach { set ->
+                        val foundCount = set.discoveries.count { progressionManager.isDiscoveryUnlocked(it.name) }
+                        val isComplete = foundCount == set.discoveries.size
+                        ArtifactSetCard(set, foundCount, isComplete)
+                    }
+                } else if (selectedCat == "LOGS") {
+                    LoreLog.ALL_LOGS.forEach { log ->
+                        val unlocked = sharedPrefs.getBoolean("log_${log.id}", false)
+                        val title = if (unlocked) log.title else "SIGNAL LOST"
+                        val desc = if (unlocked) log.text else "ENCRYPTED SIGNAL DETECTED AT ${log.unlockAltitude}m."
+                        CodexCard(title, desc, if (unlocked) "CATEGORY: ${log.category.name}" else "", unlocked)
                     }
                 } else {
                     DiscoveryType.entries.filter { it.category == selectedCat }.forEach { entry ->
@@ -133,6 +146,43 @@ fun ArchiveScreen(
             ) {
                 Text("BACK", color = SciFiWhite, fontWeight = FontWeight.Bold)
             }
+        }
+    }
+}
+
+@Composable
+private fun ArtifactSetCard(set: ArtifactSet, found: Int, complete: Boolean) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        color = if (complete) SciFiPurple.copy(alpha = 0.15f) else SciFiSurface,
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, if (complete) SciFiPurple else SciFiBorder.copy(alpha = 0.3f))
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(set.name.uppercase(), color = if (complete) SciFiPurple else SciFiWhite, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                if (complete) {
+                    Surface(color = com.example.jump_droid.ui.theme.SciFiGreen, shape = RoundedCornerShape(4.dp)) {
+                        Text("SET ACTIVE", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                } else {
+                    Text("$found / ${set.discoveries.size}", color = SciFiWhite.copy(alpha = 0.6f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "BONUS: ${set.bonus.description}",
+                color = if (complete) com.example.jump_droid.ui.theme.SciFiGold else SciFiWhite.copy(alpha = 0.4f),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = found.toFloat() / set.discoveries.size,
+                modifier = Modifier.fillMaxWidth().height(4.dp),
+                color = if (complete) com.example.jump_droid.ui.theme.SciFiGreen else SciFiPurple,
+                trackColor = Color.White.copy(alpha = 0.05f)
+            )
         }
     }
 }

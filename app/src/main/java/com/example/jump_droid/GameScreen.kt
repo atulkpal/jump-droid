@@ -103,10 +103,12 @@ fun GameScreen() {
     var activeDiscovery by remember { mutableStateOf<DiscoveryType?>(null) }
     var unlockedRocket by remember { mutableStateOf<RocketType?>(null) }
     var codexNotification by remember { mutableStateOf<DiscoveryType?>(null) }
+    var signalDecodedMissionName by remember { mutableStateOf<String?>(null) }
 
     val discoveryManager = remember { DiscoveryManager(sharedPrefs) }
     val progressionManager = remember { ProgressionManager(sharedPrefs) }
     val missionManager = remember { MissionManager(progressionManager) }
+    
     val threatManager = remember {
         ThreatManager().apply {
             onThreatDestroyed = { def ->
@@ -133,8 +135,6 @@ fun GameScreen() {
     val particles = remember { mutableStateListOf<Particle>() }
     val floatingTextManager = remember { FloatingTextManager() }
 
-    SideEffect { missionManager.onMissionCompleted = { progressionManager.recordMissionCompletion(it.id) } }
-
     var missionHintRotationTimer by remember { mutableFloatStateOf(0f) }
     var globalShowObjective by remember { mutableStateOf(false) }
     var gameTime by remember { mutableLongStateOf(0L) }
@@ -152,6 +152,43 @@ fun GameScreen() {
 
     val bossesSpawned = remember { mutableStateSetOf<String>() }
     val notificationManager = remember { NotificationManager() }
+
+    SideEffect { 
+        missionManager.onMissionCompleted = { progressionManager.recordMissionCompletion(it.id) }
+        missionManager.onHiddenSignalRevealed = { signalDecodedMissionName = it.name }
+        progressionManager.onModuleUnlocked = { module ->
+            floatingTextManager.add(FloatingText(
+                text = "MODULE UNLOCKED: ${module.name.uppercase()}",
+                x = player.x,
+                y = player.y - 100f,
+                color = SciFiGold,
+                isCritical = true
+            ))
+            screenShake = 15f
+        }
+        progressionManager.onLoreLogDiscovered = { log ->
+            floatingTextManager.add(FloatingText(
+                text = "LORE LOG RECOVERED: ${log.title.uppercase()}",
+                x = player.x,
+                y = player.y - 120f,
+                color = SciFiWhite,
+                isCritical = false
+            ))
+            notificationManager.post("SIGNAL ARCHIVED: ${log.category.name}")
+            screenShake = 8f
+        }
+        progressionManager.onBlueprintUnlocked = { type ->
+            floatingTextManager.add(FloatingText(
+                text = "BLUEPRINT ACQUIRED: ${type.displayName.uppercase()}",
+                x = player.x,
+                y = player.y - 140f,
+                color = SciFiGold,
+                isCritical = true
+            ))
+            impactFlashAlpha = 0.4f
+        }
+    }
+
     val survivalManager = remember { SurvivalManager() }
     val encounterDirector = remember { EncounterDirector() }
     val projectileManager = remember { ProjectileManager() }
@@ -405,10 +442,6 @@ fun GameScreen() {
             },
             onLoreDiscovery = { type ->
                 checkDiscovery(type, forceTutorialState = false)
-            },
-            onModuleUnlock = { module ->
-                notificationManager.post("NEW MODULE: ${module.name.uppercase()}")
-                floatingTextManager.add(FloatingText("MODULE UNLOCKED: ${module.name}", player.x, player.y - 250f, color = module.iconColor, isCritical = true))
             }
         )
     }
@@ -476,6 +509,7 @@ fun GameScreen() {
         player.velocityX = 0f
         player.velocityY = 0f
         player.fuel = player.maxFuel * 0.5f // Restore 50% fuel
+        player.maxIntegrity = progressionManager.permanentMaxIntegrity + progressionManager.getHullBonusAmount()
         player.integrity = player.maxIntegrity * 0.5f // Restore 50% integrity
         player.shield = player.maxShield * 0.5f // Restore 50% shield
         player.destructionTimer = 0f
@@ -648,7 +682,7 @@ fun GameScreen() {
         player.fuel = player.maxFuel
         
         // EPIC 5: Survival Initialization
-        player.maxIntegrity = progressionManager.permanentMaxIntegrity
+        player.maxIntegrity = progressionManager.permanentMaxIntegrity + progressionManager.getHullBonusAmount()
         player.integrity = player.maxIntegrity
         player.maxShield = progressionManager.permanentMaxShield
         player.shield = player.maxShield
@@ -999,7 +1033,6 @@ fun GameScreen() {
                             player.isOnPlatform = false // Reset per substep for accurate airborne tracking
 
                             // --- Intelligence Network Tracking ---
-                            if (player.velocityY < 0f) airborneTimer += sdt
                             if (player.heat == 0f) noOverheatTimer += sdt
                             if (!hasTakenDamageThisRun) perfectRunTimer += sdt
 
@@ -1150,7 +1183,7 @@ fun GameScreen() {
                                     steerMult *= it.onSteer(player, sdt)
                                 }
 
-                                val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * (if (player.turboTimer > 0) 1.2f else 1.0f) * thrustMult
+                                val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * (if (player.turboTimer > 0) 1.2f else 1.0f) * thrustMult * progressionManager.getThrustMultiplier()
 
                                 if (canThrustNormal) {
                                     player.velocityY -= currentThrust * sdt
@@ -1198,7 +1231,7 @@ fun GameScreen() {
                                 player.activeModules.forEach {
                                     coolingMult *= it.onCooling(player, sdt)
                                 }
-                                player.heat = max(0f, player.heat - COOLING_RATE * coolingMult * sdt)
+                                player.heat = max(0f, player.heat - COOLING_RATE * coolingMult * progressionManager.getHeatCooldownMultiplier() * sdt)
                             }
 
                             player.velocityY += BASE_GRAVITY * sdt
@@ -1425,25 +1458,13 @@ fun GameScreen() {
 
                         // --- Mission System Per-Frame Updates ---
                         runDurationTimer += dt
-                        // Task 1: Differentiate survival missions by ID prefix
-                        missionManager.updateProgress(MissionType.SURVIVAL, absoluteValue = runDurationTimer.toInt()) {
-                            it.id.startsWith("surv_time")
-                        }
-
+                        
                         if (!player.isOnPlatform) {
                             airborneTimer += dt
-                            // Task 1: Update Flight Time missions specifically
-                            missionManager.updateProgress(MissionType.SURVIVAL, absoluteValue = airborneTimer.toInt()) {
-                                it.id.startsWith("surv_air")
-                            }
                         }
 
                         if (!player.isOverheated) {
                             noOverheatTimer += dt
-                            // Task 4: Update Thermal missions specifically
-                            missionManager.updateProgress(MissionType.SURVIVAL, absoluteValue = noOverheatTimer.toInt()) {
-                                it.id.startsWith("surv_cool")
-                            }
                         } else {
                             if (noOverheatTimer > 0f) {
                                 // Task 4: Targeted reset for heat missions
@@ -1513,10 +1534,11 @@ fun GameScreen() {
                                 gameState = GameState.GAMEOVER
                                 saveHighScore(score)
                             },
-                            onShake = { screenShake = max(screenShake, it) }
+                            onShake = { screenShake = max(screenShake, it) },
+                            shieldRegenMultiplier = progressionManager.getShieldRegenMultiplier()
                         )
 
-                        if (!isThrusting) player.fuel = min(player.maxFuel, player.fuel + FUEL_RECHARGE_RATE * dt)
+                        if (!isThrusting) player.fuel = min(player.maxFuel, player.fuel + FUEL_RECHARGE_RATE * progressionManager.getFuelRegenMultiplier() * dt)
                         if (player.y < highestYReached) {
                             highestYReached = player.y
                             val newScore = ((groundY - highestYReached) / 10f).toInt()
@@ -1832,6 +1854,7 @@ fun GameScreen() {
                 LoadoutScreen(
                     loadoutManager = loadoutManager,
                     progressionManager = progressionManager,
+                    missionManager = missionManager,
                     onNavigate = { gameState = it }
                 )
             }
@@ -1993,6 +2016,13 @@ fun GameScreen() {
                         onContinue = { continueRun() },
                         onRestart = { restartGame() },
                         onMainMenu = { gameState = GameState.MAIN_MENU }
+                    )
+                }
+
+                signalDecodedMissionName?.let { name ->
+                    SignalDecodedOverlay(
+                        missionName = name,
+                        onDismiss = { signalDecodedMissionName = null }
                     )
                 }
             }

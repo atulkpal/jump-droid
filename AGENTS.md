@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-06-24
-**Project Status:** EPIC 8.5 Architecture Decomposition — COMPLETE ✅
-**Current Stable Tag:** `epic8.5-structured`
-**Base Commit:** `9363434`
+**Last Updated:** 2026-06-25
+**Project Status:** EPIC 8.5 Architecture Decomposition & Mission Alignment — COMPLETE ✅
+**Current Stable Tag:** `epic8.5-aligned`
+**Base Commit:** `9363434` (plus mission fixes)
 
 ---
 
@@ -31,17 +31,15 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `epic8.5-rebased`
-*   **Current Stable Tag**: `epic8.5-structured`
-*   **Stable Commit**: `9363434`
-*   **Current EPIC**: EPIC 9 — Hidden Signals & Dynamic Unlocks (Next)
-*   **Current Status**: **EPIC 8.5 COMPLETE**. All 5 decomposition sprints validated. GameScreen.kt reduced from 3,901 to 2,011 lines. ActiveThreat.kt reduced from 1,224 to 123 lines. 26 threat renderers extracted. Mission system purified. HUD components extracted. Rollback tag established.
+*   **Current Branch**: `epic9`
+*   **Current Stable Tag**: `epic9-complete`
+*   **Current EPIC**: EPIC 10 — The Outer Reaches (Planning)
+*   **Current Status**: **EPIC 9 COMPLETE**. Hidden signals, Dynamic Unlock Engine, Artifact Set Bonuses, and Lore Logs fully operational. 17 modules and 3 blueprints gated by the evaluator. Archive expanded with Sets and Logs tabs. Passive bonuses integrated into player physics. **EPIC 10 Planning initiated.**
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
-    *   Multi-reward mission backend support — display works, backend grants all listed rewards.
-    *   GameScreen.kt at 2,011 lines — remaining God Object (game loop + rendering still mixed). Future extraction planned for EPIC 12.
-*   **Current Priorities**: EPIC 9 feature work — Hidden Signals, Dynamic Unlocks, Discovery expansion.
-*   **Next Planned Work**: EPIC 9 (Hidden Signals & Dynamic Unlocks). Deferred arch cleanup: GameEngine loop extraction, GameRenderer extraction, folder restructuring.
+    *   GameScreen.kt at 2,050 lines — remaining God Object. Future extraction planned for EPIC 12.
+*   **Current Priorities**: EPIC 10 implementation — Data-driven EncounterDirector and new Altitude Zones.
+*   **Next Planned Work**: Task 10.0: Move zone spawn weights and boss milestones into a data-driven config.
 
 ---
 
@@ -52,7 +50,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **EPIC 6: Hostile Skies**: Framework for advanced AI entities, projectile systems, and multi-phase Boss encounters.
 *   **EPIC 7: Rocket Evolution**: Transformed the rocket into a customizable "Build" with Rocket Classes and a 17-module Registry.
 *   **EPIC 8: Missions & Progression (Recovery)**: Reconciled legacy prototype data with the production engine. Implemented the **Intelligence Network** for real-time stat tracking.
-*   **EPIC 8.5: Architecture Decomposition**: Structural sprint decomposed `GameScreen.kt` (3,901→2,011 lines) and `ActiveThreat.kt` (1,224→123 lines) God Objects. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and HUD components extracted.
+*   **EPIC 8.5: Architecture Decomposition**: Structural sprint decomposed `GameScreen.kt` (3,901→2,011 lines) and `ActiveThreat.kt` (1,224→123 lines) God Objects. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and HUD components extracted. Aligned mission logic with lifetime statistics.
 
 ---
 

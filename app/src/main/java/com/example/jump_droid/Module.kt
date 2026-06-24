@@ -10,17 +10,20 @@ enum class ModuleRarity {
     COMMON, RARE, EPIC, LEGENDARY
 }
 
+enum class LogicOp { AND, OR }
+
 /**
- * Metadata for future module unlocking system.
+ * Enhanced requirement system for Dynamic Unlocks.
  */
 data class UnlockRequirement(
     val type: UnlockType,
-    val threshold: Int,
-    val description: String
+    val target: String = "",
+    val value: Float = 1f,
+    val operator: LogicOp = LogicOp.AND
 )
 
 enum class UnlockType {
-    SCORE, ALTITUDE, DISCOVERY, MISSION, ARTIFACT
+    SCORE, ALTITUDE, DISCOVERY, MISSION, ARTIFACT, ARTIFACT_SET, MISSION_COMPLETE
 }
 
 /**

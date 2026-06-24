@@ -119,20 +119,20 @@ Status: Functionally Complete — Awaiting Runtime Signoff
 Migration Branch: `epic8-mission-migration`
 Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
 
-# EPIC 8.5 - Architecture Decomposition
+# EPIC 8.5 - Architecture Decomposition & Mission Alignment
 
-**Status: COMPLETE ✅** (Rollback tag: `epic8.5-structured`, Commit: `9363434`)
-Detailed Plan: [docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md](roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md)
+**Status: COMPLETE ✅** (Rollback tag: `epic8.5-aligned`, Commit: `9363434` + Mission Fixes)
 
-- [x] Sprint 8.5.0: Baseline Capture (tag `epic8.5-baseline`, build verify, file metrics)
-- [x] Sprint 8.5.1: Low-Risk Cleanup (MissionRow deleted, `isNew` removed, `CeremonyStage` collapsed, `checkCompletion()` pure)
-- [x] Sprint 8.5.2: HUD Decomposition (GaugeBar, StarfieldBackground, HudContext, MissionScreen track extraction)
-- [x] Sprint 8.5.3: State/Ceremony Extraction (ceremony lifecycle, ComboManager unified, ProgressionService interface)
-- [x] Sprint 8.5.4: Threat Rendering Extraction (ThreatRenderer interface + 26 per-threat renderers)
+- [x] Sprint 8.5.0: Baseline Capture
+- [x] Sprint 8.5.1: Low-Risk Cleanup
+- [x] Sprint 8.5.2: HUD Decomposition
+- [x] Sprint 8.5.3: State/Ceremony Extraction
+- [x] Sprint 8.5.4: Threat Rendering Extraction
 - [ ] Sprint 8.5.5: Game Engine Boundary Creation — **DEFERRED to EPIC 12**
-- [x] Sprint 8.5.6: ActiveThreat Decomposition (1,224→123 lines via ThreatAIUpdater + ThreatInteractionProcessor)
+- [x] Sprint 8.5.6: ActiveThreat Decomposition
 - [ ] Sprint 8.5.7: Progression Service Decomposition — **DEFERRED to EPIC 12**
 - [ ] Sprint 8.5.8: Navigation Migration — **DEFERRED to EPIC 12**
+- [x] Sprint 8.5.9: Mission Progression Alignment (Lifetime stats, bug fixes, new landing track)
 
 ## Post-8.5 File Sizes (Actual)
 
@@ -145,7 +145,7 @@ Detailed Plan: [docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md](roadmap/EPIC_8_5_DE
 
 ## Next (EPIC 9 — Hidden Signals & Dynamic Unlocks)
 
-**Status: Ready to start** ✅
+**Status: IN PROGRESS** ~
 
 ## Mission Framework
 
@@ -155,22 +155,24 @@ Detailed Plan: [docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md](roadmap/EPIC_8_5_DE
 - [x] Mission Reward Integration (Phase 3)
 - [x] Mission Claim Flow (Phase 4)
 - [x] Mission UX & Gameplay Communication (Phase 5)
-- [ ] Mission Reward Pipeline
+- [x] Mission Reward Pipeline Alignment
+- [x] Lifetime Statistic Integration (New!)
 
 ## Core Mission Tracks
 
-- [ ] Flight Time Missions
-- [ ] Platform Stay Missions
-- [ ] Fuel Efficiency Missions
-- [ ] No Heat Missions
-- [ ] Combo Missions
-- [ ] Discovery Missions
-- [ ] Altitude Missions
-- [ ] Boss Slayer Missions
-- [ ] Momentum Missions
-- [ ] Hazard Survival Missions
-- [ ] Perfect Run Missions
-- [ ] Collection Missions
+- [x] Flight Time Missions (Aligned with lifetime)
+- [x] Platform Stay Missions (Aligned with lifetime)
+- [x] Fuel Efficiency Missions
+- [x] No Heat Missions (Targeted reset logic)
+- [x] Combo Missions
+- [x] Discovery Missions
+- [x] Altitude Missions
+- [x] Boss Slayer Missions (Aligned with lifetime)
+- [x] Momentum Missions
+- [x] Hazard Survival Missions (Aligned with lifetime)
+- [x] Perfect Run Missions
+- [x] Collection Missions (Aligned with lifetime)
+- [x] Platform Landing Missions (New Track!)
 
 ## Tiered Progression
 
@@ -217,27 +219,30 @@ Do not implement during EPIC 7. Track only.
 
 ---
 
-# EPIC 9 - The Archive Expands
+# EPIC 9 - Hidden Signals & Dynamic Unlocks
 
-**Status: READY — EPIC 8.5 complete**
+**Status: COMPLETE ✅**
+*Execution Plan: [docs/roadmap/EPIC_9_EXECUTION_PLAN.md](roadmap/EPIC_9_EXECUTION_PLAN.md)*
+*Detailed Tracker: [docs/roadmap/EPIC_9_TRACKER.md](roadmap/EPIC_9_TRACKER.md)*
 
-- [ ] Artifact Set Bonuses
-- [ ] Discovery Collection Rewards
-- [ ] Rare Lore Logs
-- [ ] Lost Technology Blueprints
-- [ ] Archive Completion Milestones
-- [ ] Expedition-Specific Objectives
+- [x] Sprint 9.1: Glitch UI + Cryptic Hints + Reveal Ceremony
+- [x] Sprint 9.2: Dynamic Unlock Engine (AND/OR, 17 modules)
+- [x] Sprint 9.3: Artifact Set Bonuses
+- [x] Sprint 9.4: Rare Lore Logs (10 logs, viewer)
+- [x] Sprint 9.5: Blueprints & Stabilization
 
 ---
 
 # EPIC 10 - The Outer Reaches (New Biomes)
 
-- [ ] Additional Altitude Zones
-- [ ] Deep Space Sectors
-- [ ] Ancient Sky Structures
-- [ ] Unique Environmental World Events
-- [ ] Rare Entity Encounters
-- [ ] Narrative Story Discoveries
+**Status:** PLANNING 🗺️
+*Planning Document: [docs/roadmap/EPIC_10_PLANNING.md](roadmap/EPIC_10_PLANNING.md)*
+
+- [ ] Sprint 10.1: Expansion of the Sky (4 New Zones)
+- [ ] Sprint 10.2: Ancient Structures & Flux Platforms
+- [ ] Sprint 10.3: Environmental Events System (Meteor Showers, etc.)
+- [ ] Sprint 10.4: Apex Entities (Void Phantom, Stellar Harvester)
+- [ ] Sprint 10.5: Final Ascension Lore (10 New Logs)
 
 ---
 

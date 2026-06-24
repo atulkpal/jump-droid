@@ -79,13 +79,14 @@ class SurvivalManager {
         gameTime: Long,
         notificationManager: NotificationManager,
         onGameOver: () -> Unit,
-        onShake: (Float) -> Unit
+        onShake: (Float) -> Unit,
+        shieldRegenMultiplier: Float = 1.0f
     ) {
         // Shield Regeneration
         if (player.shieldRegenPauseTimer > 0) {
             player.shieldRegenPauseTimer = max(0f, player.shieldRegenPauseTimer - dt)
         } else if (player.shield < player.maxShield) {
-            player.shield = min(player.maxShield, player.shield + Constants.SHIELD_REGEN_RATE * dt)
+            player.shield = min(player.maxShield, player.shield + Constants.SHIELD_REGEN_RATE * shieldRegenMultiplier * dt)
         }
 
         // Hull Failure & Destruction Sequence

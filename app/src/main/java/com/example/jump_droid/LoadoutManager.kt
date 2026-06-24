@@ -62,8 +62,19 @@ class LoadoutManager(private val sharedPrefs: SharedPreferences) {
     }
 
     /**
+     * Checks if a module is unlocked based on ownership or requirements.
+     */
+    fun isModuleUnlocked(
+        module: Module,
+        progression: ProgressionManager,
+        missionManager: MissionManager
+    ): Boolean {
+        if (progression.isModuleOwned(module.id)) return true
+        return UnlockEngine.evaluate(module.unlockRequirement, progression, missionManager)
+    }
+
+    /**
      * Returns a list of active Module instances based on currently equipped IDs.
-     * Only returns modules that the player actually owns.
      */
     fun getActiveModules(progressionManager: ProgressionManager): List<Module> {
         return _equippedModuleIds.mapNotNull { 

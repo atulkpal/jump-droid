@@ -16,6 +16,7 @@ class MissionManager(private val progressionService: ProgressionService) {
     private val allMissionInstances = mutableStateMapOf<String, Mission>()
 
     var onMissionCompleted: ((Mission) -> Unit)? = null
+    var onHiddenSignalRevealed: ((Mission) -> Unit)? = null
     
     // Tracks IDs of missions completed during this session to prevent repetition
     private val completedIdsInRun = mutableSetOf<String>()
@@ -51,7 +52,9 @@ class MissionManager(private val progressionService: ProgressionService) {
      * Called whenever progression state changes.
      */
     fun checkUnlocks() {
+        var changed = false
         allMissionInstances.values.forEach { mission ->
+            if (mission.isUnlocked) return@forEach
             val condition = mission.unlockCondition ?: return@forEach
             
             val isUnlocked = when (condition.type) {
@@ -78,12 +81,27 @@ class MissionManager(private val progressionService: ProgressionService) {
             }
 
             if (isUnlocked) {
+                if (mission.isHidden) {
+                    onHiddenSignalRevealed?.invoke(mission)
+                }
                 mission.isUnlocked = true
+                changed = true
             }
+        }
+        
+        if (changed) {
+            val unlockedIds = allMissionInstances.values.filter { it.isUnlocked }.map { it.id }.toSet()
+            progressionService.saveUnlockedMissionIds(unlockedIds)
+        }
+        
+        // Task 2.5: Evaluate module unlocks after mission state change
+        if (progressionService is ProgressionManager) {
+            progressionService.checkModuleUnlocks(this)
         }
     }
 
     init {
+        val savedUnlockedIds = progressionService.getUnlockedMissionIds()
         // Initialize instances for all known templates
         MissionRegistry.getAllTemplates().forEach { template ->
             val mission = Mission(
@@ -98,12 +116,17 @@ class MissionManager(private val progressionService: ProgressionService) {
                 unlockCondition = template.unlockCondition,
                 icon = template.icon,
                 isHidden = template.isHidden,
+                crypticHint = template.crypticHint,
                 initialProgress = progressionService.getMissionProgress(template.id)
             )
 
             // Sync with persistent state
             mission.isCompleted = progressionService.completedMissionIds.contains(mission.id)
             mission.isClaimed = progressionService.claimedMissionIds.contains(mission.id)
+            
+            if (savedUnlockedIds.contains(mission.id)) {
+                mission.isUnlocked = true
+            }
 
             allMissionInstances[template.id] = mission
         }
@@ -158,15 +181,17 @@ class MissionManager(private val progressionService: ProgressionService) {
             MissionCategory.NO_HEAT -> stats.zeroHeatTime
             MissionCategory.FUEL_EFFICIENCY -> stats.fuelPickupsCollected.toFloat()
             MissionCategory.COMBO_STREAK -> stats.maxCombo.toFloat()
-            MissionCategory.BOSS_SLAYER -> stats.bossesDefeated.toFloat()
+            MissionCategory.BOSS_SLAYER -> (progressionService.lifetimeBossesDefeated + stats.bossesDefeated).toFloat()
             MissionCategory.DISCOVERY_HUNTER -> stats.codexUnlocked.toFloat()
             MissionCategory.ALTITUDE_CLIMBER -> stats.maxAltitude
             MissionCategory.MOMENTUM_MASTER -> stats.maxMomentum
-            MissionCategory.HAZARD_SURVIVOR -> stats.hazardHitsSurvived.toFloat()
+            MissionCategory.HAZARD_SURVIVOR -> (progressionService.lifetimeHazards + stats.hazardHitsSurvived).toFloat()
             MissionCategory.PERFECT_RUN -> stats.perfectRunTime
-            MissionCategory.COLLECTOR -> stats.artifactsCollected.toFloat()
+            MissionCategory.COLLECTOR -> (progressionService.lifetimeArtifacts + stats.artifactsCollected).toFloat()
             MissionCategory.BOOST_CHAMPION -> stats.dashesPerRun.toFloat()
             MissionCategory.COMBO_PRO -> stats.comboMaintainTime
+            MissionCategory.OVERHEAT -> stats.overheatCount.toFloat()
+            MissionCategory.LANDINGS -> (progressionService.lifetimeLandings + stats.platformLandings).toFloat()
         }
     }
 

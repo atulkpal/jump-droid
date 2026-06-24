@@ -298,32 +298,114 @@ private fun HiddenSignalsCard(
     missions: List<Mission>,
     onClaim: (String) -> Unit
 ) {
-    val claimable = missions.find { it.isCompleted && !it.isClaimed }
-    
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp)
-            .clickable(enabled = claimable != null) { claimable?.let { onClaim(it.id) } },
-        color = if (claimable != null) SciFiPurple.copy(alpha = 0.15f) else Color.Black.copy(alpha = 0.3f),
-        shape = CardShape,
-        border = BorderStroke(1.dp, if (claimable != null) SciFiPurple.copy(alpha = 0.6f) else SciFiPurple.copy(alpha = 0.2f))
-    ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("📡", fontSize = 24.sp, modifier = Modifier.padding(end = 16.dp))
-            Column(Modifier.weight(1f)) {
-                Text("HIDDEN SIGNALS", color = SciFiPurple, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                Text("$count / $total SIGNALS RECOVERED", color = SciFiWhite.copy(alpha = 0.6f), fontSize = 9.sp)
-                if (claimable != null) {
-                    Text("ENCRYPTION BROKEN - CLICK TO RECOVER DATA", color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                }
-            }
-            if (claimable != null) {
-                Box(
-                    Modifier.size(width = 80.dp, height = 32.dp).background(SciFiGold, RoundedCornerShape(4.dp)),
-                    contentAlignment = Alignment.Center
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+        Text(
+            "HIDDEN SIGNALS",
+            color = SciFiPurple,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        missions.forEach { mission ->
+            val isClaimable = mission.isCompleted && !mission.isClaimed
+            val bgGlow by animateFloatAsState(targetValue = if (isClaimable) 1f else 0f, label = "bgGlow")
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .clickable(enabled = isClaimable) { onClaim(mission.id) },
+                color = when {
+                    isClaimable -> SciFiGold.copy(alpha = 0.05f + 0.1f * bgGlow)
+                    !mission.isUnlocked -> Color.Black.copy(alpha = 0.4f)
+                    else -> SciFiSurface
+                },
+                shape = CardShape,
+                border = BorderStroke(
+                    1.dp,
+                    when {
+                        isClaimable -> SciFiGold.copy(alpha = 0.4f + 0.4f * bgGlow)
+                        !mission.isUnlocked -> SciFiRed.copy(alpha = 0.2f)
+                        else -> SciFiPurple.copy(alpha = 0.2f)
+                    }
+                )
+            ) {
+                Row(
+                    Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("CLAIM", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        if (mission.isUnlocked) "📡" else "🔒",
+                        fontSize = 20.sp,
+                        modifier = Modifier.padding(end = 16.dp)
+                    )
+
+                    Column(Modifier.weight(1f)) {
+                        if (!mission.isUnlocked) {
+                            GlitchText(
+                                text = "SIGNAL LOST",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    color = SciFiRed,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
+                                )
+                            )
+                            Text(
+                                text = mission.crypticHint,
+                                color = SciFiPurple.copy(alpha = 0.7f),
+                                fontSize = 9.sp,
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                            )
+                        } else {
+                            Text(
+                                mission.name.uppercase(),
+                                color = SciFiPurple,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = if (mission.isClaimed) "SIGNAL DECODED & ARCHIVED" else mission.description,
+                                color = SciFiWhite.copy(alpha = 0.7f),
+                                fontSize = 10.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            
+                            if (!mission.isClaimed) {
+                                Spacer(Modifier.height(6.dp))
+                                val pct = (mission.currentProgress.toFloat() / mission.targetValue).coerceIn(0f, 1f)
+                                LinearProgressIndicator(
+                                    progress = { pct },
+                                    modifier = Modifier.fillMaxWidth().height(2.dp).clip(RoundedCornerShape(1.dp)),
+                                    color = if (mission.isCompleted) SciFiGreen else SciFiPurple,
+                                    trackColor = Color.White.copy(alpha = 0.05f)
+                                )
+                            }
+                        }
+                    }
+
+                    if (isClaimable) {
+                        Box(
+                            Modifier
+                                .padding(start = 16.dp)
+                                .size(width = 80.dp, height = 32.dp)
+                                .background(SciFiGold, RoundedCornerShape(4.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("RECOVER", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                        }
+                    } else if (mission.isClaimed) {
+                        Text(
+                            text = "ARCHIVED",
+                            color = SciFiGreen,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
                 }
             }
         }

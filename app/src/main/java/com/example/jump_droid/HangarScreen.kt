@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -196,7 +197,23 @@ fun HangarScreen(
                         }
                     }
                 }
+
                 Spacer(Modifier.height(16.dp))
+
+                val unlockedBlueprints = progressionManager.getUnlockedBlueprints()
+                if (unlockedBlueprints.isNotEmpty()) {
+                    Text("LOST TECHNOLOGY BLUEPRINTS", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 10.sp, letterSpacing = 2.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        BlueprintType.entries.forEach { type ->
+                            if (unlockedBlueprints.contains(type.name)) {
+                                BlueprintCard(type)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(24.dp))
+                }
+
                 Button(
                     onClick = { onNavigate(GameState.MAIN_MENU) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -208,6 +225,24 @@ fun HangarScreen(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text("HANGAR // ROCKET SELECT // ${progressionManager.currentRank.title}", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+            }
+        }
+    }
+}
+
+@Composable
+private fun BlueprintCard(type: BlueprintType) {
+    Surface(
+        modifier = Modifier.size(width = 140.dp, height = 70.dp),
+        color = SciFiSurface.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, SciFiGold.copy(alpha = 0.3f))
+    ) {
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(type.icon, fontSize = 24.sp, modifier = Modifier.padding(end = 12.dp))
+            Column {
+                Text(type.displayName.uppercase(), color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 9.sp, lineHeight = 11.sp)
+                Text("ACQUIRED", color = SciFiGold, fontSize = 8.sp, fontWeight = FontWeight.Black)
             }
         }
     }

@@ -48,7 +48,16 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     override var claimedMissionIds by mutableStateOf<Set<String>>(emptySet())
         private set
 
+    var onModuleUnlocked: ((Module) -> Unit)? = null
+
+    var onLoreLogDiscovered: ((LoreLog) -> Unit)? = null
+
+    var onBlueprintUnlocked: ((BlueprintType) -> Unit)? = null
+
     var currentRank by mutableStateOf(AscensionRank.EXPLORER_I)
+        private set
+
+    var activeSetBonuses by mutableStateOf<List<ArtifactBonus>>(emptyList())
         private set
 
     var permanentMaxIntegrity by mutableFloatStateOf(Constants.BASE_INTEGRITY)
@@ -67,11 +76,17 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         private set
     override var lifetimePlatformTime by mutableFloatStateOf(0f)
         private set
+    override var lifetimeHazards by mutableIntStateOf(0)
+        private set
+    override var lifetimeArtifacts by mutableIntStateOf(0)
+        private set
+    override var lifetimeLandings by mutableIntStateOf(0)
+        private set
     override var lifetimeBossesDefeated by mutableIntStateOf(0)
         private set
-    var lifetimeArtifactsCollected by mutableIntStateOf(0)
+    var lifetimeArtifactsCollected by mutableIntStateOf(0) // Legacy, keeping for sync if needed
         private set
-    var lifetimeHazardHitsSurvived by mutableIntStateOf(0)
+    var lifetimeHazardHitsSurvived by mutableIntStateOf(0) // Legacy
         private set
     var lifetimeMissionsCompleted by mutableIntStateOf(0)
         private set
@@ -87,8 +102,9 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         lifetimeFlightTime = sharedPrefs.getFloat("stat_lifetime_flight_time", 0f)
         lifetimePlatformTime = sharedPrefs.getFloat("stat_lifetime_platform_time", 0f)
         lifetimeBossesDefeated = sharedPrefs.getInt("stat_lifetime_bosses", 0)
-        lifetimeArtifactsCollected = sharedPrefs.getInt("stat_lifetime_artifacts", 0)
-        lifetimeHazardHitsSurvived = sharedPrefs.getInt("stat_lifetime_hazards", 0)
+        lifetimeHazards = sharedPrefs.getInt("stat_lifetime_hazards", 0)
+        lifetimeArtifacts = sharedPrefs.getInt("stat_lifetime_artifacts", 0)
+        lifetimeLandings = sharedPrefs.getInt("stat_lifetime_landings", 0)
         lifetimeMissionsCompleted = sharedPrefs.getInt("missions_completed", 0)
 
         val artifactTypes = DiscoveryType.values().filter { it.category == "ARTIFACTS" }
@@ -115,7 +131,50 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         permanentMaxIntegrity = sharedPrefs.getFloat("max_integrity", Constants.BASE_INTEGRITY)
         permanentMaxShield = sharedPrefs.getFloat("max_shield", Constants.BASE_SHIELD)
 
+        reevaluateSetBonuses()
         updateRank()
+    }
+
+    fun reevaluateSetBonuses() {
+        val active = mutableListOf<ArtifactBonus>()
+        ArtifactSet.ALL_SETS.forEach { set ->
+            val complete = set.discoveries.all { isDiscoveryUnlocked(it.name) }
+            if (complete) {
+                active.add(set.bonus)
+            }
+        }
+        activeSetBonuses = active
+    }
+
+    // --- Set Bonus Calculation Helpers ---
+    fun getFuelRegenMultiplier(): Float {
+        var mult = 1.0f
+        activeSetBonuses.forEach { if (it is ArtifactBonus.FuelRegen) mult *= it.multiplier }
+        return mult
+    }
+
+    fun getShieldRegenMultiplier(): Float {
+        var mult = 1.0f
+        activeSetBonuses.forEach { if (it is ArtifactBonus.ShieldRegen) mult *= it.multiplier }
+        return mult
+    }
+
+    fun getHeatCooldownMultiplier(): Float {
+        var mult = 1.0f
+        activeSetBonuses.forEach { if (it is ArtifactBonus.HeatCooldown) mult *= it.multiplier }
+        return mult
+    }
+
+    fun getThrustMultiplier(): Float {
+        var mult = 1.0f
+        activeSetBonuses.forEach { if (it is ArtifactBonus.ThrustBoost) mult *= it.multiplier }
+        return mult
+    }
+
+    fun getHullBonusAmount(): Float {
+        var bonus = 0f
+        activeSetBonuses.forEach { if (it is ArtifactBonus.HullBoost) bonus += it.amount }
+        return bonus
     }
 
     fun recordArtifactDiscovery(type: DiscoveryType, altitude: Int, zone: AltitudeZone) {
@@ -190,6 +249,46 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         sharedPrefs.edit { putStringSet("claimed_missions", claimedMissionIds) }
     }
 
+    override fun saveUnlockedMissionIds(ids: Set<String>) {
+        sharedPrefs.edit { putStringSet("unlocked_missions", ids) }
+    }
+
+    override fun getUnlockedMissionIds(): Set<String> {
+        return sharedPrefs.getStringSet("unlocked_missions", emptySet()) ?: emptySet()
+    }
+
+    override fun isDiscoveryUnlocked(discoveryName: String): Boolean {
+        return sharedPrefs.getBoolean("discovery_$discoveryName", false)
+    }
+
+    override fun saveDiscoveredLog(logId: String) {
+        sharedPrefs.edit { putBoolean("log_$logId", true) }
+    }
+
+    override fun getDiscoveredLogs(): Set<String> {
+        val discovered = mutableSetOf<String>()
+        LoreLog.ALL_LOGS.forEach { log ->
+            if (sharedPrefs.getBoolean("log_${log.id}", false)) {
+                discovered.add(log.id)
+            }
+        }
+        return discovered
+    }
+
+    override fun saveUnlockedBlueprint(id: String) {
+        sharedPrefs.edit { putBoolean("blueprint_$id", true) }
+    }
+
+    override fun getUnlockedBlueprints(): Set<String> {
+        val unlocked = mutableSetOf<String>()
+        BlueprintType.entries.forEach { blueprint ->
+            if (sharedPrefs.getBoolean("blueprint_${blueprint.name}", false)) {
+                unlocked.add(blueprint.name)
+            }
+        }
+        return unlocked
+    }
+
     /**
      * Updates lifetime statistics from session results.
      */
@@ -197,15 +296,17 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         lifetimeFlightTime += stats.totalFlightTime
         lifetimePlatformTime += stats.totalPlatformTime
         lifetimeBossesDefeated += stats.bossesDefeated
-        lifetimeArtifactsCollected += stats.artifactsCollected
-        lifetimeHazardHitsSurvived += stats.hazardHitsSurvived
+        lifetimeHazards += stats.hazardHitsSurvived
+        lifetimeArtifacts += stats.artifactsCollected
+        lifetimeLandings += stats.platformLandings
         
         sharedPrefs.edit {
             putFloat("stat_lifetime_flight_time", lifetimeFlightTime)
             putFloat("stat_lifetime_platform_time", lifetimePlatformTime)
             putInt("stat_lifetime_bosses", lifetimeBossesDefeated)
-            putInt("stat_lifetime_artifacts", lifetimeArtifactsCollected)
-            putInt("stat_lifetime_hazards", lifetimeHazardHitsSurvived)
+            putInt("stat_lifetime_hazards", lifetimeHazards)
+            putInt("stat_lifetime_artifacts", lifetimeArtifacts)
+            putInt("stat_lifetime_landings", lifetimeLandings)
             putInt("missions_completed", lifetimeMissionsCompleted)
         }
     }
@@ -240,6 +341,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     }
 
     fun updateRank() {
+        reevaluateSetBonuses()
         val totalDiscoveries = DiscoveryType.values().count { sharedPrefs.getBoolean("discovery_$it", false) }
         val artifactCount = artifactsCollected.size
         val zoneCount = AltitudeZone.values().count { sharedPrefs.getBoolean("discovery_AREA_${it.name}", false) }
@@ -285,8 +387,9 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         lifetimeFlightTime = 0f
         lifetimePlatformTime = 0f
         lifetimeBossesDefeated = 0
-        lifetimeArtifactsCollected = 0
-        lifetimeHazardHitsSurvived = 0
+        lifetimeHazards = 0
+        lifetimeArtifacts = 0
+        lifetimeLandings = 0
         lifetimeMissionsCompleted = 0
         currentRank = AscensionRank.EXPLORER_I
         permanentMaxIntegrity = Constants.BASE_INTEGRITY
@@ -306,6 +409,44 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     }
 
     /**
+     * Re-evaluates all module unlocks.
+     */
+    fun checkModuleUnlocks(missionManager: MissionManager) {
+        ModuleRegistry.getAll().forEach { module ->
+            if (!isModuleOwned(module.id)) {
+                if (UnlockEngine.evaluate(module.unlockRequirement, this, missionManager)) {
+                    if (grantModule(module.id)) {
+                        onModuleUnlocked?.invoke(module)
+                        android.util.Log.i("ProgressionManager", "NEW MODULE UNLOCKED: ${module.name}")
+                    }
+                }
+            }
+        }
+
+        BlueprintRegistry.ALL_BLUEPRINTS.forEach { (type, req) ->
+            if (!sharedPrefs.getBoolean("blueprint_${type.name}", false)) {
+                if (UnlockEngine.evaluate(req, this, missionManager)) {
+                    saveUnlockedBlueprint(type.name)
+                    onBlueprintUnlocked?.invoke(type)
+                    android.util.Log.i("ProgressionManager", "BLUEPRINT ACQUIRED: ${type.displayName}")
+                }
+            }
+        }
+    }
+
+    fun evaluateLoreLogs(altitude: Int) {
+        LoreLog.ALL_LOGS.forEach { log ->
+            if (!sharedPrefs.getBoolean("log_${log.id}", false)) {
+                if (altitude >= log.unlockAltitude) {
+                    saveDiscoveredLog(log.id)
+                    onLoreLogDiscovered?.invoke(log)
+                    android.util.Log.i("ProgressionManager", "LORE LOG RECOVERED: ${log.title}")
+                }
+            }
+        }
+    }
+
+    /**
      * Audits achievements and rocket unlocks based on current run stats.
      */
     fun checkUnlocks(
@@ -313,40 +454,14 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         player: Player,
         onRocketUnlock: (RocketType) -> Unit,
         onAchievementUnlock: (Achievement) -> Unit,
-        onLoreDiscovery: (DiscoveryType) -> Unit,
-        onModuleUnlock: (Module) -> Unit
+        onLoreDiscovery: (DiscoveryType) -> Unit
     ) {
+        evaluateLoreLogs(score)
         // 1. Rocket Unlocks
         RocketType.entries.forEach { type ->
             if (score >= type.unlockScore && !sharedPrefs.getBoolean("unlock_${type.name}", false)) {
                 sharedPrefs.edit { putBoolean("unlock_${type.name}", true) }
                 onRocketUnlock(type)
-            }
-        }
-
-        // 2. Module Auto-Unlocks
-        ModuleRegistry.getAll().forEach { module ->
-            if (!isModuleOwned(module.id)) {
-                val req = module.unlockRequirement
-                val met = when (req.type) {
-                    UnlockType.SCORE -> score >= req.threshold
-                    UnlockType.ALTITUDE -> score >= req.threshold
-                    UnlockType.ARTIFACT -> artifactsCollected.size >= req.threshold
-                    UnlockType.DISCOVERY -> {
-                        val totalDisc = DiscoveryType.values().count { sharedPrefs.getBoolean("discovery_$it", false) }
-                        if (module.id == "MOD_SHIELD_FAST_RECHARGE") {
-                            sharedPrefs.getBoolean("discovery_SHIELD_CAPSULE", false)
-                        } else {
-                            totalDisc >= req.threshold
-                        }
-                    }
-                    UnlockType.MISSION -> missionsCompleted >= req.threshold
-                }
-
-                if (met) {
-                    grantModule(module.id)
-                    onModuleUnlock(module)
-                }
             }
         }
 

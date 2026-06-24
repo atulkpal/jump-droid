@@ -8,7 +8,8 @@ import androidx.compose.runtime.setValue
 enum class MissionCategory {
     FLIGHT_TIME, PLATFORM_STAY, NO_HEAT, FUEL_EFFICIENCY, COMBO_STREAK,
     BOSS_SLAYER, DISCOVERY_HUNTER, ALTITUDE_CLIMBER, MOMENTUM_MASTER,
-    HAZARD_SURVIVOR, PERFECT_RUN, COLLECTOR, BOOST_CHAMPION, COMBO_PRO
+    HAZARD_SURVIVOR, PERFECT_RUN, COLLECTOR, BOOST_CHAMPION, COMBO_PRO,
+    OVERHEAT, LANDINGS
 }
 
 enum class MissionTier(val displayName: String) {
@@ -57,6 +58,7 @@ class Mission(
     val unlockCondition: MissionUnlockCondition? = null,
     val icon: String = "",
     val isHidden: Boolean = false,
+    val crypticHint: String = "",
     initialProgress: Int = 0
 ) {
     var currentProgress by mutableIntStateOf(initialProgress)
