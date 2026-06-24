@@ -141,6 +141,7 @@ class MissionManager(private val progressionService: ProgressionService) {
                 
                 // If this mission is also in activeHUD, it will update automatically via state
                 if (mission.checkCompletion()) {
+                    mission.isCompleted = true
                     mission.ceremonyStage = CeremonyStage.GLOW
                     completedIdsInRun.add(mission.id)
                     onMissionCompleted?.invoke(mission)
@@ -218,6 +219,7 @@ class MissionManager(private val progressionService: ProgressionService) {
             }
 
             if (mission.checkCompletion()) {
+                mission.isCompleted = true
                 mission.ceremonyStage = CeremonyStage.GLOW
                 completedIdsInRun.add(mission.id)
                 onMissionCompleted?.invoke(mission)
@@ -274,6 +276,19 @@ class MissionManager(private val progressionService: ProgressionService) {
                 }
             }
         }
+    }
+
+    /**
+     * Finds the best (highest-tier unclaimed, or highest-tier claimed) mission for a track.
+     */
+    fun getBestMissionForTrack(allMissions: List<Mission>, categories: List<MissionCategory>): Mission? {
+        return allMissions
+            .filter { it.category in categories && !it.isClaimed }
+            .sortedBy { it.tier.ordinal }
+            .firstOrNull() ?: allMissions
+            .filter { it.category in categories }
+            .sortedByDescending { it.tier.ordinal }
+            .firstOrNull()
     }
 
     /**

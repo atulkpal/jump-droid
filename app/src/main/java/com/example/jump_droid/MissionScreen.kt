@@ -115,13 +115,7 @@ fun MissionScreen(
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(MISSION_TRACKS) { track ->
-                    val currentMission = allMissions
-                        .filter { it.category in track.categories && !it.isClaimed }
-                        .sortedBy { it.tier.ordinal }
-                        .firstOrNull() ?: allMissions
-                        .filter { it.category in track.categories }
-                        .sortedByDescending { it.tier.ordinal }
-                        .firstOrNull()
+                    val currentMission = missionManager.getBestMissionForTrack(allMissions, track.categories)
 
                     if (currentMission != null) {
                         TrackRow(

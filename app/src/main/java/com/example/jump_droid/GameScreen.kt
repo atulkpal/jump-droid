@@ -1500,6 +1500,7 @@ fun GameScreen() {
                                     MissionType.PLATFORMING -> {
                                         other.currentProgress = min(other.targetValue, other.currentProgress + 1)
                                         if (other.checkCompletion()) {
+                                            other.isCompleted = true
                                             other.ceremonyStage = CeremonyStage.GLOW
                                         }
                                     }
@@ -1897,9 +1898,7 @@ fun GameScreen() {
                         modifier = Modifier.align(Alignment.CenterStart),
                         fuel = player.fuel, maxFuel = player.maxFuel,
                         heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated,
-                        gameTime = gameTime,
-                        interferenceTimer = player.hudInterferenceTimer,
-                        zone = altitudeManager.currentZone
+                        hud = HudContext(gameTime = gameTime, interferenceTimer = player.hudInterferenceTimer, zone = altitudeManager.currentZone)
                     )
 
                     ComboDisplay(
@@ -1917,9 +1916,7 @@ fun GameScreen() {
                         modifier = Modifier.align(Alignment.CenterEnd),
                         shield = player.shield, maxShield = player.maxShield,
                         integrity = player.integrity, maxIntegrity = player.maxIntegrity,
-                        gameTime = gameTime,
-                        interferenceTimer = player.hudInterferenceTimer,
-                        zone = altitudeManager.currentZone
+                        hud = HudContext(gameTime = gameTime, interferenceTimer = player.hudInterferenceTimer, zone = altitudeManager.currentZone)
                     )
 
                     // 4. CENTER BELOW ALTITUDE: Progression HUD Layer

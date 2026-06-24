@@ -68,14 +68,10 @@ class Mission(
     var ceremonyStage by mutableStateOf(CeremonyStage.NONE)
 
     /**
-     * Checks if the mission goal has been met.
+     * Checks if the mission goal has been met (pure - no side effects).
      */
     fun checkCompletion(): Boolean {
-        if (!isCompleted && currentProgress >= targetValue) {
-            isCompleted = true
-            return true
-        }
-        return false
+        return !isCompleted && currentProgress >= targetValue
     }
 
     /**

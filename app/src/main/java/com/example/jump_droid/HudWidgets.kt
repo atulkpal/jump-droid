@@ -34,17 +34,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -70,9 +66,6 @@ private val zoneGaugeAccents = mapOf(
     AltitudeZone.DEEP_SPACE to SciFiPurple,
     AltitudeZone.VOID to SciFiRed
 )
-
-private const val GAUGE_WIDTH = 10f
-private const val GAUGE_BAR_RADIUS = 4f
 
 @Composable
 fun AltitudeDisplay(
@@ -110,15 +103,13 @@ fun AltitudeDisplay(
 fun FuelGauge(
     fuel: Float,
     maxFuel: Float,
-    gameTime: Long,
-    interferenceTimer: Float = 0f,
-    zone: AltitudeZone = AltitudeZone.EARTH
+    hud: HudContext
 ) {
     val gaugeHeight = (120f + (maxFuel - 100f) * 0.6f).coerceIn(100f, 250f).dp
     val isLow = fuel < 20f
-    val isInterfered = interferenceTimer > 0f
-    val noiseVal = if (isInterfered) ((sin(gameTime / 100.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
-    val zoneAccent = zoneGaugeAccents[zone] ?: SciFiGreen
+    val isInterfered = hud.interferenceTimer > 0f
+    val noiseVal = if (isInterfered) ((sin(hud.gameTime / 100.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
+    val zoneAccent = zoneGaugeAccents[hud.zone] ?: SciFiGreen
     val dropColor = if (isLow) SciFiRed else zoneAccent
     val fuelBounce = rememberInfiniteTransition(label = "FuelBounce").animateFloat(0f, 3f, infiniteRepeatable(tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing), RepeatMode.Reverse), label = "FuelBounceVal")
     val ratio = (fuel / maxFuel).coerceIn(0f, 1f)
@@ -128,7 +119,7 @@ fun FuelGauge(
                 text = "\u26FD",
                 fontSize = 10.sp,
                 modifier = Modifier.graphicsLayer {
-                    alpha = if (isLow) ((gameTime / 200) % 2).toFloat() else 0.8f
+                    alpha = if (isLow) ((hud.gameTime / 200) % 2).toFloat() else 0.8f
                     translationY = fuelBounce.value
                 },
                 color = dropColor,
@@ -144,57 +135,31 @@ fun FuelGauge(
                 fontWeight = FontWeight.Bold
             )
         }
-        Box(
-            modifier = Modifier
-                .width(GAUGE_WIDTH.dp)
-                .height(gaugeHeight)
-                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp))
-                .border(0.5.dp, dropColor.copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val trackRect = Rect(Offset.Zero, size)
-                clipPath(Path().apply { addRoundRect(RoundRect(trackRect, CornerRadius(GAUGE_BAR_RADIUS.dp.toPx()))) }) {
-                    if (noiseVal > 0.15f) {
-                        val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
-                        val fillHeight = size.height * ratio
-                        val waveOffset = (gameTime / 300f) % (2 * PI.toFloat())
-                        val path = Path().apply {
-                            moveTo(0f, size.height - fillHeight)
-                            for (x in 0..size.width.toInt()) {
-                                val y = (size.height - fillHeight) + sin(x / 4f + waveOffset) * 2f
-                                lineTo(x.toFloat(), y)
-                            }
-                            lineTo(size.width, size.height)
-                            lineTo(0f, size.height)
-                            close()
-                        }
-                        drawPath(path = path, brush = Brush.verticalGradient(
-                            (size.height - fillHeight) to dropColor.copy(alpha = fillAlpha),
-                            size.height to dropColor.copy(alpha = fillAlpha * 0.3f)
-                        ))
+        GaugeBar(
+            value = ratio,
+            color = dropColor,
+            gameTime = hud.gameTime,
+            isInterfered = isInterfered,
+            noiseVal = noiseVal,
+            gaugeHeight = gaugeHeight,
+            onDrawFill = { fillAlpha, fillHeight ->
+                val waveOffset = (hud.gameTime / 300f) % (2 * PI.toFloat())
+                val path = Path().apply {
+                    moveTo(0f, size.height - fillHeight)
+                    for (x in 0..size.width.toInt()) {
+                        val y = (size.height - fillHeight) + sin(x / 4f + waveOffset) * 2f
+                        lineTo(x.toFloat(), y)
                     }
-                    if (isInterfered) {
-                        val staticSeed = sin(gameTime / 150.0 + 1.0) * 0.5 + 0.5
-                        repeat(4) {
-                            val ny = (sin(gameTime / 80.0 + it * 2.0) * 0.5 + 0.5) * size.height
-                            drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
-                        }
-                    }
-                    // Segment ticks
-                    val segCount = 10
-                    for (i in 1 until segCount) {
-                        val sy = size.height * (i.toFloat() / segCount)
-                        drawLine(
-                            dropColor.copy(alpha = 0.1f),
-                            Offset(0f, sy),
-                            Offset(size.width, sy),
-                            strokeWidth = 0.5f
-                        )
-                    }
+                    lineTo(size.width, size.height)
+                    lineTo(0f, size.height)
+                    close()
                 }
+                drawPath(path = path, brush = Brush.verticalGradient(
+                    (size.height - fillHeight) to dropColor.copy(alpha = fillAlpha),
+                    size.height to dropColor.copy(alpha = fillAlpha * 0.3f)
+                ))
             }
-        }
+        )
         Text(
             text = "${(ratio * 100).toInt()}%",
             color = dropColor,
@@ -210,13 +175,11 @@ fun HeatGauge(
     heat: Float,
     maxHeat: Float,
     isOverheated: Boolean,
-    gameTime: Long,
-    interferenceTimer: Float = 0f,
-    zone: AltitudeZone = AltitudeZone.EARTH
+    hud: HudContext
 ) {
     val gaugeHeight = (120f + (maxHeat - 100f) * 0.6f).coerceIn(100f, 250f).dp
-    val isInterfered = interferenceTimer > 0f
-    val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 2.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
+    val isInterfered = hud.interferenceTimer > 0f
+    val noiseVal = if (isInterfered) ((sin(hud.gameTime / 100.0 + 2.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     val heatFlicker = rememberInfiniteTransition(label = "HeatFlicker").animateFloat(0.88f, 1.12f, infiniteRepeatable(tween(120, easing = LinearEasing), RepeatMode.Reverse), label = "HeatFlickerVal")
     val heatRatio = (heat / maxHeat).coerceIn(0f, 1f)
     val heatColor = when {
@@ -231,7 +194,7 @@ fun HeatGauge(
                 text = if (isOverheated) "\u26A0\uFE0F" else "\uD83D\uDD25",
                 fontSize = if (isOverheated) 12.sp else 10.sp,
                 modifier = Modifier.graphicsLayer {
-                    alpha = if (isOverheated) ((gameTime / 150) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
+                    alpha = if (isOverheated) ((hud.gameTime / 150) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
                     scaleX = heatFlicker.value
                     scaleY = heatFlicker.value
                 },
@@ -251,40 +214,22 @@ fun HeatGauge(
                 fontWeight = FontWeight.Bold
             )
         }
-        Box(
-            modifier = Modifier
-                .width(GAUGE_WIDTH.dp)
-                .height(gaugeHeight)
-                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp))
-                .border(0.5.dp, heatColor.copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val trackRect = Rect(Offset.Zero, size)
-                clipPath(Path().apply { addRoundRect(RoundRect(trackRect, CornerRadius(GAUGE_BAR_RADIUS.dp.toPx()))) }) {
-                    if (noiseVal > 0.15f) {
-                        val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
-                        val fillHeight = size.height * heatRatio
-                        val gradientBrush = Brush.verticalGradient(
-                            (size.height - fillHeight) to heatColor.copy(alpha = fillAlpha),
-                            size.height to heatColor.copy(alpha = fillAlpha * 0.2f)
-                        )
-                        drawRect(brush = gradientBrush, topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
-                    }
-                    if (isInterfered) {
-                        repeat(4) {
-                            val ny = (sin(gameTime / 80.0 + it * 2.0 + 1.0) * 0.5 + 0.5) * size.height
-                            drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
-                        }
-                    }
-                    val segCount = 10
-                    for (i in 1 until segCount) {
-                        val sy = size.height * (i.toFloat() / segCount)
-                        drawLine(heatColor.copy(alpha = 0.1f), Offset(0f, sy), Offset(size.width, sy), strokeWidth = 0.5f)
-                    }
-                }
+        GaugeBar(
+            value = heatRatio,
+            color = heatColor,
+            gameTime = hud.gameTime,
+            isInterfered = isInterfered,
+            noiseVal = noiseVal,
+            gaugeHeight = gaugeHeight,
+            interferencePhase = 1f,
+            onDrawFill = { fillAlpha, fillHeight ->
+                val gradientBrush = Brush.verticalGradient(
+                    (size.height - fillHeight) to heatColor.copy(alpha = fillAlpha),
+                    size.height to heatColor.copy(alpha = fillAlpha * 0.2f)
+                )
+                drawRect(brush = gradientBrush, topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
             }
-        }
+        )
         Text(
             text = "${(heatRatio * 100).toInt()}%",
             color = heatColor,
@@ -300,13 +245,11 @@ fun ShieldGauge(
     shield: Float,
     maxShield: Float,
     isShieldCritical: Boolean,
-    gameTime: Long,
-    interferenceTimer: Float = 0f,
-    zone: AltitudeZone = AltitudeZone.EARTH
+    hud: HudContext
 ) {
     val gaugeHeight = (120f + (maxShield - 50f) * 1.2f).coerceIn(100f, 250f).dp
-    val isInterfered = interferenceTimer > 0f
-    val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 3.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
+    val isInterfered = hud.interferenceTimer > 0f
+    val noiseVal = if (isInterfered) ((sin(hud.gameTime / 100.0 + 3.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     val shieldSway = rememberInfiniteTransition(label = "ShieldSway").animateFloat(-4f, 4f, infiniteRepeatable(tween(1200, easing = androidx.compose.animation.core.FastOutSlowInEasing), RepeatMode.Reverse), label = "ShieldSwayVal")
     val shieldRatio = (shield / maxShield).coerceIn(0f, 1f)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -315,7 +258,7 @@ fun ShieldGauge(
                 text = "\uD83D\uDEE1\uFE0F",
                 fontSize = 12.sp,
                 modifier = Modifier.graphicsLayer {
-                    alpha = if (isShieldCritical) ((gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
+                    alpha = if (isShieldCritical) ((hud.gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
                     rotationZ = shieldSway.value
                 },
                 color = if (isShieldCritical) SciFiRed else SciFiCyan,
@@ -334,43 +277,25 @@ fun ShieldGauge(
                 fontWeight = FontWeight.Bold
             )
         }
-        Box(
-            modifier = Modifier
-                .width(GAUGE_WIDTH.dp)
-                .height(gaugeHeight)
-                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp))
-                .border(0.5.dp, (if (isShieldCritical) SciFiRed else SciFiCyan).copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val trackRect = Rect(Offset.Zero, size)
-                clipPath(Path().apply { addRoundRect(RoundRect(trackRect, CornerRadius(GAUGE_BAR_RADIUS.dp.toPx()))) }) {
-                    if (noiseVal > 0.15f) {
-                        val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
-                        val fillHeight = size.height * shieldRatio
-                        val gradientBrush = Brush.verticalGradient(
-                            (size.height - fillHeight) to SciFiCyan.copy(alpha = fillAlpha),
-                            size.height to SciFiCyan.copy(alpha = fillAlpha * 0.2f)
-                        )
-                        drawRect(brush = gradientBrush, topLeft = Offset(0f, size.height * (1f - shieldRatio)), size = Size(size.width, size.height * shieldRatio))
-                        // Shimmer
-                        val shimmerX = (gameTime / 30f) % (size.width * 2f) - size.width
-                        drawRect(Color.White.copy(alpha = 0.12f * fillAlpha), topLeft = Offset(shimmerX, 0f), size = Size(size.width * 0.3f, size.height))
-                    }
-                    if (isInterfered) {
-                        repeat(4) {
-                            val ny = (sin(gameTime / 80.0 + it * 2.0 + 2.0) * 0.5 + 0.5) * size.height
-                            drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
-                        }
-                    }
-                    val segCount = 10
-                    for (i in 1 until segCount) {
-                        val sy = size.height * (i.toFloat() / segCount)
-                        drawLine(SciFiCyan.copy(alpha = 0.1f), Offset(0f, sy), Offset(size.width, sy), strokeWidth = 0.5f)
-                    }
-                }
+        val shieldColor = if (isShieldCritical) SciFiRed else SciFiCyan
+        GaugeBar(
+            value = shieldRatio,
+            color = shieldColor,
+            gameTime = hud.gameTime,
+            isInterfered = isInterfered,
+            noiseVal = noiseVal,
+            gaugeHeight = gaugeHeight,
+            interferencePhase = 2f,
+            onDrawFill = { fillAlpha, fillHeight ->
+                val gradientBrush = Brush.verticalGradient(
+                    (size.height - fillHeight) to shieldColor.copy(alpha = fillAlpha),
+                    size.height to shieldColor.copy(alpha = fillAlpha * 0.2f)
+                )
+                drawRect(brush = gradientBrush, topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
+                val shimmerX = (hud.gameTime / 30f) % (size.width * 2f) - size.width
+                drawRect(Color.White.copy(alpha = 0.12f * fillAlpha), topLeft = Offset(shimmerX, 0f), size = Size(size.width * 0.3f, size.height))
             }
-        }
+        )
         Text(
             text = "${(shieldRatio * 100).toInt()}%",
             color = if (isShieldCritical) SciFiRed else SciFiCyan,
@@ -386,13 +311,11 @@ fun IntegrityGauge(
     integrity: Float,
     maxIntegrity: Float,
     isHullCritical: Boolean,
-    gameTime: Long,
-    interferenceTimer: Float = 0f,
-    zone: AltitudeZone = AltitudeZone.EARTH
+    hud: HudContext
 ) {
     val gaugeHeight = (120f + (maxIntegrity - 100f) * 0.6f).coerceIn(100f, 250f).dp
-    val isInterfered = interferenceTimer > 0f
-    val noiseVal = if (isInterfered) ((sin(gameTime / 100.0 + 4.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
+    val isInterfered = hud.interferenceTimer > 0f
+    val noiseVal = if (isInterfered) ((sin(hud.gameTime / 100.0 + 4.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     val heartBeat = rememberInfiniteTransition(label = "HeartBeat").animateFloat(0f, 1f, infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Restart), label = "HeartBeatVal")
     val heartScale = 1f + 0.15f * sin(heartBeat.value * 2f * PI.toFloat()).toFloat().coerceAtLeast(0f) * (1f - (heartBeat.value % 0.3f / 0.3f).coerceIn(0f, 1f))
     val integrityRatio = (integrity / maxIntegrity).coerceIn(0f, 1f)
@@ -402,7 +325,7 @@ fun IntegrityGauge(
                 text = "\u2764\uFE0F",
                 fontSize = 12.sp,
                 modifier = Modifier.graphicsLayer {
-                    alpha = if (isHullCritical) ((gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
+                    alpha = if (isHullCritical) ((hud.gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
                     scaleX = heartScale
                     scaleY = heartScale
                 },
@@ -422,51 +345,36 @@ fun IntegrityGauge(
                 fontWeight = FontWeight.Bold
             )
         }
-        Box(
-            modifier = Modifier
-                .width(GAUGE_WIDTH.dp)
-                .height(gaugeHeight)
-                .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp))
-                .border(0.5.dp, (if (isHullCritical) SciFiRed else SciFiGreen).copy(alpha = 0.2f), RoundedCornerShape(GAUGE_BAR_RADIUS.dp)),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val trackRect = Rect(Offset.Zero, size)
-                clipPath(Path().apply { addRoundRect(RoundRect(trackRect, CornerRadius(GAUGE_BAR_RADIUS.dp.toPx()))) }) {
-                    if (noiseVal > 0.15f) {
-                        val fillAlpha = if (isInterfered) (0.3f + noiseVal * 0.6f) else 0.9f
-                        val fillHeight = size.height * integrityRatio
-                        val gradientBrush = Brush.verticalGradient(
-                            (size.height - fillHeight) to SciFiGreen.copy(alpha = fillAlpha),
-                            size.height to SciFiGreen.copy(alpha = fillAlpha * 0.2f)
-                        )
-                        drawRect(brush = gradientBrush, topLeft = Offset(0f, size.height * (1f - integrityRatio)), size = Size(size.width, size.height * integrityRatio))
-                    }
-                    if (isInterfered) {
-                        repeat(4) {
-                            val ny = (sin(gameTime / 80.0 + it * 2.0 + 3.0) * 0.5 + 0.5) * size.height
-                            drawLine(Color.White.copy(alpha = 0.3f * noiseVal), Offset(0f, ny.toFloat()), Offset(size.width, ny.toFloat()), strokeWidth = 1f)
+        val integrityColor = if (isHullCritical) SciFiRed else SciFiGreen
+        GaugeBar(
+            value = integrityRatio,
+            color = integrityColor,
+            gameTime = hud.gameTime,
+            isInterfered = isInterfered,
+            noiseVal = noiseVal,
+            gaugeHeight = gaugeHeight,
+            interferencePhase = 3f,
+            onDrawFill = { fillAlpha, fillHeight ->
+                val gradientBrush = Brush.verticalGradient(
+                    (size.height - fillHeight) to integrityColor.copy(alpha = fillAlpha),
+                    size.height to integrityColor.copy(alpha = fillAlpha * 0.2f)
+                )
+                drawRect(brush = gradientBrush, topLeft = Offset(0f, size.height - fillHeight), size = Size(size.width, fillHeight))
+            },
+            onDrawExtra = {
+                if (integrityRatio < 0.25f && !isInterfered) {
+                    repeat(2) { i ->
+                        val crackX = size.width * (0.3f + i * 0.4f)
+                        val crackPath = Path().apply {
+                            moveTo(crackX, size.height * (1f - integrityRatio))
+                            lineTo(crackX + 2f, size.height * (1f - integrityRatio) + size.height * 0.1f)
+                            lineTo(crackX - 1f, size.height * (1f - integrityRatio) + size.height * 0.2f)
                         }
-                    }
-                    if (integrityRatio < 0.25f && !isInterfered) {
-                        repeat(2) { i ->
-                            val crackX = size.width * (0.3f + i * 0.4f)
-                            val crackPath = Path().apply {
-                                moveTo(crackX, size.height * (1f - integrityRatio))
-                                lineTo(crackX + 2f, size.height * (1f - integrityRatio) + size.height * 0.1f)
-                                lineTo(crackX - 1f, size.height * (1f - integrityRatio) + size.height * 0.2f)
-                            }
-                            drawPath(crackPath, SciFiRed.copy(alpha = 0.6f), style = Stroke(1f))
-                        }
-                    }
-                    val segCount = 10
-                    for (i in 1 until segCount) {
-                        val sy = size.height * (i.toFloat() / segCount)
-                        drawLine(SciFiGreen.copy(alpha = 0.1f), Offset(0f, sy), Offset(size.width, sy), strokeWidth = 0.5f)
+                        drawPath(crackPath, SciFiRed.copy(alpha = 0.6f), style = Stroke(1f))
                     }
                 }
             }
-        }
+        )
         Text(
             text = "${(integrityRatio * 100).toInt()}%",
             color = if (isHullCritical) SciFiRed else SciFiGreen,
@@ -585,9 +493,7 @@ fun LeftGauges(
     modifier: Modifier = Modifier,
     fuel: Float, maxFuel: Float,
     heat: Float, maxHeat: Float, isOverheated: Boolean,
-    gameTime: Long,
-    interferenceTimer: Float = 0f,
-    zone: AltitudeZone = AltitudeZone.EARTH
+    hud: HudContext
 ) {
     Column(
         modifier = modifier
@@ -596,8 +502,8 @@ fun LeftGauges(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        FuelGauge(fuel = fuel, maxFuel = maxFuel, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
-        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
+        FuelGauge(fuel = fuel, maxFuel = maxFuel, hud = hud)
+        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, hud = hud)
     }
 }
 
@@ -606,9 +512,7 @@ fun RightGauges(
     modifier: Modifier = Modifier,
     shield: Float, maxShield: Float,
     integrity: Float, maxIntegrity: Float,
-    gameTime: Long,
-    interferenceTimer: Float = 0f,
-    zone: AltitudeZone = AltitudeZone.EARTH
+    hud: HudContext
 ) {
     Column(
         modifier = modifier
@@ -617,8 +521,8 @@ fun RightGauges(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = shield < maxShield * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
-        IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = integrity < maxIntegrity * 0.25f, gameTime = gameTime, interferenceTimer = interferenceTimer, zone = zone)
+        ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = shield < maxShield * 0.25f, hud = hud)
+        IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = integrity < maxIntegrity * 0.25f, hud = hud)
     }
 }
 
