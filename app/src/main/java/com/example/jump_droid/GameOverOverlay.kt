@@ -49,12 +49,6 @@ import com.example.jump_droid.ui.theme.SciFiSurface
 import com.example.jump_droid.ui.theme.SciFiWhite
 import kotlin.math.sin
 import kotlin.random.Random
-
-private data class GoStar(
-    var x: Float, var y: Float, var speed: Float,
-    val baseAlpha: Float, val twinklePhase: Float, val size: Float
-)
-
 @Composable
 fun GameOverOverlay(
     score: Int,
@@ -70,19 +64,6 @@ fun GameOverOverlay(
     val borderPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(1200), RepeatMode.Reverse), label = "BorderPulse")
     val titleGlow by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "TitleGlow")
 
-    val stars = remember {
-        List(50) {
-            GoStar(
-                x = Random.nextFloat() * 2000f,
-                y = Random.nextFloat() * 2000f,
-                speed = 0.15f + Random.nextFloat() * 0.4f,
-                baseAlpha = 0.1f + Random.nextFloat() * 0.3f,
-                twinklePhase = Random.nextFloat() * 6.28f,
-                size = 0.5f + Random.nextFloat() * 1.5f
-            )
-        }
-    }
-
     val frameTime = remember { mutableStateOf(0L) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -92,19 +73,11 @@ fun GameOverOverlay(
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
+        StarfieldBackground(Modifier.fillMaxSize(), starCount = 50, alphaRange = 0.1f..0.4f, starColor = Color(0xFFD32F2F))
         Canvas(Modifier.fillMaxSize()) {
             val ft = frameTime.value / 1000f
             val w = size.width
             val h = size.height
-
-            // Animated starfield
-            stars.forEach { s ->
-                s.y += s.speed
-                if (s.y > h + 10) { s.y = -10f; s.x = Random.nextFloat() * w }
-                val twinkle = sin(ft * 2f + s.twinklePhase) * 0.3f + 0.7f
-                val alpha = s.baseAlpha * twinkle
-                drawCircle(Color(0xFFD32F2F).copy(alpha = alpha), radius = s.size, center = Offset(s.x, s.y))
-            }
 
             // Glitch particles overlay
             repeat(20) {

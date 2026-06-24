@@ -4,7 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 
 enum class GameState {
-    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK
+    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS
 }
 
 enum class PowerUpType {
@@ -69,6 +69,7 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     HAZARD_TURBULENCE("Turbulence Front", "Violent atmospheric currents.", "Unstable air masses that challenge even the most experienced pilots.", "THREATS"),
     HAZARD_GRAVITY("Gravity Distortion", "Localized spatial warping.", "Anomalies that increase gravitational pull and fuel consumption.", "THREATS"),
     HAZARD_EMP("EMP Pulse", "Electromagnetic shockwave.", "Bursts of energy that temporarily scramble shield regeneration systems.", "THREATS"),
+    HAZARD_VOID_ANOMALY("Void Anomaly", "A rift in reality.", "Sensors report impossible readings. The stars themselves seem distorted.", "THREATS"),
 
     // Survival Mechanics (Sprint B Adjustments)
     EFFICIENCY_SURVIVAL("Combat Efficiency", "Combos generate supplies.", "Maintaining peak flight efficiency can trigger emergency survival supply drops.", "MECHANICS"),

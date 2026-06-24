@@ -4,6 +4,105 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-24
+
+**Sprint / Phase:** EPIC 8.5 Execution — Architecture Decomposition Complete
+
+**Branch:** `epic8.5-rebased`
+
+**Status:** Complete ✅
+
+### Added
+- **26 Threat Renderers**: One file per threat (11 hazards, 8 enemies, 6 bosses + 3 shared). `ThreatRenderer` interface + `ThreatRendererRegistry` with eager map dispatch.
+- **ThreatAIUpdater.kt**: Extracted AI behavior `when`-block from `ActiveThreat.update()` (566 lines).
+- **ThreatInteractionProcessor.kt**: Extracted collision/damage `when`-block from `ActiveThreat.processInteraction()` (551 lines).
+- **StarfieldBackground.kt**: Shared animated starfield composable (replaced 6 copy-paste implementations).
+- **GaugeBar.kt**: Base gauge composable with shared clipPath + seg ticks + interference lines (4 gauges refactored).
+- **HudContext.kt**: Bundles `gameTime` + `interferenceTimer` + `zone` — eliminates 12 parameter passthroughs.
+- **GameEngine.kt**: State container with all managers + 40+ observable game state vars.
+- **ProgressionService.kt**: Interface decoupling MissionManager from ProgressionManager.
+- **GameStats.kt**: Data class for session stat commit.
+- **MissionScreen.kt**: Created from earlier extraction.
+- **PowerUpManager.kt**: PowerUp lifecycle extracted from GameScreen.
+
+### Changed
+- **ActiveThreat.kt**: 1,224 → 123 lines (90% reduction). AI and interaction logic delegated to extension functions.
+- **GameScreen.kt**: 3,901 → 2,011 lines (48% reduction). Threat rendering extracted to 26 files. Ceremony lifecycle extracted. PowerUpManager extracted.
+- **Mission.kt**: `checkCompletion()` made pure (side-effect moved to callers).
+- **MissionManager.kt**: Added `getBestMissionForTrack()`. Decoupled from ProgressionManager via interface. Ceremony lifecycle extracted from GameScreen.
+- **ComboManager.kt**: Rewards merged (unified tier + survival drop table). Tier table externalized to `TIERS` companion.
+- **HudWidgets.kt**: 4 gauges refactored to use shared `GaugeBar` composable. `HudContext` hoisted.
+- **MainMenuScreen.kt, AboutScreen.kt, SettingsScreen.kt, PauseOverlay.kt, GameOverOverlay.kt, HangarScreen.kt**: Starfield replaced with shared `StarfieldBackground` composable.
+- **AGENTS.md**: Updated for EPIC 8.5 completion. Points to `epic8.5-structured` tag.
+
+### Removed
+- **MissionRow.kt**: Deleted (ceremony lifecycle moved elsewhere).
+- **`isNew` property**: Removed from `Mission.kt`.
+- **`MissionType.COMBO`**: Removed.
+- **`CeremonyStage`**: Simplified to NONE/GLOW/REPLACING.
+- **Duplicate ComboDisplay**: Removed from center HUD.
+
+### Tag
+- **`epic8.5-structured`**: Rollback point at commit `9363434`.
+
+---
+
+## 2026-06-23
+
+**Sprint / Phase:** EPIC 8.5 Planning — Architecture Decomposition Roadmap
+
+**Branch:** `epic8-mission-migration`
+
+**Status:** Planned
+
+### Added
+- **EPIC 8.5 Decomposition Plan**: 9-sprint roadmap (8.5.0–8.5.8) to decompose `GameScreen.kt` (3,901 lines), `ActiveThreat.kt` (1,224 lines), `ProgressionManager.kt`, and navigation into manageable components before Phase 9 feature work begins.
+- **EPIC 8 Tech Debt Audit**: 17 findings classified across 5 severity levels. 2 CRITICAL (GameScreen God Object, ActiveThreat God Object), 3 MAJOR, 8 MODERATE, 4 MINOR. Report: `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md`
+- **EPIC 8 Validation Report**: Final validation of all EPIC 8 systems — stabilization, polish, and mission event audit. No blockers found. Report: `docs/REPORTS/EPIC8_VALIDATION_REPORT.md`
+- **EPIC 8.5 Planning Report**: Executive summary of decomposition sprint planning. Report: `docs/REPORTS/EPIC8_5_PLANNING_REPORT.md`
+
+### Changed
+- **EPIC 9**: Officially deferred until EPIC 8.5 Architecture Decomposition completes.
+- **AGENTS.md**: Updated for EPIC 8.5 transition. Known issues now include GameScreen.kt (3,901 lines) and ActiveThreat.kt (1,224 lines) as EPIC 8.5 targets.
+- **EPIC_8_TRACKER.md**: Status updated to "Functionally Complete — Awaiting Runtime Signoff". Post-8 content moved under deferred column.
+- **JumpDroid_EPIC_Tracker.md**: EPIC 8.5 section added with 9-sprint structure (8.5.0–8.5.8). EPIC 9 marked DEFERRED.
+
+### Documentation
+- `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md`: Full decomposition roadmap with sprint breakdown, risks, dependencies, and success criteria.
+- `docs/REPORTS/EPIC8_5_PLANNING_REPORT.md`: Executive summary for cross-team communication.
+- `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md`: Comprehensive 17-finding codebase audit.
+
+### Revision: Sprint 8.5.0 Baseline Added
+- **Request**: User approved the decomposition plan but requested Sprint 8.5.0 (Baseline Capture) be inserted before Sprint 8.5.1.
+- **Action**: Added Sprint 8.5.0 to all documents. Existing sprints 8.5.1–8.5.8 unchanged.
+- **8.5.0 scope**: Baseline tag `epic8.5-baseline`, build verification, file size inventory, architecture metrics, screenshot baseline, baseline report.
+- **Impact**: 9 sprints total (was 8). Estimated effort: 13-18 sessions (was 12-17). All sprint numbers 8.5.1–8.5.8 preserved. Sprint 8.5.0 is precondition for all subsequent sprints.
+- **Documents updated**: EPIC_8_5_DECOMPOSITION_PLAN.md, EPIC8_5_PLANNING_REPORT.md, JumpDroid_EPIC_Tracker.md, CHANGELOG.md
+
+---
+
+## 2026-06-22
+
+**Sprint / Phase:** EPIC 8 — Missions & Progression (Phase 1-3)
+
+**Branch:** `epic8-mission-migration`
+
+**Status:** In Progress
+
+### Added
+- **Intelligence Network**: Real-time gameplay stat tracking across physics and combat loops.
+- **GameStats Model**: Unified 19-point metric schema for run evaluation.
+- **Mission Reward Sealed Classes**: Added `Cash` and `ModuleUnlock` support to the reward pipeline.
+- **Persistent Lifetime Stats**: Added cumulative flight time and encounter tracking to `ProgressionManager`.
+- **EPIC 8 Tracker**: Detailed tracking for mission migration.
+
+### Changed
+- **Mission Model Refactor**: Aligned legacy mission data with EPIC 7 sealed reward classes.
+- **Mission Registry Port**: Migrated 48 missions from prototype branch to production architecture.
+- **Manager Integration**: Unified `MissionManager` with `ProgressionManager` for central reward handling.
+
+---
+
 ## 2026-06-22
 
 **Sprint / Phase:** Sprint C Completion — Structural Fix, Boss Projectiles, Enemy Projectiles, Zone Redistribution

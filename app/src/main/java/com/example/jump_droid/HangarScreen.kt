@@ -32,9 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.jump_droid.ui.theme.SciFiBackground
+import com.example.jump_droid.ui.theme.SciFiButtonShape
 import com.example.jump_droid.ui.theme.SciFiBorder
 import com.example.jump_droid.ui.theme.SciFiCyan
 import com.example.jump_droid.ui.theme.SciFiGold
@@ -55,14 +54,6 @@ import com.example.jump_droid.ui.theme.SciFiPurple
 import com.example.jump_droid.ui.theme.SciFiRed
 import com.example.jump_droid.ui.theme.SciFiSurface
 import com.example.jump_droid.ui.theme.SciFiWhite
-import kotlin.math.sin
-import kotlin.random.Random
-
-private data class HangarStar(
-    var x: Float, var y: Float, var speed: Float,
-    val baseAlpha: Float, val twinklePhase: Float, val size: Float, val color: Color
-)
-
 @Composable
 fun HangarScreen(
     player: Player,
@@ -75,44 +66,13 @@ fun HangarScreen(
     val accentPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "AccentPulse")
     val borderPulse by infiniteTransition.animateFloat(0.4f, 1f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "BorderPulse")
 
-    val stars = remember {
-        List(50) {
-            HangarStar(
-                x = Random.nextFloat() * 2000f,
-                y = Random.nextFloat() * 2000f,
-                speed = 0.15f + Random.nextFloat() * 0.4f,
-                baseAlpha = 0.15f + Random.nextFloat() * 0.4f,
-                twinklePhase = Random.nextFloat() * 6.28f,
-                size = 0.5f + Random.nextFloat() * 1.5f,
-                color = listOf(SciFiCyan, SciFiPurple, SciFiGold)[Random.nextInt(3)]
-            )
-        }
-    }
-
-    val frameTime = remember { mutableStateOf(0L) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            kotlinx.coroutines.delay(50)
-            frameTime.value += 50
-        }
-    }
-
     Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
         Box {
+            StarfieldBackground(Modifier.fillMaxSize(), starCount = 50, colors = listOf(SciFiCyan, SciFiPurple, SciFiGold))
             Canvas(Modifier.fillMaxSize()) {
-                val ft = frameTime.value / 1000f
                 val w = size.width
                 val h = size.height
-
-                stars.forEach { s ->
-                    s.y += s.speed
-                    if (s.y > h + 10) { s.y = -10f; s.x = Random.nextFloat() * w }
-                    val twinkle = sin(ft * 2f + s.twinklePhase) * 0.3f + 0.7f
-                    val alpha = s.baseAlpha * twinkle
-                    drawCircle(s.color.copy(alpha = alpha), radius = s.size, center = Offset(s.x, s.y))
-                }
-
-                    drawCircle(SciFiGold.copy(alpha = 0.03f), radius = 60f, center = Offset(w * 0.15f, h * 0.2f))
+                drawCircle(SciFiGold.copy(alpha = 0.03f), radius = 60f, center = Offset(w * 0.15f, h * 0.2f))
                 drawCircle(SciFiPurple.copy(alpha = 0.03f), radius = 80f, center = Offset(w * 0.85f, h * 0.8f))
             }
 
@@ -134,58 +94,40 @@ fun HangarScreen(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .background(SciFiSurface, RoundedCornerShape(8.dp))
-                        .border(1.dp, SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                        .padding(12.dp),
+                        .background(SciFiSurface, RoundedCornerShape(12.dp))
+                        .border(1.dp, SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                        .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     val (pFound, pTotal) = progressionManager.getCompletionStats("PLATFORMS")
                     val (zFound, zTotal) = progressionManager.getCompletionStats("AREAS")
                     val (aFound, aTotal) = progressionManager.getCompletionStats("ARTIFACTS")
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("PLATFORMS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
-                        Text("$pFound/$pTotal", color = SciFiCyan, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("ZONES", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
-                        Text("$zFound/$zTotal", color = SciFiCyan, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("ARTIFACTS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
-                        Text("$aFound/$aTotal", color = SciFiPurple, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onNavigate(GameState.ARCHIVE) }) {
-                        Text("ARCHIVE", color = SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
-                        Text("VIEW >", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { onNavigate(GameState.LOADOUT) }) {
-                        Text("LOADOUT", color = SciFiPurple, fontSize = 8.sp, fontWeight = FontWeight.Black)
-                        Text("EDIT >", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
+                    HangarNavWidget(Modifier.clickable { onNavigate(GameState.ARCHIVE) }, "ARCHIVE", "VIEW >", SciFiCyan)
+                    HangarNavWidget(Modifier.clickable { onNavigate(GameState.LOADOUT) }, "LOADOUT", "EDIT >", SciFiPurple)
+                    HangarNavWidget(Modifier.clickable { onNavigate(GameState.MISSIONS) }, "MISSIONS", "${progressionManager.missionsCompleted} DONE >", SciFiGold)
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .background(SciFiSurface.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                        .border(1.dp, SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                        .padding(10.dp),
+                        .background(SciFiSurface.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .border(1.dp, SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                        .padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("MAX HULL", color = SciFiGreen.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                        Text("${progressionManager.permanentMaxIntegrity.toInt()}", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("MAX SHIELD", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                        Text("${progressionManager.permanentMaxShield.toInt()}", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("REGEN RATE", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                        Text("${Constants.SHIELD_REGEN_RATE.toInt()} U/S", color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                    val stats = listOf(
+                        "MAX HULL" to "${progressionManager.permanentMaxIntegrity.toInt()}",
+                        "MAX SHIELD" to "${progressionManager.permanentMaxShield.toInt()}",
+                        "REGEN" to "${Constants.SHIELD_REGEN_RATE.toInt()} U/S"
+                    )
+                    stats.forEach { (label, value) ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(label, color = SciFiWhite.copy(alpha = 0.5f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                            Text(value, color = SciFiWhite, fontSize = 14.sp, fontWeight = FontWeight.Black)
+                        }
                     }
                 }
 
@@ -258,7 +200,7 @@ fun HangarScreen(
                 Button(
                     onClick = { onNavigate(GameState.MAIN_MENU) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = SciFiButtonShape,
                     colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
                     border = BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse))
                 ) {
@@ -268,5 +210,13 @@ fun HangarScreen(
                 Text("HANGAR // ROCKET SELECT // ${progressionManager.currentRank.title}", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
             }
         }
+    }
+}
+
+@Composable
+private fun HangarNavWidget(modifier: Modifier, label: String, sublabel: String, color: Color) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, color = color, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+        Text(sublabel, color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }

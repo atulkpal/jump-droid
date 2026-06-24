@@ -24,9 +24,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.jump_droid.ui.theme.SciFiButtonShape
 import com.example.jump_droid.ui.theme.SciFiBorder
 import com.example.jump_droid.ui.theme.SciFiCyan
 import com.example.jump_droid.ui.theme.SciFiGold
@@ -48,15 +47,6 @@ import com.example.jump_droid.ui.theme.SciFiRed
 import com.example.jump_droid.ui.theme.SciFiSurface
 import com.example.jump_droid.ui.theme.SciFiWhite
 import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.random.Random
-
-private data class MenuStar(
-    var x: Float, var y: Float, var speed: Float,
-    val baseAlpha: Float, val twinklePhase: Float, val size: Float
-)
-
 @Composable
 fun MainMenuScreen(
     onLaunch: () -> Unit,
@@ -69,39 +59,11 @@ fun MainMenuScreen(
     val borderPulse by infiniteTransition.animateFloat(0.4f, 1f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "BorderPulse")
     val titleGlow by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "TitleGlow")
 
-    val stars = remember {
-        List(60) {
-            MenuStar(
-                x = Random.nextFloat() * 2000f,
-                y = Random.nextFloat() * 2000f,
-                speed = 0.15f + Random.nextFloat() * 0.4f,
-                baseAlpha = 0.2f + Random.nextFloat() * 0.5f,
-                twinklePhase = Random.nextFloat() * 6.28f,
-                size = 0.5f + Random.nextFloat() * 1.5f
-            )
-        }
-    }
-
-    val frameTime = remember { mutableStateOf(0L) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            kotlinx.coroutines.delay(50)
-            frameTime.value += 50
-        }
-    }
-
     Box(Modifier.fillMaxSize().background(Color(0xFF0a0a1a)), contentAlignment = Alignment.Center) {
+        StarfieldBackground(Modifier.fillMaxSize(), starCount = 60, alphaRange = 0.2f..0.7f)
         Canvas(Modifier.fillMaxSize()) {
-            val ft = frameTime.value / 1000f
             val w = size.width
             val h = size.height
-
-            stars.forEach { s ->
-                s.y += s.speed
-                if (s.y > h + 10) { s.y = -10f; s.x = Random.nextFloat() * w }
-                val twinkle = sin(ft * 2f + s.twinklePhase) * 0.3f + 0.7f
-                drawCircle(Color.White.copy(alpha = s.baseAlpha * twinkle), radius = s.size, center = Offset(s.x, s.y))
-            }
 
             drawCircle(SciFiCyan.copy(alpha = 0.04f), radius = 60f, center = Offset(w * 0.15f, h * 0.12f))
             drawCircle(SciFiPurple.copy(alpha = 0.03f), radius = 80f, center = Offset(w * 0.85f, h * 0.88f))
@@ -149,9 +111,10 @@ fun MainMenuScreen(
             val menuButtons = listOf(
                 "LAUNCH" to { onLaunch() },
                 "HANGAR" to { onNavigate(GameState.HANGAR) },
+                "MISSIONS" to { onNavigate(GameState.MISSIONS) },
                 "ARCHIVE" to { onNavigate(GameState.ARCHIVE) },
                 "TERMINAL" to { onNavigate(GameState.LEADERBOARD) },
-                "MISSION DATA" to { onNavigate(GameState.ABOUT) },
+                "PROTOCOL" to { onNavigate(GameState.ABOUT) },
                 "SETTINGS" to { onNavigate(GameState.SETTINGS) }
             )
 
@@ -159,38 +122,39 @@ fun MainMenuScreen(
                 val accentColor = when (index) {
                     0 -> SciFiCyan
                     1 -> SciFiGold
-                    2 -> SciFiPurple
-                    3 -> SciFiGold
+                    2 -> SciFiCyan
+                    3 -> SciFiPurple
+                    4 -> SciFiGold
                     else -> SciFiCyan
                 }
                 Button(
                     onClick = action,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = SciFiButtonShape,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SciFiSurface,
                         contentColor = SciFiWhite
                     ),
                     border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = borderPulse))
                 ) {
-                    Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                    Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontSize = 12.sp)
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
 
             Button(
                 onClick = { (context as? Activity)?.finish() },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier.fillMaxWidth().height(44.dp),
+                shape = SciFiButtonShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = SciFiRed.copy(alpha = 0.15f),
                     contentColor = SciFiRed
                 ),
                 border = androidx.compose.foundation.BorderStroke(1.dp, SciFiRed.copy(alpha = 0.4f))
             ) {
-                Text("ABORT MISSION", fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Text("ABORT", fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontSize = 12.sp)
             }
 
             Spacer(Modifier.height(16.dp))

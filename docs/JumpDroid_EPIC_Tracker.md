@@ -115,15 +115,46 @@
 
 # EPIC 8 - Missions & Progression
 
-Status: Planned (Existing Prototype Branch Available)
+Status: Functionally Complete — Awaiting Runtime Signoff
+Migration Branch: `epic8-mission-migration`
+Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
+
+# EPIC 8.5 - Architecture Decomposition
+
+**Status: COMPLETE ✅** (Rollback tag: `epic8.5-structured`, Commit: `9363434`)
+Detailed Plan: [docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md](roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md)
+
+- [x] Sprint 8.5.0: Baseline Capture (tag `epic8.5-baseline`, build verify, file metrics)
+- [x] Sprint 8.5.1: Low-Risk Cleanup (MissionRow deleted, `isNew` removed, `CeremonyStage` collapsed, `checkCompletion()` pure)
+- [x] Sprint 8.5.2: HUD Decomposition (GaugeBar, StarfieldBackground, HudContext, MissionScreen track extraction)
+- [x] Sprint 8.5.3: State/Ceremony Extraction (ceremony lifecycle, ComboManager unified, ProgressionService interface)
+- [x] Sprint 8.5.4: Threat Rendering Extraction (ThreatRenderer interface + 26 per-threat renderers)
+- [ ] Sprint 8.5.5: Game Engine Boundary Creation — **DEFERRED to EPIC 12**
+- [x] Sprint 8.5.6: ActiveThreat Decomposition (1,224→123 lines via ThreatAIUpdater + ThreatInteractionProcessor)
+- [ ] Sprint 8.5.7: Progression Service Decomposition — **DEFERRED to EPIC 12**
+- [ ] Sprint 8.5.8: Navigation Migration — **DEFERRED to EPIC 12**
+
+## Post-8.5 File Sizes (Actual)
+
+| File | Before | After | Reduction |
+|------|--------|-------|-----------|
+| GameScreen.kt | 3,901 lines | 2,011 | **48%** |
+| ActiveThreat.kt | 1,224 lines | 123 | **90%** |
+| HudWidgets.kt | 654 lines | 576 | 12% |
+| GameEngine.kt | — | 110 (new) | N/A |
+
+## Next (EPIC 9 — Hidden Signals & Dynamic Unlocks)
+
+**Status: Ready to start** ✅
 
 ## Mission Framework
 
-- [ ] Mission System Recovery Audit
-- [ ] Mission State Architecture
-- [ ] Mission Persistence Validation
-- [ ] Mission Unlock Flow
-- [ ] Mission Claim Flow
+- [x] Mission System Recovery Audit
+- [x] Mission Data Migration (Phase 1)
+- [x] Intelligence Network (Phase 2)
+- [x] Mission Reward Integration (Phase 3)
+- [x] Mission Claim Flow (Phase 4)
+- [x] Mission UX & Gameplay Communication (Phase 5)
 - [ ] Mission Reward Pipeline
 
 ## Core Mission Tracks
@@ -187,6 +218,8 @@ Do not implement during EPIC 7. Track only.
 ---
 
 # EPIC 9 - The Archive Expands
+
+**Status: READY — EPIC 8.5 complete**
 
 - [ ] Artifact Set Bonuses
 - [ ] Discovery Collection Rewards
