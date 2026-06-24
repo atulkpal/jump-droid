@@ -1,94 +1,153 @@
-import AltitudeSidebar from "./components/AltitudeSidebar";
-import BossShowcase from "./components/BossShowcase";
-import DiscoveryArchive from "./components/DiscoveryArchive";
-import GameplayExplained from "./components/GameplayExplained";
-import HeroSection from "./components/HeroSection";
-import MissionControl from "./components/MissionControl";
-import ProgressionSystems from "./components/ProgressionSystems";
-import RocketShowcase from "./components/RocketShowcase";
-import StickyNav from "./components/StickyNav";
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import ZoneBackgrounds from "./components/zone-backgrounds/ZoneBackgrounds";
+import FlyingRocket from "./components/FlyingRocket";
+import AltitudeHUD from "./components/AltitudeHUD";
+import EncounterSystem, { ENCOUNTERS, BOSS_ENCOUNTERS } from "./components/EncounterSystem";
+import BossEncounter from "./components/BossEncounter";
+import FinaleArchive from "./components/FinaleArchive";
+
+const ZONES = [
+  { name: "Earth", threshold: 0 },
+  { name: "Cloud Layer", threshold: 500 },
+  { name: "Upper Atmosphere", threshold: 1500 },
+  { name: "Orbit", threshold: 4000 },
+  { name: "Deep Space", threshold: 8000 },
+  { name: "The Void", threshold: 15000 },
+];
+
+const TOTAL_ALT = 16000;
+const SCROLL_HEIGHT = 7000; // vh-based scroll distance
+
+type BossPhase = "ENTER" | "FIGHT" | "EXIT";
+
+function getCurrentEncounter(progress: number) {
+  const all = [...ENCOUNTERS, ...BOSS_ENCOUNTERS];
+  const active = all.find((e) => {
+    const [enter, , exit] = e.progress;
+    return progress >= enter && progress <= exit;
+  });
+  return active || null;
+}
+
+function getBossPhase(progress: number, encounter: any | null): { phase: BossPhase; phaseProgress: number } | null {
+  if (!encounter || encounter.type !== "boss") return null;
+  const [enter, peak, exit] = encounter.progress;
+  if (progress < enter) return { phase: "ENTER", phaseProgress: 0 };
+  if (progress < peak) {
+    return { phase: "ENTER", phaseProgress: (progress - enter) / (peak - enter) };
+  }
+  if (progress < exit) {
+    return { phase: "FIGHT", phaseProgress: (progress - peak) / (exit - peak) };
+  }
+  return { phase: "EXIT", phaseProgress: 1 };
+}
+
+function calculateRocketX(progress: number): number {
+  // Base flight path: left 30% -> center 50% with sine sway
+  const baseX = 30 + progress * 20;
+  const sway = Math.sin(progress * 18) * 3 + Math.sin(progress * 7) * 1.5;
+  return baseX + sway;
+}
 
 export default function Home() {
+  const [scrollTop, setScrollTop] = useState(0);
+  const [scrollHeight, setScrollHeight] = useState(0);
+  const [clientHeight, setClientHeight] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollTop(window.scrollY);
+      setScrollHeight(document.body.scrollHeight);
+      setClientHeight(window.innerHeight);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
+
+  const maxScroll = Math.max(scrollHeight - clientHeight, 1);
+  const progress = Math.min(scrollTop / maxScroll, 1);
+  const altitude = Math.round(progress * TOTAL_ALT);
+
+  let zone = ZONES[0];
+  for (const z of ZONES) { if (altitude >= z.threshold) zone = z; }
+
+  const activeEncounter = useMemo(() => getCurrentEncounter(progress), [progress]);
+  const bossState = useMemo(() => getBossPhase(progress, activeEncounter), [progress, activeEncounter]);
+  const rocketX = calculateRocketX(progress);
+
+  const isBossActive = activeEncounter?.type === "boss" && bossState?.phase === "FIGHT";
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-black text-white">
-      <StickyNav />
-      <AltitudeSidebar />
-      <main className="relative">
-        <HeroSection />
-        <GameplayExplained />
-        <section id="ascent" className="relative overflow-hidden py-24 sm:py-32">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.08),transparent_20%)]" />
-          <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-            <div className="mb-12 max-w-2xl space-y-4">
-              <p className="text-sm uppercase tracking-[0.35em] text-cyan-300/90">The Zones</p>
-              <h2 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                Six atmospheres. Escalating challenge.
-              </h2>
-              <p className="max-w-2xl text-base leading-7 text-slate-300">
-                Each zone brings new hazards, enemies, and trials. Difficulty multiplies as you climb toward the Signal.
-              </p>
-            </div>
-            <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-              {[
-                {
-                  zone: "Earth",
-                  descriptor: "The Launch",
-                  detail: "Gravity pulls hard. Learn the basics.",
-                },
-                {
-                  zone: "Cloud Layer",
-                  descriptor: "The Storm",
-                  detail: "Lightning and turbulence test your thrust.",
-                },
-                {
-                  zone: "Orbit",
-                  descriptor: "The Boundary",
-                  detail: "Bosses guard the path forward.",
-                },
-                {
-                  zone: "Deep Space",
-                  descriptor: "The Expanse",
-                  detail: "New threats emerge. Reality shifts.",
-                },
-                {
-                  zone: "The Void",
-                  descriptor: "The Source",
-                  detail: "Where the Signal originates.",
-                },
-                {
-                  zone: "The Signal",
-                  descriptor: "The Truth",
-                  detail: "The final frontier awaits.",
-                },
-              ].map((item) => (
-                <article
-                  key={item.zone}
-                  className="rounded-[2rem] border border-cyan-300/10 bg-white/5 p-6 shadow-[0_0_60px_rgba(0,229,255,0.06)] transition hover:border-cyan-400/30 hover:bg-white/[0.08]"
-                >
-                  <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/80">{item.descriptor}</p>
-                  <h3 className="mt-3 text-lg font-semibold text-white">{item.zone}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">{item.detail}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-        <BossShowcase />
-        <RocketShowcase />
-        <DiscoveryArchive />
-        <ProgressionSystems />
-        <MissionControl />
-      </main>
-      <footer className="border-t border-white/10 bg-black/90 py-8 text-slate-400">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 sm:px-8 lg:px-12 lg:flex-row lg:items-center lg:justify-between">
-          <p className="text-sm">Jump Droid — The Signal From the Void.</p>
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <a href="#hero" className="transition hover:text-cyan-200">Back to top</a>
-            <a href="#mission-control" className="transition hover:text-cyan-200">Contact</a>
-            <a href="#" className="transition hover:text-cyan-200">Privacy</a>
-          </div>
-        </div>
-      </footer>
-    </div>
+    <>
+      {/* Scroll spacer */}
+      <div style={{ height: `${SCROLL_HEIGHT}vh`, pointerEvents: "none" }} />
+
+      {/* Zone backgrounds (lazy-loaded) */}
+      <ZoneBackgrounds altitude={altitude} />
+
+      {/* Encounters (enter/peak/exit) */}
+      <EncounterSystem progress={progress} rocketX={rocketX} viewWidth={1200} />
+
+      {/* Boss encounter (takes over screen during FIGHT phase) */}
+      {isBossActive && (
+        <BossEncounter
+          entity={activeEncounter.entity as any}
+          phase={bossState.phase}
+          progress={bossState.phaseProgress}
+          message={activeEncounter.message}
+        />
+      )}
+
+      {/* Rocket (flies through world) */}
+      <FlyingRocket progress={progress} rocketX={rocketX} />
+
+      {/* HUD */}
+      <AltitudeHUD altitude={altitude} zoneName={zone.name} progress={progress} />
+
+      {/* Finale archive */}
+      {progress > 0.92 && <FinaleArchive progress={progress} />}
+
+      {/* Start CTA */}
+      <div
+        className="fixed bottom-10 left-1/2 z-30 -translate-x-1/2 text-center"
+        style={{ opacity: progress < 0.02 ? 1 : 0, transition: "opacity 0.5s" }}
+      >
+        <p className="text-sm uppercase tracking-[0.4em] text-cyan-300 font-bold mb-3">Jump Droid</p>
+        <p className="text-xl text-slate-200 mb-6 font-semibold">The Signal From the Void</p>
+        <a
+          href="https://play.google.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pointer-events-auto inline-block rounded-full bg-cyan-400 px-10 py-4 text-lg font-black uppercase tracking-widest text-black hover:bg-cyan-300 shadow-[0_0_40px_rgba(0,229,255,0.5)]"
+        >
+          Download
+        </a>
+      </div>
+
+      {/* End CTA (hidden when finale archive is active) */}
+      <div
+        className="fixed bottom-10 left-1/2 z-30 -translate-x-1/2 text-center"
+        style={{ opacity: progress > 0.94 && progress <= 0.92 ? 1 : 0, transition: "opacity 0.5s", display: progress > 0.92 ? "none" : "block" }}
+      >
+        <p className="text-sm uppercase tracking-[0.4em] text-cyan-300 font-bold mb-3">Mission Complete</p>
+        <p className="text-xl text-slate-200 mb-6 font-semibold">You reached The Signal.</p>
+        <a
+          href="https://play.google.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pointer-events-auto inline-block rounded-full bg-cyan-400 px-10 py-4 text-lg font-black uppercase tracking-widest text-black hover:bg-cyan-300 shadow-[0_0_40px_rgba(0,229,255,0.5)]"
+        >
+          Download
+        </a>
+      </div>
+    </>
   );
 }
