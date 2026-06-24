@@ -76,11 +76,13 @@ fun GameScreen() {
     val context = LocalContext.current
     val densityValue = androidx.compose.ui.platform.LocalDensity.current.density
     val sharedPrefs = remember { context.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE) }
-    
+
+    var gameState by remember { mutableStateOf(GameState.TITLE) }
+    var previousState by remember { mutableStateOf(GameState.MAIN_MENU) }
+
     var highestYReached by remember { mutableFloatStateOf(Float.MAX_VALUE) }
     var score by remember { mutableIntStateOf(0) }
     var continuesUsed by remember { mutableIntStateOf(0) }
-    
     var runDurationTimer by remember { mutableFloatStateOf(0f) }
     var airborneTimer by remember { mutableFloatStateOf(0f) }
     var noOverheatTimer by remember { mutableFloatStateOf(0f) }
@@ -98,9 +100,6 @@ fun GameScreen() {
     var overheatCount by remember { mutableIntStateOf(0) }
     var wasNearDeath by remember { mutableStateOf(false) }
     var consecutiveWins by remember { mutableIntStateOf(0) }
-    
-    var gameState by remember { mutableStateOf(GameState.TITLE) }
-    var previousState by remember { mutableStateOf(GameState.MAIN_MENU) }
     var activeDiscovery by remember { mutableStateOf<DiscoveryType?>(null) }
     var unlockedRocket by remember { mutableStateOf<RocketType?>(null) }
     var codexNotification by remember { mutableStateOf<DiscoveryType?>(null) }
@@ -108,25 +107,20 @@ fun GameScreen() {
     val discoveryManager = remember { DiscoveryManager(sharedPrefs) }
     val progressionManager = remember { ProgressionManager(sharedPrefs) }
     val missionManager = remember { MissionManager(progressionManager) }
-
-    val threatManager = remember { 
+    val threatManager = remember {
         ThreatManager().apply {
             onThreatDestroyed = { def ->
-                if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
-                    totalBossesDefeated++
-                }
+                if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) totalBossesDefeated++
             }
         }
     }
     val comboManager = remember { ComboManager() }
-
     val flyingRewards = remember { mutableStateListOf<FlyingReward>() }
     val platformManager = remember { PlatformManager() }
 
     var screenWidth by remember { mutableFloatStateOf(0f) }
     var screenHeight by remember { mutableFloatStateOf(0f) }
     var groundY by remember { mutableFloatStateOf(0f) }
-
     val player = remember { Player(0f, 0f) }
     val altitudeManager = remember { AltitudeManager() }
     val backgroundRenderer = remember { ZoneBackgroundRenderer() }
@@ -139,47 +133,38 @@ fun GameScreen() {
     val particles = remember { mutableStateListOf<Particle>() }
     val floatingTextManager = remember { FloatingTextManager() }
 
-    SideEffect {
-        missionManager.onMissionCompleted = { mission ->
-            progressionManager.recordMissionCompletion(mission.id)
-        }
-    }
+    SideEffect { missionManager.onMissionCompleted = { progressionManager.recordMissionCompletion(it.id) } }
 
     var missionHintRotationTimer by remember { mutableFloatStateOf(0f) }
     var globalShowObjective by remember { mutableStateOf(false) }
-
     var gameTime by remember { mutableLongStateOf(0L) }
     var cameraY by remember { mutableFloatStateOf(0f) }
-    var isThrusting by remember { mutableStateOf(value = false) }
+    var isThrusting by remember { mutableStateOf(false) }
     var thrustTarget by remember { mutableStateOf(Offset.Zero) }
     var screenShake by remember { mutableFloatStateOf(0f) }
     var impactFlashAlpha by remember { mutableFloatStateOf(0f) }
     var globalFogAlpha by remember { mutableFloatStateOf(0f) }
-    
     var effectiveThrust by remember { mutableStateOf(false) }
     var effectiveTarget by remember { mutableStateOf(Offset.Zero) }
-
-    // --- Developer / Cheat States ---
     var infiniteFuel by remember { mutableStateOf(false) }
     var disableHeat by remember { mutableStateOf(false) }
     var showDevMenu by remember { mutableStateOf(false) }
 
     val bossesSpawned = remember { mutableStateSetOf<String>() }
-
     val notificationManager = remember { NotificationManager() }
     val survivalManager = remember { SurvivalManager() }
     val encounterDirector = remember { EncounterDirector() }
     val projectileManager = remember { ProjectileManager() }
     val inputBufferManager = remember { InputBufferManager() }
-    val loadoutManager = remember { LoadoutManager(sharedPrefs) }
 
-    // Escalation & Major Warning State
     var majorWarningText by remember { mutableStateOf<String?>(null) }
     var majorWarningTimer by remember { mutableFloatStateOf(0f) }
     var escalationSpawnId by remember { mutableStateOf<String?>(null) }
     var escalationSpawnX by remember { mutableFloatStateOf(0f) }
     var escalationSpawnY by remember { mutableFloatStateOf(0f) }
     var escalationCountdown by remember { mutableFloatStateOf(0f) }
+
+    val loadoutManager = remember { LoadoutManager(sharedPrefs) }
 
     LaunchedEffect(gameState) {
         if (gameState != GameState.PLAYING) {
