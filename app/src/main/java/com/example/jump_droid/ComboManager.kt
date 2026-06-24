@@ -15,7 +15,8 @@ data class ComboTier(
     val minCombo: Int,
     val maxCombo: Int,
     val name: String,
-    val rewards: List<ComboReward>
+    val breakRewards: List<ComboReward>,
+    val survivalDrop: ComboReward? = null
 )
 
 data class FlyingReward(
@@ -45,25 +46,23 @@ class ComboManager {
     val immediateSurvivalRewards = mutableListOf<ComboReward>()
 
     private val tiers = listOf(
-        ComboTier(1, 5, 7, "BASIC", listOf(ComboReward.Fuel(50f))),
-        ComboTier(2, 8, 11, "IMPROVED", listOf(ComboReward.PowerUp(PowerUpType.TURBO_BOOSTER))),
-        ComboTier(3, 12, 15, "ADVANCED", listOf(ComboReward.AltitudeBoost)),
-        ComboTier(4, 16, 20, "ELITE", listOf(ComboReward.PowerUp(PowerUpType.ARTIFACT))),
+        ComboTier(1, 5, 7, "BASIC", listOf(ComboReward.Fuel(50f)), ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE)),
+        ComboTier(2, 8, 11, "IMPROVED", listOf(ComboReward.PowerUp(PowerUpType.TURBO_BOOSTER)), ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE)),
+        ComboTier(3, 12, 15, "ADVANCED", listOf(ComboReward.AltitudeBoost), ComboReward.PowerUp(PowerUpType.HULL_REPAIR)),
+        ComboTier(4, 16, 20, "ELITE", listOf(ComboReward.PowerUp(PowerUpType.ARTIFACT)), ComboReward.PowerUp(PowerUpType.HULL_REPAIR)),
         ComboTier(5, 21, 999, "LEGENDARY", listOf(ComboReward.Artifact(DiscoveryType.ART_RECORDER)))
     )
 
     fun onLanding() {
         currentCombo++
         
-        // Task 6: Immediate Survival Rewards
-        when (currentCombo) {
-            5 -> immediateSurvivalRewards.add(ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE))
-            10 -> immediateSurvivalRewards.add(ComboReward.PowerUp(PowerUpType.SHIELD_CAPSULE)) // Larger could be 2x or a diff type if we had it, but following spec
-            15 -> immediateSurvivalRewards.add(ComboReward.PowerUp(PowerUpType.HULL_REPAIR))
-            20 -> immediateSurvivalRewards.add(ComboReward.PowerUp(PowerUpType.HULL_REPAIR))
-            else -> if (currentCombo >= 25 && currentCombo % 5 == 0) {
-                calculateReward(currentCombo)?.let { immediateSurvivalRewards.add(it) }
-            }
+        // Survival drops: check if we just entered a new tier
+        tiers.firstOrNull { currentCombo == it.minCombo }?.survivalDrop?.let {
+            immediateSurvivalRewards.add(it)
+        }
+        // Post-legendary: every 5 combos past max tier
+        if (currentCombo > (tiers.lastOrNull()?.maxCombo ?: 25) && currentCombo % 5 == 0) {
+            calculateReward(currentCombo)?.let { immediateSurvivalRewards.add(it) }
         }
 
         refreshTimer()
@@ -106,7 +105,7 @@ class ComboManager {
 
     private fun calculateReward(streak: Int): ComboReward? {
         val tier = tiers.findLast { streak >= it.minCombo }
-        return tier?.rewards?.randomOrNull()
+        return tier?.breakRewards?.randomOrNull()
     }
 
     fun getWindowForCombo(combo: Int): Long {
@@ -125,5 +124,6 @@ class ComboManager {
         comboTimeRemaining = 0L
         pendingReward = null
         showComboComplete = false
+        immediateSurvivalRewards.clear()
     }
 }
