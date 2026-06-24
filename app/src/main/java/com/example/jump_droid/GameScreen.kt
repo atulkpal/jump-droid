@@ -3743,31 +3743,6 @@ fun GameScreen() {
                     )
 
                     // 4. CENTER BELOW ALTITUDE: Progression HUD Layer
-                    val isZoneCardVisible = discoveryManager.activeEvent is DiscoveryEvent.Zone
-                    AnimatedVisibility(
-                        visible = !isZoneCardVisible,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 70.dp) // Moved up from 80.dp
-                            .statusBarsPadding(),
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            ComboHudBar(
-                                currentCombo = comboManager.currentCombo,
-                                bestComboThisRun = comboManager.bestComboThisRun,
-                                comboTarget = comboManager.comboTarget,
-                                comboTimeRemaining = comboManager.comboTimeRemaining,
-                                getWindowForCombo = { comboManager.getWindowForCombo(it) },
-                                screenWidth = screenWidth,
-                                zone = altitudeManager.currentZone
-                            )
-                        }
-                    }
 
                     // NOTIFICATION LAYER
                     NotificationLayer(
