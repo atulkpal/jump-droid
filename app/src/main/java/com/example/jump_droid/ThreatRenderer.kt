@@ -26,7 +26,21 @@ object ThreatRendererRegistry {
         "HAZ_CROSSWIND" to CrosswindRenderer(),
         "HAZ_THERMAL" to ThermalRenderer(),
         "HAZ_STORM" to StormRenderer(),
-        "HAZ_VOID_ANOMALY" to VoidAnomalyRenderer()
+        "HAZ_VOID_ANOMALY" to VoidAnomalyRenderer(),
+        "ENT_SCOUT_DRONE" to ScoutDroneRenderer(),
+        "ENT_SWARM_BOTS" to SwarmBotsRenderer(),
+        "ENT_CLOUD_SKIMMER" to CloudSkimmerRenderer(),
+        "ENT_ORBITAL_SENTRY" to OrbitalSentryRenderer(),
+        "ENT_CORRUPTED_HULL" to CorruptedHullRenderer(),
+        "ENT_STALKER" to StalkerRenderer(),
+        "ENT_VOID_WHALE" to VoidWhaleRenderer(),
+        "ENT_VOID_WRAITH" to VoidWraithRenderer(),
+        "MINI_BOSS_COMMANDER" to CommanderRenderer(),
+        "BOSS_GATEKEEPER" to GatekeeperRenderer(),
+        "BOSS_STAR_EATER" to StarEaterRenderer(),
+        "BOSS_VOID_ENGINE" to VoidEngineRenderer(),
+        "BOSS_LEVIATHAN" to LeviathanRenderer(),
+        "BOSS_SIGNAL" to SignalRenderer()
     )
 
     fun forId(id: String): ThreatRenderer? = renderers[id]
