@@ -20,6 +20,32 @@ class MissionManager(private val progressionManager: ProgressionManager) {
     // Tracks IDs of missions completed during this session to prevent repetition
     private val completedIdsInRun = mutableSetOf<String>()
 
+    // Ceremony timers: mission ID → elapsed time
+    private val ceremonyTimers = mutableMapOf<String, Float>()
+
+    fun startCeremony(missionId: String) {
+        ceremonyTimers[missionId] = 0f
+    }
+
+    fun isInCeremony(missionId: String): Boolean = ceremonyTimers.containsKey(missionId)
+
+    fun updateCeremonies(dt: Float): List<String> {
+        val ended = mutableListOf<String>()
+        ceremonyTimers.keys.toList().forEach { mid ->
+            val newTime = (ceremonyTimers[mid] ?: 0f) + dt
+            ceremonyTimers[mid] = newTime
+            if (newTime >= 3.0f) {
+                ceremonyTimers.remove(mid)
+                ended.add(mid)
+            }
+        }
+        return ended
+    }
+
+    fun clearCeremonies() {
+        ceremonyTimers.clear()
+    }
+
     /**
      * Audits unlock conditions for all missions.
      * Called whenever progression state changes.

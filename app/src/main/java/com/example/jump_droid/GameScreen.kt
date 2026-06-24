@@ -119,7 +119,7 @@ fun GameScreen() {
         }
     }
     val comboManager = remember { ComboManager() }
-    val missionCeremonies = remember { mutableStateMapOf<String, Float>() }
+
     val flyingRewards = remember { mutableStateListOf<FlyingReward>() }
     val platformManager = remember { PlatformManager() }
 
@@ -712,10 +712,10 @@ fun GameScreen() {
         wasNearDeath = false
 
         powerUpManager.spawnTimer = 0f
+        missionManager.clearCeremonies()
         globalFogAlpha = 0f
         effectiveThrust = false
         effectiveTarget = Offset.Zero
-        missionCeremonies.clear()
         score = 0
         altitudeManager.updateAltitude(0)
         highestYReached = groundY
@@ -1479,8 +1479,8 @@ fun GameScreen() {
 
                         // Handle Completed Missions (Ceremony & Rewards)
                         missionManager.activeMissions.forEach { mission ->
-                            if (mission.isCompleted && missionCeremonies[mission.id] == null) {
-                                missionCeremonies[mission.id] = 0f
+                            if (mission.isCompleted && !missionManager.isInCeremony(mission.id)) {
+                                missionManager.startCeremony(mission.id)
                                 notificationManager.post("MISSION COMPLETE: ${mission.name.uppercase()}")
                                 
                                 // One-time burst at player
@@ -1490,36 +1490,25 @@ fun GameScreen() {
                             }
                         }
 
-                        // Ceremony cleanup (no reward spawning here anymore)
-                        val ceremonyKeys = missionCeremonies.keys.toList()
-                        ceremonyKeys.forEach { mid ->
-                            val m = missionManager.activeMissions.find { it.id == mid }
-                            if (m == null) { missionCeremonies.remove(mid); return@forEach }
+                        for (mid in missionManager.updateCeremonies(dt)) {
+                            val m = missionManager.activeMissions.find { it.id == mid } ?: continue
+                            m.ceremonyStage = CeremonyStage.REPLACING
 
-                            val prevTime = missionCeremonies[mid] ?: 0f
-                            val newTime = prevTime + dt
-                            missionCeremonies[mid] = newTime
-
-                            if (newTime >= 3.0f) {
-                                m.ceremonyStage = CeremonyStage.REPLACING
-                                missionCeremonies.remove(mid)
-                                
-                                // Mission Synergy Bonus: Small progress to other active tracks
-                                missionManager.activeMissions.filter { !it.isCompleted && it.id != m.id }.forEach { other ->
-                                    when (other.type) {
-                                        MissionType.PLATFORMING -> {
-                                            other.currentProgress = min(other.targetValue, other.currentProgress + 1)
-                                            if (other.checkCompletion()) {
-                                                other.ceremonyStage = CeremonyStage.GLOW
-                                            }
+                            // Mission Synergy Bonus: Small progress to other active tracks
+                            missionManager.activeMissions.filter { !it.isCompleted && it.id != m.id }.forEach { other ->
+                                when (other.type) {
+                                    MissionType.PLATFORMING -> {
+                                        other.currentProgress = min(other.targetValue, other.currentProgress + 1)
+                                        if (other.checkCompletion()) {
+                                            other.ceremonyStage = CeremonyStage.GLOW
                                         }
-                                        MissionType.SURVIVAL -> {
-                                            val bonus = if (other.id.startsWith("surv_air")) 2f else 5f
-                                            if (other.id.startsWith("surv_air")) airborneTimer += bonus
-                                            else noOverheatTimer += bonus
-                                        }
-                                        else -> {}
                                     }
+                                    MissionType.SURVIVAL -> {
+                                        val bonus = if (other.id.startsWith("surv_air")) 2f else 5f
+                                        if (other.id.startsWith("surv_air")) airborneTimer += bonus
+                                        else noOverheatTimer += bonus
+                                    }
+                                    else -> {}
                                 }
                             }
                         }
