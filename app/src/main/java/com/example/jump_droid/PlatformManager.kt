@@ -10,6 +10,8 @@ class PlatformManager {
     var breakableStreak = 0
     var phaseStreak = 0
     var magneticStreak = 0
+    var fluxStreak = 0
+    var gravitonStreak = 0
 
     /**
      * Generates a new platform based on current score and screen dimensions.
@@ -26,15 +28,19 @@ class PlatformManager {
             else -> {
                 val rand = Random.nextFloat()
                 when {
-                    rand < 0.10f -> PlatformType.MOVING
-                    rand < 0.22f -> PlatformType.ICE
-                    rand < 0.35f -> PlatformType.BOOST
-                    rand < 0.48f -> PlatformType.BREAKABLE
-                    rand < 0.60f && phaseStreak < 2 -> PlatformType.PHASE 
-                    rand < 0.70f && magneticStreak < 2 -> PlatformType.MAGNETIC
-                    rand < 0.78f -> PlatformType.STABILITY
-                    rand < 0.82f -> PlatformType.FUEL
-                    rand < 0.86f -> PlatformType.COOLING
+                    rand < 0.08f -> PlatformType.MOVING
+                    rand < 0.16f -> PlatformType.ICE
+                    rand < 0.25f -> PlatformType.BOOST
+                    rand < 0.35f -> PlatformType.BREAKABLE
+                    rand < 0.45f && phaseStreak < 2 -> PlatformType.PHASE 
+                    rand < 0.55f && magneticStreak < 2 -> PlatformType.MAGNETIC
+                    rand < 0.62f && score >= Constants.ZONE_THRESHOLD_BEYOND -> PlatformType.FLUX
+                    rand < 0.70f && score >= Constants.ZONE_THRESHOLD_GATE -> PlatformType.GRAVITON
+                    rand < 0.76f && score >= 6000 -> PlatformType.CONVEYOR
+                    rand < 0.82f && score >= 1500 -> PlatformType.MIMIC
+                    rand < 0.88f -> PlatformType.STABILITY
+                    rand < 0.92f -> PlatformType.FUEL
+                    rand < 0.96f -> PlatformType.COOLING
                     else -> PlatformType.NORMAL
                 }
             }
@@ -44,6 +50,8 @@ class PlatformManager {
         if (type == PlatformType.BREAKABLE) breakableStreak++ else breakableStreak = 0
         if (type == PlatformType.PHASE) phaseStreak++ else phaseStreak = 0
         if (type == PlatformType.MAGNETIC) magneticStreak++ else magneticStreak = 0
+        if (type == PlatformType.FLUX) fluxStreak++ else fluxStreak = 0
+        if (type == PlatformType.GRAVITON) gravitonStreak++ else gravitonStreak = 0
 
         val isMoving = type == PlatformType.MOVING
         val speed = if (isMoving) (100f + (difficulty * 200f)) * (if (Random.nextBoolean()) 1f else -1f) else 0f
@@ -59,5 +67,7 @@ class PlatformManager {
         breakableStreak = 0
         phaseStreak = 0
         magneticStreak = 0
+        fluxStreak = 0
+        gravitonStreak = 0
     }
 }

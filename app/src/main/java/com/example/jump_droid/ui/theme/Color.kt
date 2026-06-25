@@ -15,6 +15,7 @@ val SciFiWhite = Color(0xFFFFFFFF)
 val SciFiCyan = Color(0xFF00E5FF)   // Progression / Missions / Combo
 val SciFiGold = Color(0xFFFFD700)   // Rewards / Achievements / Celebrations
 val SciFiRed = Color(0xFFFF1744)    // Danger / Heat / Critical
+val SciFiOrange = Color(0xFFFF6D00) // Engine / Fire / Warning
 val SciFiGreen = Color(0xFF00E676)  // Recovery / Fuel
 val SciFiPurple = Color(0xFFD500F9) // Discovery / Mystery / Artifacts
 val SciFiBackground = Color(0xFF0D001A)

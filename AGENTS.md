@@ -1,9 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
 **Last Updated:** 2026-06-25
-**Project Status:** EPIC 8.5 Architecture Decomposition & Mission Alignment — COMPLETE ✅
-**Current Stable Tag:** `epic8.5-aligned`
-**Base Commit:** `9363434` (plus mission fixes)
+**Project Status:** EPIC 10 — The Outer Reaches: Library-Aligned Hybrid — IN PROGRESS 🚧
+**Current Stable Tag:** `epic9-complete`
+**Branch:** `epic10-theOuterReach`
+**Base Commit:** `b9b8e7c`
 
 ---
 
@@ -31,15 +32,15 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `epic9`
+*   **Current Branch**: `epic10-theOuterReach`
 *   **Current Stable Tag**: `epic9-complete`
-*   **Current EPIC**: EPIC 10 — The Outer Reaches (Planning)
-*   **Current Status**: **EPIC 9 COMPLETE**. Hidden signals, Dynamic Unlock Engine, Artifact Set Bonuses, and Lore Logs fully operational. 17 modules and 3 blueprints gated by the evaluator. Archive expanded with Sets and Logs tabs. Passive bonuses integrated into player physics. **EPIC 10 Planning initiated.**
+*   **Current EPIC**: EPIC 10 — The Outer Reaches (Library-Aligned Hybrid)
+*   **Current Status**: **EPIC 9 COMPLETE**. Hidden signals, Dynamic Unlock Engine, Artifact Set Bonuses, and Lore Logs fully operational. 17 modules and 3 blueprints gated by the evaluator. Archive expanded with Sets and Logs tabs. **EPIC 10 complete** — Sprints 10.0–10.6 complete (infrastructure, zone expansion, Flux/Graviton platforms, Foundry & Chrono-Rift zones, 7 library threats, CONVEYOR/MIMIC platforms, KINETIC_BATTERY/MAGNETIC_SIPHON/OVERDRIVE_MODULE power-ups, full visual fidelity upgrade for all threats & platforms, 5 library bosses, 2 artifacts with Grand Ascension set, 2 lore logs, 4 achievements, encounter integration).
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
-    *   GameScreen.kt at 2,050 lines — remaining God Object. Future extraction planned for EPIC 12.
-*   **Current Priorities**: EPIC 10 implementation — Data-driven EncounterDirector and new Altitude Zones.
-*   **Next Planned Work**: Task 10.0: Move zone spawn weights and boss milestones into a data-driven config.
+    *   GameScreen.kt at ~1,900 lines — remaining God Object. Future extraction planned for EPIC 12.
+*   **Current Priorities**: EPIC 11 — The End (Final Peak Zones).
+*   **Next Planned Work**: EPIC 11 — Ascension (The End).
 
 ---
 
@@ -157,3 +158,46 @@ Agent-specific files (e.g. `agent-opencode.md`) are **OPTIONAL**. They may suppl
 2.  Consult **`docs/JumpDroid_EPIC_Tracker.md`** for current milestone status.
 3.  Review **`docs/INVENTORY.md`** to locate relevant technical specs.
 4.  Execute a **`gradle_build`** to ensure a stable environment.
+
+---
+
+## 12. Design Library First Rule
+
+**All gameplay content MUST originate from the Design Libraries in `docs/design/`.**
+
+### The Rule
+Before implementing ANY new:
+- Threat (hazard/entity/boss)
+- Platform type
+- Power-Up
+- Altitude Zone
+- Lore entry
+- Achievement
+- Artifact
+
+**STOP. Check the relevant Library file first.**
+
+| Content Type | Library File |
+|---|---|
+| Threats (hazards, enemies, bosses) | `docs/design/THREAT_LIBRARY.md` |
+| Platforms | `docs/design/PLATFORM_LIBRARY.md` |
+| Power-Ups | `docs/design/POWERUP_LIBRARY.md` |
+| Zones | `docs/design/AREA_LIBRARY.md` |
+| Lore | `docs/design/LORE_LIBRARY.md` |
+| Artifacts | `docs/design/ARTIFACT_LIBRARY.md` |
+| Achievements | `docs/design/ACHIEVEMENT_LIBRARY.md` |
+| Rockets | `docs/design/ROCKET_LIBRARY.md` |
+
+### Priority Order
+1. **APPROVED** items → Implement as-is (highest priority)
+2. **BACKLOG** items → May implement with rationale
+3. **REJECTED** items → Do not implement
+4. **New invention** → Only if no Library entry exists AND a written rationale is provided AND approved
+
+### If You Must Invent
+If no existing Library entry covers the needed design:
+1. Write a **Rationale Document** explaining why existing entries are insufficient
+2. Trace the closest Library concept and explain the evolution
+3. Submit for approval before writing any code
+
+**Violations:** Any agent or engineer implementing content without library traceability will have their changes reverted and must re-submit with proper documentation.

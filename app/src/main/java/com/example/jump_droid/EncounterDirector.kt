@@ -5,10 +5,141 @@ import kotlin.random.Random
 
 /**
  * Manages threat spawning rules, zone-specific weighting, and boss milestone triggers.
- * Extracted from GameScreen.kt as part of Sprint T4.
+ * Fully data-driven — no hardcoded threat IDs or positions.
  */
 class EncounterDirector {
     var threatSpawnTimer = 0f
+
+    private val zoneConfigs = mapOf(
+        AltitudeZone.EARTH to ZoneConfig(
+            zone = AltitudeZone.EARTH,
+            spawnWeights = emptyMap(),
+            intensity = 1.0f
+        ),
+        AltitudeZone.CLOUD_LAYER to ZoneConfig(
+            zone = AltitudeZone.CLOUD_LAYER,
+            spawnWeights = mapOf("HAZ_LIGHTNING" to 1.5f, "HAZ_TURBULENCE" to 1.5f, "ENT_CLOUD_SKIMMER" to 1.0f),
+            intensity = 1.5f,
+            bossMilestone = "MINI_BOSS_COMMANDER"
+        ),
+        AltitudeZone.UPPER_ATMOSPHERE to ZoneConfig(
+            zone = AltitudeZone.UPPER_ATMOSPHERE,
+            spawnWeights = mapOf("DEFAULT_HAZARD" to 1.4f),
+            intensity = 2.0f,
+            bossMilestone = "MINI_BOSS_THERMAL_HIVE"
+        ),
+        AltitudeZone.ORBIT to ZoneConfig(
+            zone = AltitudeZone.ORBIT,
+            spawnWeights = mapOf("HAZ_RADIATION" to 1.5f, "HAZ_SOLAR_FLARE" to 1.5f, "HAZ_LIGHTNING" to 0.3f, "ENT_ORBITAL_SENTRY" to 1.0f),
+            intensity = 3.0f,
+            bossMilestone = "BOSS_GATEKEEPER"
+        ),
+        AltitudeZone.THE_FOUNDRY to ZoneConfig(
+            zone = AltitudeZone.THE_FOUNDRY,
+            spawnWeights = mapOf("HAZ_DEBRIS" to 1.8f, "HAZ_LIGHTNING" to 1.0f),
+            intensity = 3.5f,
+            bossMilestone = "MINI_BOSS_FORGER"
+        ),
+        AltitudeZone.DEEP_SPACE to ZoneConfig(
+            zone = AltitudeZone.DEEP_SPACE,
+            spawnWeights = mapOf("HAZ_RADIATION" to 1.5f, "HAZ_SOLAR_FLARE" to 1.5f, "HAZ_EMP" to 1.5f, "ENT_CORRUPTED_HULL" to 1.0f, "ENT_STALKER" to 1.0f, "ENT_VOID_WHALE" to 1.0f),
+            intensity = 4.0f,
+            bossMilestone = "BOSS_LEVIATHAN"
+        ),
+        AltitudeZone.CHRONO_RIFT to ZoneConfig(
+            zone = AltitudeZone.CHRONO_RIFT,
+            spawnWeights = mapOf("HAZ_VOID_ANOMALY" to 1.5f, "DEFAULT_HAZARD" to 1.8f, "ENT_VOID_WHALE" to 1.0f),
+            intensity = 4.8f
+        ),
+        AltitudeZone.VOID to ZoneConfig(
+            zone = AltitudeZone.VOID,
+            spawnWeights = mapOf("DEFAULT_HAZARD" to 2.0f, "ENT_VOID_WRAITH" to 1.0f),
+            intensity = 5.0f,
+            bossMilestone = "BOSS_VOID_ENGINE"
+        ),
+        AltitudeZone.THE_BEYOND to ZoneConfig(
+            zone = AltitudeZone.THE_BEYOND,
+            spawnWeights = mapOf("DEFAULT_HAZARD" to 2.2f, "ENT_VOID_WRAITH" to 1.2f),
+            intensity = 6.0f,
+            bossMilestone = "BOSS_ARCHITECT"
+        ),
+        AltitudeZone.STELLAR_GATE to ZoneConfig(
+            zone = AltitudeZone.STELLAR_GATE,
+            spawnWeights = mapOf("HAZ_EMP" to 1.8f, "ENT_ORBITAL_SENTRY" to 1.5f),
+            intensity = 7.0f
+        ),
+        AltitudeZone.ANCIENT_CONSTRUCT to ZoneConfig(
+            zone = AltitudeZone.ANCIENT_CONSTRUCT,
+            spawnWeights = mapOf("HAZ_GRAVITY" to 2.0f, "ENT_STALKER" to 1.5f),
+            intensity = 8.5f,
+            bossMilestone = "BOSS_ENTROPY_CORE"
+        ),
+        AltitudeZone.SINGULARITY to ZoneConfig(
+            zone = AltitudeZone.SINGULARITY,
+            spawnWeights = mapOf("DEFAULT_HAZARD" to 3.0f, "ENT_VOID_WRAITH" to 2.0f),
+            intensity = 10.0f
+        )
+    )
+
+    /**
+     * Computes spawn position and velocity from a threat definition's data-driven config.
+     */
+    private fun computeSpawnPosition(
+        def: ThreatDefinition,
+        screenWidth: Float,
+        screenHeight: Float,
+        cameraY: Float
+    ): Triple<Float, Float, Float> {
+        val (sx, sy) = when (def.spawnPosition) {
+            SpawnPosition.ABOVE_CAMERA -> Pair(screenWidth / 2f, cameraY - 600f)
+            SpawnPosition.BELOW_RANDOM_X -> Pair(
+                Random.nextFloat() * screenWidth,
+                cameraY + Random.nextFloat() * screenHeight
+            )
+            SpawnPosition.SIDE_ENTRY -> {
+                val side = if (Random.nextBoolean()) 1f else -1f
+                Pair(
+                    if (side > 0) -100f else screenWidth + 100f,
+                    cameraY + Random.nextFloat() * (screenHeight * 0.5f)
+                )
+            }
+            SpawnPosition.ABOVE_SCREEN -> Pair(
+                Random.nextFloat() * screenWidth,
+                cameraY - 100f
+            )
+            SpawnPosition.RANDOM_SCREEN -> Pair(
+                Random.nextFloat() * screenWidth,
+                cameraY + Random.nextFloat() * screenHeight
+            )
+        }
+
+        // Velocity: use definition as base, add random variance for dynamism
+        val vxSign = if (def.spawnPosition == SpawnPosition.SIDE_ENTRY) {
+            if (sx < 0) 1f else -1f
+        } else 1f
+        val finalVx = def.spawnVx * vxSign + (Random.nextFloat() - 0.5f) * 20f
+        val finalVy = def.spawnVy + (Random.nextFloat() - 0.5f) * 10f
+
+        return Triple(sx, sy, if (def.spawnPosition == SpawnPosition.SIDE_ENTRY) 0f else finalVy)
+    }
+
+    /**
+     * Spawns a single threat at a data-driven position.
+     */
+    private fun spawnAtConfigPosition(
+        def: ThreatDefinition,
+        screenWidth: Float,
+        screenHeight: Float,
+        cameraY: Float,
+        threatManager: ThreatManager,
+        notificationManager: NotificationManager,
+        difficultyMultiplier: Float = 1f,
+        message: String? = null
+    ) {
+        val (sx, sy, svy) = computeSpawnPosition(def, screenWidth, screenHeight, cameraY)
+        threatManager.spawnThreat(def, sx, sy, vx = 0f, vy = svy, difficultyMultiplier = difficultyMultiplier)
+        message?.let { notificationManager.post(it) }
+    }
 
     /**
      * Updates the AI Director, rolling for spawns and checking milestones.
@@ -28,50 +159,50 @@ class EncounterDirector {
         onDiscovery: (DiscoveryType) -> Unit,
         onVisualFeedback: (shake: Float, flash: Float) -> Unit
     ) {
+        val config = zoneConfigs[currentZone] ?: return
+        val intensityFactor = config.intensity
+        val zoneMultiplier = 0.8f + intensityFactor * 0.4f
+
         // 1. Milestone Spawning (Boss Progression)
         val bossMilestones = listOf(
             "MINI_BOSS_COMMANDER" to 1500,
+            "MINI_BOSS_THERMAL_HIVE" to 2500,
             "BOSS_GATEKEEPER" to 4000,
+            "MINI_BOSS_FORGER" to 5500,
             "BOSS_LEVIATHAN" to 7000,
             "BOSS_STAR_EATER" to 10000,
+            "MINI_BOSS_GRAVITY_ANCHOR" to 13000,
             "BOSS_VOID_ENGINE" to 15000,
-            "BOSS_SIGNAL" to 18000
+            "BOSS_SIGNAL" to 18000,
+            "BOSS_ARCHITECT" to 25000,
+            "BOSS_ENTROPY_CORE" to 50000
         )
-
-        val zoneMultiplier = when (currentZone) {
-            AltitudeZone.CLOUD_LAYER -> 1.3f
-            AltitudeZone.UPPER_ATMOSPHERE -> 1.6f
-            AltitudeZone.ORBIT -> 2.0f
-            AltitudeZone.DEEP_SPACE -> 2.5f
-            AltitudeZone.VOID -> 3.0f
-            else -> 1.0f
-        }
-
-        val intensityFactor = when (currentZone) {
-            AltitudeZone.CLOUD_LAYER -> 1.5f
-            AltitudeZone.UPPER_ATMOSPHERE -> 2.0f
-            AltitudeZone.ORBIT -> 3.0f
-            AltitudeZone.DEEP_SPACE -> 4.0f
-            AltitudeZone.VOID -> 5.0f
-            else -> 1.0f
-        }
 
         bossMilestones.forEach { (id, threshold) ->
             if (score >= threshold && !bossesSpawned.contains(id)) {
                 ThreatRegistry.getById(id)?.let { def ->
                     if (currentZone in def.spawnRules.allowedZones || def.spawnRules.allowedZones.isEmpty()) {
                         bossesSpawned.add(id)
-                        threatManager.spawnThreat(def, screenWidth / 2f, cameraY - 600f, difficultyMultiplier = zoneMultiplier)
-                        notificationManager.post("!!! ${def.name.uppercase()} ARRIVING !!!")
+                        spawnAtConfigPosition(
+                            def, screenWidth, screenHeight, cameraY,
+                            threatManager, notificationManager,
+                            difficultyMultiplier = zoneMultiplier,
+                            message = "!!! ${def.name.uppercase()} ARRIVING !!!"
+                        )
                         onVisualFeedback(50f, 1.0f)
 
                         val discovery = when(id) {
                             "MINI_BOSS_COMMANDER" -> DiscoveryType.THREAT_SENTINEL
+                            "MINI_BOSS_THERMAL_HIVE" -> DiscoveryType.THREAT_THERMAL_HIVE
                             "BOSS_GATEKEEPER" -> DiscoveryType.THREAT_GATEKEEPER
+                            "MINI_BOSS_FORGER" -> DiscoveryType.THREAT_FORGER
                             "BOSS_LEVIATHAN" -> DiscoveryType.THREAT_LEVIATHAN
+                            "MINI_BOSS_GRAVITY_ANCHOR" -> DiscoveryType.THREAT_GRAVITY_ANCHOR
                             "BOSS_STAR_EATER" -> DiscoveryType.THREAT_STAR_EATER
                             "BOSS_VOID_ENGINE" -> DiscoveryType.THREAT_VOID_ENGINE
                             "BOSS_SIGNAL" -> DiscoveryType.THREAT_SIGNAL
+                            "BOSS_ARCHITECT" -> DiscoveryType.THREAT_ARCHITECT
+                            "BOSS_ENTROPY_CORE" -> DiscoveryType.THREAT_ENTROPY_CORE
                             else -> null
                         }
                         discovery?.let { onDiscovery(it) }
@@ -93,148 +224,102 @@ class EncounterDirector {
             val zoneSpawnMod = 0.5f + intensityFactor * 0.5f
             val spawnChanceMod = zoneSpawnMod * if (bossPresent) 0.3f else 1.0f
 
+            // 2.1 Environmental Hazards — data-driven from config weights + ThreatDefinition spawn config
             val maxHazards = max(1, (intensityFactor * 0.5f).toInt())
-            val maxScoutDrones = (2f * intensityFactor).toInt().coerceAtLeast(1)
-            val maxSwarmBots = max(1, intensityFactor.toInt())
-            val maxZoneNormals = max(1, (intensityFactor * 0.5f).toInt())
-
-            // 2.1 Environmental Hazards
             if (activeThreats.count { it.definition.type == ThreatType.HAZARD } < maxHazards) {
                 val hazards = eligible.filter { it.type == ThreatType.HAZARD }.shuffled()
                 for (hazard in hazards) {
-                    val weight = when (currentZone) {
-                        AltitudeZone.CLOUD_LAYER -> when (hazard.id) {
-                            "HAZ_LIGHTNING", "HAZ_TURBULENCE" -> 1.5f
-                            else -> 1.0f
-                        }
-                        AltitudeZone.UPPER_ATMOSPHERE -> 1.4f
-                        AltitudeZone.ORBIT -> when (hazard.id) {
-                            "HAZ_RADIATION", "HAZ_SOLAR_FLARE" -> 1.5f
-                            "HAZ_LIGHTNING" -> 0.3f
-                            else -> 1.0f
-                        }
-                        AltitudeZone.DEEP_SPACE -> when (hazard.id) {
-                            "HAZ_RADIATION", "HAZ_SOLAR_FLARE", "HAZ_EMP" -> 1.5f
-                            else -> 1.0f
-                        }
-                        AltitudeZone.VOID -> 2.0f
-                        else -> 1.0f
-                    }
-
+                    val weight = config.spawnWeights[hazard.id] ?: config.spawnWeights["DEFAULT_HAZARD"] ?: 1.0f
                     if (Random.nextFloat() < hazard.spawnRules.spawnChance * spawnChanceMod * weight) {
-                        val spawnX = Random.nextFloat() * screenWidth
-                        val spawnY = when (hazard.id) {
-                            "HAZ_SOLAR_FLARE" -> cameraY - 400f
-                            "HAZ_DEBRIS" -> cameraY - 200f
-                            else -> cameraY + Random.nextFloat() * screenHeight
+                        spawnAtConfigPosition(
+                            hazard, screenWidth, screenHeight, cameraY,
+                            threatManager, notificationManager,
+                            message = "${hazard.name.uppercase()} DETECTED"
+                        )
+                        break
+                    }
+                }
+            }
+
+            // 2.2 Generic Enemies — data-driven from Tier 1/2 eligibles + zone intensity caps
+            val maxScoutDrones = (2f * intensityFactor).toInt().coerceAtLeast(1)
+            val maxSwarmBots = max(1, intensityFactor.toInt())
+            val lowerTierEnemies = eligible.filter { it.type == ThreatType.ENEMY && it.tier <= ThreatTier.TIER_2 }
+            for (enemy in lowerTierEnemies) {
+                val currentCount = activeThreats.count { it.definition.id == enemy.id }
+                val maxCount = when {
+                    enemy.tier == ThreatTier.TIER_1 -> maxScoutDrones
+                    else -> maxSwarmBots
+                }
+                if (currentCount < maxCount && Random.nextFloat() < enemy.spawnRules.spawnChance * spawnChanceMod) {
+                    val messages = mapOf(
+                        "ENT_SCOUT_DRONE" to "SURVEYOR PROBE DETECTED",
+                        "ENT_SWARM_BOTS" to "AEROSOL SWARM DETECTED"
+                    )
+                    spawnAtConfigPosition(
+                        enemy, screenWidth, screenHeight, cameraY,
+                        threatManager, notificationManager,
+                        message = messages[enemy.id]
+                    )
+                }
+            }
+
+            // 2.3 Zone-Specific Entities — data-driven from config spawnWeights
+            val maxZoneNormals = max(1, (intensityFactor * 0.5f).toInt())
+            val zoneEntities = eligible.filter { it.type == ThreatType.ENEMY && it.tier > ThreatTier.TIER_2 }
+            for (entity in zoneEntities) {
+                if (config.spawnWeights.containsKey(entity.id)) {
+                    val currentCount = activeThreats.count { it.definition.id == entity.id }
+                    if (currentCount < maxZoneNormals) {
+                        if (Random.nextFloat() < entity.spawnRules.spawnChance * spawnChanceMod * (config.spawnWeights[entity.id] ?: 1.0f)) {
+                            spawnAtConfigPosition(
+                                entity, screenWidth, screenHeight, cameraY,
+                                threatManager, notificationManager
+                            )
                         }
-                        
-                        val vx = if (hazard.id == "HAZ_DEBRIS") (Random.nextFloat() - 0.5f) * 100f else 0f
-                        val vy = if (hazard.id == "HAZ_DEBRIS") 100f + Random.nextFloat() * 200f else 0f
-                        
-                        threatManager.spawnThreat(hazard, spawnX, spawnY, vx, vy)
-                        notificationManager.post("${hazard.name.uppercase()} DETECTED")
-                        break 
                     }
                 }
             }
 
-            // 2.2 Generic Enemies
-            if (activeThreats.count { it.definition.id == "ENT_SCOUT_DRONE" } < maxScoutDrones) {
-                eligible.find { it.id == "ENT_SCOUT_DRONE" }?.let { probeDef ->
-                    if (Random.nextFloat() < probeDef.spawnRules.spawnChance * spawnChanceMod) {
-                        val spawnX = if (Random.nextBoolean()) -50f else screenWidth + 50f
-                        val vx = if (spawnX < 0) 150f else -150f
-                        threatManager.spawnThreat(probeDef, spawnX, cameraY + Random.nextFloat() * (screenHeight * 0.5f), vx = vx)
-                        notificationManager.post("SURVEYOR PROBE DETECTED")
-                    }
-                }
-            }
-            if (activeThreats.count { it.definition.id == "ENT_SWARM_BOTS" } < maxSwarmBots) {
-                eligible.find { it.id == "ENT_SWARM_BOTS" }?.let { swarmDef ->
-                    if (Random.nextFloat() < swarmDef.spawnRules.spawnChance * spawnChanceMod) {
-                        threatManager.spawnThreat(swarmDef, Random.nextFloat() * screenWidth, cameraY - 100f)
-                        notificationManager.post("AEROSOL SWARM DETECTED")
+            // 2.4 Mini-Boss spawning (Fallback) — data-driven from ThreatRegistry
+            val miniBossFallbacks = eligible
+                .filter { it.type == ThreatType.MINI_BOSS && it.spawnRules.spawnChance > 0f }
+                .shuffled()
+            val activeMiniBossIds = activeThreats.map { it.definition.id }
+            if (activeThreats.none { it.definition.type == ThreatType.MINI_BOSS }) {
+                for (bossDef in miniBossFallbacks) {
+                    if (bossDef.id !in activeMiniBossIds && bossesSpawned.none { it.startsWith("MINI_BOSS") }) {
+                        val zoneMod = if (currentZone in bossDef.spawnRules.allowedZones) 0.6f else 0.1f
+                        if (Random.nextFloat() < bossDef.spawnRules.spawnChance * zoneMod) {
+                            spawnAtConfigPosition(
+                                bossDef, screenWidth, screenHeight, cameraY,
+                                threatManager, notificationManager,
+                                difficultyMultiplier = zoneMultiplier
+                            )
+                            onVisualFeedback(20f, 0f)
+                            bossDef.discoveryType?.let { onDiscovery(it) }
+                            break
+                        }
                     }
                 }
             }
 
-            // 2.3 Zone-Specific Entities
-            if (currentZone == AltitudeZone.CLOUD_LAYER && activeThreats.count { it.definition.id == "ENT_CLOUD_SKIMMER" } < maxZoneNormals) {
-                eligible.find { it.id == "ENT_CLOUD_SKIMMER" }?.let { rayDef ->
-                    if (Random.nextFloat() < rayDef.spawnRules.spawnChance * spawnChanceMod) {
-                        val dir = if (Random.nextBoolean()) 1f else -1f
-                        val spawnX = if (dir > 0) -200f else screenWidth + 200f
-                        threatManager.spawnThreat(rayDef, spawnX, cameraY + Random.nextFloat() * screenHeight, vx = dir * 50f)
-                    }
-                }
-            }
-            if (currentZone == AltitudeZone.ORBIT && activeThreats.count { it.definition.id == "ENT_ORBITAL_SENTRY" } < maxZoneNormals) {
-                eligible.find { it.id == "ENT_ORBITAL_SENTRY" }?.let { sentryDef ->
-                    if (Random.nextFloat() < sentryDef.spawnRules.spawnChance * spawnChanceMod) {
-                        threatManager.spawnThreat(sentryDef, Random.nextFloat() * screenWidth, cameraY + 200f)
-                    }
-                }
-            }
-            if (currentZone == AltitudeZone.DEEP_SPACE && activeThreats.count { it.definition.id == "ENT_CORRUPTED_HULL" } < maxZoneNormals) {
-                eligible.find { it.id == "ENT_CORRUPTED_HULL" }?.let { echoDef ->
-                    if (Random.nextFloat() < echoDef.spawnRules.spawnChance * spawnChanceMod) {
-                        threatManager.spawnThreat(echoDef, Random.nextFloat() * screenWidth, cameraY - 100f, vx = (Random.nextFloat() - 0.5f) * 30f, vy = 20f + Random.nextFloat() * 30f)
-                    }
-                }
-            }
-            if (currentZone == AltitudeZone.DEEP_SPACE && activeThreats.none { it.definition.id == "ENT_STALKER" }) {
-                eligible.find { it.id == "ENT_STALKER" }?.let { stalkerDef ->
-                    if (Random.nextFloat() < stalkerDef.spawnRules.spawnChance * spawnChanceMod) {
-                        threatManager.spawnThreat(stalkerDef, Random.nextFloat() * screenWidth, cameraY - 400f, vx = 0f, vy = 30f)
-                    }
-                }
-            }
-            if (currentZone == AltitudeZone.DEEP_SPACE && activeThreats.none { it.definition.id == "ENT_VOID_WHALE" }) {
-                eligible.find { it.id == "ENT_VOID_WHALE" }?.let { whaleDef ->
-                    if (Random.nextFloat() < whaleDef.spawnRules.spawnChance * spawnChanceMod) {
+            // 2.5 Boss Reinforcements — data-driven: any active boss with tier >= TIER_4 may spawn escorts
+            val activeBoss = activeThreats.find { it.definition.type == ThreatType.MINI_BOSS || it.definition.type == ThreatType.BOSS }
+            if (activeBoss != null && activeBoss.definition.tier >= ThreatTier.TIER_4 && activeBoss.phase >= 3) {
+                if (Random.nextFloat() < 0.08f) {
+                    val escort = eligible.filter { it.type == ThreatType.ENEMY && it.tier <= ThreatTier.TIER_2 }.randomOrNull()
+                    escort?.let { def ->
                         val side = if (Random.nextBoolean()) 1f else -1f
-                        val spawnX = if (side > 0) -200f else screenWidth + 200f
-                        threatManager.spawnThreat(whaleDef, spawnX, cameraY - 200f, vx = side * 30f)
+                        val spawnX = if (side > 0) -100f else screenWidth + 100f
+                        threatManager.spawnThreat(def, spawnX, activeBoss.y + 100f, vx = side * 200f)
+                        notificationManager.post("REINFORCEMENTS INBOUND")
                     }
                 }
-            }
-            if (currentZone == AltitudeZone.VOID && activeThreats.none { it.definition.id == "ENT_VOID_WRAITH" }) {
-                eligible.find { it.id == "ENT_VOID_WRAITH" }?.let { wraithDef ->
-                    if (Random.nextFloat() < wraithDef.spawnRules.spawnChance * spawnChanceMod) {
-                        threatManager.spawnThreat(wraithDef, Random.nextFloat() * screenWidth, cameraY + Random.nextFloat() * screenHeight)
-                    }
-                }
-            }
-
-            // 2.4 Mini-Boss spawning (Fallback)
-            if (activeThreats.none { it.definition.id == "MINI_BOSS_COMMANDER" }) {
-                eligible.find { it.id == "MINI_BOSS_COMMANDER" }?.let { bossDef ->
-                    val cloudMod = if (currentZone == AltitudeZone.CLOUD_LAYER) 0.4f else 1.0f
-                    if (Random.nextFloat() < bossDef.spawnRules.spawnChance * cloudMod) {
-                        threatManager.spawnThreat(bossDef, screenWidth / 2f, cameraY - 600f, difficultyMultiplier = zoneMultiplier)
-                        notificationManager.post("COMMAND CRUISER INBOUND")
-                        onVisualFeedback(20f, 0f)
-                        onDiscovery(DiscoveryType.THREAT_SENTINEL)
-                    }
-                }
-            }
-
-            // 2.5 Boss Reinforcements & Hazards
-            activeThreats.find { it.definition.id == "MINI_BOSS_COMMANDER" }?.let { boss ->
-                if (boss.phase == 3 || boss.phase == 4) {
-                    if (Random.nextFloat() < 0.08f) {
-                        val def = ThreatRegistry.getById("ENT_SCOUT_DRONE")
-                        def?.let {
-                            val side = if (Random.nextBoolean()) 1f else -1f
-                            val spawnX = if (side > 0) -100f else screenWidth + 100f
-                            threatManager.spawnThreat(it, spawnX, boss.y + 100f, vx = side * 200f)
-                            notificationManager.post("REINFORCEMENTS INBOUND")
-                        }
-                    }
-                    if (Random.nextFloat() < 0.15f) {
-                        val id = "HAZ_TURBULENCE"
-                        ThreatRegistry.getById(id)?.let { threatManager.spawnThreat(it, boss.x, boss.y + 100f) }
+                if (Random.nextFloat() < 0.15f) {
+                    val escortHazards = eligible.filter { it.type == ThreatType.HAZARD && it.id != activeBoss.definition.id }
+                    escortHazards.randomOrNull()?.let { def ->
+                        threatManager.spawnThreat(def, activeBoss.x, activeBoss.y + 100f)
                     }
                 }
             }

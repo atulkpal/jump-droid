@@ -150,31 +150,37 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     fun getFuelRegenMultiplier(): Float {
         var mult = 1.0f
         activeSetBonuses.forEach { if (it is ArtifactBonus.FuelRegen) mult *= it.multiplier }
-        return mult
+        return mult * getGlobalEfficiencyMultiplier()
     }
 
     fun getShieldRegenMultiplier(): Float {
         var mult = 1.0f
         activeSetBonuses.forEach { if (it is ArtifactBonus.ShieldRegen) mult *= it.multiplier }
-        return mult
+        return mult * getGlobalEfficiencyMultiplier()
     }
 
     fun getHeatCooldownMultiplier(): Float {
         var mult = 1.0f
         activeSetBonuses.forEach { if (it is ArtifactBonus.HeatCooldown) mult *= it.multiplier }
-        return mult
+        return mult * getGlobalEfficiencyMultiplier()
     }
 
     fun getThrustMultiplier(): Float {
         var mult = 1.0f
         activeSetBonuses.forEach { if (it is ArtifactBonus.ThrustBoost) mult *= it.multiplier }
-        return mult
+        return mult * getGlobalEfficiencyMultiplier()
     }
 
     fun getHullBonusAmount(): Float {
         var bonus = 0f
         activeSetBonuses.forEach { if (it is ArtifactBonus.HullBoost) bonus += it.amount }
         return bonus
+    }
+
+    fun getGlobalEfficiencyMultiplier(): Float {
+        var mult = 1.0f
+        activeSetBonuses.forEach { if (it is ArtifactBonus.GlobalEfficiency) mult *= it.multiplier }
+        return mult
     }
 
     fun recordArtifactDiscovery(type: DiscoveryType, altitude: Int, zone: AltitudeZone) {
@@ -450,12 +456,13 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
      * Audits achievements and rocket unlocks based on current run stats.
      */
     fun checkUnlocks(
-        score: Int,
+        stats: GameStats,
         player: Player,
         onRocketUnlock: (RocketType) -> Unit,
         onAchievementUnlock: (Achievement) -> Unit,
         onLoreDiscovery: (DiscoveryType) -> Unit
     ) {
+        val score = stats.maxAltitude.toInt()
         evaluateLoreLogs(score)
         // 1. Rocket Unlocks
         RocketType.entries.forEach { type ->
@@ -475,7 +482,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         // 3. Achievements
         AchievementsList.forEach { achievement ->
             if (!sharedPrefs.getBoolean("achievement_${achievement.id}", false)) {
-                if (achievement.unlockCondition(score, player.maxComboReached, player.totalOverheats)) {
+                if (achievement.unlockCondition(stats)) {
                     sharedPrefs.edit { putBoolean("achievement_${achievement.id}", true) }
                     onAchievementUnlock(achievement)
                 }

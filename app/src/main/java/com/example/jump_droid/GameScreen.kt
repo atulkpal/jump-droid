@@ -91,6 +91,7 @@ fun GameScreen() {
     var hasTakenDamageThisRun by remember { mutableStateOf(false) }
     var totalHazardHits by remember { mutableIntStateOf(0) }
     var totalFuelPickups by remember { mutableIntStateOf(0) }
+    var totalPowerUps by remember { mutableIntStateOf(0) }
     var totalPlatformLandings by remember { mutableIntStateOf(0) }
     var totalBossesDefeated by remember { mutableIntStateOf(0) }
     var totalArtifactsCollected by remember { mutableIntStateOf(0) }
@@ -315,6 +316,97 @@ fun GameScreen() {
         }
     }
 
+    fun checkUnlock(newScore: Int) {
+        val stats = GameStats(
+            totalFlightTime = airborneTimer,
+            totalPlatformTime = platformStayTimer,
+            zeroHeatTime = noOverheatTimer,
+            fuelPickupsCollected = totalFuelPickups,
+            powerUpsCollected = totalPowerUps,
+            platformLandings = totalPlatformLandings,
+            maxCombo = comboManager.bestComboThisRun,
+            currentCombo = comboManager.currentCombo,
+            comboMaintainTime = comboMaintainTimer,
+            bossesDefeated = totalBossesDefeated,
+            codexUnlocked = progressionManager.getTotalDiscoveries(),
+            maxAltitude = newScore.toFloat(),
+            maxMomentum = momentumValue,
+            hazardHitsSurvived = totalHazardHits,
+            perfectRunTime = perfectRunTimer,
+            artifactsCollected = totalArtifactsCollected,
+            dashesPerRun = totalDashes,
+            overheatCount = player.totalOverheats,
+            wasNearDeath = wasNearDeath,
+            consecutiveWins = consecutiveWins
+        )
+        progressionManager.checkUnlocks(
+            stats = stats,
+            player = player,
+            onRocketUnlock = { type ->
+                unlockedRocket = type
+                gameState = GameState.UNLOCK
+            },
+            onAchievementUnlock = { achievement ->
+                floatingTextManager.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = SciFiGold, isCritical = true))
+            },
+            onLoreDiscovery = { type ->
+                checkDiscovery(type, forceTutorialState = false)
+            }
+        )
+    }
+
+    fun saveHighScore(newScore: Int) {
+        progressionManager.saveHighScore(newScore)
+    }
+
+    fun applyDamage(amount: Float) {
+        if (amount > 0) {
+            totalHazardHits++
+            hasTakenDamageThisRun = true
+        }
+        survivalManager.applyDamage(
+            amount = amount,
+            player = player,
+            isGameOver = gameState != GameState.PLAYING,
+            onGameOver = {
+                gameState = GameState.GAMEOVER
+                saveHighScore(score)
+                
+                // Commit to Intelligence Network
+                val stats = GameStats(
+                    totalFlightTime = airborneTimer,
+                    totalPlatformTime = platformStayTimer,
+                    zeroHeatTime = noOverheatTimer,
+                    fuelPickupsCollected = totalFuelPickups,
+                    powerUpsCollected = totalPowerUps,
+                    platformLandings = totalPlatformLandings,
+                    maxCombo = comboManager.bestComboThisRun,
+                    currentCombo = comboManager.currentCombo,
+                    comboMaintainTime = comboMaintainTimer,
+                    bossesDefeated = totalBossesDefeated,
+                    codexUnlocked = progressionManager.getTotalDiscoveries(),
+                    maxAltitude = score.toFloat(),
+                    maxMomentum = momentumValue,
+                    hazardHitsSurvived = totalHazardHits,
+                    perfectRunTime = perfectRunTimer,
+                    artifactsCollected = totalArtifactsCollected,
+                    dashesPerRun = totalDashes,
+                    overheatCount = player.totalOverheats,
+                    wasNearDeath = wasNearDeath,
+                    consecutiveWins = consecutiveWins
+                )
+                progressionManager.commitSessionStats(stats)
+            },
+            onVisualFeedback = { shake, flash ->
+                screenShake = shake
+                impactFlashAlpha = flash
+            },
+            onBurst = { x, y, count, color, speed ->
+                spawnBurst(x, y, count, color, speed)
+            }
+        )
+    }
+
     fun handleLanding(platform: Platform?, yTop: Float) {
         // Triggered EXACTLY once per unique landing event
         player.velocityY = 0f
@@ -327,6 +419,14 @@ fun GameScreen() {
             landingEffects.add(LandingEffect(player.x, yTop))
             spawnBurst(player.x, yTop, 15, SciFiBorder, 120f)
             platform?.hasBeenLandedOn = true
+            
+            // EPIC 10: Kinetic Battery landing effect
+            if (player.kineticBatteryTimer > 0f) {
+                player.fuel = min(player.maxFuel, player.fuel + 5f)
+                player.shield = min(player.maxShield, player.shield + 2f)
+                floatingTextManager.add(FloatingText("ENERGY RECOVERED", player.x, yTop - 60f, color = Color.White))
+                spawnBurst(player.x, yTop, 20, Color.White, 200f)
+            }
         }
 
         if (platform != null) {
@@ -385,6 +485,21 @@ fun GameScreen() {
                     floatingTextManager.add(FloatingText("FLIGHT STABILIZED", player.x, player.y - 100f, color = SciFiWhite))
                     checkDiscovery(DiscoveryType.STABILITY_PLATFORM)
                 }
+                PlatformType.FLUX -> {
+                    if (player.fluxCooldown <= 0f) {
+                        val oldX = player.x
+                        player.x = screenWidth - player.x
+                        player.fluxCooldown = 0.2f
+                        spawnBurst(oldX, yTop, 20, SciFiPurple, 200f)
+                        spawnBurst(player.x, yTop, 30, SciFiPurple, 300f)
+                        floatingTextManager.add(FloatingText("FLUX TELEPORT", player.x, player.y - 100f, color = SciFiPurple))
+                    }
+                    player.velocityY = LANDING_BOUNCE_VELOCITY
+                }
+                PlatformType.GRAVITON -> {
+                    player.velocityY = LANDING_BOUNCE_VELOCITY
+                    floatingTextManager.add(FloatingText("GRAVITY WELL", player.x, player.y - 100f, color = SciFiRed))
+                }
                 PlatformType.MAGNETIC -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
                     checkDiscovery(DiscoveryType.MAGNETIC_PLATFORM)
@@ -399,6 +514,20 @@ fun GameScreen() {
                     player.velocityX *= HORIZONTAL_DAMPING
                     platform.isBreaking = true
                     checkDiscovery(DiscoveryType.BREAKABLE_PLATFORM)
+                }
+                PlatformType.CONVEYOR -> {
+                    player.velocityY = LANDING_BOUNCE_VELOCITY
+                    checkDiscovery(DiscoveryType.CONVEYOR_PLATFORM)
+                }
+                PlatformType.MIMIC -> {
+                    // Shatters immediately
+                    player.velocityY = LANDING_BOUNCE_VELOCITY
+                    platform.isBreaking = true
+                    platform.crackTime = platform.totalBreakTime // Boom
+                    player.integrity = max(0f, player.integrity - 15f)
+                    spawnBurst(player.x, yTop, 30, Color.Red, 400f)
+                    floatingTextManager.add(FloatingText("MIMIC TRAP!", player.x, player.y - 100f, color = Color.Red))
+                    checkDiscovery(DiscoveryType.MIMIC_PLATFORM)
                 }
                 else -> {
                     player.velocityY = LANDING_BOUNCE_VELOCITY
@@ -429,26 +558,6 @@ fun GameScreen() {
         }
     }
 
-    fun checkUnlock(newScore: Int) {
-        progressionManager.checkUnlocks(
-            score = newScore,
-            player = player,
-            onRocketUnlock = { type ->
-                unlockedRocket = type
-                gameState = GameState.UNLOCK
-            },
-            onAchievementUnlock = { achievement ->
-                floatingTextManager.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = SciFiGold, isCritical = true))
-            },
-            onLoreDiscovery = { type ->
-                checkDiscovery(type, forceTutorialState = false)
-            }
-        )
-    }
-
-    fun saveHighScore(newScore: Int) {
-        progressionManager.saveHighScore(newScore)
-    }
 
     LaunchedEffect(Unit) {
         altitudeManager.onZoneChanged = { newZone ->
@@ -559,52 +668,6 @@ fun GameScreen() {
         gameState = GameState.PLAYING
     }
 
-    fun applyDamage(amount: Float) {
-        if (amount > 0) {
-            totalHazardHits++
-            hasTakenDamageThisRun = true
-        }
-        survivalManager.applyDamage(
-            amount = amount,
-            player = player,
-            isGameOver = gameState != GameState.PLAYING,
-            onGameOver = {
-                gameState = GameState.GAMEOVER
-                saveHighScore(score)
-                
-                // Commit to Intelligence Network
-                val stats = GameStats(
-                    totalFlightTime = airborneTimer,
-                    totalPlatformTime = platformStayTimer,
-                    zeroHeatTime = noOverheatTimer,
-                    fuelPickupsCollected = totalFuelPickups,
-                    platformLandings = totalPlatformLandings,
-                    maxCombo = comboManager.bestComboThisRun,
-                    currentCombo = comboManager.currentCombo,
-                    comboMaintainTime = comboMaintainTimer,
-                    bossesDefeated = totalBossesDefeated,
-                    codexUnlocked = progressionManager.getTotalDiscoveries(),
-                    maxAltitude = score.toFloat(),
-                    maxMomentum = momentumValue,
-                    hazardHitsSurvived = totalHazardHits,
-                    perfectRunTime = perfectRunTimer,
-                    artifactsCollected = totalArtifactsCollected,
-                    dashesPerRun = totalDashes,
-                    overheatCount = player.totalOverheats,
-                    wasNearDeath = wasNearDeath,
-                    consecutiveWins = consecutiveWins
-                )
-                progressionManager.commitSessionStats(stats)
-            },
-            onVisualFeedback = { shake, flash ->
-                screenShake = shake
-                impactFlashAlpha = flash
-            },
-            onBurst = { x, y, count, color, speed ->
-                spawnBurst(x, y, count, color, speed)
-            }
-        )
-    }
 
     fun unlockAll() {
         RocketType.entries.forEach { sharedPrefs.edit { putBoolean("unlock_${it.name}", true) } }
@@ -721,6 +784,7 @@ fun GameScreen() {
         hasTakenDamageThisRun = false
         totalHazardHits = 0
         totalFuelPickups = 0
+        totalPowerUps = 0
         totalPlatformLandings = 0
         totalBossesDefeated = 0
         totalArtifactsCollected = 0
@@ -831,7 +895,7 @@ fun GameScreen() {
                         effectiveTarget = frameEffTarget
 
                         discoveryManager.update(dt)
-                        threatManager.update(dt, cameraY, screenHeight, screenWidth, player.x, player.y, powerUpManager.powerUps)
+                        threatManager.update(dt, cameraY, screenHeight, screenWidth, player, powerUpManager.powerUps)
                         projectileManager.update(dt)
                         ambientManager.update(dt, cameraY, screenWidth, screenHeight, altitudeManager.currentZone)
 
@@ -965,6 +1029,14 @@ fun GameScreen() {
                         if (player.turboTimer > 0) player.turboTimer = max(0f, player.turboTimer - dt)
                         if (player.efficiencyTimer > 0) player.efficiencyTimer = max(0f, player.efficiencyTimer - dt)
                         if (player.stabilityTimer > 0) player.stabilityTimer = max(0f, player.stabilityTimer - dt)
+                        if (player.fluxCooldown > 0) player.fluxCooldown = max(0f, player.fluxCooldown - dt)
+                        if (player.kineticBatteryTimer > 0) player.kineticBatteryTimer = max(0f, player.kineticBatteryTimer - dt)
+                        if (player.magneticSiphonTimer > 0) player.magneticSiphonTimer = max(0f, player.magneticSiphonTimer - dt)
+                        if (player.overdriveTimer > 0) {
+                            player.overdriveTimer = max(0f, player.overdriveTimer - dt)
+                            // Overdrive penalty: integrity damage over time
+                            player.integrity = max(0f, player.integrity - 2f * dt)
+                        }
                         if (player.invulnerabilityTimer > 0) player.invulnerabilityTimer = max(0f, player.invulnerabilityTimer - dt)
                         if (player.comboFreezeTimer > 0) player.comboFreezeTimer = max(0f, player.comboFreezeTimer - dt)
                         if (player.controlInversionTimer > 0) player.controlInversionTimer = max(0f, player.controlInversionTimer - dt)
@@ -981,6 +1053,7 @@ fun GameScreen() {
                             totalPlatformTime = platformStayTimer,
                             zeroHeatTime = noOverheatTimer,
                             fuelPickupsCollected = totalFuelPickups,
+                            powerUpsCollected = totalPowerUps,
                             platformLandings = totalPlatformLandings,
                             maxCombo = comboManager.bestComboThisRun,
                             currentCombo = comboManager.currentCombo,
@@ -1124,7 +1197,10 @@ fun GameScreen() {
                                                 AltitudeZone.UPPER_ATMOSPHERE -> "HAZ_TURBULENCE" to "SUMMONING TURBULENCE"
                                                 AltitudeZone.ORBIT -> "HAZ_EMP" to "ACTIVATING DEFENSE PROTOCOL"
                                                 AltitudeZone.DEEP_SPACE -> "HAZ_GRAVITY" to "SUMMONING ANOMALY"
-                                                AltitudeZone.VOID -> "HAZ_VOID_ANOMALY" to "REALITY BREACH DETECTED"
+                                                AltitudeZone.THE_FOUNDRY -> "HAZ_DEBRIS" to "ACTIVATING MANUFACTURING PROTOCOLS"
+                                                AltitudeZone.CHRONO_RIFT -> "HAZ_VOID_ANOMALY" to "TEMPORAL DISTORTION DETECTED"
+                                                AltitudeZone.VOID, AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE, AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY -> 
+                                                    "HAZ_VOID_ANOMALY" to "REALITY BREACH DETECTED"
                                             }
                                             floatingTextManager.add(FloatingText(msg, threatX, threatY - 30f, life = 2.5f, color = SciFiRed, isCritical = false, sourceThreat = source, anchorOffsetY = -30f, shadowColor = SciFiRed, shadowBlur = 25f))
                                             escalationSpawnId = threatId
@@ -1147,19 +1223,22 @@ fun GameScreen() {
 
                             // Task 3: Magnetic Platforms (Proximity Gravity)
                             platforms.forEach { platform ->
-                                if (platform.type == PlatformType.MAGNETIC) {
+                                if (platform.type == PlatformType.MAGNETIC || platform.type == PlatformType.GRAVITON) {
                                     val dx = player.x - (platform.x + platform.width / 2f)
                                     val dy = player.y - (platform.y + PLATFORM_HEIGHT / 2f)
                                     val distSq = dx*dx + dy*dy
-                                    val radius = 250f
+                                    val isGraviton = platform.type == PlatformType.GRAVITON
+                                    val radius = if (isGraviton) 180f else 250f
+                                    
                                     if (distSq < radius * radius) {
                                         val dist = sqrt(distSq)
-                                        val force = (1f - dist / radius) * 1200f
+                                        val force = (1f - dist / radius) * (if (isGraviton) 3000f else 1200f)
                                         player.velocityX -= (dx / dist) * force * sdt
                                         player.velocityY -= (dy / dist) * force * sdt
                                         
                                         // Heavy Feel (Damping)
-                                        val damp = 1f - 0.15f * (1f - dist / radius)
+                                        val dampBase = if (isGraviton) 0.25f else 0.15f
+                                        val damp = 1f - dampBase * (1f - dist / radius)
                                         player.velocityX *= damp
                                         player.velocityY *= damp
                                     }
@@ -1183,7 +1262,10 @@ fun GameScreen() {
                                     steerMult *= it.onSteer(player, sdt)
                                 }
 
-                                val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * (if (player.turboTimer > 0) 1.2f else 1.0f) * thrustMult * progressionManager.getThrustMultiplier()
+                                val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * 
+                                    (if (player.turboTimer > 0) 1.2f else 1.0f) * 
+                                    (if (player.overdriveTimer > 0) 2.0f else 1.0f) *
+                                    thrustMult * progressionManager.getThrustMultiplier()
 
                                 if (canThrustNormal) {
                                     player.velocityY -= currentThrust * sdt
@@ -1284,6 +1366,9 @@ fun GameScreen() {
                                         if (platform.isMoving) {
                                             player.x += platform.speed * sdt
                                         }
+                                        if (platform.type == PlatformType.CONVEYOR) {
+                                            player.x += 150f * sdt
+                                        }
                                         
                                         if (platform != player.lastPlatform) {
                                             handleLanding(platform, pTop)
@@ -1372,6 +1457,7 @@ fun GameScreen() {
                         powerUpManager.updateMovement(dt, gameTime, player, platforms, cameraY, screenHeight)
 
                         for (pu in powerUpManager.checkCollection(player)) {
+                            totalPowerUps++
                             when (pu.type) {
                                 PowerUpType.FUEL_TANK -> {
                                     if (player.maxFuel < Constants.MAX_FUEL_CAPACITY_LIMIT) {
@@ -1382,6 +1468,7 @@ fun GameScreen() {
                                         player.fuel = player.maxFuel
                                         notificationManager.post("FUEL REFILLED")
                                     }
+                                    totalFuelPickups++
                                     spawnBurst(pu.x, pu.y, 30, SciFiGold, 300f)
                                     screenShake = 5f
                                     checkDiscovery(DiscoveryType.FUEL_TANK)
@@ -1413,12 +1500,32 @@ fun GameScreen() {
                                     spawnBurst(pu.x, pu.y, 30, SciFiCyan, 400f)
                                     notificationManager.post("SHIELD RECHARGE")
                                     floatingTextManager.add(FloatingText("+25 SHIELD", player.x, player.y - 120f, color = SciFiCyan))
+                                    checkDiscovery(DiscoveryType.SHIELD_CAPSULE)
                                 }
                                 PowerUpType.HULL_REPAIR -> {
                                     player.integrity = min(player.maxIntegrity, player.integrity + 20f)
                                     spawnBurst(pu.x, pu.y, 30, SciFiGreen, 400f)
                                     notificationManager.post("HULL REPAIRED")
                                     floatingTextManager.add(FloatingText("+20 HULL", player.x, player.y - 120f, color = SciFiGreen))
+                                    checkDiscovery(DiscoveryType.HULL_REPAIR)
+                                }
+                                PowerUpType.KINETIC_BATTERY -> {
+                                    player.kineticBatteryTimer = 15f
+                                    spawnBurst(pu.x, pu.y, 30, Color.White, 300f)
+                                    notificationManager.post("KINETIC BATTERY ACTIVE")
+                                    checkDiscovery(DiscoveryType.KINETIC_BATTERY)
+                                }
+                                PowerUpType.MAGNETIC_SIPHON -> {
+                                    player.magneticSiphonTimer = 20f
+                                    spawnBurst(pu.x, pu.y, 30, Color.Magenta, 300f)
+                                    notificationManager.post("MAGNETIC SIPHON ACTIVE")
+                                    checkDiscovery(DiscoveryType.MAGNETIC_SIPHON)
+                                }
+                                PowerUpType.OVERDRIVE_MODULE -> {
+                                    player.overdriveTimer = 10f
+                                    spawnBurst(pu.x, pu.y, 30, Color.Red, 400f)
+                                    notificationManager.post("OVERDRIVE ENGAGED!")
+                                    checkDiscovery(DiscoveryType.OVERDRIVE_MODULE)
                                 }
                                 PowerUpType.ARTIFACT -> {
                                     val artifact = listOf(
@@ -1643,133 +1750,9 @@ fun GameScreen() {
                             val tx = threat.x
                             val ty = threat.y - cameraY
 
-                            when (threat.definition.id) {
-                                "HAZ_LIGHTNING" -> {
-                                    ThreatRendererRegistry.forId("HAZ_LIGHTNING")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_DEBRIS" -> {
-                                    ThreatRendererRegistry.forId("HAZ_DEBRIS")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_RADIATION" -> {
-                                    ThreatRendererRegistry.forId("HAZ_RADIATION")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_SOLAR_FLARE" -> {
-                                    ThreatRendererRegistry.forId("HAZ_SOLAR_FLARE")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_TURBULENCE" -> {
-                                    ThreatRendererRegistry.forId("HAZ_TURBULENCE")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_GRAVITY" -> {
-                                    ThreatRendererRegistry.forId("HAZ_GRAVITY")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_EMP" -> {
-                                    ThreatRendererRegistry.forId("HAZ_EMP")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_GUST" -> {
-                                    ThreatRendererRegistry.forId("HAZ_GUST")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_CROSSWIND" -> {
-                                    ThreatRendererRegistry.forId("HAZ_CROSSWIND")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_THERMAL" -> {
-                                    ThreatRendererRegistry.forId("HAZ_THERMAL")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "ENT_SCOUT_DRONE" -> {
-                                    ThreatRendererRegistry.forId("ENT_SCOUT_DRONE")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "ENT_SWARM_BOTS" -> {
-                                    ThreatRendererRegistry.forId("ENT_SWARM_BOTS")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "ENT_CLOUD_SKIMMER" -> {
-                                    ThreatRendererRegistry.forId("ENT_CLOUD_SKIMMER")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_STORM" -> {
-                                    ThreatRendererRegistry.forId("HAZ_STORM")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "ENT_CORRUPTED_HULL" -> {
-                                    ThreatRendererRegistry.forId("ENT_CORRUPTED_HULL")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "ENT_STALKER" -> {
-                                    ThreatRendererRegistry.forId("ENT_STALKER")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "ENT_VOID_WHALE" -> {
-                                    ThreatRendererRegistry.forId("ENT_VOID_WHALE")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "ENT_VOID_WRAITH" -> {
-                                    ThreatRendererRegistry.forId("ENT_VOID_WRAITH")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "HAZ_VOID_ANOMALY" -> {
-                                    ThreatRendererRegistry.forId("HAZ_VOID_ANOMALY")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "MINI_BOSS_COMMANDER" -> {
-                                    ThreatRendererRegistry.forId("MINI_BOSS_COMMANDER")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "BOSS_GATEKEEPER" -> {
-                                    ThreatRendererRegistry.forId("BOSS_GATEKEEPER")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "BOSS_STAR_EATER" -> {
-                                    ThreatRendererRegistry.forId("BOSS_STAR_EATER")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "BOSS_VOID_ENGINE" -> {
-                                    ThreatRendererRegistry.forId("BOSS_VOID_ENGINE")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "BOSS_LEVIATHAN" -> {
-                                    ThreatRendererRegistry.forId("BOSS_LEVIATHAN")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                                "BOSS_SIGNAL" -> {
-                                    ThreatRendererRegistry.forId("BOSS_SIGNAL")?.render(
-                                        this, threat, cameraY, lifeCycleAlpha, gameTime, player
-                                    )
-                                }
-                            }
+                            ThreatRendererRegistry.forId(threat.definition.id)?.render(
+                                this, threat, cameraY, lifeCycleAlpha, gameTime, player
+                            )
                             }
                         }
                     }

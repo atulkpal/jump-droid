@@ -69,12 +69,11 @@ class ActiveThreat(
     fun update(
         dt: Float, 
         screenWidth: Float = 1000f, 
-        targetX: Float = 0f, 
-        targetY: Float = 0f,
+        player: Player,
         powerUps: List<PowerUp> = emptyList(),
         activeThreats: List<ActiveThreat> = emptyList()
     ) {
-        updateAI(dt, screenWidth, targetX, targetY, powerUps, activeThreats)
+        updateAI(dt, screenWidth, player.x, player.y, player.heat, player.isOverheated, powerUps, activeThreats)
     }
 
     /**

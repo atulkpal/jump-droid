@@ -106,7 +106,7 @@ fun PauseOverlay(
                 Spacer(Modifier.height(8.dp))
                 Text("ENTITIES", color = Color.Gray, fontSize = 10.sp)
                 Row(Modifier.horizontalScroll(rememberScrollState())) {
-                    listOf("ENT_SCOUT_DRONE", "ENT_SWARM_BOTS", "ENT_CLOUD_SKIMMER", "ENT_ORBITAL_SENTRY", "ENT_CORRUPTED_HULL", "ENT_STALKER", "ENT_VOID_WHALE", "ENT_VOID_WRAITH", "HAZ_VOID_ANOMALY", "MINI_BOSS_COMMANDER", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL").forEach { id ->
+                    listOf("ENT_SCOUT_DRONE", "ENT_SWARM_BOTS", "ENT_CLOUD_SKIMMER", "ENT_ORBITAL_SENTRY", "ENT_CORRUPTED_HULL", "ENT_STALKER", "ENT_VOID_WHALE", "ENT_VOID_WRAITH", "HAZ_VOID_ANOMALY", "MINI_BOSS_COMMANDER", "MINI_BOSS_THERMAL_HIVE", "MINI_BOSS_FORGER", "MINI_BOSS_GRAVITY_ANCHOR", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL", "BOSS_ARCHITECT", "BOSS_ENTROPY_CORE").forEach { id ->
                         Button(onClick = { onSpawnDevThreat(id) }, Modifier.padding(4.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333), contentColor = Color.White)) { Text(id.substringAfterLast("_"), fontSize = 10.sp) }
                     }
                 }

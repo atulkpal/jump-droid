@@ -58,6 +58,7 @@ class GameEngine(
     var hasTakenDamageThisRun by mutableStateOf(false)
     var totalHazardHits by mutableIntStateOf(0)
     var totalFuelPickups by mutableIntStateOf(0)
+    var totalPowerUps by mutableIntStateOf(0)
     var totalPlatformLandings by mutableIntStateOf(0)
     var totalBossesDefeated by mutableIntStateOf(0)
     var totalArtifactsCollected by mutableIntStateOf(0)

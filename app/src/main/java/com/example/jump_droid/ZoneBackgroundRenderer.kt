@@ -18,6 +18,11 @@ class ZoneBackgroundRenderer {
         setupEarthLayers()
         setupCloudLayers()
         setupSpaceLayers()
+        setupFoundryLayers()
+        setupBeyondLayers()
+        setupGateLayers()
+        setupConstructLayers()
+        setupChronoRiftLayers()
     }
 
     private fun setupEarthLayers() {
@@ -155,6 +160,8 @@ class ZoneBackgroundRenderer {
                 AltitudeZone.UPPER_ATMOSPHERE -> 40
                 AltitudeZone.ORBIT -> 80
                 AltitudeZone.DEEP_SPACE -> 100
+                AltitudeZone.THE_FOUNDRY -> 60
+                AltitudeZone.CHRONO_RIFT -> 25
                 AltitudeZone.VOID -> 30
                 else -> 0
             }
@@ -169,6 +176,14 @@ class ZoneBackgroundRenderer {
                     val brightness = (0.3f + random.nextFloat() * 0.7f) * opacity * twinkle
 
                     val starColor = when (zone) {
+                        AltitudeZone.THE_FOUNDRY -> {
+                            if (random.nextFloat() > 0.6f) Color(1f, 0.5f + random.nextFloat() * 0.3f, 0f)
+                            else Color.White
+                        }
+                        AltitudeZone.CHRONO_RIFT -> {
+                            if (random.nextFloat() > 0.5f) Color(0.3f + random.nextFloat() * 0.7f, 0.5f + random.nextFloat() * 0.5f, 1f)
+                            else Color.White
+                        }
                         AltitudeZone.VOID -> {
                             val rTint = 0.7f + random.nextFloat() * 0.3f
                             Color(rTint, 0.3f + random.nextFloat() * 0.3f, 0.2f + random.nextFloat() * 0.2f)
@@ -348,6 +363,169 @@ class ZoneBackgroundRenderer {
         ))
     }
 
+    private fun setupFoundryLayers() {
+        // Industrial machinery silhouettes
+        parallaxManager.registerLayer(AltitudeZone.THE_FOUNDRY, RepeatingParallaxLayer(
+            parallaxFactor = 0.15f,
+            zIndex = 1,
+            density = 3,
+            seed = 606,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val w = 80f + random.nextFloat() * 120f
+                val h = 200f + random.nextFloat() * 300f
+                val col = Color(0xFF1A0A00).copy(alpha = 0.7f * opacity)
+                drawRect(col, topLeft = Offset(x - w / 2, y - h / 2), size = Size(w, h))
+                val armW = w * 0.15f
+                drawRect(col, topLeft = Offset(x - w / 2 - armW, y - h / 4), size = Size(armW, h / 2))
+                drawRect(col, topLeft = Offset(x + w / 2, y - h / 4), size = Size(armW, h / 2))
+            }
+        ))
+
+        // Spark particles
+        parallaxManager.registerLayer(AltitudeZone.THE_FOUNDRY, RepeatingParallaxLayer(
+            parallaxFactor = 0.3f,
+            zIndex = 2,
+            density = 5,
+            seed = 707,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val sparkAlpha = (sin(gameTime / 100f + random.nextInt(100)) * 0.5f + 0.5f) * opacity
+                drawCircle(
+                    color = Color(0xFFFF6D00).copy(alpha = sparkAlpha * 0.6f),
+                    radius = 2f + random.nextFloat() * 3f,
+                    center = Offset(x + (gameTime % 5000) / 50f, y)
+                )
+            }
+        ))
+
+        // Laser grid lines
+        parallaxManager.registerLayer(AltitudeZone.THE_FOUNDRY, RepeatingParallaxLayer(
+            parallaxFactor = 0.5f,
+            zIndex = 3,
+            density = 2,
+            seed = 808,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val beamAlpha = (sin(gameTime / 200f + x / 100f) * 0.3f + 0.3f) * opacity
+                drawRect(
+                    color = Color(0xFFFF1744).copy(alpha = beamAlpha * 0.3f),
+                    topLeft = Offset(x, 0f),
+                    size = Size(2f, size.height)
+                )
+            }
+        ))
+    }
+
+    private fun setupBeyondLayers() {
+        parallaxManager.registerLayer(AltitudeZone.THE_BEYOND, RepeatingParallaxLayer(
+            parallaxFactor = 0.05f,
+            zIndex = -1,
+            density = 4,
+            seed = 808,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val radius = 300f + random.nextFloat() * 500f
+                val pulse = sin(gameTime / 2000f + random.nextFloat()) * 0.2f + 1f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF00E5FF).copy(alpha = 0.15f * opacity),
+                            Color(0xFFD500F9).copy(alpha = 0.1f * opacity),
+                            Color.Transparent
+                        ),
+                        center = Offset(x, y),
+                        radius = radius * pulse
+                    ),
+                    radius = radius * pulse,
+                    center = Offset(x, y)
+                )
+            }
+        ))
+    }
+
+    private fun setupGateLayers() {
+        parallaxManager.registerLayer(AltitudeZone.STELLAR_GATE, SilhouetteParallaxLayer(
+            parallaxFactor = 0.15f,
+            zIndex = 1,
+            color = Color.Black.copy(alpha = 0.6f),
+            pathPoints = listOf(
+                Offset(0f, 0.4f), Offset(0.3f, 0.4f), Offset(0.3f, 0.1f),
+                Offset(0.7f, 0.1f), Offset(0.7f, 0.4f), Offset(1f, 0.4f)
+            ),
+            baseHeightPercent = 0.1f
+        ))
+
+        parallaxManager.registerLayer(AltitudeZone.STELLAR_GATE, RepeatingParallaxLayer(
+            parallaxFactor = 0.3f,
+            zIndex = 2,
+            density = 3,
+            seed = 909,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val w = 200f
+                val h = 400f
+                drawRect(
+                    color = Color(0xFFFFD700).copy(alpha = 0.1f * opacity),
+                    topLeft = Offset(x - w / 2, y - h / 2),
+                    size = Size(w, h),
+                    style = Stroke(width = 2f)
+                )
+            }
+        ))
+    }
+
+    private fun setupConstructLayers() {
+        parallaxManager.registerLayer(AltitudeZone.ANCIENT_CONSTRUCT, RepeatingParallaxLayer(
+            parallaxFactor = 0.1f,
+            zIndex = 1,
+            density = 5,
+            seed = 1010,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val size = 150f + random.nextFloat() * 200f
+                drawRect(
+                    color = Color.Black.copy(alpha = 0.8f * opacity),
+                    topLeft = Offset(x - size / 2, y - size / 2),
+                    size = Size(size, size)
+                )
+            }
+        ))
+    }
+
+    private fun setupChronoRiftLayers() {
+        // Time-dilation visual distortion
+        parallaxManager.registerLayer(AltitudeZone.CHRONO_RIFT, RepeatingParallaxLayer(
+            parallaxFactor = 0.0f,
+            zIndex = 3,
+            density = 2,
+            seed = 1111,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val phase = (gameTime / 2000f + random.nextFloat() * 6.28f) % 6.28f
+                val waveX = x + sin(gameTime / 500f + y / 100f) * 50f
+                val waveY = y + cos(gameTime / 600f + x / 80f) * 50f
+                drawCircle(
+                    color = Color(0xFF00E5FF).copy(alpha = 0.08f * opacity),
+                    radius = 60f + phase * 30f,
+                    center = Offset(waveX, waveY),
+                    style = Stroke(width = 1f)
+                )
+            }
+        ))
+
+        // Ghost echoes
+        parallaxManager.registerLayer(AltitudeZone.CHRONO_RIFT, RepeatingParallaxLayer(
+            parallaxFactor = 0.2f,
+            zIndex = 2,
+            density = 2,
+            seed = 1212,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val ghostAlpha = (sin(gameTime / 300f + random.nextInt(100)) * 0.3f + 0.3f) * opacity
+                val ghostW = 30f + random.nextFloat() * 40f
+                val ghostH = 50f + random.nextFloat() * 60f
+                drawRect(
+                    color = Color(0xFFCE93D8).copy(alpha = ghostAlpha * 0.2f),
+                    topLeft = Offset(x - ghostW / 2, y - ghostH / 2),
+                    size = Size(ghostW, ghostH)
+                )
+            }
+        ))
+    }
+
     fun render(
         drawScope: DrawScope,
         altitude: Int,
@@ -408,6 +586,17 @@ class ZoneBackgroundRenderer {
                         bottomEnd = Color(0xFF0D001A)
                     )
                 }
+                AltitudeZone.THE_FOUNDRY -> {
+                    drawInterpolatedBackground(
+                        progress = progress,
+                        topStart = Color(0xFF1A0A00),
+                        middleStart = Color(0xFF3E1A00),
+                        bottomStart = Color(0xFF0D001A),
+                        topEnd = Color(0xFF000000),
+                        middleEnd = Color(0xFF1A0000),
+                        bottomEnd = Color(0xFF0D001A)
+                    )
+                }
                 AltitudeZone.DEEP_SPACE -> {
                     drawInterpolatedBackground(
                         progress = progress,
@@ -419,8 +608,63 @@ class ZoneBackgroundRenderer {
                         bottomEnd = Color.Black
                     )
                 }
+                AltitudeZone.CHRONO_RIFT -> {
+                    drawInterpolatedBackground(
+                        progress = progress,
+                        topStart = Color(0xFF0D001A),
+                        middleStart = Color(0xFF1A0033),
+                        bottomStart = Color(0xFF311B92),
+                        topEnd = Color(0xFF000000),
+                        middleEnd = Color(0xFF0D001A),
+                        bottomEnd = Color(0xFF1A0033)
+                    )
+                }
                 AltitudeZone.VOID -> {
-                    drawRect(Color.Black)
+                    drawInterpolatedBackground(
+                        progress = progress,
+                        topStart = Color.Black,
+                        middleStart = Color.Black,
+                        bottomStart = Color.Black,
+                        topEnd = Color(0xFF001219),
+                        middleEnd = Color(0xFF005F73),
+                        bottomEnd = Color(0xFF0A9396)
+                    )
+                }
+                AltitudeZone.THE_BEYOND -> {
+                    drawInterpolatedBackground(
+                        progress = progress,
+                        topStart = Color(0xFF001219),
+                        middleStart = Color(0xFF005F73),
+                        bottomStart = Color(0xFF0A9396),
+                        topEnd = Color(0xFF000000),
+                        middleEnd = Color(0xFF310E68),
+                        bottomEnd = Color(0xFF5F0A87)
+                    )
+                }
+                AltitudeZone.STELLAR_GATE -> {
+                    drawInterpolatedBackground(
+                        progress = progress,
+                        topStart = Color(0xFF000000),
+                        middleStart = Color(0xFF310E68),
+                        bottomStart = Color(0xFF5F0A87),
+                        topEnd = Color(0xFF1B1B1B),
+                        middleEnd = Color(0xFF0D0D0D),
+                        bottomEnd = Color(0xFF000000)
+                    )
+                }
+                AltitudeZone.ANCIENT_CONSTRUCT -> {
+                    drawInterpolatedBackground(
+                        progress = progress,
+                        topStart = Color(0xFF1B1B1B),
+                        middleStart = Color(0xFF0D0D0D),
+                        bottomStart = Color(0xFF000000),
+                        topEnd = Color(0xFFFFFFFF),
+                        middleEnd = Color(0xFF808080),
+                        bottomEnd = Color(0xFF000000)
+                    )
+                }
+                AltitudeZone.SINGULARITY -> {
+                    drawRect(Color.White)
                 }
             }
 
@@ -432,6 +676,23 @@ class ZoneBackgroundRenderer {
 
             if (currentZone == AltitudeZone.UPPER_ATMOSPHERE) {
                 drawAurora(this, width, height, gameTime, progress)
+            }
+
+            if (currentZone == AltitudeZone.THE_FOUNDRY) {
+                val heatPulse = sin(gameTime / 2000f) * 0.02f + 0.04f
+                drawRect(
+                    brush = Brush.radialGradient(
+                        0.5f to Color.Transparent,
+                        1.0f to Color(0xFFFF6D00).copy(alpha = heatPulse)
+                    )
+                )
+            }
+
+            if (currentZone == AltitudeZone.CHRONO_RIFT) {
+                val glitchPulse = sin(gameTime / 800f) * 0.04f + 0.06f
+                drawRect(
+                    color = Color(0xFF00E5FF).copy(alpha = glitchPulse)
+                )
             }
 
             if (currentZone == AltitudeZone.VOID) {

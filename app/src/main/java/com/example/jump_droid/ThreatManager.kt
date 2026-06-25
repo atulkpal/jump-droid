@@ -20,14 +20,13 @@ class ThreatManager {
         cameraY: Float, 
         screenHeight: Float, 
         screenWidth: Float, 
-        targetX: Float = 0f, 
-        targetY: Float = 0f,
+        player: Player,
         powerUps: List<PowerUp> = emptyList()
     ) {
         val iterator = activeThreats.iterator()
         while (iterator.hasNext()) {
             val threat = iterator.next()
-            threat.update(dt, screenWidth, targetX, targetY, powerUps, activeThreats)
+            threat.update(dt, screenWidth, player, powerUps, activeThreats)
 
             // Cleanup logic: Remove if destroyed or way off-screen
             val isWayOffScreen = (threat.y > cameraY + screenHeight + 1000f) || (threat.y < cameraY - 2000f)

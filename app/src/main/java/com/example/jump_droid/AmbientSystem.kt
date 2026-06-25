@@ -81,8 +81,11 @@ class AmbientManager {
             AltitudeZone.CLOUD_LAYER -> listOf(AmbientType.CLOUD_WISP, AmbientType.WEATHER_BALLOON).random()
             AltitudeZone.UPPER_ATMOSPHERE -> listOf(AmbientType.RESEARCH_BALLOON, AmbientType.CONTRAIL).random()
             AltitudeZone.ORBIT -> listOf(AmbientType.SATELLITE, AmbientType.DEBRIS, AmbientType.PROBE).random()
+            AltitudeZone.THE_FOUNDRY -> listOf(AmbientType.DEBRIS, AmbientType.SATELLITE, AmbientType.DERELICT).random()
             AltitudeZone.DEEP_SPACE -> listOf(AmbientType.ASTEROID, AmbientType.DERELICT, AmbientType.ANCIENT_STRUCTURE).random()
-            AltitudeZone.VOID -> listOf(AmbientType.ANOMALY, AmbientType.DISTORTED_SHAPE).random()
+            AltitudeZone.CHRONO_RIFT -> listOf(AmbientType.ANOMALY, AmbientType.DISTORTED_SHAPE, AmbientType.DERELICT).random()
+            AltitudeZone.VOID, AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE, AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY -> 
+                listOf(AmbientType.ANOMALY, AmbientType.DISTORTED_SHAPE).random()
         }
 
         val parallax = 0.1f + random.nextFloat() * 0.4f
@@ -98,8 +101,11 @@ class AmbientManager {
             AltitudeZone.CLOUD_LAYER -> Color(0xFF80DEEA)
             AltitudeZone.UPPER_ATMOSPHERE -> Color(0xFFCE93D8)
             AltitudeZone.ORBIT -> Color(0xFFFFD700)
+            AltitudeZone.THE_FOUNDRY -> Color(0xFFFF6D00)
             AltitudeZone.DEEP_SPACE -> Color(0xFF64B5F6)
-            AltitudeZone.VOID -> Color(0xFFEF9A9A)
+            AltitudeZone.CHRONO_RIFT -> Color(0xFF00E5FF)
+            AltitudeZone.VOID, AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE, AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY -> 
+                Color(0xFFEF9A9A)
         }
 
         activeObjects.add(AmbientObject(

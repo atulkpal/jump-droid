@@ -57,7 +57,9 @@ object ThreatRegistry {
             spawnRules = ThreatSpawnRules(
                 allowedZones = listOf(AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID),
                 spawnChance = 0.4f
-            )
+            ),
+            spawnPosition = SpawnPosition.BELOW_RANDOM_X,
+            spawnVy = 200f
         ))
 
         register(ThreatDefinition(
@@ -83,7 +85,8 @@ object ThreatRegistry {
             spawnRules = ThreatSpawnRules(
                 allowedZones = listOf(AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID),
                 spawnChance = 0.3f
-            )
+            ),
+            spawnPosition = SpawnPosition.ABOVE_SCREEN
         ))
 
         register(ThreatDefinition(
@@ -125,6 +128,45 @@ object ThreatRegistry {
             )
         ))
 
+        register(ThreatDefinition(
+            id = "HAZ_CRYO_MIST",
+            name = "Cryo-Mist",
+            description = "Super-cooled vapor that locks engine thermal state.",
+            type = ThreatType.HAZARD,
+            tier = ThreatTier.TIER_2,
+            discoveryType = DiscoveryType.HAZARD_CRYO_MIST,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.THE_FOUNDRY),
+                spawnChance = 0.3f
+            )
+        ))
+
+        register(ThreatDefinition(
+            id = "HAZ_MIRROR_SHARDS",
+            name = "Mirror Shards",
+            description = "Fragmented reality that inverts horizontal navigation.",
+            type = ThreatType.HAZARD,
+            tier = ThreatTier.TIER_4,
+            discoveryType = DiscoveryType.HAZARD_MIRROR_SHARDS,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.CHRONO_RIFT, AltitudeZone.THE_BEYOND),
+                spawnChance = 0.25f
+            )
+        ))
+
+        register(ThreatDefinition(
+            id = "HAZ_GRAVITY_SHEAR",
+            name = "Gravity Shear",
+            description = "Opposing gravitational forces that split vertical velocity.",
+            type = ThreatType.HAZARD,
+            tier = ThreatTier.TIER_3,
+            discoveryType = DiscoveryType.HAZARD_GRAVITY_SHEAR,
+            spawnRules = ThreatSpawnRules(
+                allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.THE_BEYOND, AltitudeZone.ANCIENT_CONSTRUCT),
+                spawnChance = 0.3f
+            )
+        ))
+
         // --- HOSTILE ENTITIES ---
 
         register(ThreatDefinition(
@@ -133,7 +175,9 @@ object ThreatRegistry {
             description = "Autonomous drones guarding the lower altitudes.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.EARTH, AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT), spawnChance = 0.4f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.EARTH, AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT), spawnChance = 0.4f),
+            spawnPosition = SpawnPosition.SIDE_ENTRY,
+            spawnVx = 150f
         ))
 
         register(ThreatDefinition(
@@ -142,7 +186,9 @@ object ThreatRegistry {
             description = "Biological organisms that have adapted to high-altitude flight.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_1,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER), spawnChance = 0.15f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER), spawnChance = 0.15f),
+            spawnPosition = SpawnPosition.SIDE_ENTRY,
+            spawnVx = 50f
         ))
 
         register(ThreatDefinition(
@@ -151,7 +197,8 @@ object ThreatRegistry {
             description = "Floating nano-colonies that drift through the clouds, shifting shape in the wind.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_2,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE), spawnChance = 0.35f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE), spawnChance = 0.35f),
+            spawnPosition = SpawnPosition.ABOVE_SCREEN
         ))
 
         register(ThreatDefinition(
@@ -169,7 +216,9 @@ object ThreatRegistry {
             description = "Ghostly remains of previous failed ascents, now hostile.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_2,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE), spawnChance = 0.1f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE), spawnChance = 0.1f),
+            spawnPosition = SpawnPosition.ABOVE_CAMERA,
+            spawnVy = 30f
         ))
 
         register(ThreatDefinition(
@@ -187,7 +236,9 @@ object ThreatRegistry {
             description = "Massive ethereal beings that drift through the outer reaches.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_3,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.02f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.02f),
+            spawnPosition = SpawnPosition.SIDE_ENTRY,
+            spawnVx = 30f
         ))
 
         register(ThreatDefinition(
@@ -196,7 +247,48 @@ object ThreatRegistry {
             description = "Non-Euclidean horrors that exist only within the Void.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_3,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.07f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.07f),
+            spawnPosition = SpawnPosition.RANDOM_SCREEN
+        ))
+
+        register(ThreatDefinition(
+            id = "ENT_HEAT_BAT",
+            name = "Heat Bat",
+            description = "Predatory shadows that strike when your engines run hot.",
+            type = ThreatType.ENEMY,
+            tier = ThreatTier.TIER_2,
+            discoveryType = DiscoveryType.ENEMY_HEAT_BAT,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.THE_FOUNDRY), spawnChance = 0.2f)
+        ))
+
+        register(ThreatDefinition(
+            id = "ENT_VOID_HARVESTER",
+            name = "Void Harvester",
+            description = "Scavenging units that prioritize and consume power-ups.",
+            type = ThreatType.ENEMY,
+            tier = ThreatTier.TIER_3,
+            discoveryType = DiscoveryType.ENEMY_VOID_HARVESTER,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.THE_BEYOND), spawnChance = 0.15f)
+        ))
+
+        register(ThreatDefinition(
+            id = "ENT_PHASE_WRAITH",
+            name = "Phase Wraith",
+            description = "Ethereal guardians vulnerable only when your systems are critical.",
+            type = ThreatType.ENEMY,
+            tier = ThreatTier.TIER_4,
+            discoveryType = DiscoveryType.ENEMY_PHASE_WRAITH,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID, AltitudeZone.STELLAR_GATE, AltitudeZone.SINGULARITY), spawnChance = 0.1f)
+        ))
+
+        register(ThreatDefinition(
+            id = "ENT_GRAVITY_RAM",
+            name = "Gravity Ram",
+            description = "Heavy geometric constructs that execute telegraphed kinetic strikes.",
+            type = ThreatType.ENEMY,
+            tier = ThreatTier.TIER_4,
+            discoveryType = DiscoveryType.ENEMY_GRAVITY_RAM,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY), spawnChance = 0.12f)
         ))
 
         // --- BOSS ENCOUNTERS ---
@@ -253,6 +345,58 @@ object ThreatRegistry {
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.01f)
+        ))
+
+        // --- SPRINT 10.6 LIBRARY BOSSES ---
+
+        register(ThreatDefinition(
+            id = "MINI_BOSS_THERMAL_HIVE",
+            name = "Thermal Hive",
+            description = "Heat-sensitive collective that spawns swarms when engines run hot.",
+            type = ThreatType.MINI_BOSS,
+            tier = ThreatTier.TIER_4,
+            discoveryType = DiscoveryType.THREAT_THERMAL_HIVE,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.CLOUD_LAYER), spawnChance = 0.04f)
+        ))
+
+        register(ThreatDefinition(
+            id = "MINI_BOSS_GRAVITY_ANCHOR",
+            name = "Gravity Anchor",
+            description = "Static spatial anchor that intensifies downward pull over time.",
+            type = ThreatType.MINI_BOSS,
+            tier = ThreatTier.TIER_4,
+            discoveryType = DiscoveryType.THREAT_GRAVITY_ANCHOR,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.THE_BEYOND), spawnChance = 0.03f)
+        ))
+
+        register(ThreatDefinition(
+            id = "MINI_BOSS_FORGER",
+            name = "The Forger",
+            description = "Industrial fabricator that converts safe surfaces into hazardous ones.",
+            type = ThreatType.MINI_BOSS,
+            tier = ThreatTier.TIER_4,
+            discoveryType = DiscoveryType.THREAT_FORGER,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.THE_FOUNDRY, AltitudeZone.ORBIT), spawnChance = 0.04f)
+        ))
+
+        register(ThreatDefinition(
+            id = "BOSS_ARCHITECT",
+            name = "The Architect",
+            description = "Automated level controller that deconstructs your path to the stars.",
+            type = ThreatType.BOSS,
+            tier = ThreatTier.TIER_5,
+            discoveryType = DiscoveryType.THREAT_ARCHITECT,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE), spawnChance = 0.01f)
+        ))
+
+        register(ThreatDefinition(
+            id = "BOSS_ENTROPY_CORE",
+            name = "Entropy Core",
+            description = "A massive radiator that siphons energy and integrity across multiple vectors.",
+            type = ThreatType.BOSS,
+            tier = ThreatTier.TIER_5,
+            discoveryType = DiscoveryType.THREAT_ENTROPY_CORE,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY), spawnChance = 0.01f)
         ))
     }
 

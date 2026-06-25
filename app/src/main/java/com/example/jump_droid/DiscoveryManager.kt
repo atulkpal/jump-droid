@@ -45,6 +45,12 @@ class DiscoveryManager(private val sharedPrefs: SharedPreferences) {
             AltitudeZone.ORBIT -> DiscoveryType.AREA_ORBIT
             AltitudeZone.DEEP_SPACE -> DiscoveryType.AREA_SPACE
             AltitudeZone.VOID -> DiscoveryType.AREA_VOID
+            AltitudeZone.THE_FOUNDRY -> DiscoveryType.AREA_FOUNDRY
+            AltitudeZone.CHRONO_RIFT -> DiscoveryType.AREA_CHRONO_RIFT
+            AltitudeZone.THE_BEYOND -> DiscoveryType.AREA_BEYOND
+            AltitudeZone.STELLAR_GATE -> DiscoveryType.AREA_GATE
+            AltitudeZone.ANCIENT_CONSTRUCT -> DiscoveryType.AREA_CONSTRUCT
+            AltitudeZone.SINGULARITY -> DiscoveryType.AREA_SINGULARITY
         }
         
         // Persist discovery

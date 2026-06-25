@@ -15,7 +15,11 @@ enum class PlatformType {
     FUEL,      // Task 2: Energy variants
     COOLING,   // Task 2
     STABILITY, // Task 2
-    MAGNETIC   // Task 3: Gravity influence
+    MAGNETIC,  // Task 3: Gravity influence
+    FLUX,      // EPIC 10: Teleportation
+    GRAVITON,  // EPIC 10: Gravity well
+    CONVEYOR,  // EPIC 10: Sprint 10.5
+    MIMIC      // EPIC 10: Sprint 10.5
 }
 
 class Platform(

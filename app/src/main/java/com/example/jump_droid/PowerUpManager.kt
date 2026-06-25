@@ -38,13 +38,13 @@ class PowerUpManager {
             val pu = iterator.next()
             pu.life -= dt
 
-            if (pu.isMissionReward) {
+            if (pu.isMissionReward || player.magneticSiphonTimer > 0f) {
                 val dx = player.x - pu.x
                 val dy = player.y - pu.y
                 val distSq = dx * dx + dy * dy
                 if (distSq > 0f) {
                     val dist = sqrt(distSq)
-                    val pull = 1000f * dt
+                    val pull = (if (player.magneticSiphonTimer > 0f) 1500f else 1000f) * dt
                     pu.x += (dx / dist) * pull
                     pu.y += (dy / dist) * pull
                 }

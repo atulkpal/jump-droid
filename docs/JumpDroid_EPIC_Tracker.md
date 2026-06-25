@@ -235,14 +235,16 @@ Do not implement during EPIC 7. Track only.
 
 # EPIC 10 - The Outer Reaches (New Biomes)
 
-**Status:** PLANNING 🗺️
+**Status:** COMPLETE ✅
 *Planning Document: [docs/roadmap/EPIC_10_PLANNING.md](roadmap/EPIC_10_PLANNING.md)*
 
-- [ ] Sprint 10.1: Expansion of the Sky (4 New Zones)
-- [ ] Sprint 10.2: Ancient Structures & Flux Platforms
-- [ ] Sprint 10.3: Environmental Events System (Meteor Showers, etc.)
-- [ ] Sprint 10.4: Apex Entities (Void Phantom, Stellar Harvester)
-- [ ] Sprint 10.5: Final Ascension Lore (10 New Logs)
+- [x] Task 10.0: Infrastructure Refactor (Config Engine)
+- [x] Sprint 10.1: Expansion of the Sky (4 New Zones)
+- [x] Sprint 10.2: Ancient Structures & Flux Platforms
+- [x] Sprint 10.3: Environmental Events System (Meteor Showers, etc.)
+- [x] Sprint 10.4: Library Threats & Entities (7 New Threats)
+- [x] Sprint 10.5: Library Platforms & Power-Ups (CONVEYOR, MIMIC, 3 New Power-Ups)
+- [x] Sprint 10.6: Visual Fidelity, Bosses, Achievements & Lore Finale (renderer upgrades, 5 bosses, 2 artifacts + set bonus, 2 lore logs, 4 achievements, encounter integration, doc refresh)
 
 ---
 

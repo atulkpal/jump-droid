@@ -8,6 +8,8 @@ fun ActiveThreat.updateAI(
     screenWidth: Float = 1000f,
     targetX: Float = 0f,
     targetY: Float = 0f,
+    targetHeat: Float = 0f,
+    targetOverheated: Boolean = false,
     powerUps: List<PowerUp> = emptyList(),
     activeThreats: List<ActiveThreat> = emptyList()
 ) {
@@ -46,6 +48,11 @@ fun ActiveThreat.updateAI(
                 "BOSS_LEVIATHAN" -> 3
                 "BOSS_VOID_ENGINE" -> 2
                 "BOSS_SIGNAL" -> 1
+                "MINI_BOSS_THERMAL_HIVE" -> 2
+                "MINI_BOSS_GRAVITY_ANCHOR" -> 1
+                "MINI_BOSS_FORGER" -> 3
+                "BOSS_ARCHITECT" -> 4
+                "BOSS_ENTROPY_CORE" -> 4
                 else -> 1
             }
             activeWeakPoints = maxWeakPoints
@@ -112,6 +119,20 @@ fun ActiveThreat.updateAI(
                         scanPulse = (sin(lifetime * 1.5f) * 0.5f + 0.5f)
                         x += (screenWidth / 2f - x) * 0.03f * dt
                         y += vy * dt
+                    }
+                    "HAZ_CRYO_MIST" -> {
+                        // Slowly drifts
+                        x += vx * 0.5f * dt
+                        y += vy * 0.5f * dt
+                    }
+                    "HAZ_MIRROR_SHARDS" -> {
+                        rotation += 90f * dt
+                        x += vx * dt
+                        y += vy * dt
+                    }
+                    "HAZ_GRAVITY_SHEAR" -> {
+                        // Pulsates
+                        scanPulse = (sin(lifetime * 3f) * 0.5f + 0.5f)
                     }
                 }
             }
@@ -198,6 +219,70 @@ fun ActiveThreat.updateAI(
                     y += vy * dt
                     
                     scanPulse = (sin(lifetime * 2f) * 0.5f + 0.5f)
+                }
+
+                if (definition.id == "ENT_HEAT_BAT") {
+                    val dx = targetX - x
+                    val dy = targetY - y
+                    val dist = sqrt(dx*dx + dy*dy)
+                    
+                    val isDiving = targetHeat >= 70f || targetOverheated
+                    val speed = if (isDiving) 350f else 120f
+                    
+                    if (dist > 5f) {
+                        x += (dx / dist) * speed * dt
+                        y += (dy / dist) * speed * dt
+                    }
+                }
+
+                if (definition.id == "ENT_VOID_HARVESTER") {
+                    val targetPu = powerUps.minByOrNull { sqrt((it.x - x).pow(2) + (it.y - y).pow(2)) }
+                    if (targetPu != null) {
+                        val dx = targetPu.x - x
+                        val dy = targetPu.y - y
+                        val dist = sqrt(dx*dx + dy*dy)
+                        val speed = 250f
+                        if (dist > 5f) {
+                            x += (dx / dist) * speed * dt
+                            y += (dy / dist) * speed * dt
+                        }
+                    } else {
+                        // Drift near center
+                        x += (screenWidth / 2f - x) * 0.5f * dt
+                        y += vy * dt
+                    }
+                }
+
+                if (definition.id == "ENT_PHASE_WRAITH") {
+                    localTimer += dt
+                    if (localTimer > 4f) {
+                        // Teleport near player
+                        x = targetX + (Random.nextFloat() - 0.5f) * 300f
+                        y = targetY + (Random.nextFloat() - 0.5f) * 300f
+                        localTimer = 0f
+                    }
+                    isMaterialized = targetOverheated
+                }
+
+                if (definition.id == "ENT_GRAVITY_RAM") {
+                    localTimer += dt
+                    val chargeTime = 2f
+                    val dashTime = 1f
+                    val totalCycle = chargeTime + dashTime
+                    
+                    val cyclePos = localTimer % totalCycle
+                    if (cyclePos < chargeTime) {
+                        // Tracking/Charging phase
+                        x += (targetX - x) * 0.8f * dt
+                        state = ThreatState.ACTIVE // We'll use ACTIVE for charging
+                    } else {
+                        // Dash phase
+                        y += 800f * dt
+                        if (y > targetY + 1000f) {
+                            localTimer = 0f // Reset to start another charge
+                            y = targetY - 600f // Reposition above
+                        }
+                    }
                 }
             }
             else -> {}
@@ -489,6 +574,128 @@ fun ActiveThreat.updateAI(
                     vy = -800f
                     if (y < targetY - 2500f) state = ThreatState.DESTROYED
                 }
+            }
+        }
+
+        if (definition.id == "MINI_BOSS_THERMAL_HIVE") {
+            localTimer += dt
+            threatSpawnCooldown -= dt
+            if (!isArrived) {
+                arrivalTimer += dt
+                vy = 120f
+                if (arrivalTimer > arrivalDuration) {
+                    isArrived = true
+                    phase = 2
+                    localTimer = 0f
+                }
+                return
+            }
+            when (phase) {
+                2 -> {
+                    x += (targetX - x) * 0.3f * dt
+                    vy = sin(lifetime * 2f) * 40f
+                    if (targetHeat > 60f && threatSpawnCooldown <= 0f) {
+                        // Spawn swarm bots handled in interaction? No, let's keep it in AI if possible 
+                        // or just use a flag for GameScreen. Actually interaction processor is better for spawning.
+                        threatSpawnCooldown = 3f
+                    }
+                    if (activeWeakPoints < maxWeakPoints || localTimer > 15f) phase = 3
+                }
+                3 -> {
+                    x += (targetX - x) * 0.5f * dt
+                    vy = sin(lifetime * 4f) * 80f
+                    if (activeWeakPoints <= 0) {
+                        phase = 4
+                        localTimer = 0f
+                    }
+                }
+                4 -> {
+                    vy = -600f
+                    if (y < targetY - 2000f) state = ThreatState.DESTROYED
+                }
+            }
+        }
+
+        if (definition.id == "MINI_BOSS_GRAVITY_ANCHOR") {
+            if (!isArrived) {
+                arrivalTimer += dt
+                vy = 100f
+                if (arrivalTimer > arrivalDuration) {
+                    isArrived = true
+                    phase = 2
+                    localTimer = 0f
+                }
+                return
+            }
+            localTimer += dt
+            alertLevel = (localTimer / 10f).coerceIn(0f, 3f) // Intensity multiplier
+            vy = 0f
+            if (activeWeakPoints <= 0) {
+                state = ThreatState.DESTROYED
+            }
+        }
+
+        if (definition.id == "MINI_BOSS_FORGER") {
+            localTimer += dt
+            jamCooldown -= dt
+            if (!isArrived) {
+                arrivalTimer += dt
+                vy = 140f
+                if (arrivalTimer > arrivalDuration) {
+                    isArrived = true
+                    phase = 2
+                    localTimer = 0f
+                }
+                return
+            }
+            x += (targetX - x) * 0.4f * dt
+            vy = sin(lifetime * 1.5f) * 30f
+            if (activeWeakPoints <= 0) {
+                vy = -700f
+                if (y < targetY - 2000f) state = ThreatState.DESTROYED
+            }
+        }
+
+        if (definition.id == "BOSS_ARCHITECT") {
+            localTimer += dt
+            threatSpawnCooldown -= dt
+            projectileCooldown -= dt
+            if (!isArrived) {
+                arrivalTimer += dt
+                vy = 80f
+                if (arrivalTimer > arrivalDuration) {
+                    isArrived = true
+                    phase = 2
+                    localTimer = 0f
+                }
+                return
+            }
+            rotation += 30f * dt
+            x += (targetX - x) * 0.2f * dt
+            if (activeWeakPoints <= 0) {
+                vy = -900f
+                if (y < targetY - 3000f) state = ThreatState.DESTROYED
+            }
+        }
+
+        if (definition.id == "BOSS_ENTROPY_CORE") {
+            localTimer += dt
+            projectileCooldown -= dt
+            if (!isArrived) {
+                arrivalTimer += dt
+                vy = 60f
+                if (arrivalTimer > arrivalDuration) {
+                    isArrived = true
+                    phase = 2
+                    localTimer = 0f
+                }
+                return
+            }
+            scanPulse = (sin(lifetime * 2.5f) * 0.5f + 0.5f)
+            x += (targetX - x) * 0.1f * dt
+            if (activeWeakPoints <= 0) {
+                vy = -1000f
+                if (y < targetY - 3000f) state = ThreatState.DESTROYED
             }
         }
 

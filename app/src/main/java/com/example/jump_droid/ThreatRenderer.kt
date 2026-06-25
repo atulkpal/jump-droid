@@ -40,7 +40,19 @@ object ThreatRendererRegistry {
         "BOSS_STAR_EATER" to StarEaterRenderer(),
         "BOSS_VOID_ENGINE" to VoidEngineRenderer(),
         "BOSS_LEVIATHAN" to LeviathanRenderer(),
-        "BOSS_SIGNAL" to SignalRenderer()
+        "BOSS_SIGNAL" to SignalRenderer(),
+        "HAZ_CRYO_MIST" to CryoMistRenderer(),
+        "HAZ_MIRROR_SHARDS" to MirrorShardsRenderer(),
+        "HAZ_GRAVITY_SHEAR" to GravityShearRenderer(),
+        "ENT_HEAT_BAT" to HeatBatRenderer(),
+        "ENT_VOID_HARVESTER" to VoidHarvesterRenderer(),
+        "ENT_PHASE_WRAITH" to PhaseWraithRenderer(),
+        "ENT_GRAVITY_RAM" to GravityRamRenderer(),
+        "MINI_BOSS_THERMAL_HIVE" to ThermalHiveRenderer(),
+        "MINI_BOSS_GRAVITY_ANCHOR" to GravityAnchorRenderer(),
+        "MINI_BOSS_FORGER" to ForgerRenderer(),
+        "BOSS_ARCHITECT" to ArchitectRenderer(),
+        "BOSS_ENTROPY_CORE" to EntropyCoreRenderer()
     )
 
     fun forId(id: String): ThreatRenderer? = renderers[id]

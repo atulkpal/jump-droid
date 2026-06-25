@@ -21,6 +21,9 @@ sealed class ArtifactBonus {
     data class ThrustBoost(val multiplier: Float) : ArtifactBonus() {
         override val description: String = "Thrust Force +${((multiplier - 1f) * 100).toInt()}%"
     }
+    data class GlobalEfficiency(val multiplier: Float) : ArtifactBonus() {
+        override val description: String = "Global Resource Efficiency +${((multiplier - 1f) * 100).toInt()}%"
+    }
 }
 
 /**
@@ -83,6 +86,15 @@ data class ArtifactSet(
                     DiscoveryType.TURBO_BOOSTER
                 ),
                 bonus = ArtifactBonus.HullBoost(25f)
+            ),
+            ArtifactSet(
+                id = "set_ascension_final",
+                name = "Grand Ascension",
+                discoveries = listOf(
+                    DiscoveryType.ART_PRE_SIGNAL_MAP,
+                    DiscoveryType.ART_BIOMECH_SHARD
+                ),
+                bonus = ArtifactBonus.GlobalEfficiency(1.25f)
             )
         )
     }

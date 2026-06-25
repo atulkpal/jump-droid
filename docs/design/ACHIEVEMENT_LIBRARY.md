@@ -44,43 +44,67 @@ These are currently implemented and tracked in the game.
 *   **Category:** Survival.
 *   **Status:** Complete.
 
+### 7. Depth Walker
+*   **Requirement:** Reach 25,000m without using a Fuel refill.
+*   **Description:** Reach 25,000m without using a Fuel refill.
+*   **Category:** Exploration.
+*   **Status:** Complete.
+
+### 8. Resourceful
+*   **Requirement:** Collect 5 Power-Ups in a single run.
+*   **Description:** Collect 5 Power-Ups in a single run.
+*   **Category:** Collection.
+*   **Status:** Complete.
+
+### 9. Untouchable
+*   **Requirement:** Defeat a major boss without taking hull damage.
+*   **Description:** Defeat a major boss without taking hull damage.
+*   **Category:** Skill.
+*   **Status:** Complete.
+
+### 10. Infinite Ascent
+*   **Requirement:** Reach the Singularity (100,000m).
+*   **Description:** Reach the Singularity (100,000m).
+*   **Category:** Exploration.
+*   **Status:** Complete.
+
 ---
 
 ## B. Future Achievements
 
 Proposed achievements for long-term progression.
 
-### 1. Void Walker
+### 1. Depth Walker (renamed from Void Walker)
 *   **Classification:** APPROVED
-*   **Unlock Requirement:** Reach 15000 score (The Void).
+*   **Unlock Requirement:** Reach 25,000m without using a Fuel refill.
 *   **Difficulty:** ⭐⭐⭐⭐⭐
 *   **Category:** Exploration.
-*   **Status:** APPROVED.
+*   **Status:** COMPLETE (id: `depth_walker` — renamed to avoid mission name collision).
 
 ### 2. Resourceful
 *   **Classification:** APPROVED
-*   **Unlock Requirement:** Collect all 4 types of standard Power-Ups in one run.
+*   **Unlock Requirement:** Collect 5 Power-Ups in a single run.
 *   **Difficulty:** ⭐⭐⭐
 *   **Category:** Collection.
-*   **Status:** APPROVED.
+*   **Status:** COMPLETE (uses `powerUpsCollected` stat).
 
 ### 3. Untouchable
 *   **Classification:** APPROVED
-*   **Unlock Requirement:** Reach 2000 altitude without taking any hull damage.
+*   **Unlock Requirement:** Defeat a major boss without taking hull damage.
 *   **Difficulty:** ⭐⭐⭐⭐
 *   **Category:** Skill.
-*   **Status:** APPROVED.
+*   **Status:** COMPLETE (tracks boss defeat + zero hazard hits).
 
-### 4. Artifact Hunter
+### 4. Infinite Ascent
+*   **Classification:** APPROVED (promoted from BACKLOG)
+*   **Unlock Requirement:** Reach the Singularity (100,000m).
+*   **Difficulty:** ⭐⭐⭐⭐⭐
+*   **Category:** Exploration.
+*   **Status:** COMPLETE.
+
+### 5. Artifact Hunter
 *   **Classification:** BACKLOG
 *   **Unlock Requirement:** Recover all 4 core Artifact types.
 *   **Difficulty:** ⭐⭐⭐⭐
 *   **Category:** Collection.
-*   **Status:** BACKLOG.
-
-### 5. Infinite Ascent
-*   **Classification:** BACKLOG
-*   **Unlock Requirement:** Reach 25000 score.
-*   **Difficulty:** ⭐⭐⭐⭐⭐
-*   **Category:** Exploration.
 *   **Status:** BACKLOG.

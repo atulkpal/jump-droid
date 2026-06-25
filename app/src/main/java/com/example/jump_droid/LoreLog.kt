@@ -82,6 +82,48 @@ data class LoreLog(
                 text = "I'm at the threshold. The Void is right in front of me. It's not empty. It's full of... light. I understand now. We didn't receive a signal. We were answering a call to return home. I'm crossing over.",
                 unlockAltitude = 10000,
                 category = LoreCategory.EPILOGUE
+            ),
+            LoreLog(
+                id = "log_6000_foundry",
+                title = "The Automated Belt",
+                text = "I've entered the Foundry. Massive mechanical arms move in ancient rhythms, assembling and disassembling structures I can't comprehend. It's been running for millennia without a single operator. Who built this place?",
+                unlockAltitude = 6000,
+                category = LoreCategory.ANCIENT
+            ),
+            LoreLog(
+                id = "log_13000_rift",
+                title = "Fractured Time",
+                text = "The Chrono-Rift. I feel it in my bones. The past and future are bleeding together. I saw a ship here that looked exactly like mine—but it was covered in rust and age. The Signal is doing this. It's showing me what's coming.",
+                unlockAltitude = 13000,
+                category = LoreCategory.VOID
+            ),
+            LoreLog(
+                id = "log_25000",
+                title = "The Shimmering Veil",
+                text = "Crossing into the Beyond. The stars are no longer points of light; they're smears of color. The hull is vibrating at a frequency that feels like... singing.",
+                unlockAltitude = 25000,
+                category = LoreCategory.VOID
+            ),
+            LoreLog(
+                id = "log_45000",
+                title = "The Gatekeepers",
+                text = "I see it now. A massive ring spanning the entire sky. It's artificial. It's ancient. And it's opening.",
+                unlockAltitude = 45000,
+                category = LoreCategory.ANCIENT
+            ),
+            LoreLog(
+                id = "log_70000",
+                title = "Origins",
+                text = "I've reached the Construct. The source of the heartbeat. It's a massive, geometric fortress. Records here suggest the Ascension Program was engineered from the start by an entity known as 'The Architect'. We were never exploring; we were being guided back to the forge.",
+                unlockAltitude = 70000,
+                category = LoreCategory.SIGNAL
+            ),
+            LoreLog(
+                id = "log_100000",
+                title = "Signal Ghost",
+                text = "The transmission has ceased, replaced by a perfect, echoing silence. I see the Singularity. It is not a point of destruction, but a doorway. My predecessor's signal is here, a ghost in the static, saying: 'Welcome home.'",
+                unlockAltitude = 100000,
+                category = LoreCategory.EPILOGUE
             )
         )
     }

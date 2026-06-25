@@ -9,6 +9,7 @@ data class GameStats(
     val totalPlatformTime: Float = 0f,
     val zeroHeatTime: Float = 0f,
     val fuelPickupsCollected: Int = 0,
+    val powerUpsCollected: Int = 0,
     val platformLandings: Int = 0,
     val maxCombo: Int = 0,
     val currentCombo: Int = 0,

@@ -58,7 +58,10 @@ fun DrawScope.drawSpeedLines(
             AltitudeZone.UPPER_ATMOSPHERE -> Color(0xFFCE93D8)
             AltitudeZone.ORBIT -> SciFiGold
             AltitudeZone.DEEP_SPACE -> Color(0xFF64B5F6)
-            AltitudeZone.VOID -> SciFiRed
+            AltitudeZone.THE_FOUNDRY -> Color(0xFFFF6D00)
+            AltitudeZone.CHRONO_RIFT -> SciFiPurple
+            AltitudeZone.VOID, AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE, AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY -> 
+                SciFiRed
         }
         val count = when (currentZone) {
             AltitudeZone.EARTH, AltitudeZone.CLOUD_LAYER -> 8
@@ -170,8 +173,11 @@ fun DrawScope.drawLandingEffects(
         AltitudeZone.CLOUD_LAYER -> Color(0xFF80DEEA)
         AltitudeZone.UPPER_ATMOSPHERE -> SciFiPurple
         AltitudeZone.ORBIT -> SciFiGold
-        AltitudeZone.DEEP_SPACE -> Color(0xFF64B5F6)
-        AltitudeZone.VOID -> SciFiRed
+            AltitudeZone.DEEP_SPACE -> Color(0xFF64B5F6)
+            AltitudeZone.THE_FOUNDRY -> Color(0xFFFF6D00)
+            AltitudeZone.CHRONO_RIFT -> SciFiPurple
+            AltitudeZone.VOID, AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE, AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY -> 
+            SciFiRed
     }
 
     effects.forEach { effect ->
@@ -203,6 +209,9 @@ fun DrawScope.drawPowerUps(
             PowerUpType.ALTITUDE_BOOSTER -> Color.White
             PowerUpType.SHIELD_CAPSULE -> SciFiCyan
             PowerUpType.HULL_REPAIR -> SciFiGreen
+            PowerUpType.KINETIC_BATTERY -> Color.White
+            PowerUpType.MAGNETIC_SIPHON -> Color.Magenta
+            PowerUpType.OVERDRIVE_MODULE -> Color.Red
         }
 
         drawCircle(
@@ -282,6 +291,23 @@ fun DrawScope.drawPowerUps(
                 drawCircle(baseColor, radius = 16f, center = Offset(px, py))
                 drawLine(Color.White.copy(alpha = 0.7f), start = Offset(px - 6f, py), end = Offset(px + 6f, py), strokeWidth = 2.5f)
                 drawLine(Color.White.copy(alpha = 0.7f), start = Offset(px, py - 6f), end = Offset(px, py + 6f), strokeWidth = 2.5f)
+            }
+            PowerUpType.KINETIC_BATTERY -> {
+                drawCircle(baseColor, radius = 10f, center = Offset(px, py), style = Stroke(width = 2f))
+                drawCircle(baseColor, radius = 4f, center = Offset(px, py))
+            }
+            PowerUpType.MAGNETIC_SIPHON -> {
+                drawCircle(baseColor, radius = 8f, center = Offset(px, py))
+                drawCircle(baseColor, radius = 14f, center = Offset(px, py), style = Stroke(width = 2f))
+            }
+            PowerUpType.OVERDRIVE_MODULE -> {
+                val path = Path().apply {
+                    moveTo(px - 10f, py + 10f)
+                    lineTo(px, py - 10f)
+                    lineTo(px + 10f, py + 10f)
+                    close()
+                }
+                drawPath(path, baseColor)
             }
         }
     }

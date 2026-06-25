@@ -9,7 +9,7 @@ enum class GameState {
 
 enum class PowerUpType {
     FUEL_TANK, TURBO_BOOSTER, EFFICIENCY_MODULE, HEAT_SINK, ARTIFACT, ALTITUDE_BOOSTER,
-    SHIELD_CAPSULE, HULL_REPAIR
+    SHIELD_CAPSULE, HULL_REPAIR, KINETIC_BATTERY, MAGNETIC_SIPHON, OVERDRIVE_MODULE
 }
 
 enum class DiscoveryType(val title: String, val description: String, val lore: String, val category: String) {
@@ -24,12 +24,19 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     COOLING_PLATFORM("Cooling Platform", "Reduces engine heat. Useful during long climbs.", "Advanced liquid nitrogen heat exchangers.", "PLATFORMS"),
     STABILITY_PLATFORM("Stability Platform", "Improves flight control. Reduces environmental influence.", "Emits a dampening field that stabilizes rocket trajectory.", "PLATFORMS"),
     MAGNETIC_PLATFORM("Magnetic Platform", "Generates a gravity field. Movement is influenced inside the field.", "Movement is influenced inside the field.", "PLATFORMS"),
+    CONVEYOR_PLATFORM("Conveyor Platform", "Automated transport surface.", "Ancient industrial belts used for orbital logistics.", "PLATFORMS"),
+    MIMIC_PLATFORM("Mimic Platform", "Deceptive structural failure.", "Unstable matter that shatters upon physical contact.", "PLATFORMS"),
 
     // Powerups
     FUEL_TANK("Fuel Tank", "Increases maximum fuel capacity.", "Standardized liquid oxygen tanks recovered from previous expeditions.", "POWERUPS"),
     TURBO_BOOSTER("Turbo Booster", "Increases thrust power.", "An experimental injector that temporarily overrides engine safety limits.", "POWERUPS"),
     EFFICIENCY_MODULE("Efficiency Module", "Reduces fuel consumption.", "Optimizes the fuel-to-air ratio for thinner atmospheric conditions.", "POWERUPS"),
     HEAT_SINK("Heat Sink", "Instantly removes heat.", "Advanced thermal paste and cooling fins designed for vacuum operation.", "POWERUPS"),
+    SHIELD_CAPSULE("Shield Capsule", "Recharges energy shields.", "Automated capacitor arrays recovered from wreckage.", "POWERUPS"),
+    HULL_REPAIR("Hull Repair", "Repairs structural integrity.", "Nanite-based welding agents for rapid field repairs.", "POWERUPS"),
+    KINETIC_BATTERY("Kinetic Battery", "Impact-to-energy conversion.", "Converts landing kinetic energy into emergency power.", "POWERUPS"),
+    MAGNETIC_SIPHON("Magnetic Siphon", "Automated resource collector.", "Pulls nearby salvage toward the rocket hull.", "POWERUPS"),
+    OVERDRIVE_MODULE("Overdrive Module", "Critical thrust enhancement.", "Overrides safety protocols for maximum speed at a price.", "POWERUPS"),
     
     // Mechanics
     HEAT_SYSTEM("Engine Heat", "Using thrusters generates heat.", "Atmospheric friction and engine stress must be managed carefully.", "MECHANICS"),
@@ -42,6 +49,12 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     AREA_ORBIT("Orbit", "Where Earth becomes a distant world.", "The first true step into the unknown. Silence is absolute here.", "AREAS"),
     AREA_SPACE("Deep Space", "Beyond established routes.", "Signals become strange. Maps become unreliable. You are truly alone.", "AREAS"),
     AREA_VOID("The Void", "A region that should not exist.", "Sensors report impossible readings. The stars themselves seem distorted.", "AREAS"),
+    AREA_FOUNDRY("The Foundry", "Ancient manufacturing belt.", "A vast automated complex suspended in high orbit, still running after eons.", "AREAS"),
+    AREA_CHRONO_RIFT("Chrono-Rift", "A fractured time stream.", "Time flows irregularly here. Past and future bleed into the present.", "AREAS"),
+    AREA_BEYOND("The Beyond", "Where matter blurs.", "A place where the laws of physics are merely suggestions.", "AREAS"),
+    AREA_GATE("Stellar Gate", "An artificial sky.", "A massive structure that spans the entire horizon.", "AREAS"),
+    AREA_CONSTRUCT("Ancient Construct", "A monolithic fortress.", "The scale of this structure is beyond human comprehension.", "AREAS"),
+    AREA_SINGULARITY("Singularity", "Beyond reality.", "The final threshold. There is no turning back.", "AREAS"),
 
     // Rockets
     ROCKET_BALANCED("Balanced Rocket", "Standard exploration craft.", "Reliable and stable, it has carried many pilots on their first ascent.", "ROCKETS"),
@@ -60,6 +73,8 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     ART_ALLOY("Unknown Alloy", "A fragment of material.", "Its molecular structure suggests it was grown, not forged.", "ARTIFACTS"),
     ART_BEACON("Encrypted Beacon", "A signaling device.", "Found drifting in orbit, it continuously broadcasts a single prime number.", "ARTIFACTS"),
     ART_DRONE("Drone Core", "An automated survey unit.", "The AI within seems to be stuck in a loop, repeating 'The Void calls'.", "ARTIFACTS"),
+    ART_PRE_SIGNAL_MAP("Pre-Signal Map", "Original source coordinates.", "A recovered star-chart predating the first contact signal.", "ARTIFACTS"),
+    ART_BIOMECH_SHARD("Biomechanical Shard", "Ancient construct fragment.", "A hull segment that pulses with a strange, internal heartbeat.", "ARTIFACTS"),
 
     // Environmental Threats (Sprint B)
     HAZARD_LIGHTNING("Lightning Storm", "Electrical buildup and strikes.", "Static discharge in the high clouds creates lethal arcs of energy.", "THREATS"),
@@ -70,6 +85,9 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     HAZARD_GRAVITY("Gravity Distortion", "Localized spatial warping.", "Anomalies that increase gravitational pull and fuel consumption.", "THREATS"),
     HAZARD_EMP("EMP Pulse", "Electromagnetic shockwave.", "Bursts of energy that temporarily scramble shield regeneration systems.", "THREATS"),
     HAZARD_VOID_ANOMALY("Void Anomaly", "A rift in reality.", "Sensors report impossible readings. The stars themselves seem distorted.", "THREATS"),
+    HAZARD_CRYO_MIST("Cryo-Mist", "Super-cooled vapor.", "Super-cooled vapor that locks engine thermal state.", "THREATS"),
+    HAZARD_MIRROR_SHARDS("Mirror Shards", "Fragmented reality.", "Fragmented reality that inverts horizontal navigation.", "THREATS"),
+    HAZARD_GRAVITY_SHEAR("Gravity Shear", "Opposing gravitational forces.", "Opposing gravitational forces that split vertical velocity.", "THREATS"),
 
     // Survival Mechanics (Sprint B Adjustments)
     EFFICIENCY_SURVIVAL("Combat Efficiency", "Combos generate supplies.", "Maintaining peak flight efficiency can trigger emergency survival supply drops.", "MECHANICS"),
@@ -80,7 +98,16 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     THREAT_GATEKEEPER("The Gatekeeper", "Ancient orbital defense platform.", "It guards the transition to Deep Space with absolute precision.", "THREATS"),
     THREAT_STAR_EATER("Star-Eater", "Massive cosmic organism.", "A creature that consumes light itself, leaving only darkness in its wake.", "THREATS"),
     THREAT_LEVIATHAN("The Leviathan", "Gigantic living creature.", "A beast of the outer reaches that moves through the vacuum as if it were water.", "THREATS"),
-    THREAT_SIGNAL("The Signal", "Unknown intelligence.", "The source of the transmissions that started the Ascension Program.", "THREATS")
+    THREAT_SIGNAL("The Signal", "Unknown intelligence.", "The source of the transmissions that started the Ascension Program.", "THREATS"),
+    THREAT_THERMAL_HIVE("Thermal Hive", "Heat-sensitive collective.", "A biological mass that reacts violently to engine exhaust.", "THREATS"),
+    THREAT_GRAVITY_ANCHOR("Gravity Anchor", "Spatial tether.", "A heavy anchor point that tethers local space-time.", "THREATS"),
+    THREAT_FORGER("The Forger", "Platform fabricator.", "An ancient industrial unit that reconfigures its surroundings.", "THREATS"),
+    THREAT_ARCHITECT("The Architect", "Level controller.", "The master intelligence behind the Sky Mega-structures.", "THREATS"),
+    THREAT_ENTROPY_CORE("Entropy Core", "System radiator.", "A massive cooling unit that has become a lethal energy sink.", "THREATS"),
+    ENEMY_HEAT_BAT("Heat Bat", "Thermal predator.", "Predatory shadows that strike when your engines run hot.", "THREATS"),
+    ENEMY_VOID_HARVESTER("Void Harvester", "Scavenging unit.", "Scavenging units that prioritize and consume power-ups.", "THREATS"),
+    ENEMY_PHASE_WRAITH("Phase Wraith", "Ethereal guardian.", "Ethereal guardians vulnerable only when your systems are critical.", "THREATS"),
+    ENEMY_GRAVITY_RAM("Gravity Ram", "Geometric construct.", "Heavy geometric constructs that execute telegraphed kinetic strikes.", "THREATS")
 }
 
 enum class RocketType(
@@ -103,7 +130,7 @@ data class Achievement(
     val id: String,
     val title: String,
     val description: String,
-    val unlockCondition: (Int, Int, Int) -> Boolean // score, combo, overheat count
+    val unlockCondition: (GameStats) -> Boolean
 )
 
 class PowerUp(
@@ -194,6 +221,10 @@ class Player(
     var activeTether by mutableStateOf<Tether?>(null)
     var inputLatency by mutableFloatStateOf(0f)
     var discoveryRangeMultiplier by mutableFloatStateOf(1.0f)
+    var fluxCooldown by mutableFloatStateOf(0f) // EPIC 10
+    var kineticBatteryTimer by mutableFloatStateOf(0f) // EPIC 10
+    var magneticSiphonTimer by mutableFloatStateOf(0f) // EPIC 10
+    var overdriveTimer by mutableFloatStateOf(0f) // EPIC 10
 
     // EPIC 7: Module System
     val activeModules = mutableStateListOf<Module>()
