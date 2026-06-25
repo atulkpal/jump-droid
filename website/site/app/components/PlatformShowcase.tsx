@@ -37,18 +37,27 @@ export default function PlatformShowcase() {
             <PlatformSVG type={p.type} width={100} height={16} animated={hovered === i} />
           </div>
           <p className="text-xs font-bold uppercase tracking-widest text-cyan-300">{p.name}</p>
-          <AnimatePresence>
-            {hovered === i && (
-              <motion.p
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 5 }}
-                className="mt-2 text-[10px] text-slate-400 text-center leading-relaxed"
-              >
-                {p.desc}
-              </motion.p>
-            )}
-          </AnimatePresence>
+          
+          {/* Always show description on mobile viewports */}
+          <p className="mt-1.5 text-[10px] text-slate-400 text-center leading-relaxed block sm:hidden">
+            {p.desc}
+          </p>
+
+          {/* Desktop-only hover description */}
+          <div className="hidden sm:block">
+            <AnimatePresence>
+              {hovered === i && (
+                <motion.p
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 5 }}
+                  className="mt-2 text-[10px] text-slate-400 text-center leading-relaxed"
+                >
+                  {p.desc}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
       ))}
     </div>

@@ -104,7 +104,7 @@ export default function RocketShowcase() {
   return (
     <section id="hangar" className="relative overflow-hidden py-24 sm:py-32">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(0,229,255,0.14),transparent_28%)]" />
-      <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-8 lg:px-12">
         
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div className="space-y-4">
@@ -122,8 +122,8 @@ export default function RocketShowcase() {
 
         <div className="grid gap-8 lg:grid-cols-12">
           {/* Class Selectors (Left Columns) */}
-          <div className="lg:col-span-5 flex flex-col gap-4">
-            <div className="flex flex-col gap-4">
+          <div className="lg:col-span-5 w-full">
+            <div className="flex flex-row lg:flex-col gap-4 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory w-full">
               {ROCKETS.map((rocket) => {
                 const isSelected = currentSelectedType === rocket.type;
                 const isAdvanced = rocket.type === "STEALTH" || rocket.type === "REFLECTOR";
@@ -131,7 +131,7 @@ export default function RocketShowcase() {
                   <button
                     key={rocket.type}
                     onClick={() => setSelectedType(rocket.type)}
-                    className={`text-left rounded-3xl border p-6 transition-all backdrop-blur-sm ${
+                    className={`text-left rounded-3xl border p-5 transition-all backdrop-blur-sm shrink-0 snap-start w-[265px] sm:w-[320px] lg:w-full ${
                       isSelected
                         ? isAdvanced
                           ? "border-purple-500 bg-purple-500/10 shadow-[0_0_20px_rgba(213,0,249,0.15)]"

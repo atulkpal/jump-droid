@@ -65,6 +65,7 @@ export default function Home() {
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollHeight, setScrollHeight] = useState(0);
   const [clientHeight, setClientHeight] = useState(0);
+  const [viewWidth, setViewWidth] = useState(1200);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -73,12 +74,20 @@ export default function Home() {
       setClientHeight(window.innerHeight);
     };
 
+    const handleResize = () => {
+      setScrollTop(window.scrollY);
+      setScrollHeight(document.documentElement.scrollHeight || document.body.scrollHeight);
+      setClientHeight(window.innerHeight);
+      setViewWidth(window.innerWidth);
+    };
+
     handleScroll();
+    setViewWidth(window.innerWidth);
     window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll);
+    window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -106,7 +115,7 @@ export default function Home() {
       </div>
 
       <div className="fixed inset-0 z-[5] pointer-events-none">
-        <EncounterSystem progress={progress} rocketX={rocketX} viewWidth={1200} />
+        <EncounterSystem progress={progress} rocketX={rocketX} viewWidth={viewWidth} />
       </div>
 
       <div className="fixed inset-0 z-[25] pointer-events-none">
@@ -135,7 +144,7 @@ export default function Home() {
         {/* Platform Showcase Section */}
         <section id="ascent" className="relative overflow-hidden py-24 sm:py-32">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.08),transparent_20%)]" />
-          <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
+          <div className="relative mx-auto max-w-6xl px-4 sm:px-8 lg:px-12">
             <div className="mb-12 max-w-2xl space-y-4">
               <p className="text-sm uppercase tracking-[0.35em] text-cyan-300 font-extrabold bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 inline-block">
                 Atmospheres & Platforms
@@ -165,7 +174,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="border-t border-white/10 bg-black/90 py-12 text-slate-400 relative z-20">
-          <div className="mx-auto flex flex-col gap-6 px-6 sm:px-8 lg:px-12 lg:flex-row lg:items-center lg:justify-between">
+          <div className="mx-auto flex flex-col gap-6 px-4 sm:px-8 lg:px-12 lg:flex-row lg:items-center lg:justify-between">
             <p className="text-sm">Jump Droid — The Signal From the Void.</p>
             <div className="flex flex-wrap items-center gap-6 text-sm">
               <a href="#hero" className="transition hover:text-cyan-200">Back to top</a>

@@ -188,7 +188,7 @@ export default function BossShowcase() {
   return (
     <section id="bosses" className="relative overflow-hidden py-24 sm:py-32">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(213,0,249,0.12),transparent_30%)]" />
-      <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-8 lg:px-12">
         
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div className="space-y-4">

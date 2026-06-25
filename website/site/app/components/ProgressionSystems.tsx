@@ -27,7 +27,7 @@ export default function ProgressionSystems() {
   return (
     <section className="relative overflow-hidden py-24 sm:py-32">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,215,0,0.06),transparent_28%)]" />
-      <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-8 lg:px-12">
         <div className="mb-12 max-w-2xl space-y-4">
           <p className="text-sm uppercase tracking-[0.35em] text-cyan-300 font-extrabold bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 inline-block">
             The Systems

@@ -793,9 +793,9 @@ export default function GameSimulator() {
   };
 
   return (
-    <section id="simulation" className="relative py-24 border-t border-white/10 bg-black/90">
+    <section id="simulation" className="relative py-20 sm:py-24 border-t border-white/10 bg-black/90">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.06),transparent_35%)]" />
-      <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-8 lg:px-12">
         <div className="mb-12 max-w-2xl space-y-4">
           <p className="text-sm uppercase tracking-[0.35em] text-cyan-300 font-extrabold bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 inline-block">
             Simulation Bay
@@ -808,7 +808,7 @@ export default function GameSimulator() {
           </p>
         </div>
 
-        <div className="grid gap-12 lg:grid-cols-12 items-center">
+        <div className="grid gap-6 lg:gap-12 lg:grid-cols-12 items-center">
           {/* Main simulator screen (7 Columns) */}
           <div ref={containerRef} className="lg:col-span-7 flex justify-center">
             <div className="relative rounded-3xl border-2 border-cyan-300/15 bg-slate-950 p-4 shadow-[0_0_50px_rgba(0,229,255,0.1)] overflow-hidden max-w-md w-full">
@@ -850,7 +850,7 @@ export default function GameSimulator() {
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className="block bg-black rounded-2xl w-full h-[520px] cursor-crosshair touch-none"
+                className="block bg-black rounded-2xl w-full aspect-[3/4] h-auto cursor-crosshair touch-none"
               />
             </div>
           </div>

@@ -74,7 +74,7 @@ export default function DiscoveryArchive() {
   return (
     <section id="archive" className="relative overflow-hidden py-24 sm:py-32">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,229,255,0.06),transparent_32%)]" />
-      <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-8 lg:px-12">
         
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div className="space-y-4">
@@ -159,7 +159,7 @@ export default function DiscoveryArchive() {
               transition={{ duration: 0.3 }}
             >
               {/* Left Selector (5 Columns) */}
-              <div className="lg:col-span-5 flex flex-col gap-3">
+              <div className="lg:col-span-5 flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-x-visible pb-4 lg:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory w-full">
                 {LORE_LOGS.map((log) => {
                   const isSelected = selectedLore === log.id;
                   const isAdvanced = log.id === "origins" || log.id === "ghost-trans";
@@ -167,7 +167,7 @@ export default function DiscoveryArchive() {
                     <button
                       key={log.id}
                       onClick={() => setSelectedLore(log.id)}
-                      className={`text-left rounded-2xl border p-4 transition-all ${
+                      className={`text-left rounded-2xl border p-4 transition-all shrink-0 snap-start w-[240px] sm:w-[285px] lg:w-full ${
                         isSelected
                           ? isAdvanced
                             ? "border-purple-500 bg-purple-500/10 shadow-[0_0_15px_rgba(213,0,249,0.15)]"

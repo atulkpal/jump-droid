@@ -249,10 +249,11 @@ function getXPosition(
 ) {
   const cx = viewW / 2;
   const drift = (viewW * 0.25) * (side === "left" ? -1 : 1);
+  const rocketPixelX = (rocketX / 100) * viewW;
 
   switch (behavior) {
     case "track-rocket":
-      return { x: cx + (rocketX - cx) * 0.6, y: 0 };
+      return { x: cx + (rocketPixelX - cx) * 0.6, y: 0 };
     case "drift-across":
       const startX = -120;
       const endX = viewW + 120;
@@ -265,7 +266,7 @@ function getXPosition(
     case "fade-through":
       return { x: cx, y: 0 };
     case "hunt":
-      return { x: cx + (rocketX - cx) * 0.3, y: 0 };
+      return { x: cx + (rocketPixelX - cx) * 0.3, y: 0 };
     case "looming":
       return { x: cx, y: 0 };
     default:
