@@ -636,7 +636,7 @@ fun GameScreen() {
 
     fun spawnDevThreat(id: String) {
         ThreatRegistry.getById(id)?.let { def ->
-            threatManager.spawnThreat(def, player.x, cameraY - 100f)
+            threatManager.spawnThreat(def, player.x, cameraY - 100f, def.spawnVx, def.spawnVy)
         }
         gameState = GameState.PLAYING
     }

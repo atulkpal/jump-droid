@@ -27,7 +27,7 @@ class SoundManager(private val appContext: Context) {
             field = value.coerceIn(0f, 1f)
             musicPlayer?.setVolume(field, field)
         }
-    var isMuted = false
+    var isMuted = true
 
     init {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
