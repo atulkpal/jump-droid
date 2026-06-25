@@ -2,9 +2,9 @@
 
 **Last Updated:** 2026-06-25
 **Project Status:** EPIC 10 — The Outer Reaches: Library-Aligned Hybrid — IN PROGRESS 🚧
-**Current Stable Tag:** `epic9-complete`
+**Current Stable Tag:** `epic10-complete`
 **Branch:** `epic10-theOuterReach`
-**Base Commit:** `b9b8e7c`
+**Base Commit:** `67f03c7`
 
 ---
 
@@ -39,8 +39,8 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
     *   GameScreen.kt at ~1,900 lines — remaining God Object. Future extraction planned for EPIC 12.
-*   **Current Priorities**: EPIC 11 — The End (Final Peak Zones).
-*   **Next Planned Work**: EPIC 11 — Ascension (The End).
+*   **Current Priorities**: EPIC 11 — Ascension (The End).
+*   **Next Planned Work**: EPIC 11 — Ascension (The End). Branch: `epic11-ascension`
 
 ---
 
