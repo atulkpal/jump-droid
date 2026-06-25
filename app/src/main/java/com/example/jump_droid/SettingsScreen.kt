@@ -8,9 +8,11 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,6 +54,7 @@ import kotlin.math.sin
 @Composable
 fun SettingsScreen(
     sharedPrefs: SharedPreferences,
+    soundManager: SoundManager? = null,
     onWipeData: () -> Unit,
     onReturn: () -> Unit
 ) {
@@ -101,13 +104,37 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Black,
                     letterSpacing = 2.sp
                 )
-                Spacer(Modifier.height(48.dp))
-                Text("MASTER AUDIO", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 2.sp, fontSize = 10.sp)
+                Spacer(Modifier.height(32.dp))
+                Text("SOUND EFFECTS", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 2.sp, fontSize = 10.sp)
+                Spacer(Modifier.height(8.dp))
+                AudioSlider(
+                    value = soundManager?.sfxVolume ?: 0.7f,
+                    onValueChange = { soundManager?.sfxVolume = it },
+                    accent = SciFiCyan
+                )
                 Spacer(Modifier.height(16.dp))
-                Box(Modifier.width(200.dp).height(4.dp).background(SciFiSurface, CircleShape)) {
-                    Box(Modifier.fillMaxWidth(0.8f).fillMaxHeight().background(SciFiCyan.copy(alpha = pulseAlpha), CircleShape))
+                Text("MUSIC", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 2.sp, fontSize = 10.sp)
+                Spacer(Modifier.height(8.dp))
+                AudioSlider(
+                    value = soundManager?.musicVolume ?: 0.5f,
+                    onValueChange = { soundManager?.musicVolume = it },
+                    accent = SciFiGold
+                )
+                Spacer(Modifier.height(16.dp))
+                Row(Modifier.fillMaxWidth(0.6f), horizontalArrangement = Arrangement.Center) {
+                    Button(
+                        onClick = { soundManager?.isMuted = !(soundManager?.isMuted ?: false) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (soundManager?.isMuted == true) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),
+                            contentColor = if (soundManager?.isMuted == true) SciFiRed else SciFiCyan
+                        ),
+                        modifier = Modifier.height(36.dp),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(if (soundManager?.isMuted == true) "MUTED" else "MUTE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
-                Spacer(Modifier.height(64.dp))
+                Spacer(Modifier.height(32.dp))
                 Button(
                     onClick = {
                         sharedPrefs.edit { clear() }
@@ -131,6 +158,34 @@ fun SettingsScreen(
                 Spacer(Modifier.height(8.dp))
                 Text("SYSTEM PREFERENCES // AUDIO // DATA", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp)
             }
+        }
+    }
+}
+
+@Composable
+private fun AudioSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    accent: Color = SciFiCyan
+) {
+    Row(
+        Modifier.fillMaxWidth(0.6f).height(24.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(10) { i ->
+            val step = (i + 1) / 10f
+            val isActive = step <= value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(
+                        if (isActive) accent.copy(alpha = 0.6f) else Color(0xFF333333),
+                        RoundedCornerShape(3.dp)
+                    )
+                    .clickable { onValueChange(step) }
+            )
         }
     }
 }

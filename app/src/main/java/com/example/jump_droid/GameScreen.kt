@@ -77,7 +77,7 @@ fun GameScreen() {
     val densityValue = androidx.compose.ui.platform.LocalDensity.current.density
     val sharedPrefs = remember { context.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE) }
 
-    val engine = remember { GameEngine(sharedPrefs) }
+    val engine = remember { GameEngine(context) }
 
     var gameState by engine::gameState
     var previousState by engine::previousState
@@ -339,6 +339,8 @@ fun GameScreen() {
             player = player,
             isGameOver = gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL,
             onGameOver = {
+                engine.soundManager.playSfx("death")
+                engine.soundManager.stopThrust()
                 gameState = GameState.GAMEOVER
                 saveHighScore(score)
                 
@@ -386,6 +388,7 @@ fun GameScreen() {
         
         if (!alreadyLanded) {
             player.squashStretch = 0.8f // Squash on landing
+            engine.soundManager.playSfx("land")
             landingEffects.add(LandingEffect(player.x, yTop))
             spawnBurst(player.x, yTop, 15, SciFiBorder, 120f)
             platform?.hasBeenLandedOn = true
@@ -828,6 +831,7 @@ fun GameScreen() {
                     val down = awaitFirstDown()
                     if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL) {
                         isThrusting = true
+                        engine.soundManager.startThrust()
                         thrustTarget = down.position
                         player.squashStretch = 1.2f // Stretch on takeoff
                         spawnBurst(player.x, player.y + ROCKET_HEIGHT / 2, 10, SciFiWhite.copy(alpha = 0.5f), 50f)
@@ -837,6 +841,7 @@ fun GameScreen() {
                         val anyDown = event.changes.any { it.pressed }
                         if (!anyDown) {
                             isThrusting = false
+                            engine.soundManager.stopThrust()
                             break
                         }
                         thrustTarget = event.changes.firstOrNull { it.pressed }?.position ?: thrustTarget
@@ -1034,6 +1039,7 @@ fun GameScreen() {
                             player.overdriveTimer = max(0f, player.overdriveTimer - dt)
                             // Overdrive penalty: integrity damage over time
                             player.integrity = max(0f, player.integrity - 2f * dt)
+                            engine.soundManager.playSfx("damage")
                         }
                         if (player.invulnerabilityTimer > 0) player.invulnerabilityTimer = max(0f, player.invulnerabilityTimer - dt)
                         if (player.comboFreezeTimer > 0) player.comboFreezeTimer = max(0f, player.comboFreezeTimer - dt)
@@ -1461,6 +1467,7 @@ fun GameScreen() {
 
                         for (pu in powerUpManager.checkCollection(player)) {
                             totalPowerUps++
+                            engine.soundManager.playSfx("collect")
                             when (pu.type) {
                                 PowerUpType.FUEL_TANK -> {
                                     if (player.maxFuel < Constants.MAX_FUEL_CAPACITY_LIMIT) {
@@ -1894,6 +1901,7 @@ fun GameScreen() {
             GameState.SETTINGS -> {
                 SettingsScreen(
                     sharedPrefs = sharedPrefs,
+                    soundManager = engine.soundManager,
                     onWipeData = { progressionManager.wipeData(); player.rocketType = RocketType.BALANCED; gameState = GameState.TITLE },
                     onReturn = { gameState = GameState.MAIN_MENU }
                 )

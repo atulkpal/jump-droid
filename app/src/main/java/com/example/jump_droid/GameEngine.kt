@@ -21,8 +21,11 @@ import kotlin.math.*
 import kotlin.random.Random
 
 class GameEngine(
-    val sharedPrefs: android.content.SharedPreferences
+    context: android.content.Context
 ) {
+    val sharedPrefs = context.getSharedPreferences("JumpDroidPrefs", android.content.Context.MODE_PRIVATE)
+    val soundManager = SoundManager(context)
+
     // --- Managers ---
     val player = Player(0f, 0f)
     val altitudeManager = AltitudeManager()
