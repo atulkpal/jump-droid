@@ -4,6 +4,27 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-25 (Final)
+
+**Sprint / Phase:** EPIC 11 — Ascension (The End) — MERGED TO `development`
+
+**Branch:** `refactor/cleanup` → merged to `development`
+
+**Status:** Complete ✅
+
+### Added
+- **SoundManager.kt**: Audio engine with SoundPool + programmatic PCM generation. Handles thrust, landing, collect, damage, death SFX. Muted by default. Volume controls in Settings.
+- **GameEngine refactoring**: State container extracted from GameScreen.kt (~30 state vars + 12 managers moved to dedicated class).
+
+### Fixed
+- **App icon**: Removed adaptive icon XMLs causing circular crop. User's custom PNG placed in all mipmap density directories.
+- **Dev menu spawn velocity**: Was spawning threats with vx=0 — patrol-based enemies (Scout Drone, Sky Ray, Void Whale, etc.) would freeze in place. Now passes `def.spawnVx`/`spawnVy` to `spawnThreat`.
+
+### Build
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL (only pre-existing `LinearProgressIndicator` deprecation)
+
+---
+
 ## 2026-06-24
 
 **Sprint / Phase:** EPIC 8.5 Execution — Architecture Decomposition Complete

@@ -250,7 +250,7 @@ Do not implement during EPIC 7. Track only.
 
 # EPIC 11 - Ascension (The End)
 
-**Status: COMPLETE ✅**
+**Status: COMPLETE ✅ — Merged to `development`**
 *Execution Plan: [docs/roadmap/EPIC_11_EXECUTION_PLAN.md](roadmap/EPIC_11_EXECUTION_PLAN.md)*
 
 ## Sprint 11.0 — Infrastructure & Documentation

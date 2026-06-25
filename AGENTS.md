@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
 **Last Updated:** 2026-06-25
-**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅
-**Current Stable Tag:** `epic10-complete`
-**Branch:** `epic11-ascension`
+**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Merged to `development`
+**Current Stable Tag:** `epic11-complete`
+**Branch:** `development`
 **Base Commit:** `HEAD`
 
 ---
@@ -32,14 +32,13 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `epic11-ascension`
-*   **Current Stable Tag**: `epic10-complete`
-*   **Current EPIC**: EPIC 11 — Ascension (The End)
-*   **Current Status**: **EPIC 11 COMPLETE**. Meta-boss (The Singularity) with HUD Pull + control glitch mechanics. Origin reset at 100,000m. Ascension Ceremony overlay with Architect's Log + Hall of Pioneers. Prestige system (+10% per reset). Omega Modules (Void Engine / Singularity Core). Eternal Mode beyond 100,000m with capped scaling. PlayerInputProcessor extracted from GameScreen.kt. **Bug fixes applied**: All boss death sequences stabilized (escape phase correction + AI timer guard), Star Eater rebalanced (suction 3000→1500, weak point orbited at 100px), boss pursuit speeds increased across 5 bosses, fuel/heat gauge 3-digit alignment padded, HUD zone-adaptive colors removed from FuelGauge, platform colors for Earth/Cloud zones added, hidden signal `isUnlocked` persistence fixed in `syncState()`, claimable dashboard now shows hidden count.
+*   **Current Branch**: `development`
+*   **Current Stable Tag**: `epic11-complete`
+*   **Current EPIC**: EPIC 11 — Ascension (The End) — **COMPLETE ✅**
+*   **Current Status**: **EPIC 11 COMPLETE**. Meta-boss (The Singularity) with HUD Pull + control glitch mechanics. Origin reset at 100,000m. Ascension Ceremony overlay with Architect's Log + Hall of Pioneers. Prestige system (+10% per reset). Omega Modules (Void Engine / Singularity Core). Eternal Mode beyond 100,000m with capped scaling. PlayerInputProcessor extracted from GameScreen.kt. **GameEngine state container** extracted (~30 vars + 12 managers). **SoundManager** audio system with programmatic PCM generation, volume controls, muted by default. **Bug fixes applied**: All boss death sequences stabilized (escape phase correction + AI timer guard), Star Eater rebalanced (suction 3000→1500, weak point orbited at 100px), boss pursuit speeds increased across 5 bosses, fuel/heat gauge 3-digit alignment padded, HUD zone-adaptive colors removed from FuelGauge, platform colors for Earth/Cloud zones added, hidden signal `isUnlocked` persistence fixed in `syncState()`, claimable dashboard now shows hidden count, dev menu spawn velocity bug fixed.
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
-    *   GameScreen.kt at ~1,900 lines — remaining God Object. Future extraction planned for future sprints.
-    *   GameScreen.kt continues to be touched by multiple agents — potential merge surface.
+    *   GameScreen.kt at ~2,080 lines — extraction continued via GameEngine refactoring into `refactor/cleanup` branch.
 *   **Current Priorities**: Future EPIC planning / EPIC 12.
 *   **Next Planned Work**: EPIC 12 — Fleet Expansion (planned).
 
@@ -53,6 +52,9 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **EPIC 7: Rocket Evolution**: Transformed the rocket into a customizable "Build" with Rocket Classes and a 17-module Registry.
 *   **EPIC 8: Missions & Progression (Recovery)**: Reconciled legacy prototype data with the production engine. Implemented the **Intelligence Network** for real-time stat tracking.
 *   **EPIC 8.5: Architecture Decomposition**: Structural sprint decomposed `GameScreen.kt` (3,901→2,011 lines) and `ActiveThreat.kt` (1,224→123 lines) God Objects. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and HUD components extracted. Aligned mission logic with lifetime statistics.
+*   **EPIC 9: Hidden Signals & Dynamic Unlocks**: Secret missions, dynamic unlock engine (AND/OR), artifact set bonuses, lore logs, blueprints.
+*   **EPIC 10: The Outer Reaches**: 4 new zones, Flux/Graviton platforms, Foundry & Chrono-Rift, 12 new threats, 3 power-ups, 5 library boss encounters, full visual fidelity upgrade.
+*   **EPIC 11: Ascension (The End)**: The Singularity meta-boss, origin reset, ascension ceremony, prestige system, Omega Modules, Eternal Mode, PlayerInputProcessor extraction, GameEngine state container, SoundManager audio system, comprehensive bug fixes.
 
 ---
 
