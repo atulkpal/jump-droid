@@ -146,7 +146,14 @@ class EncounterDirector {
         message: String? = null
     ) {
         val (sx, sy, svy) = computeSpawnPosition(def, screenWidth, screenHeight, cameraY, score)
-        threatManager.spawnThreat(def, sx, sy, vx = 0f, vy = svy, difficultyMultiplier = difficultyMultiplier)
+        val vxSign = if (def.spawnPosition == SpawnPosition.SIDE_ENTRY) {
+            if (sx < 0) 1f else -1f
+        } else 1f
+        val eternalFactor = if (score > 100000) (score - 100000) / 20000f else 0f
+        val cappedFactor = min(eternalFactor, 3f)
+        val speedMult = 1.0f + cappedFactor
+        val finalVx = (def.spawnVx * speedMult) * vxSign + (Random.nextFloat() - 0.5f) * 20f
+        threatManager.spawnThreat(def, sx, sy, vx = finalVx, vy = svy, difficultyMultiplier = difficultyMultiplier)
         message?.let { notificationManager.post(it) }
     }
 
