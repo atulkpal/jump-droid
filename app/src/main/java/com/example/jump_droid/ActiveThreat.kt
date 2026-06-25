@@ -53,6 +53,7 @@ class ActiveThreat(
     var shakeCooldown by mutableFloatStateOf(0f)
     var projectileCooldown by mutableFloatStateOf(0f)
     var threatSpawnCooldown by mutableFloatStateOf(0f)
+    var hudPullFactor by mutableFloatStateOf(0f) // EPIC 11: Singularity mechanic
     
     // Weak Point System
     var maxWeakPoints by mutableIntStateOf(0)

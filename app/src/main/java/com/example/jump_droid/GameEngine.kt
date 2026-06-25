@@ -98,6 +98,9 @@ class GameEngine(
     var missionHintRotationTimer by mutableFloatStateOf(0f)
     var globalShowObjective by mutableStateOf(false)
 
+    var baseAltitude by mutableFloatStateOf(0f) // EPIC 11: Shift amount for origin reset
+    var baseDifficultyMultiplier by mutableFloatStateOf(1.0f) // EPIC 11: For Prestige
+
     // --- Callbacks (set by GameScreen) ---
     var onSpawnBurst: ((x: Float, y: Float, count: Int, color: Color, speed: Float) -> Unit)? = null
     var onCheckDiscovery: ((type: DiscoveryType, forceTutorialState: Boolean) -> Unit)? = null
@@ -108,4 +111,28 @@ class GameEngine(
     var onSetBossesSpawned: ((String) -> Unit)? = null
 
     var lastFrameTime = 0L
+
+    /**
+     * EPIC 11: Origin Reset Logic
+     * Normalizes coordinates to 0 to prevent floating-point jitter at extreme altitudes.
+     * Clears existing world objects to prepare for the final encounter.
+     */
+    fun triggerAscensionOriginReset() {
+        baseAltitude += abs(cameraY)
+        val shiftAmount = cameraY
+        cameraY = 0f
+        player.y -= shiftAmount
+        
+        // Clear world objects for the Singularity encounter
+        platforms.clear()
+        particles.clear()
+        landingEffects.clear()
+        flyingRewards.clear()
+        projectileManager.clear()
+        powerUpManager.powerUps.clear()
+        threatManager.clear()
+        
+        // Ground is no longer relevant in Point Zero, but we shift it to keep logic consistent
+        groundY -= shiftAmount
+    }
 }

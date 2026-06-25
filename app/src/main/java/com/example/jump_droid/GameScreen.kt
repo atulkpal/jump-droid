@@ -79,9 +79,12 @@ fun GameScreen() {
 
     var gameState by remember { mutableStateOf(GameState.TITLE) }
     var previousState by remember { mutableStateOf(GameState.MAIN_MENU) }
+    var preOverlayState by remember { mutableStateOf(GameState.PLAYING) }
 
     var highestYReached by remember { mutableFloatStateOf(Float.MAX_VALUE) }
     var score by remember { mutableIntStateOf(0) }
+    var baseAltitude by remember { mutableFloatStateOf(0f) }
+    var baseDifficultyMultiplier by remember { mutableFloatStateOf(1.0f) }
     var continuesUsed by remember { mutableIntStateOf(0) }
     var runDurationTimer by remember { mutableFloatStateOf(0f) }
     var airborneTimer by remember { mutableFloatStateOf(0f) }
@@ -150,6 +153,7 @@ fun GameScreen() {
     var infiniteFuel by remember { mutableStateOf(false) }
     var disableHeat by remember { mutableStateOf(false) }
     var showDevMenu by remember { mutableStateOf(false) }
+    var showAscensionCredits by remember { mutableStateOf(false) }
 
     val bossesSpawned = remember { mutableStateSetOf<String>() }
     val notificationManager = remember { NotificationManager() }
@@ -194,6 +198,7 @@ fun GameScreen() {
     val encounterDirector = remember { EncounterDirector() }
     val projectileManager = remember { ProjectileManager() }
     val inputBufferManager = remember { InputBufferManager() }
+    val inputProcessor = remember { PlayerInputProcessor(inputBufferManager) }
 
     var majorWarningText by remember { mutableStateOf<String?>(null) }
     var majorWarningTimer by remember { mutableFloatStateOf(0f) }
@@ -205,7 +210,7 @@ fun GameScreen() {
     val loadoutManager = remember { LoadoutManager(sharedPrefs) }
 
     LaunchedEffect(gameState) {
-        if (gameState != GameState.PLAYING) {
+        if (gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL) {
             isThrusting = false
         }
     }
@@ -214,7 +219,8 @@ fun GameScreen() {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE) {
-                if (gameState == GameState.PLAYING) {
+                if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL) {
+                    preOverlayState = gameState
                     gameState = GameState.PAUSED
                     isThrusting = false
                 }
@@ -250,7 +256,10 @@ fun GameScreen() {
             progressionManager.updateRank()
             codexNotification = type
             activeDiscovery = type
-            if (forceTutorialState) gameState = GameState.TUTORIAL
+            if (forceTutorialState) {
+                preOverlayState = gameState
+                gameState = GameState.TUTORIAL
+            }
 
             // Mission Hook - General Discovery (Only count if it's an ARTIFACT discovery for generic goals)
             if (type.category == "ARTIFACTS") {
@@ -344,6 +353,7 @@ fun GameScreen() {
             player = player,
             onRocketUnlock = { type ->
                 unlockedRocket = type
+                preOverlayState = gameState
                 gameState = GameState.UNLOCK
             },
             onAchievementUnlock = { achievement ->
@@ -367,7 +377,7 @@ fun GameScreen() {
         survivalManager.applyDamage(
             amount = amount,
             player = player,
-            isGameOver = gameState != GameState.PLAYING,
+            isGameOver = gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL,
             onGameOver = {
                 gameState = GameState.GAMEOVER
                 saveHighScore(score)
@@ -753,10 +763,13 @@ fun GameScreen() {
         player.maxFuel = BASE_FUEL_CAPACITY * player.rocketType.fuelMult
         player.fuel = player.maxFuel
         
+        val prestige = sharedPrefs.getInt("ascension_prestige", 0)
+        val prestigeMult = 1.0f + (prestige * 0.1f)
+        
         // EPIC 5: Survival Initialization
-        player.maxIntegrity = progressionManager.permanentMaxIntegrity + progressionManager.getHullBonusAmount()
+        player.maxIntegrity = (progressionManager.permanentMaxIntegrity + progressionManager.getHullBonusAmount()) * prestigeMult
         player.integrity = player.maxIntegrity
-        player.maxShield = progressionManager.permanentMaxShield
+        player.maxShield = progressionManager.permanentMaxShield * prestigeMult
         player.shield = player.maxShield
         player.shieldRegenPauseTimer = 0f
 
@@ -809,6 +822,7 @@ fun GameScreen() {
         effectiveThrust = false
         effectiveTarget = Offset.Zero
         score = 0
+        baseAltitude = 0f
         altitudeManager.updateAltitude(0)
         highestYReached = groundY
         cameraY = 0f
@@ -820,6 +834,7 @@ fun GameScreen() {
         threatManager.clear()
         projectileManager.clear()
         inputBufferManager.clear()
+        inputProcessor.reset()
         missionManager.clear()
         bossesSpawned.clear()
         majorWarningText = null
@@ -851,7 +866,7 @@ fun GameScreen() {
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
-                    if (gameState == GameState.PLAYING) {
+                    if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL) {
                         isThrusting = true
                         thrustTarget = down.position
                         player.squashStretch = 1.2f // Stretch on takeoff
@@ -875,13 +890,13 @@ fun GameScreen() {
             screenWidth = with(density) { maxWidth.toPx() }
             screenHeight = with(density) { maxHeight.toPx() }
             groundY = screenHeight - ROCKET_HEIGHT - 50f
-            if (gameState == GameState.PLAYING) restartGame()
+            if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL) restartGame()
         }
 
         LaunchedEffect(gameState) {
-            if (gameState == GameState.PLAYING) {
+            if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL) {
                 var lastFrameTime = 0L
-                while (gameState == GameState.PLAYING) {
+                while (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL) {
                     withFrameNanos { currentTime ->
                         if (lastFrameTime == 0L) { lastFrameTime = currentTime; return@withFrameNanos }
                         val dt = (currentTime - lastFrameTime) / 1_000_000_000f
@@ -898,13 +913,27 @@ fun GameScreen() {
                         }
 
                         // Update systems
-                        inputBufferManager.recordInput(isThrusting, thrustTarget, gameTime)
-                        val (frameEffThrust, frameEffTarget) = inputBufferManager.getEffectiveThrust(gameTime, player.inputLatency)
+                        val singularity = threatManager.activeThreats.find { it.definition.id == "BOSS_SINGULARITY" }
+                        inputProcessor.glitchFactor = singularity?.hudPullFactor ?: 0f
+
+                        val (frameEffThrust, frameEffTarget) = inputProcessor.processInput(isThrusting, thrustTarget, gameTime, player, dt)
                         effectiveThrust = frameEffThrust
                         effectiveTarget = frameEffTarget
 
                         discoveryManager.update(dt)
                         threatManager.update(dt, cameraY, screenHeight, screenWidth, player, powerUpManager.powerUps)
+                        
+                        // EPIC 11: End of Singularity Encounter
+                        if (gameState == GameState.ASCENSION_PROTOCOL && bossesSpawned.contains("BOSS_SINGULARITY")) {
+                            if (threatManager.activeThreats.none { it.definition.id == "BOSS_SINGULARITY" }) {
+                                if (!showAscensionCredits) {
+                                    checkDiscovery(DiscoveryType.DISCOVERY_THE_END)
+                                    checkDiscovery(DiscoveryType.ART_ARCHITECT_SIGNATURE)
+                                    showAscensionCredits = true
+                                }
+                            }
+                        }
+
                         projectileManager.update(dt)
                         ambientManager.update(dt, cameraY, screenWidth, screenHeight, altitudeManager.currentZone)
 
@@ -1254,6 +1283,11 @@ fun GameScreen() {
                                 }
                             }
 
+                            // EPIC 11: Physics Flux (Point Zero / Singularity)
+                            val physicsFlux = if (altitudeManager.currentZone == AltitudeZone.SINGULARITY) {
+                                1.0f + sin(score / 500f) * 0.2f
+                            } else 1.0f
+
                             // d. Player Physics
                             val canThrustNormal = effectiveThrust && (player.fuel > 0f || infiniteFuel) && !player.isOverheated
                             val canSteerPrototype = effectiveThrust && player.isOverheated && player.rocketType == RocketType.EXPERIMENTAL
@@ -1274,7 +1308,7 @@ fun GameScreen() {
                                 val currentThrust = BASE_THRUST_POWER * player.rocketType.thrustMult * 
                                     (if (player.turboTimer > 0) 1.2f else 1.0f) * 
                                     (if (player.overdriveTimer > 0) 2.0f else 1.0f) *
-                                    thrustMult * progressionManager.getThrustMultiplier()
+                                    thrustMult * progressionManager.getThrustMultiplier() * physicsFlux
 
                                 if (canThrustNormal) {
                                     player.velocityY -= currentThrust * sdt
@@ -1306,7 +1340,7 @@ fun GameScreen() {
                                 val dx = effectiveTarget.x - player.x
                                 val maxSteerDist = screenWidth / 3f
                                 val baseSteerMult = if (player.stabilityTimer > 0) 1.2f else 0.7f
-                                val steerForce = (dx / maxSteerDist).coerceIn(-1f, 1f) * (if (player.controlInversionTimer > 0f) -1f else 1f)
+                                val steerForce = (dx / maxSteerDist).coerceIn(-1f, 1f)
                                 player.velocityX += steerForce * currentThrust * baseSteerMult * steerMult * sdt
 
                                 if (canThrustNormal) {
@@ -1325,7 +1359,7 @@ fun GameScreen() {
                                 player.heat = max(0f, player.heat - COOLING_RATE * coolingMult * progressionManager.getHeatCooldownMultiplier() * sdt)
                             }
 
-                            player.velocityY += BASE_GRAVITY * sdt
+                            player.velocityY += BASE_GRAVITY * physicsFlux * sdt
                             val oldX = player.x
                             val oldY = player.y
                             player.x += player.velocityX * sdt
@@ -1655,13 +1689,40 @@ fun GameScreen() {
                         )
 
                         if (!isThrusting) player.fuel = min(player.maxFuel, player.fuel + FUEL_RECHARGE_RATE * progressionManager.getFuelRegenMultiplier() * dt)
-                        if (player.y < highestYReached) {
-                            highestYReached = player.y
+                        
+                        val absoluteY = player.y - baseAltitude
+                        if (absoluteY < highestYReached) {
+                            highestYReached = absoluteY
                             val newScore = ((groundY - highestYReached) / 10f).toInt()
                             if (newScore > score) {
                                 score = newScore
                                 altitudeManager.updateAltitude(score)
                                 checkUnlock(score)
+                                
+                                // EPIC 11: Trigger Ascension Protocol at 100km
+                                if (score >= Constants.ZONE_THRESHOLD_SINGULARITY && gameState == GameState.PLAYING) {
+                                    gameState = GameState.ASCENSION_PROTOCOL
+                                    
+                                    // Perform Origin Reset
+                                    baseAltitude += abs(cameraY)
+                                    val shiftAmount = cameraY
+                                    cameraY = 0f
+                                    player.y -= shiftAmount
+                                    highestYReached -= shiftAmount
+                                    groundY -= shiftAmount
+                                    
+                                    platforms.clear()
+                                    powerUpManager.powerUps.clear()
+                                    threatManager.clear()
+                                    projectileManager.clear()
+                                    particles.clear()
+                                    landingEffects.clear()
+                                    
+                                    // Spawn the Meta-Boss
+                                    ThreatRegistry.getById("BOSS_SINGULARITY")?.let { def ->
+                                        threatManager.spawnThreat(def, screenWidth / 2f, -400f)
+                                    }
+                                }
                             }
                         }
                         if (player.y < cameraY + screenHeight * 0.4f) cameraY = player.y - screenHeight * 0.4f
@@ -1705,7 +1766,7 @@ fun GameScreen() {
                     currentZone = altitudeManager.currentZone
                 )
 
-                if (gameState == GameState.PLAYING || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL || gameState == GameState.PAUSED || gameState == GameState.HELP || gameState == GameState.UNLOCK) {
+                if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL || gameState == GameState.GAMEOVER || gameState == GameState.TUTORIAL || gameState == GameState.PAUSED || gameState == GameState.HELP || gameState == GameState.UNLOCK) {
                     drawGround(
                         groundY = groundY, cameraY = cameraY,
                         screenWidth = screenWidth, screenHeight = screenHeight,
@@ -1827,7 +1888,19 @@ fun GameScreen() {
                         previousState = GameState.MAIN_MENU
                         gameState = it 
                     },
-                    onExit = { (context as? android.app.Activity)?.finish() }
+                    onExit = { (context as? android.app.Activity)?.finish() },
+                    highScore = progressionManager.highScore,
+                    onPrestige = {
+                        // EPIC 11: Prestige Reset
+                        val currentPrestige = sharedPrefs.getInt("ascension_prestige", 0)
+                        progressionManager.wipeData()
+                        sharedPrefs.edit { 
+                            putInt("ascension_prestige", currentPrestige + 1)
+                            apply()
+                        }
+                        restartGame()
+                        gameState = GameState.TITLE
+                    }
                 )
             }
             GameState.HANGAR -> {
@@ -1878,13 +1951,13 @@ fun GameScreen() {
             GameState.LEADERBOARD -> {
                 LeaderboardScreen(onDismiss = { gameState = GameState.MAIN_MENU })
             }
-            GameState.PLAYING, GameState.GAMEOVER, GameState.TUTORIAL, GameState.PAUSED, GameState.HELP, GameState.UNLOCK -> {
+            GameState.PLAYING, GameState.GAMEOVER, GameState.TUTORIAL, GameState.PAUSED, GameState.HELP, GameState.UNLOCK, GameState.ASCENSION_PROTOCOL -> {
                 Box(Modifier.fillMaxSize()) {
                     TopRightUtilityButtons(
                         modifier = Modifier.align(Alignment.TopEnd),
                         gameState = gameState,
-                        onHelp = { gameState = GameState.HELP; isThrusting = false },
-                        onPause = { gameState = GameState.PAUSED; isThrusting = false }
+                        onHelp = { preOverlayState = gameState; gameState = GameState.HELP; isThrusting = false },
+                        onPause = { preOverlayState = gameState; gameState = GameState.PAUSED; isThrusting = false }
                     )
 
                     // --- HUD WIDGETS ---
@@ -1894,11 +1967,14 @@ fun GameScreen() {
                         zone = altitudeManager.currentZone
                     )
 
+                    val maxHudPull = threatManager.activeThreats.maxOfOrNull { it.hudPullFactor } ?: 0f
+                    val hud = HudContext(gameTime = gameTime, interferenceTimer = player.hudInterferenceTimer, zone = altitudeManager.currentZone, hudPullFactor = maxHudPull)
+
                     LeftGauges(
                         modifier = Modifier.align(Alignment.CenterStart),
                         fuel = player.fuel, maxFuel = player.maxFuel,
                         heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated,
-                        hud = HudContext(gameTime = gameTime, interferenceTimer = player.hudInterferenceTimer, zone = altitudeManager.currentZone)
+                        hud = hud
                     )
 
                     ComboDisplay(
@@ -1916,7 +1992,7 @@ fun GameScreen() {
                         modifier = Modifier.align(Alignment.CenterEnd),
                         shield = player.shield, maxShield = player.maxShield,
                         integrity = player.integrity, maxIntegrity = player.maxIntegrity,
-                        hud = HudContext(gameTime = gameTime, interferenceTimer = player.hudInterferenceTimer, zone = altitudeManager.currentZone)
+                        hud = hud
                     )
 
                     // 4. CENTER BELOW ALTITUDE: Progression HUD Layer
@@ -1979,7 +2055,7 @@ fun GameScreen() {
                         onToggleInfiniteShield = { player.infiniteShield = !player.infiniteShield },
                         onToggleInvincibleHull = { player.invincibleHull = !player.invincibleHull },
                         onUnlockAll = { unlockAll() },
-                        onResume = { gameState = GameState.PLAYING },
+                        onResume = { gameState = preOverlayState },
                         onRestart = { restartGame() },
                         onMainMenu = { gameState = GameState.MAIN_MENU },
                         zone = altitudeManager.currentZone
@@ -1989,16 +2065,16 @@ fun GameScreen() {
                 if (gameState == GameState.TUTORIAL && activeDiscovery != null) {
                     TutorialOverlay(
                         activeDiscovery = activeDiscovery,
-                        onAcknowledge = { gameState = GameState.PLAYING; activeDiscovery = null }
+                        onAcknowledge = { gameState = preOverlayState; activeDiscovery = null }
                     )
                 }
                 if (gameState == GameState.HELP) {
-                    HelpOverlay(onDismiss = { gameState = GameState.PLAYING })
+                    HelpOverlay(onDismiss = { gameState = preOverlayState })
                 }
                 if (gameState == GameState.UNLOCK && unlockedRocket != null) {
                     UnlockOverlay(
                         unlockedRocket = unlockedRocket,
-                        onConfirm = { gameState = GameState.PLAYING; unlockedRocket = null }
+                        onConfirm = { gameState = preOverlayState; unlockedRocket = null }
                     )
                 }
                 if (gameState == GameState.GAMEOVER) {
@@ -2020,6 +2096,14 @@ fun GameScreen() {
                     )
                 }
             }
+        }
+
+        if (showAscensionCredits) {
+            AscensionOverlay(onComplete = {
+                showAscensionCredits = false
+                gameState = GameState.MAIN_MENU
+                restartGame()
+            })
         }
     }
 }

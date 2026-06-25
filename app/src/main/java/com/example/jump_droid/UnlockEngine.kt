@@ -30,8 +30,8 @@ object UnlockEngine {
                 progression.isDiscoveryUnlocked(req.target)
             }
             UnlockType.MISSION, UnlockType.MISSION_COMPLETE -> {
-                // target should be the mission ID
-                progression.completedMissionIds.contains(req.target)
+                // target should be the mission ID or achievement ID
+                progression.completedMissionIds.contains(req.target) || progression.isAchievementUnlocked(req.target)
             }
             UnlockType.ARTIFACT_SET -> {
                 // To be implemented in Sprint 9.3

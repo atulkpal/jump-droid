@@ -48,6 +48,10 @@ object ModuleRegistry {
         register(ThreatScannerModule())
         register(AutoRepairDroneModule())
         register(EmergencyBeaconModule())
+
+        // EPIC 11: Omega Modules
+        register(VoidEngineModule())
+        register(SingularityCoreModule())
     }
 
     private fun register(module: Module) {
@@ -474,5 +478,56 @@ class EmergencyBeaconModule : Module {
                 )
             }
         }
+    }
+}
+
+/** --- EPIC 11: Omega Modules --- **/
+
+class VoidEngineModule : Module {
+    override val id = "MOD_VOID_ENGINE"
+    override val name = "Void Engine"
+    override val description = "Draws energy from spatial folding. Provides infinite fuel."
+    override val category = ModuleCategory.ENGINE
+    override val rarity = ModuleRarity.LEGENDARY
+    override val iconColor = Color.Black
+    override val unlockRequirement = UnlockRequirement(UnlockType.MISSION_COMPLETE, target = "infinite_ascent")
+
+    override fun onFuelConsume(player: Player, dt: Float): Float = 0f
+
+    override fun onDraw(drawScope: DrawScope, player: Player, cameraY: Float, gameTime: Long, activeThreats: List<ActiveThreat>, powerUps: List<PowerUp>, platforms: List<Platform>) {
+        repeat(3) { i ->
+            val angle = (gameTime / 100f) + i * 2.09f
+            val dx = cos(angle) * 15f
+            val dy = sin(angle) * 15f + 40f
+            drawScope.drawCircle(Color.Black.copy(alpha = 0.4f), radius = 5f, center = Offset(player.x + dx, player.y - cameraY + dy))
+        }
+    }
+}
+
+class SingularityCoreModule : Module {
+    override val id = "MOD_SINGULARITY_CORE"
+    override val name = "Singularity Core"
+    override val description = "Miniaturized gravitational anchor. Perfect flight stability."
+    override val category = ModuleCategory.UTILITY
+    override val rarity = ModuleRarity.LEGENDARY
+    override val iconColor = Color.White
+    override val unlockRequirement = UnlockRequirement(UnlockType.MISSION_COMPLETE, target = "infinite_ascent")
+
+    override fun onEquip(player: Player) {
+        player.stabilityTimer = Float.MAX_VALUE
+    }
+
+    override fun onUnequip(player: Player) {
+        player.stabilityTimer = 0f
+    }
+
+    override fun onDraw(drawScope: DrawScope, player: Player, cameraY: Float, gameTime: Long, activeThreats: List<ActiveThreat>, powerUps: List<PowerUp>, platforms: List<Platform>) {
+        val pulse = (sin(gameTime / 50f) * 0.5f + 0.5f)
+        drawScope.drawCircle(
+            color = Color.White.copy(alpha = 0.2f * pulse),
+            radius = 60f,
+            center = Offset(player.x, player.y - cameraY),
+            style = Stroke(width = 2f)
+        )
     }
 }

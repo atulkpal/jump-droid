@@ -58,6 +58,24 @@ Proposed hull classes for advanced playstyles.
 *   **Complexity:** Medium. Requires modifying threat detection radius logic.
 *   **Status:** APPROVED.
 
+---
+
+## C. Omega Modules (Legendary Tier)
+
+Specialized, game-breaking modules earned only after reaching the Singularity. Only equipable in Eternal Mode or Prestige Tiers.
+
+### 1. Void Engine (MOD_VOID_ENGINE)
+*   **Description:** Provides infinite fuel by drawing energy from spatial folding.
+*   **Gameplay Effect:** Fuel consumption set to 0.
+*   **Visual:** Constant dark-matter trail behind the rocket.
+*   **Status:** APPROVED (EPIC 11).
+
+### 2. Singularity Core (MOD_SINGULARITY_CORE)
+*   **Description:** A miniaturized gravitational anchor.
+*   **Gameplay Effect:** 100% stability; immune to wind, turbulence, and gravity shear.
+*   **Visual:** Ethereal white-noise aura surrounding the hull.
+*   **Status:** APPROVED (EPIC 11).
+
 ### 2. Kinetic Reflector
 *   **Classification:** APPROVED
 *   **Description:** Deals damage or knockback to enemies on collision.

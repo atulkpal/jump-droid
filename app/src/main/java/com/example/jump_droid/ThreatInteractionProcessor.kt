@@ -293,7 +293,7 @@ fun ActiveThreat.processInteractionHandler(
                                 val angle = (rotation + i * 90f) * (PI.toFloat() / 180f)
                                 Pair(x + cos(angle) * 250f, y + sin(angle) * 250f)
                             }
-                            "BOSS_STAR_EATER" -> Pair(x, y)
+                            "BOSS_STAR_EATER" -> Pair(x + cos(lifetime * 2f + i) * 100f, y + sin(lifetime * 2f + i) * 100f)
                             "BOSS_LEVIATHAN" -> {
                                 val ox = sin(lifetime * 1.5f - i * 0.5f) * 100f
                                 Pair(x + ox, y + i * 60f)
@@ -319,7 +319,7 @@ fun ActiveThreat.processInteractionHandler(
 
                         val ddx = player.x - wx
                         val ddy = player.y - wy
-                        val hitDist = if (definition.id == "BOSS_STAR_EATER") 80f else {
+                        val hitDist = if (definition.id == "BOSS_STAR_EATER") 120f else {
                             if (player.rocketType == RocketType.SCOUT) 70f else 50f
                         }
 
@@ -337,7 +337,10 @@ fun ActiveThreat.processInteractionHandler(
                             }
 
                             if (activeWeakPoints <= 0) {
-                                phase = 5 
+                                phase = when (definition.id) {
+                                    "MINI_BOSS_COMMANDER" -> 5
+                                    else -> 4
+                                }
                                 onScoreUpdate(1000)
                                 onFloatingText("BOSS CRITICAL - RETREATING", player.x, player.y, Color.Cyan, true, 1.0f)
                             }
@@ -409,7 +412,7 @@ fun ActiveThreat.processInteractionHandler(
                 "BOSS_STAR_EATER" -> {
                     val dist = sqrt(distSq)
                     if (dist < 1000f) {
-                        val suctionForce = (1f - dist / 1000f) * 3000f
+                        val suctionForce = (1f - dist / 1000f) * 1500f
                         player.velocityX -= (dx / dist) * suctionForce * sdt
                         player.velocityY -= (dy / dist) * suctionForce * sdt
 

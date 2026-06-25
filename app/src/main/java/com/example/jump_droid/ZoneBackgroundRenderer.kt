@@ -438,6 +438,62 @@ class ZoneBackgroundRenderer {
                 )
             }
         ))
+
+        // P1: Floating platform silhouettes
+        parallaxManager.registerLayer(AltitudeZone.THE_BEYOND, RepeatingParallaxLayer(
+            parallaxFactor = 0.15f,
+            zIndex = 1,
+            density = 4,
+            seed = 809,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val w = 80f + random.nextFloat() * 100f
+                val h = 12f + random.nextFloat() * 8f
+                val col = Color(0xFF0A0020).copy(alpha = 0.6f * opacity)
+                drawRect(col, topLeft = Offset(x - w / 2, y - h / 2), size = Size(w, h))
+                drawRect(col.copy(alpha = 0.15f * opacity), topLeft = Offset(x - w / 2, y - h / 2 - 2f), size = Size(w, 2f))
+            }
+        ))
+
+        // P1: Cyan energy stream particles
+        parallaxManager.registerLayer(AltitudeZone.THE_BEYOND, RepeatingParallaxLayer(
+            parallaxFactor = 0.3f,
+            zIndex = 2,
+            density = 8,
+            seed = 810,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val driftX = (gameTime / 2000f * 100f + x) % size.width
+                val streamAlpha = (sin(gameTime / 800f + random.nextFloat() * 6f) * 0.3f + 0.5f) * opacity
+                drawCircle(
+                    color = Color(0xFF00E5FF).copy(alpha = streamAlpha * 0.4f),
+                    radius = 2f + random.nextFloat() * 2f,
+                    center = Offset(driftX, y)
+                )
+            }
+        ))
+
+        // P1: Distant ring structure
+        parallaxManager.registerLayer(AltitudeZone.THE_BEYOND, SingleObjectParallaxLayer(
+            parallaxFactor = 0.0f,
+            zIndex = -2,
+            renderElement = { opacity, gameTime ->
+                val cx = size.width * 0.5f
+                val cy = size.height * 0.2f
+                val ringPulse = sin(gameTime / 3000f) * 0.15f + 0.85f
+                val ringAlpha = 0.15f * opacity * ringPulse
+                drawCircle(
+                    color = Color(0xFF00E5FF).copy(alpha = ringAlpha),
+                    radius = 120f,
+                    center = Offset(cx, cy),
+                    style = Stroke(width = 3f)
+                )
+                drawCircle(
+                    color = Color(0xFFD500F9).copy(alpha = ringAlpha * 0.4f),
+                    radius = 130f,
+                    center = Offset(cx, cy),
+                    style = Stroke(width = 1f)
+                )
+            }
+        ))
     }
 
     private fun setupGateLayers() {
@@ -468,9 +524,81 @@ class ZoneBackgroundRenderer {
                 )
             }
         ))
+
+        // P2: Rotating gate arm silhouettes
+        parallaxManager.registerLayer(AltitudeZone.STELLAR_GATE, RepeatingParallaxLayer(
+            parallaxFactor = 0.1f,
+            zIndex = 3,
+            density = 3,
+            seed = 910,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val armAngle = (gameTime / 5000f * 360f + random.nextFloat() * 180f) % 360f
+                val armLen = 60f + random.nextFloat() * 40f
+                val armW = 12f
+                val cx = x
+                val cy = y
+                val rad = armAngle * (kotlin.math.PI.toFloat() / 180f)
+                val ex = cx + cos(rad) * armLen
+                val ey = cy + sin(rad) * armLen
+                drawLine(
+                    color = Color(0xFFFFD700).copy(alpha = 0.15f * opacity),
+                    start = Offset(cx, cy),
+                    end = Offset(ex, ey),
+                    strokeWidth = armW
+                )
+            }
+        ))
+
+        // P2: Star concentration near gate
+        parallaxManager.registerLayer(AltitudeZone.STELLAR_GATE, RepeatingParallaxLayer(
+            parallaxFactor = 0.0f,
+            zIndex = -1,
+            density = 40,
+            seed = 911,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val twinkle = (sin(gameTime / 400f + random.nextFloat() * 6f) * 0.3f + 0.7f)
+                val brightness = 0.4f * opacity * twinkle
+                drawCircle(Color.White.copy(alpha = brightness), radius = 1f + random.nextFloat(), center = Offset(x, y))
+            }
+        ))
+
+        // P2: Golden particle stream through gate
+        parallaxManager.registerLayer(AltitudeZone.STELLAR_GATE, RepeatingParallaxLayer(
+            parallaxFactor = 0.2f,
+            zIndex = 4,
+            density = 6,
+            seed = 912,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val driftY = (gameTime / 3000f * 200f + y) % size.height
+                val driftX = x + sin(gameTime / 1000f + y / 50f) * 30f
+                val pAlpha = (sin(gameTime / 600f + random.nextFloat() * 6f) * 0.3f + 0.5f) * opacity
+                drawCircle(
+                    color = Color(0xFFFFD700).copy(alpha = pAlpha * 0.3f),
+                    radius = 2f + random.nextFloat() * 2f,
+                    center = Offset(driftX, driftY)
+                )
+            }
+        ))
     }
 
     private fun setupConstructLayers() {
+        // P3: Distant block structures on horizon
+        parallaxManager.registerLayer(AltitudeZone.ANCIENT_CONSTRUCT, RepeatingParallaxLayer(
+            parallaxFactor = 0.05f,
+            zIndex = 0,
+            density = 2,
+            seed = 1011,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val w = 200f + random.nextFloat() * 200f
+                val h = 40f + random.nextFloat() * 60f
+                drawRect(
+                    color = Color(0xFF0A0A0A).copy(alpha = 0.5f * opacity),
+                    topLeft = Offset(x - w / 2, y - h / 2),
+                    size = Size(w, h)
+                )
+            }
+        ))
+
         parallaxManager.registerLayer(AltitudeZone.ANCIENT_CONSTRUCT, RepeatingParallaxLayer(
             parallaxFactor = 0.1f,
             zIndex = 1,
@@ -482,6 +610,37 @@ class ZoneBackgroundRenderer {
                     color = Color.Black.copy(alpha = 0.8f * opacity),
                     topLeft = Offset(x - size / 2, y - size / 2),
                     size = Size(size, size)
+                )
+            }
+        ))
+
+        // P3: Floating monolith silhouettes
+        parallaxManager.registerLayer(AltitudeZone.ANCIENT_CONSTRUCT, RepeatingParallaxLayer(
+            parallaxFactor = 0.15f,
+            zIndex = 2,
+            density = 3,
+            seed = 1012,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val mw = 30f + random.nextFloat() * 20f
+                val mh = 80f + random.nextFloat() * 100f
+                val col = Color(0xFF1A1A2E).copy(alpha = 0.7f * opacity)
+                drawRect(col, topLeft = Offset(x - mw / 2, y - mh / 2), size = Size(mw, mh))
+                drawRect(Color(0xFF00E5FF).copy(alpha = 0.1f * opacity), topLeft = Offset(x - mw / 2, y - mh / 2), size = Size(2f, mh))
+            }
+        ))
+
+        // P3: Green energy motes
+        parallaxManager.registerLayer(AltitudeZone.ANCIENT_CONSTRUCT, RepeatingParallaxLayer(
+            parallaxFactor = 0.3f,
+            zIndex = 3,
+            density = 8,
+            seed = 1013,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val moteAlpha = (sin(gameTime / 700f + random.nextFloat() * 6f) * 0.3f + 0.5f) * opacity
+                drawCircle(
+                    color = Color(0xFF69F0AE).copy(alpha = moteAlpha * 0.3f),
+                    radius = 2f + random.nextFloat() * 2f,
+                    center = Offset(x + sin(gameTime / 1500f + random.nextFloat()) * 20f, y)
                 )
             }
         ))
@@ -664,7 +823,52 @@ class ZoneBackgroundRenderer {
                     )
                 }
                 AltitudeZone.SINGULARITY -> {
-                    drawRect(Color.White)
+                    // P4: Composed white-noise background
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+                    val maxDim = maxOf(size.width, size.height)
+                    drawRect(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color.White, Color(0xFFE0E0E0), Color(0xFFB0B0B0)),
+                            center = Offset(cx, cy),
+                            radius = maxDim * 0.8f
+                        )
+                    )
+                    // Static noise overlay (subtle grid)
+                    val noiseSeed = Random(999)
+                    repeat(60) {
+                        val nx = noiseSeed.nextFloat() * size.width
+                        val ny = (noiseSeed.nextFloat() * size.height + gameTime / 200f) % size.height
+                        drawRect(
+                            color = Color(0xFF808080).copy(alpha = noiseSeed.nextFloat() * 0.08f),
+                            topLeft = Offset(nx, ny),
+                            size = Size(4f + noiseSeed.nextFloat() * 8f, 2f + noiseSeed.nextFloat() * 4f)
+                        )
+                    }
+                    // Geometric fragment debris
+                    val fragSeed = Random(1001)
+                    repeat(4) {
+                        val fx = (fragSeed.nextFloat() * size.width * 0.8f + size.width * 0.1f + sin(gameTime / 2000f + it * 2f) * 50f)
+                        val fy = (fragSeed.nextFloat() * size.height * 0.6f + size.height * 0.1f + cos(gameTime / 2500f + it * 3f) * 30f)
+                        val fSize = 20f + fragSeed.nextFloat() * 30f
+                        val angle = (gameTime / (3000f + it * 500f) * 60f) % 360f
+                        drawRect(
+                            color = Color.White.copy(alpha = 0.2f + fragSeed.nextFloat() * 0.15f),
+                            topLeft = Offset(fx - fSize / 2, fy - fSize / 2),
+                            size = Size(fSize, fSize * 0.3f)
+                        )
+                    }
+                    // Intense radial center glow
+                    val glowPulse = sin(gameTime / 800f) * 0.1f + 0.9f
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.4f * glowPulse), Color.Transparent),
+                            center = Offset(cx, cy),
+                            radius = 100f
+                        ),
+                        radius = 100f,
+                        center = Offset(cx, cy)
+                    )
                 }
             }
 

@@ -1,10 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
 **Last Updated:** 2026-06-25
-**Project Status:** EPIC 10 — The Outer Reaches: Library-Aligned Hybrid — IN PROGRESS 🚧
+**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅
 **Current Stable Tag:** `epic10-complete`
-**Branch:** `epic10-theOuterReach`
-**Base Commit:** `67f03c7`
+**Branch:** `epic11-ascension`
+**Base Commit:** `HEAD`
 
 ---
 
@@ -32,15 +32,16 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `epic10-theOuterReach`
-*   **Current Stable Tag**: `epic9-complete`
-*   **Current EPIC**: EPIC 10 — The Outer Reaches (Library-Aligned Hybrid)
-*   **Current Status**: **EPIC 9 COMPLETE**. Hidden signals, Dynamic Unlock Engine, Artifact Set Bonuses, and Lore Logs fully operational. 17 modules and 3 blueprints gated by the evaluator. Archive expanded with Sets and Logs tabs. **EPIC 10 complete** — Sprints 10.0–10.6 complete (infrastructure, zone expansion, Flux/Graviton platforms, Foundry & Chrono-Rift zones, 7 library threats, CONVEYOR/MIMIC platforms, KINETIC_BATTERY/MAGNETIC_SIPHON/OVERDRIVE_MODULE power-ups, full visual fidelity upgrade for all threats & platforms, 5 library bosses, 2 artifacts with Grand Ascension set, 2 lore logs, 4 achievements, encounter integration).
+*   **Current Branch**: `epic11-ascension`
+*   **Current Stable Tag**: `epic10-complete`
+*   **Current EPIC**: EPIC 11 — Ascension (The End)
+*   **Current Status**: **EPIC 11 COMPLETE**. Meta-boss (The Singularity) with HUD Pull + control glitch mechanics. Origin reset at 100,000m. Ascension Ceremony overlay with Architect's Log + Hall of Pioneers. Prestige system (+10% per reset). Omega Modules (Void Engine / Singularity Core). Eternal Mode beyond 100,000m with capped scaling. PlayerInputProcessor extracted from GameScreen.kt. **Bug fixes applied**: All boss death sequences stabilized (escape phase correction + AI timer guard), Star Eater rebalanced (suction 3000→1500, weak point orbited at 100px), boss pursuit speeds increased across 5 bosses, fuel/heat gauge 3-digit alignment padded, HUD zone-adaptive colors removed from FuelGauge, platform colors for Earth/Cloud zones added, hidden signal `isUnlocked` persistence fixed in `syncState()`, claimable dashboard now shows hidden count.
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
-    *   GameScreen.kt at ~1,900 lines — remaining God Object. Future extraction planned for EPIC 12.
-*   **Current Priorities**: EPIC 11 — Ascension (The End).
-*   **Next Planned Work**: EPIC 11 — Ascension (The End). Branch: `epic11-ascension`
+    *   GameScreen.kt at ~1,900 lines — remaining God Object. Future extraction planned for future sprints.
+    *   GameScreen.kt continues to be touched by multiple agents — potential merge surface.
+*   **Current Priorities**: Future EPIC planning / EPIC 12.
+*   **Next Planned Work**: EPIC 12 — Fleet Expansion (planned).
 
 ---
 

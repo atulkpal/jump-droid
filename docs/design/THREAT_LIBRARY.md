@@ -57,7 +57,7 @@ This document is the permanent repository for all proposed, evaluated, and class
 | **The Architect** | **APPROVED** | Controller | The Foundry | ⭐⭐⭐⭐ | **Level is the Boss.** Rhythmically adds/removes platforms. Reaching the top is the win. |
 | **Entropy Core** | **APPROVED** | Resource Predator| Deep Space | ⭐⭐⭐⭐⭐ | **Global Drain.** Simultaneous Fuel/Shield/Heat pressure. Destroy 4 pylons to win. |
 | **Chrono Warden** | **BACKLOG** | Time-Warp | Chrono-Rift | ⭐⭐⭐⭐⭐ | **State Rewind.** Periodically resets player pos/stats to 3s prior. High bug risk. |
-| **The Singularity**| **BACKLOG** | Meta-Deceiver | Event Horizon | ⭐⭐⭐⭐⭐ | **HUD Distortion.** Pulls UI gauges into center.Reserved for true final expansion. |
+| **The Singularity**| **APPROVED** | Meta-Deceiver | Point Zero | ⭐⭐⭐⭐⭐ | **HUD Distortion.** Pulls UI gauges into center. The final encounter. |
 | **Solar Monarch** | **REJECTED** | Juggernaut | Solar Core | ⭐⭐⭐⭐ | **Flare Dance.** Redundant with Star Eater and existing Solar Flare mechanics. |
 
 ---

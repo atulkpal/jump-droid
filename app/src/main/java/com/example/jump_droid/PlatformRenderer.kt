@@ -71,6 +71,8 @@ class PlatformRenderer {
     }
 
     private fun zoneTint(zone: AltitudeZone): Color = when (zone) {
+        AltitudeZone.EARTH -> Color(0xFF795548)
+        AltitudeZone.CLOUD_LAYER -> Color(0xFF80DEEA)
         AltitudeZone.THE_FOUNDRY -> Color(0xFFFF6D00)
         AltitudeZone.CHRONO_RIFT -> SciFiPurple
         AltitudeZone.VOID -> SciFiRed

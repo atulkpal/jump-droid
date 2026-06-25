@@ -100,7 +100,14 @@ fun MissionScreen(
                     val completed = allMissions.count { it.isClaimed }
                     val total = allMissions.size
                     
-                    SummaryItem("CLAIMABLE", claimable.toString(), if (claimable > 0) SciFiGold else SciFiWhite.copy(alpha = 0.4f))
+                    val hiddenClaimable = allMissions.count { it.isHidden && it.isCompleted && !it.isClaimed }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SummaryItem("CLAIMABLE", claimable.toString(), if (claimable > 0) SciFiGold else SciFiWhite.copy(alpha = 0.4f))
+                        if (hiddenClaimable > 0) {
+                            Spacer(Modifier.width(4.dp))
+                            Text("($hiddenClaimable HIDDEN)", color = SciFiPurple.copy(alpha = 0.6f), fontSize = 8.sp)
+                        }
+                    }
                     SummaryItem("TOTAL COMP", "${(completed * 100 / total)}%", SciFiGreen)
                     SummaryItem("SIGNALS", allMissions.count { it.isHidden && it.isUnlocked }.toString(), SciFiPurple)
                 }

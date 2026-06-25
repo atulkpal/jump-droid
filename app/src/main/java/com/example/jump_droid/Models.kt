@@ -4,7 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 
 enum class GameState {
-    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS
+    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS, ASCENSION_PROTOCOL
 }
 
 enum class PowerUpType {
@@ -67,6 +67,7 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     LORE_SIGNAL("The First Signal", "A repeating transmission.", "It originated from the Void, carrying a sequence that matched no known language.", "LORE"),
     LORE_LOST_FLEET("The Lost Fleet", "Records of disappeared vessels.", "Multiple rockets vanished during the initial push into the Void.", "LORE"),
     LORE_LOGS("The Ascension Logs", "Recovered fragments.", "Encrypted data logs suggesting the signal might be coming from within the planet.", "LORE"),
+    DISCOVERY_THE_END("The Final Truth", "Beyond the climb.", "The Ascension Program is complete. You have crossed the Singularity.", "LORE"),
     
     // Artifacts
     ART_RECORDER("Flight Recorder", "A damaged recording unit.", "Contains garbled audio of a pilot describing 'structures in the clouds'.", "ARTIFACTS"),
@@ -75,6 +76,7 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     ART_DRONE("Drone Core", "An automated survey unit.", "The AI within seems to be stuck in a loop, repeating 'The Void calls'.", "ARTIFACTS"),
     ART_PRE_SIGNAL_MAP("Pre-Signal Map", "Original source coordinates.", "A recovered star-chart predating the first contact signal.", "ARTIFACTS"),
     ART_BIOMECH_SHARD("Biomechanical Shard", "Ancient construct fragment.", "A hull segment that pulses with a strange, internal heartbeat.", "ARTIFACTS"),
+    ART_ARCHITECT_SIGNATURE("The Architect's Signature", "Proof of design.", "A cryptographic key found at the Singularity. It carries the mark of the one who built the sky.", "ARTIFACTS"),
 
     // Environmental Threats (Sprint B)
     HAZARD_LIGHTNING("Lightning Storm", "Electrical buildup and strikes.", "Static discharge in the high clouds creates lethal arcs of energy.", "THREATS"),

@@ -398,6 +398,15 @@ object ThreatRegistry {
             discoveryType = DiscoveryType.THREAT_ENTROPY_CORE,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY), spawnChance = 0.01f)
         ))
+
+        register(ThreatDefinition(
+            id = "BOSS_SINGULARITY",
+            name = "The Singularity",
+            description = "The ultimate intelligence. It doesn't just fight you; it distorts your very perception of reality.",
+            type = ThreatType.BOSS,
+            tier = ThreatTier.TIER_5,
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.SINGULARITY), spawnChance = 0.01f)
+        ))
     }
 
     /**

@@ -68,6 +68,15 @@ The current ascent journey spans six distinct altitude zones.
 *   **Discoveries:** Drone Core.
 *   **Gameplay Identity:** Survival at the limits of physics; deceptive platforms and HUD interference.
 
+### 7. Point Zero
+*   **Altitude:** 100,000m+
+*   **Theme:** Non-Euclidean white-noise space. The end of the climb.
+*   **Visual Identity:** Blinding white background, geometric artifacts, HUD glitches.
+*   **Hazards:** Physics Flux (Gravity and Thrust fluctuations).
+*   **Bosses:** The Singularity.
+*   **Discoveries:** The Final Truth, The Architect's Signature.
+*   **Gameplay Identity:** The ultimate test of pilot rhythm and adaptation. Origin resets to 0 after transition.
+
 ---
 
 ## B. Future Areas

@@ -250,12 +250,40 @@ Do not implement during EPIC 7. Track only.
 
 # EPIC 11 - Ascension (The End)
 
-- [ ] Final Peak Zones
-- [ ] Legendary Relics
-- [ ] Ultimate Boss Encounter
-- [ ] Mastery Challenge Ranks
-- [ ] 100% Completion Ceremony
-- [ ] Ascension Prestige Events
+**Status: COMPLETE ✅**
+*Execution Plan: [docs/roadmap/EPIC_11_EXECUTION_PLAN.md](roadmap/EPIC_11_EXECUTION_PLAN.md)*
+
+## Sprint 11.0 — Infrastructure & Documentation
+- [x] PlayerInputProcessor extraction (dedicated input processor with glitchFactor hook)
+- [x] Design library updates (ROCKET_LIBRARY, AREA_LIBRARY, THREAT_LIBRARY, ARTIFACT_LIBRARY)
+- [x] EPIC Tracker updated
+
+## Sprint 11.1 — The Meta-Boss & Spatial Warping
+- [x] Origin Reset Logic (coordinate normalization at 100,000m)
+- [x] The Singularity AI (HUD Pull mechanic, slow tracking)
+- [x] Control Glitch Hook (intermittent thrust drops + horizontal drift)
+- [x] SingularityRenderer.kt (white-noise core, geometric fragments, reality rifts)
+- [x] HUD Animations (graphicsLayer offsets in HudWidgets.kt)
+
+## Sprint 11.2 — The Ascension Protocol (The Ending)
+- [x] GameState.ASCENSION_PROTOCOL
+- [x] AscensionOverlay.kt (Architect's Log + Hall of Pioneers credits)
+- [x] DISCOVERY_THE_END and ART_ARCHITECT_SIGNATURE
+
+## Sprint 11.3 — Prestige & Infinite Ascent
+- [x] Prestige System (+10% hull/shield per reset, button in Main Menu at 100km)
+- [x] Omega Modules (MOD_VOID_ENGINE — infinite fuel, MOD_SINGULARITY_CORE — perfect stability)
+- [x] Eternal Mode (capped scaling beyond 100,000m, 0.25s min interval, 4x max speed)
+
+## Sprint 11-BG — Visual Enhancement & Bug Fixes
+- [x] Boss death sequences fixed (escape phase per boss + AI timer guard)
+- [x] Star Eater rebalanced (suction 3000→1500, weak point orbiting, hit radius 80→120)
+- [x] Boss pursuit speeds increased (Void Engine, Signal, Architect, Entropy Core, Signal P3)
+- [x] Fuel/Heat gauge alignment padded to 3 digits
+- [x] HUD zone-adaptive colors removed from FuelGauge
+- [x] Platform colors for Earth/Cloud zones (brown/cyan instead of plain white)
+- [x] Hidden signal isUnlocked persistence fixed in syncState()
+- [x] Claimable dashboard now shows hidden count hint
 
 ---
 

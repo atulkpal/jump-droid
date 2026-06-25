@@ -52,7 +52,8 @@ object ThreatRendererRegistry {
         "MINI_BOSS_GRAVITY_ANCHOR" to GravityAnchorRenderer(),
         "MINI_BOSS_FORGER" to ForgerRenderer(),
         "BOSS_ARCHITECT" to ArchitectRenderer(),
-        "BOSS_ENTROPY_CORE" to EntropyCoreRenderer()
+        "BOSS_ENTROPY_CORE" to EntropyCoreRenderer(),
+        "BOSS_SINGULARITY" to SingularityRenderer()
     )
 
     fun forId(id: String): ThreatRenderer? = renderers[id]

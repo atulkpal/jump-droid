@@ -14,6 +14,8 @@ import com.example.jump_droid.ui.theme.SciFiGreen
 import com.example.jump_droid.ui.theme.SciFiGold
 import com.example.jump_droid.ui.theme.SciFiPurple
 import com.example.jump_droid.ui.theme.SciFiRed
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 fun DrawScope.drawRealityDistortion(
@@ -214,100 +216,139 @@ fun DrawScope.drawPowerUps(
             PowerUpType.OVERDRIVE_MODULE -> Color.Red
         }
 
+        // D1: Hexagonal background plate
+        val plateRadius = 28f
+        val hexPath = Path().apply {
+            moveTo(px + plateRadius * cos(0f), py + plateRadius * sin(0f))
+            for (i in 1..6) {
+                val angle = i * (kotlin.math.PI.toFloat() / 3f)
+                lineTo(px + plateRadius * cos(angle), py + plateRadius * sin(angle))
+            }
+            close()
+        }
+        drawPath(hexPath, Color(0xFF1A1A2E).copy(alpha = 0.7f))
+        drawPath(hexPath, baseColor.copy(alpha = 0.6f), style = Stroke(width = 2f))
+
+        // D2: Enhanced glow
         drawCircle(
-            color = baseColor.copy(alpha = 0.15f * glowPulse),
-            radius = 24f,
+            color = baseColor.copy(alpha = 0.35f * glowPulse),
+            radius = 32f,
             center = Offset(px, py)
         )
 
         when (pu.type) {
             PowerUpType.FUEL_TANK -> {
-                drawCircle(baseColor, radius = 12f, center = Offset(px, py + 2f))
+                drawCircle(baseColor, radius = 16f, center = Offset(px, py + 2f))
                 val tipPath = Path().apply {
-                    moveTo(px - 6f, py + 10f)
-                    lineTo(px, py + 17f)
-                    lineTo(px + 6f, py + 10f)
+                    moveTo(px - 8f, py + 14f)
+                    lineTo(px, py + 22f)
+                    lineTo(px + 8f, py + 14f)
                     close()
                 }
                 drawPath(tipPath, baseColor)
+                // D5: Fuel drip particles
+                val drip = (gameTime / 300) % 3L
+                if (drip == 0L) drawCircle(baseColor.copy(alpha = 0.5f), radius = 3f, center = Offset(px - 4f, py + 24f))
+                if (drip == 1L) drawCircle(baseColor.copy(alpha = 0.5f), radius = 3f, center = Offset(px + 4f, py + 24f))
             }
             PowerUpType.TURBO_BOOSTER -> {
-                val boltPath = Path().apply {
-                    moveTo(px, py - 12f)
-                    lineTo(px - 6f, py - 2f)
-                    lineTo(px - 2f, py - 2f)
-                    lineTo(px - 5f, py + 12f)
-                    lineTo(px + 5f, py)
-                    lineTo(px + 1f, py)
-                    close()
+                rotate((gameTime / 50f) % 360f, pivot = Offset(px, py)) {
+                    val boltPath = Path().apply {
+                        moveTo(px, py - 14f)
+                        lineTo(px - 8f, py - 2f)
+                        lineTo(px - 3f, py - 2f)
+                        lineTo(px - 6f, py + 14f)
+                        lineTo(px + 6f, py)
+                        lineTo(px + 2f, py)
+                        close()
+                    }
+                    drawPath(boltPath, baseColor)
                 }
-                drawPath(boltPath, baseColor)
             }
             PowerUpType.EFFICIENCY_MODULE -> {
-                rotate((gameTime / 30f) % 360f, pivot = Offset(px, py)) {
-                    drawCircle(baseColor, radius = 10f, center = Offset(px, py))
+                rotate((gameTime / 25f) % 360f, pivot = Offset(px, py)) {
+                    drawCircle(baseColor, radius = 14f, center = Offset(px, py))
                     repeat(4) { i ->
                         val a = i * 90f
                         rotate(a, pivot = Offset(px, py)) {
-                            drawRect(baseColor, topLeft = Offset(px - 3f, py - 14f), size = Size(6f, 8f))
+                            drawRect(baseColor, topLeft = Offset(px - 4f, py - 18f), size = Size(8f, 10f))
                         }
                     }
                 }
-                drawCircle(Color.White.copy(alpha = 0.6f), radius = 5f, center = Offset(px, py))
+                drawCircle(Color.White.copy(alpha = 0.6f), radius = 7f, center = Offset(px, py))
+                // D5: Trail
+                repeat(2) { i ->
+                    val tAngle = (gameTime / 25f + i * 180f) % 360f
+                    val tRad = tAngle * (kotlin.math.PI.toFloat() / 180f)
+                    drawCircle(baseColor.copy(alpha = 0.2f), radius = 4f, center = Offset(px + cos(tRad) * 22f, py + sin(tRad) * 22f))
+                }
             }
             PowerUpType.HEAT_SINK -> {
-                drawRect(baseColor, topLeft = Offset(px - 10f, py - 12f), size = Size(20f, 24f), style = Stroke(width = 2f))
+                drawRect(baseColor, topLeft = Offset(px - 14f, py - 16f), size = Size(28f, 32f), style = Stroke(width = 3f))
+                // D5: Sequential fin pulse
                 repeat(3) { i ->
-                    val fy = py - 6f + i * 6f
-                    drawLine(baseColor, start = Offset(px - 14f, fy), end = Offset(px + 14f, fy), strokeWidth = 2f)
+                    val fy = py - 8f + i * 8f
+                    val finAlpha = ((sin(gameTime / 200f + i * 2f) * 0.3f + 0.7f))
+                    drawLine(baseColor.copy(alpha = finAlpha), start = Offset(px - 18f, fy), end = Offset(px + 18f, fy), strokeWidth = 3f)
                 }
             }
             PowerUpType.ARTIFACT -> {
-                drawCircle(baseColor, radius = 15f, center = Offset(px, py))
-                drawCircle(Color.White, radius = 5f, center = Offset(px, py))
-                if ((gameTime / 150) % 2 == 0L) {
-                    drawCircle(Color.White.copy(alpha = 0.8f), radius = 3f, center = Offset(px - 4f, py - 3f))
-                }
+                drawCircle(baseColor, radius = 20f, center = Offset(px, py))
+                drawCircle(Color.White, radius = 7f, center = Offset(px, py))
+                // D5: Alternating glow colors
+                val artGlow = Color(0xFFFFD700).copy(alpha = (sin(gameTime / 150f) * 0.3f + 0.5f))
+                drawCircle(artGlow, radius = 5f, center = Offset(px - 5f, py - 3f))
+                drawCircle(Color.White.copy(alpha = (sin(gameTime / 200f + 1f) * 0.3f + 0.5f)), radius = 4f, center = Offset(px + 4f, py + 3f))
             }
             PowerUpType.ALTITUDE_BOOSTER -> {
-                drawRect(baseColor, topLeft = Offset(px - 8f, py - 12f), size = Size(16f, 24f))
+                drawRect(baseColor, topLeft = Offset(px - 12f, py - 16f), size = Size(24f, 32f))
                 val upPath = Path().apply {
-                    moveTo(px, py - 16f)
-                    lineTo(px - 5f, py - 10f)
-                    lineTo(px + 5f, py - 10f)
+                    moveTo(px, py - 22f)
+                    lineTo(px - 7f, py - 14f)
+                    lineTo(px + 7f, py - 14f)
                     close()
                 }
                 drawPath(upPath, baseColor)
             }
             PowerUpType.SHIELD_CAPSULE -> {
-                drawCircle(baseColor, radius = 16f, center = Offset(px, py))
-                val angle = (gameTime / 40f) % 360f
+                drawCircle(baseColor, radius = 20f, center = Offset(px, py))
+                val angle = (gameTime / 30f) % 360f
                 rotate(angle, pivot = Offset(px, py)) {
-                    drawCircle(Color.White.copy(alpha = 0.5f), radius = 20f, center = Offset(px, py), style = Stroke(width = 2f))
+                    drawCircle(Color.White.copy(alpha = 0.5f), radius = 26f, center = Offset(px, py), style = Stroke(width = 2.5f))
                 }
-                drawCircle(Color.White.copy(alpha = 0.6f), radius = 5f, center = Offset(px, py))
+                drawCircle(Color.White.copy(alpha = 0.6f), radius = 7f, center = Offset(px, py))
             }
             PowerUpType.HULL_REPAIR -> {
-                drawCircle(baseColor, radius = 16f, center = Offset(px, py))
-                drawLine(Color.White.copy(alpha = 0.7f), start = Offset(px - 6f, py), end = Offset(px + 6f, py), strokeWidth = 2.5f)
-                drawLine(Color.White.copy(alpha = 0.7f), start = Offset(px, py - 6f), end = Offset(px, py + 6f), strokeWidth = 2.5f)
+                drawCircle(baseColor, radius = 20f, center = Offset(px, py))
+                // D5: Rotating cross-hair
+                val crossAngle = (gameTime / 80f) % 360f
+                rotate(crossAngle, pivot = Offset(px, py)) {
+                    drawLine(Color.White.copy(alpha = 0.8f), start = Offset(px - 9f, py), end = Offset(px + 9f, py), strokeWidth = 3f)
+                    drawLine(Color.White.copy(alpha = 0.8f), start = Offset(px, py - 9f), end = Offset(px, py + 9f), strokeWidth = 3f)
+                }
             }
             PowerUpType.KINETIC_BATTERY -> {
-                drawCircle(baseColor, radius = 10f, center = Offset(px, py), style = Stroke(width = 2f))
-                drawCircle(baseColor, radius = 4f, center = Offset(px, py))
+                drawCircle(baseColor, radius = 14f, center = Offset(px, py), style = Stroke(width = 2.5f))
+                // D5: Throb
+                val throb = sin(gameTime / 150f) * 3f + 6f
+                drawCircle(baseColor, radius = throb, center = Offset(px, py))
             }
             PowerUpType.MAGNETIC_SIPHON -> {
-                drawCircle(baseColor, radius = 8f, center = Offset(px, py))
-                drawCircle(baseColor, radius = 14f, center = Offset(px, py), style = Stroke(width = 2f))
+                drawCircle(baseColor, radius = 12f, center = Offset(px, py))
+                // D5: Expand/contract ring
+                val ringSize = sin(gameTime / 200f) * 4f + 18f
+                drawCircle(baseColor, radius = ringSize, center = Offset(px, py), style = Stroke(width = 2.5f))
             }
             PowerUpType.OVERDRIVE_MODULE -> {
+                // D5: Pulsing red/white triangle
+                val pulseColor = if ((gameTime / 100) % 2 == 0L) baseColor else Color.White.copy(alpha = 0.8f)
                 val path = Path().apply {
-                    moveTo(px - 10f, py + 10f)
-                    lineTo(px, py - 10f)
-                    lineTo(px + 10f, py + 10f)
+                    moveTo(px - 14f, py + 14f)
+                    lineTo(px, py - 14f)
+                    lineTo(px + 14f, py + 14f)
                     close()
                 }
-                drawPath(path, baseColor)
+                drawPath(path, pulseColor)
             }
         }
     }

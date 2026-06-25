@@ -1,6 +1,7 @@
 package com.example.jump_droid
 
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.random.Random
 
 /**
@@ -88,7 +89,8 @@ class EncounterDirector {
         def: ThreatDefinition,
         screenWidth: Float,
         screenHeight: Float,
-        cameraY: Float
+        cameraY: Float,
+        score: Int = 0
     ): Triple<Float, Float, Float> {
         val (sx, sy) = when (def.spawnPosition) {
             SpawnPosition.ABOVE_CAMERA -> Pair(screenWidth / 2f, cameraY - 600f)
@@ -117,8 +119,14 @@ class EncounterDirector {
         val vxSign = if (def.spawnPosition == SpawnPosition.SIDE_ENTRY) {
             if (sx < 0) 1f else -1f
         } else 1f
-        val finalVx = def.spawnVx * vxSign + (Random.nextFloat() - 0.5f) * 20f
-        val finalVy = def.spawnVy + (Random.nextFloat() - 0.5f) * 10f
+        
+        // EPIC 11: Speed Scaling for Eternal Mode
+        val eternalFactor = if (score > 100000) (score - 100000) / 20000f else 0f
+        val cappedFactor = min(eternalFactor, 3f) // Cap speed multiplier at 4x
+        val speedMult = 1.0f + cappedFactor
+        
+        val finalVx = (def.spawnVx * speedMult) * vxSign + (Random.nextFloat() - 0.5f) * 20f
+        val finalVy = (def.spawnVy * speedMult) + (Random.nextFloat() - 0.5f) * 10f
 
         return Triple(sx, sy, if (def.spawnPosition == SpawnPosition.SIDE_ENTRY) 0f else finalVy)
     }
@@ -133,10 +141,11 @@ class EncounterDirector {
         cameraY: Float,
         threatManager: ThreatManager,
         notificationManager: NotificationManager,
+        score: Int = 0,
         difficultyMultiplier: Float = 1f,
         message: String? = null
     ) {
-        val (sx, sy, svy) = computeSpawnPosition(def, screenWidth, screenHeight, cameraY)
+        val (sx, sy, svy) = computeSpawnPosition(def, screenWidth, screenHeight, cameraY, score)
         threatManager.spawnThreat(def, sx, sy, vx = 0f, vy = svy, difficultyMultiplier = difficultyMultiplier)
         message?.let { notificationManager.post(it) }
     }
@@ -175,7 +184,8 @@ class EncounterDirector {
             "BOSS_VOID_ENGINE" to 15000,
             "BOSS_SIGNAL" to 18000,
             "BOSS_ARCHITECT" to 25000,
-            "BOSS_ENTROPY_CORE" to 50000
+            "BOSS_ENTROPY_CORE" to 50000,
+            "BOSS_SINGULARITY" to 100000
         )
 
         bossMilestones.forEach { (id, threshold) ->
@@ -185,7 +195,7 @@ class EncounterDirector {
                         bossesSpawned.add(id)
                         spawnAtConfigPosition(
                             def, screenWidth, screenHeight, cameraY,
-                            threatManager, notificationManager,
+                            threatManager, notificationManager, score,
                             difficultyMultiplier = zoneMultiplier,
                             message = "!!! ${def.name.uppercase()} ARRIVING !!!"
                         )
@@ -213,7 +223,13 @@ class EncounterDirector {
 
         // 2. Threat Spawning Logic
         threatSpawnTimer += dt
-        val spawnInterval = max(0.8f, 3f / intensityFactor)
+        
+        // EPIC 11: Eternal Mode Scaling (Capped)
+        val eternalFactor = if (score > 100000) (score - 100000) / 15000f else 0f
+        val cappedEternalFactor = min(eternalFactor, 30f) // Cap at ~550,000m
+        val effectiveIntensity = intensityFactor + cappedEternalFactor
+        
+        val spawnInterval = max(0.25f, 3f / effectiveIntensity)
         if (threatSpawnTimer > spawnInterval) {
             threatSpawnTimer = 0f
             val activeThreats = threatManager.activeThreats.toList()
@@ -233,7 +249,7 @@ class EncounterDirector {
                     if (Random.nextFloat() < hazard.spawnRules.spawnChance * spawnChanceMod * weight) {
                         spawnAtConfigPosition(
                             hazard, screenWidth, screenHeight, cameraY,
-                            threatManager, notificationManager,
+                            threatManager, notificationManager, score,
                             message = "${hazard.name.uppercase()} DETECTED"
                         )
                         break
@@ -258,7 +274,7 @@ class EncounterDirector {
                     )
                     spawnAtConfigPosition(
                         enemy, screenWidth, screenHeight, cameraY,
-                        threatManager, notificationManager,
+                        threatManager, notificationManager, score,
                         message = messages[enemy.id]
                     )
                 }
@@ -274,7 +290,7 @@ class EncounterDirector {
                         if (Random.nextFloat() < entity.spawnRules.spawnChance * spawnChanceMod * (config.spawnWeights[entity.id] ?: 1.0f)) {
                             spawnAtConfigPosition(
                                 entity, screenWidth, screenHeight, cameraY,
-                                threatManager, notificationManager
+                                threatManager, notificationManager, score
                             )
                         }
                     }
@@ -293,7 +309,7 @@ class EncounterDirector {
                         if (Random.nextFloat() < bossDef.spawnRules.spawnChance * zoneMod) {
                             spawnAtConfigPosition(
                                 bossDef, screenWidth, screenHeight, cameraY,
-                                threatManager, notificationManager,
+                                threatManager, notificationManager, score,
                                 difficultyMultiplier = zoneMultiplier
                             )
                             onVisualFeedback(20f, 0f)

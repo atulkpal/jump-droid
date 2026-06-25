@@ -51,7 +51,9 @@ import kotlin.math.PI
 fun MainMenuScreen(
     onLaunch: () -> Unit,
     onNavigate: (GameState) -> Unit,
-    onExit: () -> Unit
+    onExit: () -> Unit,
+    highScore: Int = 0,
+    onPrestige: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val infiniteTransition = rememberInfiniteTransition(label = "MenuTransition")
@@ -138,6 +140,22 @@ fun MainMenuScreen(
                     border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = borderPulse))
                 ) {
                     Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontSize = 12.sp)
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+
+            if (highScore >= 100000) {
+                Button(
+                    onClick = onPrestige,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = SciFiButtonShape,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = SciFiGold
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(2.dp, SciFiGold.copy(alpha = titleGlow))
+                ) {
+                    Text("ASCENSION PRESTIGE", fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 12.sp)
                 }
                 Spacer(Modifier.height(10.dp))
             }

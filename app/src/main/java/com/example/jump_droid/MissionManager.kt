@@ -136,9 +136,13 @@ class MissionManager(private val progressionService: ProgressionService) {
      * Re-syncs mission states and progress with progression manager.
      */
     fun syncState() {
+        val savedUnlockedIds = progressionService.getUnlockedMissionIds()
         allMissionInstances.values.forEach { mission ->
             mission.isCompleted = progressionService.completedMissionIds.contains(mission.id)
             mission.isClaimed = progressionService.claimedMissionIds.contains(mission.id)
+            if (savedUnlockedIds.contains(mission.id)) {
+                mission.isUnlocked = true
+            }
             val savedProgress = progressionService.getMissionProgress(mission.id)
             if (savedProgress > mission.currentProgress) {
                 mission.currentProgress = savedProgress

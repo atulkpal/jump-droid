@@ -634,6 +634,52 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-25
+
+**Sprint / Phase:** EPIC 11 — Ascension (The End) — COMPLETE
+
+**Branch:** `epic11-ascension`
+
+**Status:** Complete ✅
+
+### Added
+- **PlayerInputProcessor.kt**: Extracted input logic from GameScreen.kt with `glitchFactor` hook for Singularity boss fight.
+- **SingularityRenderer.kt**: Final boss renderer with white-noise core, geometric fragments, and reality rift lines.
+- **AscensionOverlay.kt**: Full-screen ceremonial credits with Architect's Log and Hall of Pioneers.
+- **Omega Modules**: `MOD_VOID_ENGINE` (infinite fuel) and `MOD_SINGULARITY_CORE` (perfect stability) — Legendary tier.
+- **Origin Reset**: Coordinate normalization at 100,000m to prevent floating-point jitter.
+- **Eternal Mode**: Capped infinite scaling beyond 100,000m (0.25s min interval, 4x max speed, overflow-safe at ~550,000m).
+- **Prestige System**: Permanent +10% hull/shield multiplier per reset, unlocked at 100km.
+- **Design Libraries**: Updated ROCKET_LIBRARY.md, AREA_LIBRARY.md, THREAT_LIBRARY.md, ARTIFACT_LIBRARY.md with EPIC 11 content.
+
+### Changed
+- **GameScreen.kt**: ASCENSION_PROTOCOL game state handling, origin reset logic, prestige wiring, ascension credits overlay.
+- **HudWidgets.kt**: HUD pull animation via `graphicsLayer.translationX` using `hudPullFactor` from Singularity.
+- **ThreatAIUpdater.kt**: Singularity AI with HUD Pull cycle (8s), slow tracking, instant DESTROYED on weak point kill.
+- **ThreatRegistry.kt**: Registered BOSS_SINGULARITY with SINGULARITY zone.
+- **ThreatRenderer.kt**: Registered SingularityRenderer in the registry.
+- **ActiveThreat.kt**: Added `hudPullFactor` field for Singularity mechanic.
+
+### Fixed
+- **Boss death sequences**: Escape phase corrected per boss (Commander→5, others→4). Added `activeWeakPoints <= 0` guard in 7 boss AIs to prevent timer-based phase override from blocking escape.
+- **Star Eater**: Suction reduced 3000→1500. Weak point moved from center to orbiting position (100px radius). Hit detection radius increased 80→120.
+- **Boss pursuit speeds**: Increased tracking factors for Void Engine (0.2→0.4), Signal (0.05→0.15, 0.2→0.25), Architect (0.2→0.3), Entropy Core (0.1→0.2).
+- **Fuel/Heat gauge alignment**: Numeric values padded to 3 characters to prevent layout shift at 100.
+- **HUD zone-adaptive colors**: Removed from FuelGauge — now uses static SciFiGreen (→SciFiRed when low/critical), matching other gauges.
+- **Platform colors**: Earth platforms now use warm brown (#795548), Cloud platforms use light cyan (#80DEEA) instead of plain white.
+- **Hidden signal `isUnlocked` persistence**: `syncState()` now restores `isUnlocked` from SharedPrefs, fixing unlocked signals showing glitch effect after restart.
+- **Claimable mission count**: Dashboard now shows "(N HIDDEN)" hint when claimable count includes hidden signals.
+
+### Gameplay Balance
+- **Eternal Mode**: Safe capped scaling prevents overflow at extreme altitudes.
+- **Prestige System**: Reset grants +10% hull/shield per level, gated behind 100km completion.
+
+### Technical Debt
+- `GameScreen.kt` line count: ~1,943 lines (budget: 2,200) — headroom for future work.
+- `PlayerInputProcessor.kt` extracted, reducing GameScreen complexity.
+
+---
+
 ## 2026-06-19
 
 **Sprint / Phase:** Engine Expansion — Core Systems

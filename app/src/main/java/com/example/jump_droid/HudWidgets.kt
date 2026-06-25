@@ -109,8 +109,7 @@ fun FuelGauge(
     val isLow = fuel < 20f
     val isInterfered = hud.interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(hud.gameTime / 100.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
-    val zoneAccent = zoneGaugeAccents[hud.zone] ?: SciFiGreen
-    val dropColor = if (isLow) SciFiRed else zoneAccent
+    val dropColor = if (isLow) SciFiRed else SciFiGreen
     val fuelBounce = rememberInfiniteTransition(label = "FuelBounce").animateFloat(0f, 3f, infiniteRepeatable(tween(800, easing = androidx.compose.animation.core.FastOutSlowInEasing), RepeatMode.Reverse), label = "FuelBounceVal")
     val ratio = (fuel / maxFuel).coerceIn(0f, 1f)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -129,7 +128,7 @@ fun FuelGauge(
             )
             Spacer(Modifier.width(3.dp))
             Text(
-                text = "${fuel.toInt()}",
+                text = "${fuel.toInt()}".padStart(3, ' '),
                 color = dropColor,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
@@ -208,7 +207,7 @@ fun HeatGauge(
             )
             Spacer(Modifier.width(3.dp))
             Text(
-                text = "${heat.toInt()}",
+                text = "${heat.toInt()}".padStart(3, ' '),
                 color = heatColor,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
@@ -498,7 +497,11 @@ fun LeftGauges(
     Column(
         modifier = modifier
             .padding(start = 16.dp)
-            .graphicsLayer(alpha = 0.85f),
+            .graphicsLayer {
+                alpha = 0.85f
+                // EPIC 11: Singularity Pull
+                translationX = (120.dp * hud.hudPullFactor).toPx()
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
@@ -517,7 +520,11 @@ fun RightGauges(
     Column(
         modifier = modifier
             .padding(end = 16.dp)
-            .graphicsLayer(alpha = 0.85f),
+            .graphicsLayer {
+                alpha = 0.85f
+                // EPIC 11: Singularity Pull
+                translationX = (-120.dp * hud.hudPullFactor).toPx()
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {

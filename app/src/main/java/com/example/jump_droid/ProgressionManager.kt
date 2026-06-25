@@ -66,6 +66,9 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     var permanentMaxShield by mutableFloatStateOf(Constants.BASE_SHIELD)
         private set
 
+    var ascensionPrestigeLevel by mutableIntStateOf(0)
+        private set
+
     val missionsCompleted: Int get() = completedMissionIds.size
 
     override var highScore by mutableIntStateOf(0)
@@ -106,6 +109,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         lifetimeArtifacts = sharedPrefs.getInt("stat_lifetime_artifacts", 0)
         lifetimeLandings = sharedPrefs.getInt("stat_lifetime_landings", 0)
         lifetimeMissionsCompleted = sharedPrefs.getInt("missions_completed", 0)
+        ascensionPrestigeLevel = sharedPrefs.getInt("ascension_prestige", 0)
 
         val artifactTypes = DiscoveryType.values().filter { it.category == "ARTIFACTS" }
         val loadedArtifacts = mutableMapOf<String, ArtifactRecord>()
@@ -178,7 +182,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     }
 
     fun getGlobalEfficiencyMultiplier(): Float {
-        var mult = 1.0f
+        var mult = 1.0f + (ascensionPrestigeLevel * 0.1f)
         activeSetBonuses.forEach { if (it is ArtifactBonus.GlobalEfficiency) mult *= it.multiplier }
         return mult
     }
@@ -488,6 +492,10 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
                 }
             }
         }
+    }
+
+    fun isAchievementUnlocked(id: String): Boolean {
+        return sharedPrefs.getBoolean("achievement_$id", false)
     }
 }
 
