@@ -43,7 +43,9 @@ export const ZoneThresholds = [
   { zone: "Cloud Layer", threshold: 500, subtitle: "Above The Clouds" },
   { zone: "Upper Atmosphere", threshold: 1500, subtitle: "Edge Of The Sky" },
   { zone: "Orbit", threshold: 4000, subtitle: "First Orbital Ascent" },
+  { zone: "The Foundry", threshold: 5000, subtitle: "Automated Manufacturing Belt" },
   { zone: "Deep Space", threshold: 8000, subtitle: "Uncharted Territory" },
+  { zone: "Chrono-Rift", threshold: 13000, subtitle: "Time-Fractured Anomaly" },
   { zone: "The Void", threshold: 15000, subtitle: "Unknown Region Detected" },
 ];
 
@@ -93,6 +95,28 @@ export const RocketConfigs = [
     trait: "Overclocked Core",
     traitDesc: "Steer while overheated",
   },
+  {
+    id: "STEALTH",
+    name: "Stealth",
+    color: "#D500F9",
+    thrust: 1.0,
+    fuel: 0.8,
+    heat: 1.0,
+    unlockScore: 12000,
+    trait: "Cloaking Field",
+    traitDesc: "Evade patrols",
+  },
+  {
+    id: "REFLECTOR",
+    name: "Reflector",
+    color: "#FF1744",
+    thrust: 1.1,
+    fuel: 1.0,
+    heat: 1.2,
+    unlockScore: 15000,
+    trait: "Reactive Armor",
+    traitDesc: "Physical knockback reflection",
+  },
 ];
 
 // Platform types (from Platform.kt + PlatformRenderer.kt)
@@ -107,4 +131,6 @@ export const PlatformTypes = [
   { type: "COOLING", color: Colors.SciFiCyan, label: "COOL", desc: "Reduces heat" },
   { type: "STABILITY", color: Colors.SciFiWhite, label: "STAB", desc: "Improves control" },
   { type: "MAGNETIC", color: Colors.SciFiPurple, label: "", desc: "Gravity field" },
+  { type: "CONVEYOR", color: "#4b5563", label: "", desc: "Horizontal slide" },
+  { type: "MIMIC", color: Colors.SciFiRed, label: "", desc: "Shatters and damages" },
 ];

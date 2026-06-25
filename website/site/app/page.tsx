@@ -6,24 +6,34 @@ import FlyingRocket from "./components/FlyingRocket";
 import AltitudeHUD from "./components/AltitudeHUD";
 import EncounterSystem, { ENCOUNTERS, BOSS_ENCOUNTERS } from "./components/EncounterSystem";
 import BossEncounter from "./components/BossEncounter";
-import FinaleArchive from "./components/FinaleArchive";
+import StickyNav from "./components/StickyNav";
+import HeroSection from "./components/HeroSection";
+import GameplayExplained from "./components/GameplayExplained";
+import PlatformShowcase from "./components/PlatformShowcase";
+import BossShowcase from "./components/BossShowcase";
+import RocketShowcase from "./components/RocketShowcase";
+import DiscoveryArchive from "./components/DiscoveryArchive";
+import ProgressionSystems from "./components/ProgressionSystems";
+import MissionControl from "./components/MissionControl";
+import GameSimulator from "./components/GameSimulator";
 
 const ZONES = [
   { name: "Earth", threshold: 0 },
   { name: "Cloud Layer", threshold: 500 },
   { name: "Upper Atmosphere", threshold: 1500 },
   { name: "Orbit", threshold: 4000 },
+  { name: "The Foundry", threshold: 5000 },
   { name: "Deep Space", threshold: 8000 },
+  { name: "Chrono-Rift", threshold: 13000 },
   { name: "The Void", threshold: 15000 },
 ];
 
-const TOTAL_ALT = 16000;
-const SCROLL_HEIGHT = 7000; // vh-based scroll distance
+const TOTAL_ALT = 22000;
 
 type BossPhase = "ENTER" | "FIGHT" | "EXIT";
 
 function getCurrentEncounter(progress: number) {
-  const all = [...ENCOUNTERS, ...BOSS_ENCOUNTERS];
+  const all = [...BOSS_ENCOUNTERS, ...ENCOUNTERS];
   const active = all.find((e) => {
     const [enter, , exit] = e.progress;
     return progress >= enter && progress <= exit;
@@ -59,7 +69,7 @@ export default function Home() {
   useEffect(() => {
     const handleScroll = () => {
       setScrollTop(window.scrollY);
-      setScrollHeight(document.body.scrollHeight);
+      setScrollHeight(document.documentElement.scrollHeight || document.body.scrollHeight);
       setClientHeight(window.innerHeight);
     };
 
@@ -86,17 +96,24 @@ export default function Home() {
   const isBossActive = activeEncounter?.type === "boss" && bossState?.phase === "FIGHT";
 
   return (
-    <>
-      {/* Scroll spacer */}
-      <div style={{ height: `${SCROLL_HEIGHT}vh`, pointerEvents: "none" }} />
+    <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
+      {/* Sticky Navigation */}
+      <StickyNav />
 
-      {/* Zone backgrounds (lazy-loaded) */}
-      <ZoneBackgrounds altitude={altitude} />
+      {/* FIXED BACKGROUND LAYERS (z-0 to z-15) */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <ZoneBackgrounds altitude={altitude} />
+      </div>
 
-      {/* Encounters (enter/peak/exit) */}
-      <EncounterSystem progress={progress} rocketX={rocketX} viewWidth={1200} />
+      <div className="fixed inset-0 z-[5] pointer-events-none">
+        <EncounterSystem progress={progress} rocketX={rocketX} viewWidth={1200} />
+      </div>
 
-      {/* Boss encounter (takes over screen during FIGHT phase) */}
+      <div className="fixed inset-0 z-[25] pointer-events-none">
+        <FlyingRocket progress={progress} rocketX={rocketX} />
+      </div>
+
+      {/* Boss warning/takeover overlay effect (z-30) */}
       {isBossActive && (
         <BossEncounter
           entity={activeEncounter.entity as any}
@@ -106,48 +123,58 @@ export default function Home() {
         />
       )}
 
-      {/* Rocket (flies through world) */}
-      <FlyingRocket progress={progress} rocketX={rocketX} />
-
-      {/* HUD */}
+      {/* HUD (z-30) */}
       <AltitudeHUD altitude={altitude} zoneName={zone.name} progress={progress} />
 
-      {/* Finale archive */}
-      {progress > 0.92 && <FinaleArchive progress={progress} />}
+      {/* SCROLLABLE FOREGROUND CONTENT (z-20) */}
+      <main className="relative z-20 pointer-events-auto">
+        <HeroSection />
+        
+        <GameplayExplained />
+        
+        {/* Platform Showcase Section */}
+        <section id="ascent" className="relative overflow-hidden py-24 sm:py-32">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.08),transparent_20%)]" />
+          <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
+            <div className="mb-12 max-w-2xl space-y-4">
+              <p className="text-sm uppercase tracking-[0.35em] text-cyan-300 font-extrabold bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 inline-block">
+                Atmospheres & Platforms
+              </p>
+              <h2 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl uppercase">
+                Twelve platform types. Adapt or fall.
+              </h2>
+              <p className="max-w-2xl text-slate-300 text-sm leading-relaxed">
+                Platforms behave differently in each zone. From simple solid ground to shifting, icy, breaking, or magnetic fields—timing your thrusters is key.
+              </p>
+            </div>
+            <PlatformShowcase />
+          </div>
+        </section>
 
-      {/* Start CTA */}
-      <div
-        className="fixed bottom-10 left-1/2 z-30 -translate-x-1/2 text-center"
-        style={{ opacity: progress < 0.02 ? 1 : 0, transition: "opacity 0.5s" }}
-      >
-        <p className="text-sm uppercase tracking-[0.4em] text-cyan-300 font-bold mb-3">Jump Droid</p>
-        <p className="text-xl text-slate-200 mb-6 font-semibold">The Signal From the Void</p>
-        <a
-          href="https://play.google.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="pointer-events-auto inline-block rounded-full bg-cyan-400 px-10 py-4 text-lg font-black uppercase tracking-widest text-black hover:bg-cyan-300 shadow-[0_0_40px_rgba(0,229,255,0.5)]"
-        >
-          Download
-        </a>
-      </div>
+        <BossShowcase />
+        
+        <RocketShowcase />
+        
+        <GameSimulator />
+        
+        <DiscoveryArchive />
+        
+        <ProgressionSystems />
+        
+        <MissionControl />
 
-      {/* End CTA (hidden when finale archive is active) */}
-      <div
-        className="fixed bottom-10 left-1/2 z-30 -translate-x-1/2 text-center"
-        style={{ opacity: progress > 0.94 && progress <= 0.92 ? 1 : 0, transition: "opacity 0.5s", display: progress > 0.92 ? "none" : "block" }}
-      >
-        <p className="text-sm uppercase tracking-[0.4em] text-cyan-300 font-bold mb-3">Mission Complete</p>
-        <p className="text-xl text-slate-200 mb-6 font-semibold">You reached The Signal.</p>
-        <a
-          href="https://play.google.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="pointer-events-auto inline-block rounded-full bg-cyan-400 px-10 py-4 text-lg font-black uppercase tracking-widest text-black hover:bg-cyan-300 shadow-[0_0_40px_rgba(0,229,255,0.5)]"
-        >
-          Download
-        </a>
-      </div>
-    </>
+        {/* Footer */}
+        <footer className="border-t border-white/10 bg-black/90 py-12 text-slate-400 relative z-20">
+          <div className="mx-auto flex flex-col gap-6 px-6 sm:px-8 lg:px-12 lg:flex-row lg:items-center lg:justify-between">
+            <p className="text-sm">Jump Droid — The Signal From the Void.</p>
+            <div className="flex flex-wrap items-center gap-6 text-sm">
+              <a href="#hero" className="transition hover:text-cyan-200">Back to top</a>
+              <a href="#mission-control" className="transition hover:text-cyan-200">Crew Briefing</a>
+              <a href="#" className="transition hover:text-cyan-200">Privacy Protocol</a>
+            </div>
+          </div>
+        </footer>
+      </main>
+    </div>
   );
 }

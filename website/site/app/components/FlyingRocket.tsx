@@ -17,7 +17,7 @@ export default function FlyingRocket({ progress, rocketX }: FlyingRocketProps) {
 
   return (
     <motion.div
-      className="fixed z-20 pointer-events-none"
+      className="fixed z-[25] pointer-events-none"
       style={{
         left: `calc(${rocketX}% + ${swayX}px)`,
         bottom: `${bottomPct}%`,

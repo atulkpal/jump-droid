@@ -3,7 +3,7 @@
 import { Colors } from "./GameColors";
 
 interface PlatformSVGProps {
-  type?: "NORMAL" | "MOVING" | "BOOST" | "ICE" | "BREAKABLE" | "PHASE" | "FUEL" | "COOLING" | "STABILITY" | "MAGNETIC";
+  type?: "NORMAL" | "MOVING" | "BOOST" | "ICE" | "BREAKABLE" | "PHASE" | "FUEL" | "COOLING" | "STABILITY" | "MAGNETIC" | "CONVEYOR" | "MIMIC";
   width?: number;
   height?: number;
   animated?: boolean;
@@ -201,6 +201,65 @@ export default function PlatformSVG({
           ))}
           {/* Inner white stripe */}
           <rect x={-halfW + width * 0.25} y={-halfH + 3} width={width * 0.5} height={height - 6} fill="#FFFFFF" fillOpacity="0.2" />
+        </svg>
+      );
+
+    case "CONVEYOR":
+      return (
+        <svg viewBox={`${-halfW} ${-halfH} ${width} ${height}`} width={width} height={height}>
+          <BaseRect color="#1a1a24" opacity={0.8} />
+          {/* Moving treads on conveyor belt */}
+          <g>
+            {Array.from({ length: Math.ceil(width / 15) }).map((_, i) => (
+              <line
+                key={i}
+                x1={-halfW + i * 15} y1={-halfH}
+                x2={-halfW + i * 15 - 5} y2={halfH}
+                stroke="#4b5563"
+                strokeWidth="2"
+                strokeOpacity="0.6"
+              >
+                {animated && (
+                  <animate
+                    attributeName="x1"
+                    values={`${-halfW + i * 15};${-halfW + (i + 1) * 15}`}
+                    dur="0.8s"
+                    repeatCount="indefinite"
+                  />
+                )}
+                {animated && (
+                  <animate
+                    attributeName="x2"
+                    values={`${-halfW + i * 15 - 5};${-halfW + (i + 1) * 15 - 5}`}
+                    dur="0.8s"
+                    repeatCount="indefinite"
+                  />
+                )}
+              </line>
+            ))}
+          </g>
+          {/* Belt wheels/rollers at side */}
+          <circle cx={-halfW + 3} cy="0" r="3" fill="#9ca3af" />
+          <circle cx={halfW - 3} cy="0" r="3" fill="#9ca3af" />
+        </svg>
+      );
+
+    case "MIMIC":
+      return (
+        <svg viewBox={`${-halfW} ${-halfH} ${width} ${height}`} width={width} height={height}>
+          <BaseRect color={Colors.SciFiWhite} opacity={0.5} />
+          {/* Occasional visual glitch representing mimic */}
+          {animated && (
+            <rect x={-halfW} y={-halfH} width={width} height={height} fill={Colors.SciFiRed} fillOpacity="0">
+              <animate
+                attributeName="fill-opacity"
+                values="0;0;0.8;0;0"
+                keyTimes="0;0.95;0.97;0.98;1"
+                dur="5s"
+                repeatCount="indefinite"
+              />
+            </rect>
+          )}
         </svg>
       );
 

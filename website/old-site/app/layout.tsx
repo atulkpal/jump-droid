@@ -17,9 +17,6 @@ export const metadata: Metadata = {
   title: "Jump Droid — The Signal From the Void",
   description:
     "Jump Droid is a tactical vertical expedition mobile game. Explore the ascent, master rocket builds, and uncover hidden discoveries.",
-  icons: {
-    icon: "/icon.png",
-  },
 };
 
 export default function RootLayout({

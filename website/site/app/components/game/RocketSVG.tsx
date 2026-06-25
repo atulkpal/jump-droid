@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Colors } from "./GameColors";
 
 interface RocketSVGProps {
-  type?: "BALANCED" | "SCOUT" | "TANK" | "EXPERIMENTAL";
+  type?: "BALANCED" | "SCOUT" | "TANK" | "EXPERIMENTAL" | "STEALTH" | "REFLECTOR";
   size?: number;
   thrusting?: boolean;
   tilt?: number;
@@ -24,6 +24,8 @@ const rocketBodyColor = (type: string) => {
     case "SCOUT": return Colors.RocketScout;
     case "TANK": return Colors.RocketTank;
     case "EXPERIMENTAL": return Colors.RocketExperimental;
+    case "STEALTH": return "#1c1c22"; // Matte black stealth hull
+    case "REFLECTOR": return "#546e7a"; // Metallic steel armor
     default: return Colors.RocketBalanced;
   }
 };
@@ -124,6 +126,16 @@ export default function RocketSVG({
         <line x1={HALF_W - 6} y1={-HALF_H + 17} x2={HALF_W - 6} y2={-HALF_H + 68} stroke="rgba(255,255,255,0.2)" strokeWidth="1.5" />
       </g>
 
+      {/* Spikes for Kinetic Reflector (REFLECTOR) */}
+      {type === "REFLECTOR" && (
+        <g fill={Colors.SciFiGold} stroke="#FFFFFF" strokeWidth="0.8">
+          <polygon points="-15,-8 -23,-2 -15,4" />
+          <polygon points="-15,12 -23,18 -15,24" />
+          <polygon points="15,-8 23,-2 15,4" />
+          <polygon points="15,12 23,18 15,24" />
+        </g>
+      )}
+
       {/* ===== ENGINE NOZZLE ===== */}
       <rect x={-7} y={-HALF_H + 68} width={14} height={6} fill={Colors.EngineNozzle} rx="1" />
       <rect x={-5} y={-HALF_H + 69} width={10} height={2} fill={Colors.EngineNozzleDark} />
@@ -131,13 +143,13 @@ export default function RocketSVG({
       {/* ===== NOSE CONE ===== */}
       <polygon
         points={`${-HALF_W + 5},${-HALF_H + 15} 0,${-HALF_H} ${HALF_W - 5},${-HALF_H + 15}`}
-        fill={isOverheated ? Colors.SciFiRed : Colors.EngineNozzle}
+        fill={isOverheated ? Colors.SciFiRed : type === "STEALTH" ? "#2a2d34" : Colors.EngineNozzle}
       />
       <line x1="0" y1={-HALF_H + 3} x2={-HALF_W + 13} y2={-HALF_H + 13} stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
 
       {/* ===== COCKPIT ===== */}
-      <circle cx="0" cy={-HALF_H + 28} r="7" fill={Colors.CockpitGlow} fillOpacity="0.8" />
-      <circle cx="0" cy={-HALF_H + 28} r="12" fill={Colors.CockpitGlow} fillOpacity="0.15" />
+      <circle cx="0" cy={-HALF_H + 28} r="7" fill={type === "STEALTH" ? Colors.SciFiPurple : type === "REFLECTOR" ? Colors.SciFiGold : Colors.CockpitGlow} fillOpacity="0.8" />
+      <circle cx="0" cy={-HALF_H + 28} r="12" fill={type === "STEALTH" ? Colors.SciFiPurple : type === "REFLECTOR" ? Colors.SciFiGold : Colors.CockpitGlow} fillOpacity="0.15" />
 
       {/* ===== FINS ===== */}
       <polygon points={`${-HALF_W + 5},${-HALF_H + 55} ${-HALF_W},${-HALF_H + 68} ${-HALF_W + 5},${-HALF_H + 68}`} fill={Colors.FinColor} />

@@ -15,13 +15,15 @@ const PLATFORMS = [
   { type: "COOLING" as const, name: "Cooling", desc: "Reduces rocket heat buildup." },
   { type: "STABILITY" as const, name: "Stability", desc: "Grants temporary shield stabilization." },
   { type: "MAGNETIC" as const, name: "Magnetic", desc: "Attracts rocket from nearby range." },
+  { type: "CONVEYOR" as const, name: "Conveyor", desc: "Forces horizontal drift. Adjust steering or use velocity." },
+  { type: "MIMIC" as const, name: "Mimic", desc: "Disguised as standard. Shatters on landing, dealing damage." },
 ];
 
 export default function PlatformShowcase() {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
       {PLATFORMS.map((p, i) => (
         <motion.div
           key={p.type}

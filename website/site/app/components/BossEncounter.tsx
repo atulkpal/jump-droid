@@ -10,10 +10,12 @@ const BOSS_DATA: Record<string, { name: string; behavior: string }> = {
   THE_LEVIATHAN: { name: "THE LEVIATHAN", behavior: "APEX PREDATOR" },
   THE_SIGNAL: { name: "THE SIGNAL", behavior: "VOID SERPENT" },
   STAR_EATER: { name: "STAR-EATER", behavior: "COSMIC ORGANISM" },
+  THE_ARCHITECT: { name: "THE ARCHITECT", behavior: "LEVEL MANIPULATOR" },
+  ENTROPY_CORE: { name: "ENTROPY CORE", behavior: "SYSTEM DRAIN" },
 };
 
 interface BossEncounterProps {
-  entity: "COMMAND_CRUISER" | "THE_GATEKEEPER" | "VOID_ENGINE" | "THE_LEVIATHAN" | "THE_SIGNAL" | "STAR_EATER";
+  entity: "COMMAND_CRUISER" | "THE_GATEKEEPER" | "VOID_ENGINE" | "THE_LEVIATHAN" | "THE_SIGNAL" | "STAR_EATER" | "THE_ARCHITECT" | "ENTROPY_CORE";
   phase: "ENTER" | "FIGHT" | "EXIT";
   progress: number;
   message?: string;

@@ -16,151 +16,215 @@ export interface Encounter {
 }
 
 export const ENCOUNTERS: Encounter[] = [
-  // Surveyor Probe — tracks rocket, summons swarm
-  {
-    type: "enemy",
-    progress: [0.04, 0.10, 0.16],
-    entity: "ENT_SCOUT_DRONE",
-    zone: "Earth",
-    behavior: "track-rocket",
-    summons: ["AEROSOL_SWARM", "AEROSOL_SWARM"],
-    message: "Contact detected. Drone swarm incoming.",
-  },
+  // Earth (0m - 500m) -> progress range: [0, 0.0227]
   {
     type: "platform",
-    progress: [0.06, 0.09, 0.14],
+    progress: [0.002, 0.009, 0.016],
     entity: "NORMAL",
     zone: "Earth",
     side: "left",
   },
   {
+    type: "enemy",
+    progress: [0.005, 0.0136, 0.022],
+    entity: "ENT_SCOUT_DRONE",
+    zone: "Earth",
+    behavior: "track-rocket",
+    summons: ["ENT_SWARM_BOTS", "ENT_SWARM_BOTS"],
+    message: "Contact detected. Drone swarm incoming.",
+  },
+  {
     type: "platform",
-    progress: [0.09, 0.13, 0.18],
+    progress: [0.01, 0.016, 0.022],
     entity: "MOVING",
     zone: "Earth",
     side: "right",
   },
-  // Sky Ray drifts across
+  // Cloud Layer (500m - 1500m) -> progress range: [0.0227, 0.0682]
   {
     type: "enemy",
-    progress: [0.20, 0.26, 0.32],
+    progress: [0.025, 0.034, 0.043],
     entity: "ENT_CLOUD_SKIMMER",
     zone: "Cloud Layer",
     behavior: "drift-across",
   },
   {
     type: "platform",
-    progress: [0.22, 0.26, 0.30],
+    progress: [0.03, 0.039, 0.048],
     entity: "BOOST",
     zone: "Cloud Layer",
     side: "left",
   },
   {
     type: "platform",
-    progress: [0.26, 0.30, 0.35],
+    progress: [0.045, 0.052, 0.059],
     entity: "ICE",
     zone: "Cloud Layer",
     side: "right",
   },
-  // Swarm bots
   {
     type: "enemy",
-    progress: [0.36, 0.42, 0.48],
+    progress: [0.05, 0.057, 0.064],
     entity: "ENT_SWARM_BOTS",
     zone: "Cloud Layer",
     behavior: "orbit",
   },
   {
     type: "platform",
-    progress: [0.38, 0.42, 0.47],
+    progress: [0.055, 0.062, 0.068],
     entity: "BREAKABLE",
     zone: "Cloud Layer",
     side: "right",
   },
-  // Defense Node in Upper Atmosphere
+  // Upper Atmosphere (1500m - 4000m) -> progress range: [0.0682, 0.1818]
   {
     type: "enemy",
-    progress: [0.52, 0.58, 0.64],
+    progress: [0.08, 0.105, 0.13],
     entity: "ENT_ORBITAL_SENTRY",
     zone: "Upper Atmosphere",
     behavior: "stationary",
   },
   {
     type: "platform",
-    progress: [0.54, 0.58, 0.63],
+    progress: [0.085, 0.115, 0.145],
     entity: "PHASE",
     zone: "Upper Atmosphere",
     side: "left",
   },
   {
     type: "platform",
-    progress: [0.58, 0.62, 0.67],
+    progress: [0.125, 0.15, 0.175],
     entity: "FUEL",
     zone: "Upper Atmosphere",
     side: "right",
   },
-  // Derelict Echo
+  // Orbit (4000m - 5000m) -> progress range: [0.1818, 0.2273]
   {
     type: "enemy",
-    progress: [0.70, 0.76, 0.82],
+    progress: [0.185, 0.198, 0.21],
     entity: "ENT_CORRUPTED_HULL",
     zone: "Orbit",
     behavior: "fade-through",
   },
   {
     type: "platform",
-    progress: [0.72, 0.76, 0.80],
+    progress: [0.19, 0.202, 0.214],
     entity: "COOLING",
     zone: "Orbit",
     side: "left",
   },
   {
     type: "platform",
-    progress: [0.76, 0.80, 0.84],
+    progress: [0.20, 0.212, 0.224],
     entity: "STABILITY",
     zone: "Orbit",
     side: "right",
   },
-  // Void Tracker in Deep Space
+  // The Foundry (5000m - 8000m) -> progress range: [0.2273, 0.3636]
+  {
+    type: "platform",
+    progress: [0.24, 0.275, 0.31],
+    entity: "CONVEYOR",
+    zone: "The Foundry",
+    side: "left",
+  },
+  // Deep Space (8000m - 13000m) -> progress range: [0.3636, 0.5909]
   {
     type: "enemy",
-    progress: [0.84, 0.90, 0.95],
+    progress: [0.38, 0.415, 0.45],
     entity: "ENT_STALKER",
     zone: "Deep Space",
     behavior: "hunt",
   },
-  // COSMIC LEVIATHAN as mini-boss before Void Engine
+  {
+    type: "platform",
+    progress: [0.41, 0.435, 0.46],
+    entity: "MAGNETIC",
+    zone: "Deep Space",
+    side: "left",
+  },
   {
     type: "enemy",
-    progress: [0.88, 0.94, 0.99],
+    progress: [0.47, 0.51, 0.55],
     entity: "ENT_VOID_WHALE",
     zone: "Deep Space",
     behavior: "looming",
   },
+  // Chrono-Rift (13000m - 15000m) -> progress range: [0.5909, 0.6818]
+  {
+    type: "platform",
+    progress: [0.60, 0.635, 0.67],
+    entity: "MIMIC",
+    zone: "Chrono-Rift",
+    side: "right",
+  },
+  // The Void (15000m - 22000m) -> progress range: [0.6818, 1.0]
+  {
+    type: "enemy",
+    progress: [0.73, 0.77, 0.81],
+    entity: "ENT_VOID_WRAITH",
+    zone: "The Void",
+    behavior: "fade-through",
+  },
 ];
 
-// Boss encounter windows (separate, longer)
+// Boss encounter windows (separate, longer, non-overlapping)
 export const BOSS_ENCOUNTERS: Encounter[] = [
   {
     type: "boss",
-    progress: [0.20, 0.35, 0.50],
+    progress: [0.0682, 0.091, 0.1136], // 1500m - 2500m
     entity: "COMMAND_CRUISER",
-    zone: "Orbit",
-    message: "PLATFORM CONSUMER DETECTED. All landing zones compromised.",
+    zone: "Upper Atmosphere",
+    message: "CRUISER DETECTED. Platform landing systems jammed.",
   },
   {
     type: "boss",
-    progress: [0.45, 0.62, 0.78],
+    progress: [0.1818, 0.2045, 0.2273], // 4000m - 5000m
     entity: "THE_GATEKEEPER",
-    zone: "Deep Space",
-    message: "ORBITAL SENTINEL ACTIVE. Rotating safe zones detected.",
+    zone: "Orbit",
+    message: "GATEKEEPER SHIELD ONLINE. Kinetic shields detected.",
   },
   {
     type: "boss",
-    progress: [0.75, 0.88, 0.98],
+    progress: [0.2273, 0.2636, 0.2955], // 5000m - 6500m
+    entity: "THE_ARCHITECT",
+    zone: "The Foundry",
+    message: "ARCHITECT OVERRIDE. Automated assembly lines active.",
+  },
+  {
+    type: "boss",
+    progress: [0.3182, 0.3409, 0.3636], // 7000m - 8000m
+    entity: "THE_LEVIATHAN",
+    zone: "The Foundry",
+    message: "LEVIATHAN DETECTED. Ethereal wake slipstream warning.",
+  },
+  {
+    type: "boss",
+    progress: [0.4545, 0.4886, 0.5227], // 10000m - 11500m
+    entity: "STAR_EATER",
+    zone: "Deep Space",
+    message: "STAR-EATER ACTIVE. Thermal energy absorption spikes.",
+  },
+  {
+    type: "boss",
+    progress: [0.5455, 0.5682, 0.5909], // 12000m - 13000m
+    entity: "ENTROPY_CORE",
+    zone: "Deep Space",
+    message: "ENTROPY DRAINER ONLINE. Active ship systems failing.",
+  },
+  {
+    type: "boss",
+    progress: [0.6818, 0.7273, 0.7727], // 15000m - 17000m
     entity: "VOID_ENGINE",
     zone: "The Void",
-    message: "REALITY WARP SIGNATURE. Gravity systems failing.",
+    message: "VOID ENGINE IGNITING. Gravitational distortion active.",
+  },
+  {
+    type: "boss",
+    progress: [0.8182, 0.8636, 0.9091], // 18000m - 20000m
+    entity: "THE_SIGNAL",
+    zone: "The Void",
+    message: "THE SIGNAL ACQUIRED. Reality coordinates corrupting.",
   },
 ];
 
@@ -280,11 +344,10 @@ export default function EncounterSystem({
                   };
                 })
               : [];
-
           return (
             <motion.div
               key={`enc-${i}`}
-              className="absolute"
+              className="absolute top-1/3"
               animate={{
                 x: enc.x,
                 scale: enc.scale,

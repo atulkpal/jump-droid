@@ -28,9 +28,14 @@ const ENEMIES = [
 ];
 
 const BOSSES = [
-  { name: "Command Cruiser", zone: "Orbit", behavior: "PLATFORM CONSUMER" },
-  { name: "The Gatekeeper", zone: "Deep Space", behavior: "ROTATING SAFE ZONES" },
-  { name: "Void Engine", zone: "The Void", behavior: "REALITY WARP" },
+  { type: "COMMAND_CRUISER" as const, name: "Command Cruiser", zone: "Orbit", behavior: "PLATFORM CONSUMER" },
+  { type: "THE_GATEKEEPER" as const, name: "The Gatekeeper", zone: "Upper Atmosphere", behavior: "ROTATING SHIELD" },
+  { type: "STAR_EATER" as const, name: "Star-Eater", zone: "Orbit", behavior: "LIGHT DEVOURER" },
+  { type: "VOID_ENGINE" as const, name: "Void Engine", zone: "The Void", behavior: "REALITY WARP" },
+  { type: "THE_LEVIATHAN" as const, name: "The Leviathan", zone: "Deep Space", behavior: "SLIPSTREAM HUNTER" },
+  { type: "THE_SIGNAL" as const, name: "The Signal", zone: "The Void", behavior: "HUD DECOY" },
+  { type: "THE_ARCHITECT" as const, name: "The Architect", zone: "The Foundry", behavior: "LEVEL MANIPULATOR" },
+  { type: "ENTROPY_CORE" as const, name: "Entropy Core", zone: "Deep Space", behavior: "SYSTEM DRAIN" },
 ];
 
 const ROCKETS = [
@@ -38,6 +43,8 @@ const ROCKETS = [
   { name: "Striker", trait: "Target Lock", unlock: 2000 },
   { name: "Heavy", trait: "Kinetic Mass", unlock: 5000 },
   { name: "Prototype", trait: "Overclocked Core", unlock: 10000 },
+  { name: "Stealth", trait: "Cloaking Field", unlock: 12000 },
+  { name: "Reflector", trait: "Reactive Armor", unlock: 15000 },
 ];
 
 export default function FinaleArchive({ progress }: { progress: number }) {
@@ -63,7 +70,7 @@ export default function FinaleArchive({ progress }: { progress: number }) {
           </h2>
           <p className="text-sm text-slate-400 max-w-2xl mx-auto">
             All discovered entities, threats, and platforms encountered during ascent.
-            Jump Droid contains multiple tiers of challenges across 6 zones.
+            Jump Droid contains multiple tiers of challenges across 8 zones.
           </p>
         </div>
 
@@ -72,7 +79,7 @@ export default function FinaleArchive({ progress }: { progress: number }) {
           <h3 className="text-lg font-bold text-cyan-300 tracking-widest uppercase mb-6 border-b border-white/10 pb-2">
             Rocket Classes
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
             {ROCKETS.map((r) => (
               <div key={r.name} className="flex flex-col items-center p-4 rounded-xl border border-white/5 bg-white/5">
                 <RocketSVG type={r.name.toUpperCase() as any} size={60} />
@@ -89,8 +96,8 @@ export default function FinaleArchive({ progress }: { progress: number }) {
           <h3 className="text-lg font-bold text-cyan-300 tracking-widest uppercase mb-6 border-b border-white/10 pb-2">
             Platform Types
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-            {["NORMAL", "MOVING", "BOOST", "ICE", "BREAKABLE", "PHASE", "FUEL", "COOLING", "STABILITY", "MAGNETIC"].map((p) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+            {["NORMAL", "MOVING", "BOOST", "ICE", "BREAKABLE", "PHASE", "FUEL", "COOLING", "STABILITY", "MAGNETIC", "CONVEYOR", "MIMIC"].map((p) => (
               <div key={p} className="flex flex-col items-center p-3 rounded-lg border border-white/5 bg-white/5">
                 <PlatformSVG type={p as any} width={100} height={16} />
                 <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">{p}</p>
@@ -140,7 +147,7 @@ export default function FinaleArchive({ progress }: { progress: number }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {BOSSES.map((b) => (
               <div key={b.name} className="flex flex-col items-center p-6 rounded-xl border border-red-500/20 bg-red-500/5">
-                <ThreatSVG type={b.name.replace(/\s+/g, "_").toUpperCase() as any} size={100} />
+                <ThreatSVG type={b.type} size={100} />
                 <p className="mt-4 text-lg font-black text-red-300 tracking-wider">{b.name}</p>
                 <p className="text-xs text-red-400/80 tracking-widest uppercase mt-1">{b.behavior}</p>
                 <p className="text-[10px] text-red-400/60 mt-2">Zone: {b.zone}</p>
