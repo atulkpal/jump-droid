@@ -40,6 +40,7 @@ class GameEngine(
     val survivalManager = SurvivalManager()
     val powerUpManager = PowerUpManager()
     val floatingTextManager = FloatingTextManager()
+    val loadoutManager = LoadoutManager(sharedPrefs)
 
     val platforms = mutableStateListOf<Platform>()
     val flyingRewards = mutableStateListOf<FlyingReward>()
@@ -70,9 +71,12 @@ class GameEngine(
     var consecutiveWins by mutableIntStateOf(0)
     var gameState by mutableStateOf(GameState.TITLE)
     var previousState by mutableStateOf(GameState.MAIN_MENU)
+    var preOverlayState by mutableStateOf(GameState.PLAYING)
     var activeDiscovery by mutableStateOf<DiscoveryType?>(null)
     var unlockedRocket by mutableStateOf<RocketType?>(null)
     var codexNotification by mutableStateOf<DiscoveryType?>(null)
+    var signalDecodedMissionName by mutableStateOf<String?>(null)
+    var showAscensionCredits by mutableStateOf(false)
     var screenWidth by mutableFloatStateOf(0f)
     var screenHeight by mutableFloatStateOf(0f)
     var groundY by mutableFloatStateOf(0f)
@@ -111,6 +115,47 @@ class GameEngine(
     var onSetBossesSpawned: ((String) -> Unit)? = null
 
     var lastFrameTime = 0L
+
+    init {
+        threatManager.onThreatDestroyed = { def ->
+            if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
+                totalBossesDefeated++
+            }
+        }
+        missionManager.onMissionCompleted = { progressionManager.recordMissionCompletion(it.id) }
+        missionManager.onHiddenSignalRevealed = { signalDecodedMissionName = it.name }
+        progressionManager.onModuleUnlocked = { module ->
+            floatingTextManager.add(FloatingText(
+                text = "MODULE UNLOCKED: ${module.name.uppercase()}",
+                x = player.x,
+                y = player.y - 100f,
+                color = SciFiGold,
+                isCritical = true
+            ))
+            screenShake = 15f
+        }
+        progressionManager.onLoreLogDiscovered = { log ->
+            floatingTextManager.add(FloatingText(
+                text = "LORE LOG RECOVERED: ${log.title.uppercase()}",
+                x = player.x,
+                y = player.y - 120f,
+                color = SciFiWhite,
+                isCritical = false
+            ))
+            notificationManager.post("SIGNAL ARCHIVED: ${log.category.name}")
+            screenShake = 8f
+        }
+        progressionManager.onBlueprintUnlocked = { type ->
+            floatingTextManager.add(FloatingText(
+                text = "BLUEPRINT ACQUIRED: ${type.displayName.uppercase()}",
+                x = player.x,
+                y = player.y - 140f,
+                color = SciFiGold,
+                isCritical = true
+            ))
+            impactFlashAlpha = 0.4f
+        }
+    }
 
     /**
      * EPIC 11: Origin Reset Logic

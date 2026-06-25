@@ -77,137 +77,97 @@ fun GameScreen() {
     val densityValue = androidx.compose.ui.platform.LocalDensity.current.density
     val sharedPrefs = remember { context.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE) }
 
-    var gameState by remember { mutableStateOf(GameState.TITLE) }
-    var previousState by remember { mutableStateOf(GameState.MAIN_MENU) }
-    var preOverlayState by remember { mutableStateOf(GameState.PLAYING) }
+    val engine = remember { GameEngine(sharedPrefs) }
 
-    var highestYReached by remember { mutableFloatStateOf(Float.MAX_VALUE) }
-    var score by remember { mutableIntStateOf(0) }
-    var baseAltitude by remember { mutableFloatStateOf(0f) }
-    var baseDifficultyMultiplier by remember { mutableFloatStateOf(1.0f) }
-    var continuesUsed by remember { mutableIntStateOf(0) }
-    var runDurationTimer by remember { mutableFloatStateOf(0f) }
-    var airborneTimer by remember { mutableFloatStateOf(0f) }
-    var noOverheatTimer by remember { mutableFloatStateOf(0f) }
-    var platformStayTimer by remember { mutableFloatStateOf(0f) }
-    var perfectRunTimer by remember { mutableFloatStateOf(0f) }
-    var hasTakenDamageThisRun by remember { mutableStateOf(false) }
-    var totalHazardHits by remember { mutableIntStateOf(0) }
-    var totalFuelPickups by remember { mutableIntStateOf(0) }
-    var totalPowerUps by remember { mutableIntStateOf(0) }
-    var totalPlatformLandings by remember { mutableIntStateOf(0) }
-    var totalBossesDefeated by remember { mutableIntStateOf(0) }
-    var totalArtifactsCollected by remember { mutableIntStateOf(0) }
-    var totalDashes by remember { mutableIntStateOf(0) }
-    var momentumValue by remember { mutableFloatStateOf(0f) }
-    var comboMaintainTimer by remember { mutableFloatStateOf(0f) }
-    var overheatCount by remember { mutableIntStateOf(0) }
-    var wasNearDeath by remember { mutableStateOf(false) }
-    var consecutiveWins by remember { mutableIntStateOf(0) }
-    var activeDiscovery by remember { mutableStateOf<DiscoveryType?>(null) }
-    var unlockedRocket by remember { mutableStateOf<RocketType?>(null) }
-    var codexNotification by remember { mutableStateOf<DiscoveryType?>(null) }
-    var signalDecodedMissionName by remember { mutableStateOf<String?>(null) }
+    var gameState by engine::gameState
+    var previousState by engine::previousState
+    var preOverlayState by engine::preOverlayState
 
-    val discoveryManager = remember { DiscoveryManager(sharedPrefs) }
-    val progressionManager = remember { ProgressionManager(sharedPrefs) }
-    val missionManager = remember { MissionManager(progressionManager) }
-    
-    val threatManager = remember {
-        ThreatManager().apply {
-            onThreatDestroyed = { def ->
-                if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) totalBossesDefeated++
-            }
-        }
-    }
-    val comboManager = remember { ComboManager() }
-    val flyingRewards = remember { mutableStateListOf<FlyingReward>() }
-    val platformManager = remember { PlatformManager() }
+    var highestYReached by engine::highestYReached
+    var score by engine::score
+    var baseAltitude by engine::baseAltitude
+    var baseDifficultyMultiplier by engine::baseDifficultyMultiplier
+    var continuesUsed by engine::continuesUsed
+    var runDurationTimer by engine::runDurationTimer
+    var airborneTimer by engine::airborneTimer
+    var noOverheatTimer by engine::noOverheatTimer
+    var platformStayTimer by engine::platformStayTimer
+    var perfectRunTimer by engine::perfectRunTimer
+    var hasTakenDamageThisRun by engine::hasTakenDamageThisRun
+    var totalHazardHits by engine::totalHazardHits
+    var totalFuelPickups by engine::totalFuelPickups
+    var totalPowerUps by engine::totalPowerUps
+    var totalPlatformLandings by engine::totalPlatformLandings
+    var totalBossesDefeated by engine::totalBossesDefeated
+    var totalArtifactsCollected by engine::totalArtifactsCollected
+    var totalDashes by engine::totalDashes
+    var momentumValue by engine::momentumValue
+    var comboMaintainTimer by engine::comboMaintainTimer
+    var overheatCount by engine::overheatCount
+    var wasNearDeath by engine::wasNearDeath
+    var consecutiveWins by engine::consecutiveWins
+    var activeDiscovery by engine::activeDiscovery
+    var unlockedRocket by engine::unlockedRocket
+    var codexNotification by engine::codexNotification
+    var signalDecodedMissionName by engine::signalDecodedMissionName
+    var showAscensionCredits by engine::showAscensionCredits
 
-    var screenWidth by remember { mutableFloatStateOf(0f) }
-    var screenHeight by remember { mutableFloatStateOf(0f) }
-    var groundY by remember { mutableFloatStateOf(0f) }
-    val player = remember { Player(0f, 0f) }
-    val altitudeManager = remember { AltitudeManager() }
+    val discoveryManager = engine.discoveryManager
+    val progressionManager = engine.progressionManager
+    val missionManager = engine.missionManager
+    val threatManager = engine.threatManager
+    val comboManager = engine.comboManager
+    val flyingRewards = engine.flyingRewards
+    val platformManager = engine.platformManager
+
+    var screenWidth by engine::screenWidth
+    var screenHeight by engine::screenHeight
+    var groundY by engine::groundY
+    val player = engine.player
+    val altitudeManager = engine.altitudeManager
     val backgroundRenderer = remember { ZoneBackgroundRenderer() }
-    val ambientManager = remember { AmbientManager() }
+    val ambientManager = engine.ambientManager
     val rocketRenderer = remember { RocketRenderer() }
     val platformRenderer = remember { PlatformRenderer() }
-    val platforms = remember { mutableStateListOf<Platform>() }
-    val powerUpManager = remember { PowerUpManager() }
-    val landingEffects = remember { mutableStateListOf<LandingEffect>() }
-    val particles = remember { mutableStateListOf<Particle>() }
-    val floatingTextManager = remember { FloatingTextManager() }
 
-    var missionHintRotationTimer by remember { mutableFloatStateOf(0f) }
-    var globalShowObjective by remember { mutableStateOf(false) }
-    var gameTime by remember { mutableLongStateOf(0L) }
-    var cameraY by remember { mutableFloatStateOf(0f) }
-    var isThrusting by remember { mutableStateOf(false) }
-    var thrustTarget by remember { mutableStateOf(Offset.Zero) }
-    var screenShake by remember { mutableFloatStateOf(0f) }
-    var impactFlashAlpha by remember { mutableFloatStateOf(0f) }
-    var globalFogAlpha by remember { mutableFloatStateOf(0f) }
-    var effectiveThrust by remember { mutableStateOf(false) }
-    var effectiveTarget by remember { mutableStateOf(Offset.Zero) }
-    var infiniteFuel by remember { mutableStateOf(false) }
-    var disableHeat by remember { mutableStateOf(false) }
-    var showDevMenu by remember { mutableStateOf(false) }
-    var showAscensionCredits by remember { mutableStateOf(false) }
+    val platforms = engine.platforms
+    val powerUpManager = engine.powerUpManager
+    val landingEffects = engine.landingEffects
+    val particles = engine.particles
+    val floatingTextManager = engine.floatingTextManager
 
-    val bossesSpawned = remember { mutableStateSetOf<String>() }
-    val notificationManager = remember { NotificationManager() }
+    var missionHintRotationTimer by engine::missionHintRotationTimer
+    var globalShowObjective by engine::globalShowObjective
+    var gameTime by engine::gameTime
+    var cameraY by engine::cameraY
+    var isThrusting by engine::isThrusting
+    var thrustTarget by engine::thrustTarget
+    var screenShake by engine::screenShake
+    var impactFlashAlpha by engine::impactFlashAlpha
+    var globalFogAlpha by engine::globalFogAlpha
+    var effectiveThrust by engine::effectiveThrust
+    var effectiveTarget by engine::effectiveTarget
+    var infiniteFuel by engine::infiniteFuel
+    var disableHeat by engine::disableHeat
+    var showDevMenu by engine::showDevMenu
 
-    SideEffect { 
-        missionManager.onMissionCompleted = { progressionManager.recordMissionCompletion(it.id) }
-        missionManager.onHiddenSignalRevealed = { signalDecodedMissionName = it.name }
-        progressionManager.onModuleUnlocked = { module ->
-            floatingTextManager.add(FloatingText(
-                text = "MODULE UNLOCKED: ${module.name.uppercase()}",
-                x = player.x,
-                y = player.y - 100f,
-                color = SciFiGold,
-                isCritical = true
-            ))
-            screenShake = 15f
-        }
-        progressionManager.onLoreLogDiscovered = { log ->
-            floatingTextManager.add(FloatingText(
-                text = "LORE LOG RECOVERED: ${log.title.uppercase()}",
-                x = player.x,
-                y = player.y - 120f,
-                color = SciFiWhite,
-                isCritical = false
-            ))
-            notificationManager.post("SIGNAL ARCHIVED: ${log.category.name}")
-            screenShake = 8f
-        }
-        progressionManager.onBlueprintUnlocked = { type ->
-            floatingTextManager.add(FloatingText(
-                text = "BLUEPRINT ACQUIRED: ${type.displayName.uppercase()}",
-                x = player.x,
-                y = player.y - 140f,
-                color = SciFiGold,
-                isCritical = true
-            ))
-            impactFlashAlpha = 0.4f
-        }
-    }
+    val bossesSpawned = engine.bossesSpawned
+    val notificationManager = engine.notificationManager
 
-    val survivalManager = remember { SurvivalManager() }
-    val encounterDirector = remember { EncounterDirector() }
-    val projectileManager = remember { ProjectileManager() }
-    val inputBufferManager = remember { InputBufferManager() }
+    val survivalManager = engine.survivalManager
+    val encounterDirector = engine.encounterDirector
+    val projectileManager = engine.projectileManager
+    val inputBufferManager = engine.inputBufferManager
     val inputProcessor = remember { PlayerInputProcessor(inputBufferManager) }
 
-    var majorWarningText by remember { mutableStateOf<String?>(null) }
-    var majorWarningTimer by remember { mutableFloatStateOf(0f) }
-    var escalationSpawnId by remember { mutableStateOf<String?>(null) }
-    var escalationSpawnX by remember { mutableFloatStateOf(0f) }
-    var escalationSpawnY by remember { mutableFloatStateOf(0f) }
-    var escalationCountdown by remember { mutableFloatStateOf(0f) }
+    var majorWarningText by engine::majorWarningText
+    var majorWarningTimer by engine::majorWarningTimer
+    var escalationSpawnId by engine::escalationSpawnId
+    var escalationSpawnX by engine::escalationSpawnX
+    var escalationSpawnY by engine::escalationSpawnY
+    var escalationCountdown by engine::escalationCountdown
 
-    val loadoutManager = remember { LoadoutManager(sharedPrefs) }
+    val loadoutManager = engine.loadoutManager
 
     LaunchedEffect(gameState) {
         if (gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL) {
