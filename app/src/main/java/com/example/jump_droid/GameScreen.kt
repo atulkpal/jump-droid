@@ -668,6 +668,15 @@ fun GameScreen() {
         gameState = GameState.PLAYING
     }
 
+    fun spawnDevPowerUp(type: PowerUpType) {
+        powerUpManager.add(player.x, cameraY - 200f, type)
+        gameState = GameState.PLAYING
+    }
+
+    fun spawnDevPlatform(type: PlatformType) {
+        platforms.add(Platform(player.x, cameraY - 200f, 150f, type))
+        gameState = GameState.PLAYING
+    }
 
     fun unlockAll() {
         RocketType.entries.forEach { sharedPrefs.edit { putBoolean("unlock_${it.name}", true) } }
@@ -1963,6 +1972,8 @@ fun GameScreen() {
                         onToggleDevMenu = { showDevMenu = !showDevMenu },
                         onJumpToZone = { jumpToZone(it) },
                         onSpawnDevThreat = { spawnDevThreat(it) },
+                        onSpawnDevPowerUp = { spawnDevPowerUp(it) },
+                        onSpawnDevPlatform = { spawnDevPlatform(it) },
                         onToggleInfiniteFuel = { infiniteFuel = !infiniteFuel },
                         onToggleDisableHeat = { disableHeat = !disableHeat },
                         onToggleInfiniteShield = { player.infiniteShield = !player.infiniteShield },
