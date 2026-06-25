@@ -1,52 +1,65 @@
+"use client";
+
+import { motion } from "framer-motion";
+
 export default function GameplayExplained() {
+  const steps = [
+    {
+      step: "01",
+      title: "Touch to Thrust",
+      description: "Tap or hold your screen to activate the primary boosters. Keep a close eye on your fuel reserves and combustion heat.",
+    },
+    {
+      step: "02",
+      title: "Land & Combo",
+      description: "Touch down on platforms to stabilize. Landing consecutive jumps builds a combo multiplier which restores your shields.",
+    },
+    {
+      step: "03",
+      title: "Manage Resources",
+      description: "Juggle three systems: Fuel capacity (thrust duration), Engine Heat (cooldown limits), and Shields (impact defense).",
+    },
+    {
+      step: "04",
+      title: "Survive Encounters",
+      description: "Climb through hazards and face unique bosses every 1,500m of altitude. Find their weak points and shut them down.",
+    },
+  ];
+
   return (
-    <section className="relative overflow-hidden py-24 sm:py-32">
+    <section id="gameplay" className="relative overflow-hidden py-24 sm:py-32">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,229,255,0.08),transparent_28%)]" />
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-        <div className="space-y-8">
+        <div className="space-y-12">
           <div className="max-w-2xl space-y-4">
-            <p className="text-sm uppercase tracking-[0.35em] text-cyan-300/90">How It Works</p>
-            <h2 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-              The mechanics of ascent.
+            <p className="text-sm uppercase tracking-[0.35em] text-cyan-300 font-extrabold bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 inline-block">
+              Core Loop
+            </p>
+            <h2 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl uppercase">
+              The mechanics of ascent
             </h2>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              Every vertical meter is earned. Learn the rules of gravity and mechanical stability before breaking orbit.
+            </p>
           </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            {[
-              {
-                step: "1",
-                title: "Touch to Thrust",
-                description: "Hold your finger to burn fuel and climb against gravity. Release to coast and conserve.",
-              },
-              {
-                step: "2",
-                title: "Land & Combo",
-                description: "Each successful platform landing builds your streak. Five consecutive touches restore your shield.",
-              },
-              {
-                step: "3",
-                title: "Manage Resources",
-                description: "Fuel (how long you thrust), Heat (engine cooldown), Shield (damage buffer). Every decision matters.",
-              },
-              {
-                step: "4",
-                title: "Face Bosses",
-                description: "Every 1,500 points, a boss awaits. Learn their patterns. Find their weak points. Survive the encounter.",
-              },
-            ].map((item) => (
-              <article
+          <div className="grid gap-6 sm:grid-cols-2">
+            {steps.map((item, i) => (
+              <motion.article
                 key={item.step}
-                className="rounded-[2rem] border border-cyan-300/10 bg-white/5 p-6 transition hover:border-cyan-400/30 hover:bg-white/[0.08]"
+                className="rounded-3xl border border-cyan-300/10 bg-slate-950/60 p-8 backdrop-blur-md transition hover:border-cyan-400/40 hover:bg-slate-900/60 flex gap-6"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
               >
-                <div className="flex items-start gap-4">
-                  <div className="rounded-full bg-cyan-400/20 px-4 py-2 text-lg font-bold text-cyan-300">
-                    {item.step}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">{item.description}</p>
-                  </div>
+                <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-b from-cyan-400 to-cyan-700 select-none">
+                  {item.step}
                 </div>
-              </article>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-bold text-white tracking-wide">{item.title}</h3>
+                  <p className="text-sm leading-relaxed text-slate-300">{item.description}</p>
+                </div>
+              </motion.article>
             ))}
           </div>
         </div>
