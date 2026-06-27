@@ -14,11 +14,24 @@ class PowerUpManager {
     val powerUps = mutableStateListOf<PowerUp>()
     var spawnTimer by mutableFloatStateOf(0f)
 
+    companion object {
+        private val BOSS_EXCLUSION_RADIUS = 200f
+        private val HAZARD_EXCLUSION_RADIUS = 250f
+        private val DESPAWN_TIME = 8.0f
+    }
+
     fun add(x: Float, y: Float, type: PowerUpType, isMissionReward: Boolean = false) {
         powerUps.add(PowerUp(x, y, type, isMissionReward = isMissionReward))
     }
 
-    fun updateAutoSpawn(dt: Float, screenWidth: Float, cameraY: Float) {
+    fun updateAutoSpawn(
+        dt: Float,
+        screenWidth: Float,
+        cameraY: Float,
+        screenHeight: Float,
+        activeThreats: List<ActiveThreat>,
+        platforms: List<Platform>
+    ) {
         spawnTimer += dt
         if (spawnTimer > 20f) {
             val types = PowerUpType.entries.filter { it != PowerUpType.ARTIFACT }
@@ -27,7 +40,42 @@ class PowerUpManager {
                 rand < 0.05f -> PowerUpType.ARTIFACT
                 else -> types.random()
             }
-            powerUps.add(PowerUp(Random.nextFloat() * (screenWidth - 60f) + 30f, cameraY - 100f, type))
+
+            // Find a valid spawn position above camera top with dead zone avoidance
+            var spawnX: Float
+            var spawnY: Float
+            var valid = false
+            var attempts = 0
+            while (!valid && attempts < 20) {
+                spawnX = Random.nextFloat() * (screenWidth - 60f) + 30f
+                spawnY = cameraY - Random.nextFloat() * 400f - 50f
+
+                val safe = activeThreats.all { threat ->
+                    val dx = spawnX - threat.x
+                    val dy = spawnY - threat.y
+                    val distSq = dx * dx + dy * dy
+                    val exclusionRadius = if (threat.definition.type == ThreatType.BOSS ||
+                        threat.definition.type == ThreatType.MINI_BOSS
+                    ) BOSS_EXCLUSION_RADIUS else HAZARD_EXCLUSION_RADIUS
+                    distSq > exclusionRadius * exclusionRadius
+                } && platforms.none { p ->
+                    p.type == PlatformType.BREAKABLE && spawnX > p.x && spawnX < p.x + p.width &&
+                            abs(spawnY - p.y) < 150f
+                }
+
+                if (safe) {
+                    valid = true
+                    powerUps.add(PowerUp(spawnX, spawnY, type))
+                }
+                attempts++
+            }
+            if (!valid) {
+                powerUps.add(PowerUp(
+                    Random.nextFloat() * (screenWidth - 60f) + 30f,
+                    cameraY - 100f,
+                    type
+                ))
+            }
             spawnTimer = 0f
         }
     }
@@ -36,7 +84,6 @@ class PowerUpManager {
         val iterator = powerUps.iterator()
         while (iterator.hasNext()) {
             val pu = iterator.next()
-            pu.life -= dt
 
             if (pu.isMissionReward || player.magneticSiphonTimer > 0f) {
                 val dx = player.x - pu.x
@@ -49,14 +96,14 @@ class PowerUpManager {
                     pu.y += (dy / dist) * pull
                 }
             } else {
-                if (pu.hoverTimer > 0) {
-                    pu.hoverTimer -= dt
-                    pu.y += sin(gameTime / 200f) * 0.5f
-                } else {
-                    pu.velocityY += 300f * dt
-                    pu.y += (200f + pu.velocityY) * dt
-                }
+                // Floating hover — no falling-drop
+                pu.y += sin(gameTime / 200f + pu.x) * 0.8f * dt * 60f
 
+                // Despawn timer
+                pu.despawnTimer -= dt
+                pu.glowPulseSpeed = 1.0f + (1.0f - pu.despawnTimer / DESPAWN_TIME) * 4.0f
+
+                // Magnetic platform attraction
                 for (plat in platforms) {
                     if (plat.type == PlatformType.MAGNETIC) {
                         val dx = pu.x - (plat.x + plat.width / 2f)
@@ -73,7 +120,7 @@ class PowerUpManager {
                 }
             }
 
-            if (pu.y > cameraY + screenHeight + 200f || pu.life <= 0f) {
+            if (pu.y > cameraY + screenHeight + 200f || pu.despawnTimer <= 0f) {
                 iterator.remove()
             }
         }

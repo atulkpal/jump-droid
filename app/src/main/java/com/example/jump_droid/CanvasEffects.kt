@@ -201,7 +201,9 @@ fun DrawScope.drawPowerUps(
     powerUps.forEach { pu ->
         val px = pu.x
         val py = pu.y - cameraY
-        val glowPulse = kotlin.math.sin(gameTime / 120f) * 0.15f + 0.85f
+        val despawnAlpha = (pu.despawnTimer / 8.0f).coerceIn(0f, 1f)
+        val glowFreq = gameTime / (120f / pu.glowPulseSpeed)
+        val glowPulse = sin(glowFreq) * 0.2f * despawnAlpha + 0.8f * despawnAlpha
         val baseColor = when (pu.type) {
             PowerUpType.FUEL_TANK -> Color(0xFFE57373)
             PowerUpType.TURBO_BOOSTER -> Color.Cyan

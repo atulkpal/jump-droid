@@ -80,7 +80,7 @@ private val zoneColors = listOf(
 )
 
 @Composable
-fun TitleScreen(onNavigate: (GameState) -> Unit) {
+fun TitleScreen(onNavigate: (GameState) -> Unit, soundManager: SoundManager? = null) {
     val density = LocalDensity.current
     val infiniteTransition = rememberInfiniteTransition(label = "TitleTransition")
     val glowAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "GlowAlpha")
@@ -368,13 +368,18 @@ fun TitleScreen(onNavigate: (GameState) -> Unit) {
             )
             Spacer(Modifier.height(100.dp))
             Button(
-                onClick = { onNavigate(GameState.MAIN_MENU) },
+                onClick = { 
+                    soundManager?.playSfx("sfx_ui_confirm")
+                    onNavigate(GameState.MAIN_MENU) 
+                },
                 modifier = Modifier.width(240.dp).height(56.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
             ) {
                 Text("INITIATE ASCENT", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
             }
+            Spacer(Modifier.height(16.dp))
+            GlobalAdBanner()
         }
 
         Column(

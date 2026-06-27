@@ -57,6 +57,8 @@ fun UnlockOverlay(
                 ) {
                     Text("CONFIRM", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
+                Spacer(Modifier.height(8.dp))
+                GlobalAdBanner()
             }
         }
     }

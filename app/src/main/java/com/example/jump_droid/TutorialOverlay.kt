@@ -130,6 +130,8 @@ fun TutorialOverlay(
                 ) {
                     Text("ACKNOWLEDGE", fontWeight = FontWeight.Bold, color = if (isArtifact) Color.White else Color.Black, letterSpacing = 1.sp)
                 }
+                Spacer(Modifier.height(8.dp))
+                GlobalAdBanner()
             }
         }
     }

@@ -97,7 +97,7 @@
 
 ---
 
-# EPIC 7 - Rocket Evolution (IN PROGRESS)
+# EPIC 7 - Rocket Evolution (COMPLETE)
 *Detailed Tracker: [docs/roadmap/EPIC_7_TRACKER.md](roadmap/EPIC_7_TRACKER.md)*
 
 - [x] Rocket Classes (Base 4 classes: Explorer, Striker, Heavy, Prototype)
@@ -108,8 +108,8 @@
 - [x] Heat Modules (Cooling Matrix, Thermal Battery, Heat Sink)
 - [x] Exploration Modules (Survey Scanner, Artifact Locator, Threat Scanner)
 - [x] Support Modules (Auto Repair Drone, Emergency Beacon)
-- [ ] Progression & Unlocks (Sprint 7.6)
-- [ ] Balance & Validation (Sprint 7.7)
+- [x] Progression & Unlocks (Sprint 7.6)
+- [x] Balance & Validation (Sprint 7.7)
 
 ---
 
@@ -143,11 +143,9 @@ Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
 | HudWidgets.kt | 654 lines | 576 | 12% |
 | GameEngine.kt | — | 110 (new) | N/A |
 
-## Next (EPIC 9 — Hidden Signals & Dynamic Unlocks)
+## EPIC 8 — Mission Framework (Deferred / Stretch Items)
 
-**Status: IN PROGRESS** ~
-
-## Mission Framework
+**Status:** Core complete ✅ — items below are stretch goals for future EPICs
 
 - [x] Mission System Recovery Audit
 - [x] Mission Data Migration (Phase 1)
@@ -214,8 +212,7 @@ Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
 ## Notes
 
 Existing work located in: feature/mission-system
-Recover and integrate after EPIC 7 completion.
-Do not implement during EPIC 7. Track only.
+All core mission items implemented. Stretch items above deferred to future EPICs.
 
 ---
 
@@ -284,6 +281,47 @@ Do not implement during EPIC 7. Track only.
 - [x] Platform colors for Earth/Cloud zones (brown/cyan instead of plain white)
 - [x] Hidden signal isUnlocked persistence fixed in syncState()
 - [x] Claimable dashboard now shows hidden count hint
+
+---
+
+# Release Polish — Pre-Ship Sprint
+
+**Status:** Phase 1–4 Complete, Phase 5 (Audio) In Progress — user sourcing assets
+**Plan:** [docs/roadmap/RELEASE_POLISH_PLAN.md](roadmap/RELEASE_POLISH_PLAN.md)
+
+## Phase 1 - Core Game Feel (COMPLETE)
+- [x] 2. Power-up spawn redesign
+- [x] 3. Combo reward animation
+- [x] 4. Boss death sequence
+- [x] 5. Mission completion celebration
+- [x] 16. Rewarded continue UX
+
+## Phase 2 - Notification Architecture (COMPLETE)
+- [x] 8. Notification system audit (3-tier priority)
+- [x] 9. Unified notification area
+- [x] 10. Improve gameplay notifications
+- [x] 11. Remove weak notifications
+- [x] 17. Banner ad placeholder UI
+
+## Phase 3 - Tutorial Removal + Discovery (COMPLETE)
+- [x] 1. Remove tutorial pop-ups
+- [x] 7. Move learning to archives
+- [x] 12. Platform discovery messages
+- [x] 13. Unlock celebration
+
+## Phase 4 - Data Archives + Monetization (COMPLETE)
+- [x] 6. Redesign Data Archives
+- [x] 18. Premium purchase + SDK integration (Test Ads Wired)
+
+## Phase 5 - Audio Pass & Haptics (IN PROGRESS)
+- [~] 14. Audio pass (wiring complete, sourcing assets)
+- [~] 19. Haptic feedback (wiring complete, GameEngine activated)
+
+## Phase 6 - Release Preparation (NOT STARTED)
+- [ ] Bug bash: full playthrough
+- [ ] Performance profiling
+- [ ] Play Store listing prep
+- [ ] Final APK build + testing
 
 ---
 

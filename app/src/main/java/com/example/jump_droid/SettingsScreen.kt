@@ -34,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -46,6 +47,7 @@ import com.example.jump_droid.ui.theme.SciFiBackground
 import com.example.jump_droid.ui.theme.SciFiBorder
 import com.example.jump_droid.ui.theme.SciFiCyan
 import com.example.jump_droid.ui.theme.SciFiGold
+import com.example.jump_droid.ui.theme.SciFiGreen
 import com.example.jump_droid.ui.theme.SciFiRed
 import com.example.jump_droid.ui.theme.SciFiSurface
 import com.example.jump_droid.ui.theme.SciFiWhite
@@ -55,6 +57,7 @@ import kotlin.math.sin
 fun SettingsScreen(
     sharedPrefs: SharedPreferences,
     soundManager: SoundManager? = null,
+    purchaseManager: PurchaseManager? = null,
     onWipeData: () -> Unit,
     onReturn: () -> Unit
 ) {
@@ -70,6 +73,7 @@ fun SettingsScreen(
         }
     }
 
+    val context = LocalContext.current
     Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
         Box {
             StarfieldBackground(Modifier.fillMaxSize(), starCount = 40, alphaRange = 0.15f..0.55f, starColor = SciFiCyan)
@@ -123,20 +127,60 @@ fun SettingsScreen(
                 Spacer(Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(0.6f), horizontalArrangement = Arrangement.Center) {
                     Button(
-                        onClick = { soundManager?.isMuted = !(soundManager?.isMuted ?: false) },
+                        onClick = { 
+                            soundManager?.isMuted = !(soundManager?.isMuted ?: false) 
+                            soundManager?.playSfx("sfx_ui_click")
+                        },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (soundManager?.isMuted == true) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),
                             contentColor = if (soundManager?.isMuted == true) SciFiRed else SciFiCyan
                         ),
-                        modifier = Modifier.height(36.dp),
+                        modifier = Modifier.height(36.dp).weight(1f),
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(if (soundManager?.isMuted == true) "MUTED" else "MUTE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
+                    Spacer(Modifier.width(8.dp))
+                    val hapticEnabled = sharedPrefs.getBoolean("haptic_enabled", true)
+                    Button(
+                        onClick = { 
+                            sharedPrefs.edit { putBoolean("haptic_enabled", !hapticEnabled) }
+                            soundManager?.playSfx("sfx_ui_click")
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (!hapticEnabled) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),
+                            contentColor = if (!hapticEnabled) SciFiRed else SciFiCyan
+                        ),
+                        modifier = Modifier.height(36.dp).weight(1f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(if (!hapticEnabled) "HAPTIC OFF" else "HAPTIC ON", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(16.dp))
+                val isPremium = purchaseManager?.isPremiumUser ?: sharedPrefs.getBoolean("premium_user", false)
                 Button(
                     onClick = {
+                        soundManager?.playSfx("sfx_ui_click")
+                        if (isPremium) {
+                            purchaseManager?.setPremiumUser(false)
+                        } else {
+                            purchaseManager?.launchPurchaseFlow(context as android.app.Activity)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isPremium) SciFiGreen.copy(alpha = 0.2f) else SciFiGold.copy(alpha = 0.2f),
+                        contentColor = if (isPremium) SciFiGreen else SciFiGold
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.5f) else SciFiGold.copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (isPremium) "ADS REMOVED ✓" else "UPGRADE: REMOVE ADS", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                }
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        soundManager?.playSfx("sfx_ui_click")
                         sharedPrefs.edit { clear() }
                         onWipeData()
                     },
@@ -146,9 +190,14 @@ fun SettingsScreen(
                 ) {
                     Text("WIPE TELEMETRY DATA", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
+                Spacer(Modifier.height(16.dp))
+                GlobalAdBanner()
                 Spacer(Modifier.weight(1f))
                 Button(
-                    onClick = onReturn,
+                    onClick = {
+                        soundManager?.playSfx("sfx_ui_click")
+                        onReturn()
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
                     border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse))

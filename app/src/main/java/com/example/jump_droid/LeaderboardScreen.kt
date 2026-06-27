@@ -59,6 +59,8 @@ fun LeaderboardScreen(onDismiss: () -> Unit) {
             ) {
                 Text("DISCONNECT", color = SciFiWhite, fontWeight = FontWeight.Bold)
             }
+            Spacer(Modifier.height(8.dp))
+            GlobalAdBanner()
         }
     }
 }

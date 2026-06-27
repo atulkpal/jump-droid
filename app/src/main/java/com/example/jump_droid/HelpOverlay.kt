@@ -84,6 +84,8 @@ fun HelpOverlay(onDismiss: () -> Unit) {
                 ) {
                     Text("CLOSE ARCHIVE", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
+                Spacer(Modifier.height(8.dp))
+                GlobalAdBanner()
             }
         }
     }

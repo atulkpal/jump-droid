@@ -28,7 +28,10 @@ fun ActiveThreat.processInteractionHandler(
     onEscalationEvent: (x: Float, y: Float, source: ActiveThreat) -> Unit,
     activeThreats: List<ActiveThreat> = emptyList(),
     onSpawnProjectile: (x: Float, y: Float, vx: Float, vy: Float, type: ProjectileType, owner: ProjectileOwner, damage: Float, color: Color, size: Float, life: Float) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> },
-    onSpawnThreat: (id: String, x: Float, y: Float, vx: Float, vy: Float) -> Unit = { _, _, _, _, _ -> }
+    onSpawnThreat: (id: String, x: Float, y: Float, vx: Float, vy: Float) -> Unit = { _, _, _, _, _ -> },
+    onDamage: (amount: Float) -> Unit = {},
+    onPlaySfx: (String) -> Unit = {},
+    onVibrate: (HapticManager.HapticType) -> Unit = {}
 ) {
     if (state != ThreatState.ACTIVE) return
 
@@ -49,14 +52,11 @@ fun ActiveThreat.processInteractionHandler(
             if (distSq < 200f * 200f) {
                 if (phase == 2) {
                     if (player.invulnerabilityTimer <= 0f) {
-                        if (player.shield > 0 && !player.infiniteShield) {
-                            player.shield = max(0f, player.shield - 25f)
-                            player.shieldRegenPauseTimer = 2f
-                        } else if (!player.invincibleHull) {
-                            player.integrity = max(0f, player.integrity - 10f)
-                        }
+                        onDamage(25f)
                         player.invulnerabilityTimer = 0.5f
                         onVisualFeedback(20f, 0.8f)
+                        onPlaySfx("sfx_hazard_lightning")
+                        onVibrate(HapticManager.HapticType.IMPACT_MEDIUM)
                     }
                 }
                 definition.discoveryType?.let { onDiscovery(it) }
@@ -65,14 +65,7 @@ fun ActiveThreat.processInteractionHandler(
         "HAZ_DEBRIS" -> {
             if (distSq < 80f * 80f) {
                 if (player.invulnerabilityTimer <= 0f) {
-                    if (player.shield > 0 && !player.infiniteShield) {
-                        player.shield = max(0f, player.shield - 10f)
-                        player.integrity = max(0f, player.integrity - 5f)
-                    } else if (player.shield > 0 && player.infiniteShield) {
-                        if (!player.invincibleHull) player.integrity = max(0f, player.integrity - 5f)
-                    } else if (!player.invincibleHull) {
-                        player.integrity = max(0f, player.integrity - 25f)
-                    }
+                    onDamage(25f)
                     player.invulnerabilityTimer = 0.8f
                     onVisualFeedback(20f, 0f)
                     onFloatingText("HULL IMPACT", player.x, player.y, Color.Red, false, 1.0f)
@@ -123,6 +116,8 @@ fun ActiveThreat.processInteractionHandler(
             val dist = sqrt(distSq)
             if (abs(dist - ringRadius) < 50f) {
                 player.shieldRegenPauseTimer = max(player.shieldRegenPauseTimer, 5f)
+                onPlaySfx("sfx_hazard_emp")
+                onVibrate(HapticManager.HapticType.IMPACT_LIGHT)
                 definition.discoveryType?.let { onDiscovery(it) }
             }
         }
@@ -142,6 +137,7 @@ fun ActiveThreat.processInteractionHandler(
                 if (projectileCooldown <= 0f) {
                     val ang = atan2(dy, dx)
                     onSpawnProjectile(x, y, cos(ang) * 400f, sin(ang) * 400f, ProjectileType.BOLT, ProjectileOwner.THREAT, 8f, Color(0xFFFF9800), 6f, 3f)
+                    onPlaySfx("sfx_projectile_fire")
                     projectileCooldown = 2.0f
                 }
             } else {
@@ -209,7 +205,7 @@ fun ActiveThreat.processInteractionHandler(
         "ENT_HEAT_BAT" -> {
             if (distSq < 80f * 80f && player.invulnerabilityTimer <= 0f) {
                 val damage = if (player.heat >= 70f) 20f else 10f
-                if (!player.invincibleHull) player.integrity = max(0f, player.integrity - damage)
+                onDamage(damage)
                 player.invulnerabilityTimer = 1.0f
                 onVisualFeedback(15f, 0.2f)
                 onBurst(x, y, 10, Color.Black, 300f)
@@ -237,7 +233,7 @@ fun ActiveThreat.processInteractionHandler(
         }
         "ENT_PHASE_WRAITH" -> {
             if (isMaterialized && distSq < 100f * 100f && player.invulnerabilityTimer <= 0f) {
-                if (!player.invincibleHull) player.integrity = max(0f, player.integrity - 15f)
+                onDamage(15f)
                 player.invulnerabilityTimer = 1.2f
                 onVisualFeedback(20f, 0.5f)
                 onBurst(x, y, 20, Color.Cyan, 400f)
@@ -247,7 +243,7 @@ fun ActiveThreat.processInteractionHandler(
             if (distSq < 120f * 120f && player.invulnerabilityTimer <= 0f) {
                 player.velocityX += (if (dx > 0) 1f else -1f) * 2000f
                 player.velocityY += 3000f // Massive downward knockback
-                if (!player.invincibleHull) player.integrity = max(0f, player.integrity - 25f)
+                onDamage(25f)
                 player.invulnerabilityTimer = 1.5f
                 onVisualFeedback(40f, 0.8f)
                 onBurst(player.x, player.y, 30, Color.Red, 800f)
@@ -329,6 +325,8 @@ fun ActiveThreat.processInteractionHandler(
                             player.velocityY = -400f
                             onBurst(wx, wy, 25, Color(0xFF9C27B0), 300f)
                             onVisualFeedback(20f, 0f)
+                            onPlaySfx("sfx_boss_weakpoint")
+                            onVibrate(HapticManager.HapticType.SUCCESS)
                             onFloatingText("WEAK POINT DESTROYED", player.x, player.y, Color(0xFF9C27B0), true, 1.0f)
 
                             if (player.rocketType == RocketType.TANK) {
@@ -375,6 +373,7 @@ fun ActiveThreat.processInteractionHandler(
                               onSpawnProjectile(x, y, cos(baseAngle) * 600f, sin(baseAngle) * 600f, ProjectileType.BOLT, ProjectileOwner.THREAT, 20f, Color(0xFFFF1744), 8f, 3f)
                               onSpawnProjectile(x, y, cos(baseAngle + 0.3f) * 600f, sin(baseAngle + 0.3f) * 600f, ProjectileType.BOLT, ProjectileOwner.THREAT, 20f, Color(0xFFFF1744), 8f, 3f)
                               onSpawnProjectile(x, y, cos(baseAngle - 0.3f) * 600f, sin(baseAngle - 0.3f) * 600f, ProjectileType.BOLT, ProjectileOwner.THREAT, 20f, Color(0xFFFF1744), 8f, 3f)
+                              onPlaySfx("sfx_projectile_fire")
                               projectileCooldown = 1.5f
                           }
                     }
@@ -387,6 +386,7 @@ fun ActiveThreat.processInteractionHandler(
                             val a = baseAngle + i * 0.35f
                             onSpawnProjectile(x, y, cos(a) * 500f, sin(a) * 500f, ProjectileType.BOLT, ProjectileOwner.THREAT, 15f, Color(0xFFFF9800), 6f, 4f)
                         }
+                        onPlaySfx("sfx_projectile_fire")
                         projectileCooldown = 2.0f
                     }
                     if (dist in 150f..350f) {
@@ -431,11 +431,13 @@ fun ActiveThreat.processInteractionHandler(
                     }
                     if (phase == 2 && projectileCooldown <= 0f) {
                         onSpawnProjectile(x, y - 30f, cos(atan2(dy, dx)) * 300f, sin(atan2(dy, dx)) * 300f, ProjectileType.WAVE, ProjectileOwner.THREAT, 12f, Color(0xFFE040FB), 20f, 5f)
+                        onPlaySfx("sfx_projectile_fire")
                         projectileCooldown = 4.0f
                     }
                     if (phase == 3 && projectileCooldown <= 0f) {
                         val ang = atan2(dy, dx)
                         onSpawnProjectile(x, y - 30f, cos(ang) * 400f, sin(ang) * 400f, ProjectileType.MISSILE, ProjectileOwner.THREAT, 15f, Color(0xFF9C27B0), 10f, 4f)
+                        onPlaySfx("sfx_projectile_fire")
                         projectileCooldown = 2.5f
                     }
                 }
@@ -484,10 +486,12 @@ fun ActiveThreat.processInteractionHandler(
                         val ang = atan2(dy, dx)
                         if (phase == 2) {
                             onSpawnProjectile(x, y + 40f, cos(ang) * 500f, sin(ang) * 500f, ProjectileType.BOLT, ProjectileOwner.THREAT, 10f, Color(0xFF00BCD4), 8f, 4f)
+                            onPlaySfx("sfx_projectile_fire")
                             projectileCooldown = 3.0f
                         }
                         if (phase == 3) {
                             onSpawnProjectile(x, y + 40f, cos(ang) * 600f, sin(ang) * 600f, ProjectileType.BEAM, ProjectileOwner.THREAT, 15f, Color(0xFF00BCD4), 6f, 3f)
+                            onPlaySfx("sfx_projectile_fire")
                             projectileCooldown = 2.0f
                         }
                     }
@@ -524,6 +528,7 @@ fun ActiveThreat.processInteractionHandler(
                     }
                     if (phase == 2 && projectileCooldown <= 0f) {
                         onSpawnProjectile(x, y, 0f, 200f, ProjectileType.WAVE, ProjectileOwner.THREAT, 8f, Color(0xFFE91E63), 25f, 4f)
+                        onPlaySfx("sfx_projectile_fire")
                         projectileCooldown = 3.5f
                     }
                     if (phase == 3 && projectileCooldown <= 0f) {
@@ -532,6 +537,7 @@ fun ActiveThreat.processInteractionHandler(
                             val a = ang + i * 0.35f
                             onSpawnProjectile(x, y, cos(a) * 500f, sin(a) * 500f, ProjectileType.BOLT, ProjectileOwner.THREAT, 12f, Color(0xFFE91E63), 8f, 3f)
                         }
+                        onPlaySfx("sfx_projectile_fire")
                         projectileCooldown = 2.0f
                     }
                 }
@@ -573,11 +579,13 @@ fun ActiveThreat.processInteractionHandler(
                         val jitterY = (Random.nextFloat() - 0.5f) * 40f
                         val ang = atan2(dy + jitterY, dx + jitterX)
                         onSpawnProjectile(x + jitterX, y + jitterY, cos(ang) * 450f, sin(ang) * 450f, ProjectileType.BOLT, ProjectileOwner.THREAT, 10f, Color(0xFFFF1744), 7f, 4f)
+                        onPlaySfx("sfx_projectile_fire")
                         projectileCooldown = 3.0f
                     }
                     if (phase == 3 && projectileCooldown <= 0f) {
                         val ang = atan2(dy, dx)
                         onSpawnProjectile(x, y, cos(ang) * 550f, sin(ang) * 550f, ProjectileType.BEAM, ProjectileOwner.THREAT, 12f, Color(0xFFFF1744), 5f, 2.5f)
+                        onPlaySfx("sfx_projectile_fire")
                         projectileCooldown = 1.5f
                     }
                     if (phase >= 2 && phase <= 3) {
@@ -598,12 +606,13 @@ fun ActiveThreat.processInteractionHandler(
                     if (alertLevel > 0.5f && projectileCooldown <= 0f) {
                         val ang = atan2(dy, dx)
                         onSpawnProjectile(x, y, cos(ang) * 500f, sin(ang) * 500f, ProjectileType.BOLT, ProjectileOwner.THREAT, 8f, Color(0xFFFF1744), 5f, 3f)
+                        onPlaySfx("sfx_projectile_fire")
                         projectileCooldown = 1.5f
                     }
                 }
                 "ENT_VOID_WRAITH" -> {
                     if (isMaterialized && distSq < 100f * 100f && player.invulnerabilityTimer <= 0f) {
-                        if (!player.invincibleHull) player.integrity = max(0f, player.integrity - 15f)
+                        onDamage(15f)
                         player.fuel = max(0f, player.fuel - 30f)
                         player.invulnerabilityTimer = 1.5f
                         onVisualFeedback(25f, 0.6f)
@@ -660,6 +669,7 @@ fun ActiveThreat.processInteractionHandler(
                         if (phase == 2) {
                             onSpawnProjectile(x, y, cos(r) * 400f, sin(r) * 400f, ProjectileType.BOLT, ProjectileOwner.THREAT, 12f, Color(0xFF00E5FF), 7f, 4f)
                             onSpawnProjectile(x, y, cos(r + PI.toFloat()) * 400f, sin(r + PI.toFloat()) * 400f, ProjectileType.BOLT, ProjectileOwner.THREAT, 12f, Color(0xFF00E5FF), 7f, 4f)
+                            onPlaySfx("sfx_projectile_fire")
                             projectileCooldown = 2.5f
                         }
                         if (phase >= 3) {
@@ -667,6 +677,7 @@ fun ActiveThreat.processInteractionHandler(
                                 val a = r + i * (PI.toFloat() / 2f)
                                 onSpawnProjectile(x, y, cos(a) * 500f, sin(a) * 500f, ProjectileType.WAVE, ProjectileOwner.THREAT, 10f, Color(0xFF00E5FF), 12f, 3f)
                             }
+                            onPlaySfx("sfx_projectile_fire")
                             projectileCooldown = 3.5f
                         }
                     }
@@ -698,6 +709,7 @@ fun ActiveThreat.processInteractionHandler(
                             val pAng = atan2(player.y - py, player.x - px)
                             onSpawnProjectile(px, py, cos(pAng) * 400f, sin(pAng) * 400f, ProjectileType.BOLT, ProjectileOwner.THREAT, 8f, Color(0xFFFF1744), 6f, 3f)
                         }
+                        onPlaySfx("sfx_projectile_fire")
                         projectileCooldown = cooldownBase
                     }
                     if (phase == 2) {
@@ -714,22 +726,74 @@ fun ActiveThreat.processInteractionHandler(
                 }
             }
 
-            if (phase == 5 && !hasInteracted) {
-                hasInteracted = true
-                powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
-                onFloatingText("!!! ${definition.name.uppercase()} DEFEATED !!!", player.x, player.y, Color.Cyan, true, 1.0f)
-                onNotification(">>> MISSION DATA RECOVERED <<<", 5.0f)
-                onVisualFeedback(70f, 1.0f)
-                onBurst(player.x, cameraY + 200f, 100, Color(0xFF9C27B0), 1200f)
-                
-                repeat(8) {
-                    onBurst(player.x + (Random.nextFloat() - 0.5f) * 200f, 
-                               player.y + (Random.nextFloat() - 0.5f) * 200f, 
-                               50, Color.White, 800f)
+            if (activeWeakPoints <= 0 && maxWeakPoints > 0 && !bossRewardDropped) {
+                if (!hasInteracted) {
+                    hasInteracted = true
+                    destructionTimer = 0f
+                    bossRewardDropped = true
+                    powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
+                    onFloatingText("!!! ${definition.name.uppercase()} DEFEATED !!!", player.x, player.y, Color.Cyan, true, 1.0f)
+                    onNotification(">>> MISSION DATA RECOVERED <<<", 5.0f)
+                    onScoreUpdate(1000)
                 }
 
-                if (definition.id == "MINI_BOSS_COMMANDER") {
-                    onMissionProgress(MissionType.BOSS)
+                destructionTimer += sdt
+                val t = destructionTimer
+                val debrisColor = when (definition.id) {
+                    "BOSS_GATEKEEPER" -> Color(0xFFFF9800)
+                    "BOSS_STAR_EATER" -> Color(0xFFE040FB)
+                    "BOSS_LEVIATHAN" -> Color(0xFF00BCD4)
+                    "BOSS_VOID_ENGINE" -> Color(0xFFE91E63)
+                    "BOSS_SIGNAL" -> Color(0xFFFF1744)
+                    "MINI_BOSS_THERMAL_HIVE" -> Color(0xFFFF6D00)
+                    "MINI_BOSS_GRAVITY_ANCHOR" -> Color(0xFF9C27B0)
+                    "MINI_BOSS_FORGER" -> Color(0xFF4CAF50)
+                    "BOSS_ARCHITECT" -> Color(0xFF00E5FF)
+                    "BOSS_ENTROPY_CORE" -> Color(0xFFFF1744)
+                    "BOSS_SINGULARITY" -> Color(0xFFD500F9)
+                    else -> Color(0xFF9C27B0)
+                }
+
+                // Progressive bursts
+                if (t < 0.3f) {
+                    if (t - sdt < 0.1f) {
+                        onBurst(x, y - 50f, 25, debrisColor, 300f)
+                    }
+                } else if (t < 0.6f) {
+                    if (t - sdt < 0.3f) {
+                        onBurst(x + (Random.nextFloat() - 0.5f) * 100f, y + (Random.nextFloat() - 0.5f) * 100f, 30, Color.White, 400f)
+                        onBurst(x - 50f, y + 50f, 20, debrisColor, 350f)
+                    }
+                } else if (t < 0.9f) {
+                    if (t - sdt < 0.6f) {
+                        repeat(2) {
+                            onBurst(x + (Random.nextFloat() - 0.5f) * 150f, y + (Random.nextFloat() - 0.5f) * 150f, 35, debrisColor, 500f)
+                        }
+                        onBurst(x, y, 20, Color.White, 600f)
+                    }
+                } else if (t < 1.2f) {
+                    if (t - sdt < 0.9f) {
+                        repeat(3) {
+                            onBurst(x + (Random.nextFloat() - 0.5f) * 200f, y + (Random.nextFloat() - 0.5f) * 200f, 40, debrisColor.copy(alpha = 0.8f), 600f)
+                        }
+                        onBurst(x, y + 50f, 30, Color.White, 700f)
+                    }
+                }
+
+                if (t >= 1.5f) {
+                    // Final large explosion
+                    onBurst(x, y, 100, debrisColor, 1200f)
+                    repeat(4) {
+                        onBurst(x + (Random.nextFloat() - 0.5f) * 250f, y + (Random.nextFloat() - 0.5f) * 250f, 50, Color.White, 900f)
+                    }
+                    onVisualFeedback(70f, 1.0f)
+                    onPlaySfx("sfx_boss_defeat")
+                    onVibrate(HapticManager.HapticType.EXPLOSION)
+                    state = ThreatState.DESTROYED
+
+                    if (definition.id == "MINI_BOSS_COMMANDER") {
+                        onMissionProgress(MissionType.BOSS)
+                    }
                 }
             }
         }

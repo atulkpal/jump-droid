@@ -4,6 +4,80 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-27
+
+**Sprint / Phase:** Release Polish — Phases 1–4 Complete
+
+**Branch:** `refactor/cleanup`
+
+**Status:** Phases 1–4 Complete ✅ — Phase 5 (Audio) In Progress
+
+### Phase 1 — Core Game Feel
+- **Power-up spawn redesign** (`PowerUpManager.kt`): Removed falling-drop architecture. Power-ups now hover at random visible locations with dead-zone avoidance (boss hitboxes, hazard radii). Added 8s despawn timer with accelerating glow pulse fade-out.
+- **Combo reward animation** (`GameEngine.kt`, `ComboManager.kt`): Rewards originate from top-left combo ring position, animate toward player. "COMBO REWARD" floating text. Removed FlyingReward falling animation.
+- **Boss death sequence** (`ThreatInteractionProcessor.kt`): Progressive 1.5s piece-by-piece destruction with color-mapped debris per boss type. Final large explosion + screen shake.
+- **Mission completion celebration** (`GameEngine.kt`): Triple burst (Gold + Cyan) at top-center, floating text "MISSION COMPLETE", screen flash + shake.
+- **Rewarded continue UX** (`GameOverOverlay.kt`): `[AD]` badge added to "RE-ESTABLISH LINK" button. One-time-per-run enforcement.
+
+### Phase 2 — Notification Architecture
+- **Notification priority system** (`NotificationManager.kt`): 3-tier `NotificationPriority` enum (CRITICAL / TACTICAL / FLAVOR). Dedup by message content. Priority preemption.
+- **Unified notification area** (`HudWidgets.kt`): Stacks up to 3 entries. Priority-based text sizing and coloring. Positioned top=180dp.
+- **Priority assignments**: All call sites updated — CRITICAL for shield/hull critical, TACTICAL for mission/zone, FLAVOR for archive/artifact.
+- **Weak notification removal**: Eliminated "REINFORCEMENTS INBOUND" and other low-value entries.
+- **GlobalAdBanner placeholder** (`AdComponents.kt`): 56dp placeholder box, hidden when `isPremiumUser`. Added to all menu screens and overlays. No banner on GamePlayScreen.
+
+### Phase 3 — Tutorial Removal + Discovery
+- **Tutorial pop-ups removed**: All `showTutorialPopup()` / `tutorialStep` logic deleted.
+- **Platform discovery messages**: All 14 platform types show one-time gameplay hint float text on first landing.
+- **Unlock celebration**: Achievement unlocks spawn gold burst.
+- **Archive badge**: MainMenuScreen shows SciFiPurple dot on ARCHIVE button when notification pending.
+- **Haptics activation**: HapticManager instantiated in GameEngine, wired to SurvivalManager callbacks.
+
+### Phase 4 — Data Archives + Monetization
+- **Archives redesign** (`ArchiveScreen.kt`): Re-organized into 12 categories. Added MECHANICS category. New ArchiveCard composable with locked/unlocked visual states.
+- **AdMob SDK integration**: `play-services-ads:23.6.0` dependency, INTERNET permission, test AdMob app ID. MobileAds initialization in MainActivity.
+- **GlobalAdBanner rewrite**: Real AdView rendering Google test banner ad (`ca-app-pub-3940256099942544/6300978111`).
+- **Rewarded continue**: RewardedAdHelper preloads test RewardedAd, shows on continue button click, falls back to free continue on failure.
+- **Premium purchase**: PurchaseManager wraps isPremiumUser flag. SettingsScreen shows "UPGRADE: REMOVE ADS" / "ADS REMOVED ✓" button.
+
+### Documentation
+- `AGENTS.md`: Updated project state to Release Polish Phases 1–4 Complete. Fixed Doc_Migration reference, removed duplicate index entry.
+- `docs/roadmap/RELEASE_POLISH_PLAN.md`: Updated status headers, added Phase 4 implementation notes, checked off testing checklist items.
+- `docs/analysis/MISSION_RECOVERY_AUDIT.md`: Created redirect stub.
+- `docs/roadmap/EPIC_8_MIGRATION_PLAN.md`: Created redirect stub.
+- `docs/REPORTS/Doc_Migration.md`: Created redirect stub.
+
+---
+
+## 2026-06-26
+
+**Sprint / Phase:** EPIC 8.5 Recovery — Full Regression Cleanup
+
+**Branch:** `refactor/cleanup`
+
+**Status:** Complete ✅
+
+### Fixed
+- **continueRun()**: Restored platform-based respawn (find lowest visible, exclude PHASE), destructionTimer/heat/lastPlatform reset, re-entry effects (burst, shake, flash, "SYSTEM REBOOTED" text)
+- **Thrust trail particles**: Orange (0xFFFF9800) continuous exhaust particles, cyan when turbo active, at 40% chance per thrusting frame
+- **Death burst**: Red burst + screen shake on hull failure and off-screen fall death
+- **WorldRenderer rendering pipeline**: Reconnected drawTether() (cyan animated electrical bolt) and drawVisualObstruction() (radial fog gradient)
+- **PHASE platform collision**: Added 4000ms cycle check — player falls through when visually intangible (progress ≥ 0.4f)
+- **BREAKABLE platform trigger**: isBreaking=true set on landing + discovery check
+- **Ghost/trap platform**: isTrapPlatform now breaks instantly on landing + NORMAL_PLATFORM discovery
+- **Broken platform cleanup**: Fully-broken platforms removed from list with orange burst particle effect
+- **Missing platform landing branches restored**: ICE (slippery friction 0.98×), MOVING (speed transfer + mission progress), FLUX (teleport + purple burst + cooldown), GRAVITON (gravity well text), MAGNETIC (discovery), CONVEYOR (discovery), PHASE (discovery), BREAKABLE (discovery)
+- **Platform discovery checks**: All 11 platform types now register first-landing discovery (was missing for 7 types)
+- **Magnetic/Graviton field effects**: Proximity force fields applied per sub-step — MAGNETIC (pull 1200, damping 0.85) and GRAVITON (pull 3000, damping 0.75, radius 180px)
+- **Moving platform carry-over**: Player velocity follows moving platform while standing on top
+- **Conveyor speed push**: 150px/s horizontal push applied while standing on conveyor platform
+- **pendingReward infinite loop**: comboManager.pendingReward now cleared after FlyingReward creation — stopped endless "FUEL RECOVERED" text, green circle animation, and fuel regeneration spam
+
+### Changed
+- **SoundManager.isMuted**: Default remains true — generated tones retained as placeholder; infrastructure ready for production audio files
+
+---
+
 ## 2026-06-24
 
 **Sprint / Phase:** EPIC 8.5 Execution — Architecture Decomposition Complete

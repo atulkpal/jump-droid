@@ -82,6 +82,8 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 }
                 Spacer(Modifier.height(16.dp))
                 Text("POWERED BY ASHWATH.AI // V1.2.0", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                Spacer(Modifier.height(8.dp))
+                GlobalAdBanner()
             }
         }
     }

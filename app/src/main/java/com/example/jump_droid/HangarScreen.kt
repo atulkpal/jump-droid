@@ -61,7 +61,8 @@ fun HangarScreen(
     highScore: Int,
     progressionManager: ProgressionManager,
     sharedPrefs: SharedPreferences,
-    onNavigate: (GameState) -> Unit
+    onNavigate: (GameState) -> Unit,
+    soundManager: SoundManager? = null
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "HangarTransition")
     val accentPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(2000), RepeatMode.Reverse), label = "AccentPulse")
@@ -104,9 +105,18 @@ fun HangarScreen(
                     val (zFound, zTotal) = progressionManager.getCompletionStats("AREAS")
                     val (aFound, aTotal) = progressionManager.getCompletionStats("ARTIFACTS")
 
-                    HangarNavWidget(Modifier.clickable { onNavigate(GameState.ARCHIVE) }, "ARCHIVE", "VIEW >", SciFiCyan)
-                    HangarNavWidget(Modifier.clickable { onNavigate(GameState.LOADOUT) }, "LOADOUT", "EDIT >", SciFiPurple)
-                    HangarNavWidget(Modifier.clickable { onNavigate(GameState.MISSIONS) }, "MISSIONS", "${progressionManager.missionsCompleted} DONE >", SciFiGold)
+                    HangarNavWidget(Modifier.clickable { 
+                        soundManager?.playSfx("sfx_ui_click")
+                        onNavigate(GameState.ARCHIVE) 
+                    }, "ARCHIVE", "VIEW >", SciFiCyan)
+                    HangarNavWidget(Modifier.clickable { 
+                        soundManager?.playSfx("sfx_ui_click")
+                        onNavigate(GameState.LOADOUT) 
+                    }, "LOADOUT", "EDIT >", SciFiPurple)
+                    HangarNavWidget(Modifier.clickable { 
+                        soundManager?.playSfx("sfx_ui_click")
+                        onNavigate(GameState.MISSIONS) 
+                    }, "MISSIONS", "${progressionManager.missionsCompleted} DONE >", SciFiGold)
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -215,7 +225,10 @@ fun HangarScreen(
                 }
 
                 Button(
-                    onClick = { onNavigate(GameState.MAIN_MENU) },
+                    onClick = { 
+                        soundManager?.playSfx("sfx_ui_confirm")
+                        onNavigate(GameState.MAIN_MENU) 
+                    },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = SciFiButtonShape,
                     colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
@@ -223,6 +236,8 @@ fun HangarScreen(
                 ) {
                     Text("RETURN TO COMMAND", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
+                Spacer(Modifier.height(8.dp))
+                GlobalAdBanner()
                 Spacer(Modifier.height(8.dp))
                 Text("HANGAR // ROCKET SELECT // ${progressionManager.currentRank.title}", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
             }

@@ -5,29 +5,42 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 
-/**
- * Encapsulates the notification queue and lifecycle management.
- * Extracted from GameScreen.kt as part of Sprint T3.
- */
+enum class NotificationPriority {
+    CRITICAL,
+    TACTICAL,
+    FLAVOR
+}
+
+data class NotificationEntry(
+    val message: String,
+    val priority: NotificationPriority,
+    val duration: Float = 2.0f,
+    val color: Color = Color.White
+) {
+    val isHighAlert: Boolean get() = message.contains("!!!") || message.contains(">>>")
+}
+
 class NotificationManager {
-    // State variables
-    val queue = mutableStateListOf<String>()
-    var active by mutableStateOf<String?>(null)
+    private val internalQueue = mutableListOf<NotificationEntry>()
+    val queue: List<NotificationEntry> get() = internalQueue.toList()
+    var active by mutableStateOf<NotificationEntry?>(null)
     var alpha by mutableFloatStateOf(0f)
     var timer by mutableFloatStateOf(0f)
 
-    /**
-     * Adds a new message to the display queue.
-     */
-    fun post(message: String) {
-        queue.add(message)
+    private fun priorityIndex(p: NotificationPriority): Int = p.ordinal
+
+    fun post(message: String, priority: NotificationPriority = NotificationPriority.TACTICAL, duration: Float = 2.0f, color: Color = Color.White) {
+        // Dedup: skip if same message is already in queue
+        if (internalQueue.any { it.message == message }) return
+        if (active?.message == message) return
+
+        val entry = NotificationEntry(message, priority, duration, color)
+        val insertionIndex = internalQueue.indexOfLast { priorityIndex(it.priority) >= priorityIndex(priority) } + 1
+        internalQueue.add(insertionIndex.coerceIn(0, internalQueue.size), entry)
     }
 
-    /**
-     * Updates timers and processes the queue.
-     * Should be called once per frame from the game loop.
-     */
     fun update(dt: Float) {
         if (active != null) {
             timer -= dt
@@ -37,27 +50,32 @@ class NotificationManager {
                     active = null
                 }
             }
-        } else if (queue.isNotEmpty()) {
-            active = queue.removeAt(0)
+        }
+
+        if (active == null && internalQueue.isNotEmpty()) {
+            active = internalQueue.removeAt(0)
             alpha = 1f
-            timer = 2.0f // Display duration
+            timer = active!!.duration
         }
     }
 
-    /**
-     * Immediately displays a notification, bypassing the queue.
-     */
-    fun showImmediately(message: String, initialAlpha: Float = 1.0f) {
-        active = message
+    fun showImmediately(message: String, initialAlpha: Float = 1.0f, priority: NotificationPriority = NotificationPriority.CRITICAL, duration: Float = 2.0f, color: Color = Color.White) {
+        active?.let { current ->
+            if (priorityIndex(priority) < priorityIndex(current.priority)) {
+                // Preempt: push current back to queue front
+                internalQueue.add(0, current)
+            } else {
+                // Same or lower priority — queue this one instead
+                return
+            }
+        }
+        active = NotificationEntry(message, priority, duration, color)
         alpha = initialAlpha
-        timer = 2.0f
+        timer = duration
     }
 
-    /**
-     * Resets the manager state.
-     */
     fun clear() {
-        queue.clear()
+        internalQueue.clear()
         active = null
         alpha = 0f
         timer = 0f

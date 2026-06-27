@@ -154,6 +154,8 @@ fun LoadoutScreen(
             ) {
                 Text("BACK TO HANGAR", color = SciFiWhite, fontWeight = FontWeight.Bold)
             }
+            Spacer(Modifier.height(8.dp))
+            GlobalAdBanner()
         }
     }
 }

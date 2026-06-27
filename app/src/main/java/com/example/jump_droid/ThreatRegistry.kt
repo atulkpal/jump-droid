@@ -175,6 +175,7 @@ object ThreatRegistry {
             description = "Autonomous drones guarding the lower altitudes.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_1,
+            discoveryType = DiscoveryType.ENEMY_SCOUT_DRONE,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.EARTH, AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT), spawnChance = 0.4f),
             spawnPosition = SpawnPosition.SIDE_ENTRY,
             spawnVx = 150f
@@ -186,6 +187,7 @@ object ThreatRegistry {
             description = "Biological organisms that have adapted to high-altitude flight.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_1,
+            discoveryType = DiscoveryType.ENEMY_CLOUD_SKIMMER,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER), spawnChance = 0.15f),
             spawnPosition = SpawnPosition.SIDE_ENTRY,
             spawnVx = 50f
@@ -197,6 +199,7 @@ object ThreatRegistry {
             description = "Floating nano-colonies that drift through the clouds, shifting shape in the wind.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_2,
+            discoveryType = DiscoveryType.ENEMY_SWARM_BOTS,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE), spawnChance = 0.35f),
             spawnPosition = SpawnPosition.ABOVE_SCREEN
         ))
@@ -207,6 +210,7 @@ object ThreatRegistry {
             description = "Ancient defensive structures still active in high orbit.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_2,
+            discoveryType = DiscoveryType.ENEMY_ORBITAL_SENTRY,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ORBIT), spawnChance = 0.12f)
         ))
 
@@ -216,6 +220,7 @@ object ThreatRegistry {
             description = "Ghostly remains of previous failed ascents, now hostile.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_2,
+            discoveryType = DiscoveryType.ENEMY_CORRUPTED_HULL,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE), spawnChance = 0.1f),
             spawnPosition = SpawnPosition.ABOVE_CAMERA,
             spawnVy = 30f
@@ -227,6 +232,7 @@ object ThreatRegistry {
             description = "Predatory machines that hunt by following thermal signatures.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_3,
+            discoveryType = DiscoveryType.ENEMY_STALKER,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE), spawnChance = 0.05f)
         ))
 
@@ -236,6 +242,7 @@ object ThreatRegistry {
             description = "Massive ethereal beings that drift through the outer reaches.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_3,
+            discoveryType = DiscoveryType.ENEMY_VOID_WHALE,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.02f),
             spawnPosition = SpawnPosition.SIDE_ENTRY,
             spawnVx = 30f
@@ -247,6 +254,7 @@ object ThreatRegistry {
             description = "Non-Euclidean horrors that exist only within the Void.",
             type = ThreatType.ENEMY,
             tier = ThreatTier.TIER_3,
+            discoveryType = DiscoveryType.ENEMY_VOID_WRAITH,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.07f),
             spawnPosition = SpawnPosition.RANDOM_SCREEN
         ))
@@ -405,6 +413,7 @@ object ThreatRegistry {
             description = "The ultimate intelligence. It doesn't just fight you; it distorts your very perception of reality.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
+            discoveryType = DiscoveryType.THREAT_SINGULARITY,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.SINGULARITY), spawnChance = 0.01f)
         ))
     }

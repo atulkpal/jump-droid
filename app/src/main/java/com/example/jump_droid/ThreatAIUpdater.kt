@@ -361,10 +361,8 @@ fun ActiveThreat.updateAI(
                     }
                 }
                 5 -> {
-                    vy = -500f
-                    if (y < targetY - 2500f) {
-                        state = ThreatState.DESTROYED
-                    }
+                    vy = 0f
+                    vx *= 0.95f
                 }
             }
         }
@@ -408,8 +406,8 @@ fun ActiveThreat.updateAI(
                     }
                 }
                 4 -> {
-                    vy = -400f
-                    if (y < targetY - 2000f) state = ThreatState.DESTROYED
+                    vy = 0f
+                    vx *= 0.95f
                 }
             }
         }
@@ -449,8 +447,8 @@ fun ActiveThreat.updateAI(
                     }
                 }
                 4 -> {
-                    vy = -600f
-                    if (y < targetY - 2000f) state = ThreatState.DESTROYED
+                    vy = 0f
+                    vx *= 0.95f
                 }
             }
         }
@@ -494,8 +492,8 @@ fun ActiveThreat.updateAI(
                     }
                 }
                 4 -> {
-                    vy = -700f
-                    if (y < targetY - 2500f) state = ThreatState.DESTROYED
+                    vy = 0f
+                    vx *= 0.95f
                 }
             }
         }
@@ -541,9 +539,9 @@ fun ActiveThreat.updateAI(
                     }
                 }
                 4 -> {
-                    vy = -500f
+                    vy = 0f
                     x += vx * 0.5f * dt
-                    if (y < targetY - 2000f) state = ThreatState.DESTROYED
+                    vx *= 0.95f
                 }
             }
         }
@@ -583,8 +581,8 @@ fun ActiveThreat.updateAI(
                     }
                 }
                 4 -> {
-                    vy = -800f
-                    if (y < targetY - 2500f) state = ThreatState.DESTROYED
+                    vy = 0f
+                    vx *= 0.95f
                 }
             }
         }
@@ -624,8 +622,8 @@ fun ActiveThreat.updateAI(
                     }
                 }
                 4 -> {
-                    vy = -600f
-                    if (y < targetY - 2000f) state = ThreatState.DESTROYED
+                    vy = 0f
+                    vx *= 0.95f
                 }
             }
         }
@@ -645,7 +643,8 @@ fun ActiveThreat.updateAI(
             alertLevel = (localTimer / 10f).coerceIn(0f, 3f) // Intensity multiplier
             vy = 0f
             if (activeWeakPoints <= 0) {
-                state = ThreatState.DESTROYED
+                vy = 0f
+                vx *= 0.95f
             }
         }
 
@@ -665,8 +664,8 @@ fun ActiveThreat.updateAI(
             x += (targetX - x) * 0.4f * dt
             vy = sin(lifetime * 1.5f) * 30f
             if (activeWeakPoints <= 0) {
-                vy = -700f
-                if (y < targetY - 2000f) state = ThreatState.DESTROYED
+                vy = 0f
+                vx *= 0.95f
             }
         }
 
@@ -687,8 +686,8 @@ fun ActiveThreat.updateAI(
             rotation += 30f * dt
             x += (targetX - x) * 0.3f * dt
             if (activeWeakPoints <= 0) {
-                vy = -900f
-                if (y < targetY - 3000f) state = ThreatState.DESTROYED
+                vy = 0f
+                vx *= 0.95f
             }
         }
 
@@ -708,8 +707,8 @@ fun ActiveThreat.updateAI(
             scanPulse = (sin(lifetime * 2.5f) * 0.5f + 0.5f)
             x += (targetX - x) * 0.2f * dt
             if (activeWeakPoints <= 0) {
-                vy = -1000f
-                if (y < targetY - 3000f) state = ThreatState.DESTROYED
+                vy = 0f
+                vx *= 0.95f
             }
         }
 

@@ -119,6 +119,59 @@ class SoundManager(private val appContext: Context) {
         currentMusicResId = null
     }
 
+    fun handleZoneChange(zone: AltitudeZone) {
+        if (isMuted) return
+        // Placeholder for real music: play a distinct procedural tone for each zone transition
+        val freq = when (zone) {
+            AltitudeZone.EARTH -> 220f
+            AltitudeZone.CLOUD_LAYER -> 261f
+            AltitudeZone.UPPER_ATMOSPHERE -> 293f
+            AltitudeZone.ORBIT -> 329f
+            AltitudeZone.THE_FOUNDRY -> 349f
+            AltitudeZone.DEEP_SPACE -> 392f
+            AltitudeZone.CHRONO_RIFT -> 440f
+            AltitudeZone.VOID -> 493f
+            AltitudeZone.THE_BEYOND -> 523f
+            AltitudeZone.STELLAR_GATE -> 587f
+            AltitudeZone.ANCIENT_CONSTRUCT -> 659f
+            AltitudeZone.SINGULARITY -> 698f
+        }
+        playGeneratedTone(freq, 2000, EnvelopeType.FADE_OUT)
+    }
+
+    private fun playGeneratedTone(freq: Float, durationMs: Int, envelope: EnvelopeType) {
+        Thread {
+            val sampleRate = 22050
+            val numSamples = sampleRate * durationMs / 1000
+            val samples = ShortArray(numSamples)
+            for (i in 0 until numSamples) {
+                val t = i.toFloat() / sampleRate
+                val env = when (envelope) {
+                    EnvelopeType.FADE_OUT -> 1f - i.toFloat() / numSamples
+                    EnvelopeType.QUICK_DECAY -> kotlin.math.exp(-t * 25f)
+                    EnvelopeType.SUSTAIN -> 1f
+                    EnvelopeType.CLICK -> if (i < numSamples / 4) 1f else 0f
+                }
+                val sample = (sin(2.0 * PI * freq * t).toFloat() * env * Short.MAX_VALUE * 0.2f).toInt().toShort()
+                samples[i] = sample
+            }
+            try {
+                val track = AudioTrack(
+                    AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).build(),
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build(),
+                    numSamples * 2, AudioTrack.MODE_STATIC, AudioManager.AUDIO_SESSION_ID_GENERATE
+                )
+                track.write(samples, 0, numSamples)
+                track.play()
+                track.release()
+            } catch (_: Exception) {}
+        }.apply { isDaemon = true; start() }
+    }
+
     fun release() {
         stopThrust()
         stopMusic()
@@ -130,17 +183,28 @@ class SoundManager(private val appContext: Context) {
     private enum class EnvelopeType { FADE_OUT, QUICK_DECAY, SUSTAIN, CLICK }
 
     private fun spec(name: String): SfxSpec = when (name) {
-        "collect" -> SfxSpec(880f, 100, EnvelopeType.FADE_OUT)
-        "land" -> SfxSpec(60f, 80, EnvelopeType.QUICK_DECAY)
-        "damage" -> SfxSpec(200f, 150, EnvelopeType.FADE_OUT)
-        "click" -> SfxSpec(1000f, 40, EnvelopeType.CLICK)
+        "collect", "sfx_collect_item" -> SfxSpec(880f, 100, EnvelopeType.FADE_OUT)
+        "land", "sfx_land_impact", "sfx_land_metal" -> SfxSpec(60f, 80, EnvelopeType.QUICK_DECAY)
+        "sfx_land_ice" -> SfxSpec(1200f, 60, EnvelopeType.CLICK)
+        "sfx_land_energy" -> SfxSpec(1000f, 150, EnvelopeType.FADE_OUT)
+        "sfx_land_gravity" -> SfxSpec(40f, 200, EnvelopeType.SUSTAIN)
+        "sfx_land_utility" -> SfxSpec(400f, 100, EnvelopeType.QUICK_DECAY)
+        "sfx_land_fragile" -> SfxSpec(150f, 50, EnvelopeType.CLICK)
+        "damage", "sfx_hit_hull" -> SfxSpec(200f, 150, EnvelopeType.FADE_OUT)
+        "sfx_hit_shield" -> SfxSpec(600f, 120, EnvelopeType.FADE_OUT)
+        "click", "sfx_ui_click" -> SfxSpec(1000f, 40, EnvelopeType.CLICK)
+        "sfx_ui_confirm", "unlock", "sfx_fanfare_unlock" -> SfxSpec(1047f, 300, EnvelopeType.FADE_OUT)
         "boss" -> SfxSpec(150f, 500, EnvelopeType.SUSTAIN)
         "combo" -> SfxSpec(660f, 200, EnvelopeType.FADE_OUT)
-        "overheat" -> SfxSpec(400f, 300, EnvelopeType.SUSTAIN)
-        "death" -> SfxSpec(80f, 600, EnvelopeType.FADE_OUT)
-        "explosion" -> SfxSpec(50f, 400, EnvelopeType.QUICK_DECAY)
-        "low_fuel" -> SfxSpec(300f, 200, EnvelopeType.SUSTAIN)
-        "unlock" -> SfxSpec(1047f, 300, EnvelopeType.FADE_OUT)
+        "overheat", "sfx_overheat_alarm", "sfx_hazard_emp" -> SfxSpec(400f, 300, EnvelopeType.SUSTAIN)
+        "death", "sfx_boss_defeat" -> SfxSpec(80f, 600, EnvelopeType.FADE_OUT)
+        "explosion", "sfx_hazard_lightning", "sfx_explosion_enemy" -> SfxSpec(50f, 400, EnvelopeType.QUICK_DECAY)
+        "low_fuel", "sfx_alarm_low_fuel" -> SfxSpec(300f, 200, EnvelopeType.SUSTAIN)
+        "sfx_alarm_critical" -> SfxSpec(150f, 400, EnvelopeType.SUSTAIN)
+        "sfx_projectile_fire" -> SfxSpec(440f, 60, EnvelopeType.CLICK)
+        "sfx_boss_weakpoint" -> SfxSpec(100f, 200, EnvelopeType.QUICK_DECAY)
+        "sfx_fanfare_mission" -> SfxSpec(880f, 500, EnvelopeType.FADE_OUT)
+        "sfx_data_scan" -> SfxSpec(1500f, 400, EnvelopeType.SUSTAIN)
         else -> SfxSpec(440f, 100, EnvelopeType.FADE_OUT)
     }
 
@@ -150,7 +214,7 @@ class SoundManager(private val appContext: Context) {
             val sampleRate = 22050
             val numSamples = sampleRate * s.durationMs / 1000
             val samples = ShortArray(numSamples)
-            val noise = name in listOf("explosion", "death")
+            val noise = name in listOf("explosion", "death", "sfx_hazard_lightning", "sfx_boss_defeat", "sfx_explosion_enemy")
 
             for (i in 0 until numSamples) {
                 val t = i.toFloat() / sampleRate

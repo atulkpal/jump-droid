@@ -58,6 +58,9 @@ class ActiveThreat(
     // Weak Point System
     var maxWeakPoints by mutableIntStateOf(0)
     var activeWeakPoints by mutableIntStateOf(0)
+
+    // Death Sequence
+    var destructionTimer by mutableFloatStateOf(0f)
     
     // Arrival Logic
     var arrivalTimer by mutableFloatStateOf(0f)
@@ -105,7 +108,10 @@ class ActiveThreat(
         onEscalationEvent: (x: Float, y: Float, source: ActiveThreat) -> Unit,
         activeThreats: List<ActiveThreat> = emptyList(),
         onSpawnProjectile: (x: Float, y: Float, vx: Float, vy: Float, type: ProjectileType, owner: ProjectileOwner, damage: Float, color: Color, size: Float, life: Float) -> Unit = { _, _, _, _, _, _, _, _, _, _ -> },
-        onSpawnThreat: (id: String, x: Float, y: Float, vx: Float, vy: Float) -> Unit = { _, _, _, _, _ -> }
+        onSpawnThreat: (id: String, x: Float, y: Float, vx: Float, vy: Float) -> Unit = { _, _, _, _, _ -> },
+        onDamage: (amount: Float) -> Unit = {},
+        onPlaySfx: (String) -> Unit = {},
+        onVibrate: (HapticManager.HapticType) -> Unit = {}
     ) {
         processInteractionHandler(
             player = player, sdt = sdt, isThrusting = isThrusting,
@@ -117,7 +123,8 @@ class ActiveThreat(
             onMissionProgress = onMissionProgress, onSpawnGhostPlatform = onSpawnGhostPlatform,
             onSpawnReinforcements = onSpawnReinforcements, onAnchoredText = onAnchoredText,
             onEscalationEvent = onEscalationEvent, activeThreats = activeThreats,
-            onSpawnProjectile = onSpawnProjectile, onSpawnThreat = onSpawnThreat
+            onSpawnProjectile = onSpawnProjectile, onSpawnThreat = onSpawnThreat,
+            onDamage = onDamage, onPlaySfx = onPlaySfx, onVibrate = onVibrate
         )
     }
 }

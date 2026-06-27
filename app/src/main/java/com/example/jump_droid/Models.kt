@@ -2,6 +2,8 @@ package com.example.jump_droid
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import kotlin.math.*
+import kotlin.random.Random
 
 enum class GameState {
     TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS, ASCENSION_PROTOCOL
@@ -26,6 +28,8 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     MAGNETIC_PLATFORM("Magnetic Platform", "Generates a gravity field. Movement is influenced inside the field.", "Movement is influenced inside the field.", "PLATFORMS"),
     CONVEYOR_PLATFORM("Conveyor Platform", "Automated transport surface.", "Ancient industrial belts used for orbital logistics.", "PLATFORMS"),
     MIMIC_PLATFORM("Mimic Platform", "Deceptive structural failure.", "Unstable matter that shatters upon physical contact.", "PLATFORMS"),
+    FLUX_PLATFORM("Flux Platform", "Teleports your ship horizontally on landing.", "Phase-shift technology repurposed for instantaneous traversal.", "PLATFORMS"),
+    GRAVITON_PLATFORM("Graviton Platform", "Alters local gravity on landing.", "Generates localized gravitational anomalies affecting rocket trajectory.", "PLATFORMS"),
 
     // Powerups
     FUEL_TANK("Fuel Tank", "Increases maximum fuel capacity.", "Standardized liquid oxygen tanks recovered from previous expeditions.", "POWERUPS"),
@@ -37,6 +41,8 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     KINETIC_BATTERY("Kinetic Battery", "Impact-to-energy conversion.", "Converts landing kinetic energy into emergency power.", "POWERUPS"),
     MAGNETIC_SIPHON("Magnetic Siphon", "Automated resource collector.", "Pulls nearby salvage toward the rocket hull.", "POWERUPS"),
     OVERDRIVE_MODULE("Overdrive Module", "Critical thrust enhancement.", "Overrides safety protocols for maximum speed at a price.", "POWERUPS"),
+    ALTITUDE_BOOSTER("Altitude Booster", "Instant altitude gain.", "A concentrated fuel shot that propels the rocket upward rapidly.", "POWERUPS"),
+    POWERUP_ARTIFACT("Artifact", "Rare discovery cache.", "A sealed container holding valuable archaeological data from the old world.", "POWERUPS"),
     
     // Mechanics
     HEAT_SYSTEM("Engine Heat", "Using thrusters generates heat.", "Atmospheric friction and engine stress must be managed carefully.", "MECHANICS"),
@@ -78,6 +84,10 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     ART_BIOMECH_SHARD("Biomechanical Shard", "Ancient construct fragment.", "A hull segment that pulses with a strange, internal heartbeat.", "ARTIFACTS"),
     ART_ARCHITECT_SIGNATURE("The Architect's Signature", "Proof of design.", "A cryptographic key found at the Singularity. It carries the mark of the one who built the sky.", "ARTIFACTS"),
 
+    // Generic Archive Entries (Phase 6)
+    LOG_GENERIC("Signal Log", "Encrypted data fragment.", "A piece of history recovered from the stars.", "LOGS"),
+    ACHIEVEMENT_GENERIC("Achievement", "A record of pilot excellence.", "Proof of skill and dedication.", "ACHIEVEMENTS"),
+
     // Environmental Threats (Sprint B)
     HAZARD_LIGHTNING("Lightning Storm", "Electrical buildup and strikes.", "Static discharge in the high clouds creates lethal arcs of energy.", "THREATS"),
     HAZARD_DEBRIS("Debris Field", "Floating space wreckage.", "Centuries of orbital junk form a hazardous belt around the planet.", "THREATS"),
@@ -109,7 +119,16 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     ENEMY_HEAT_BAT("Heat Bat", "Thermal predator.", "Predatory shadows that strike when your engines run hot.", "THREATS"),
     ENEMY_VOID_HARVESTER("Void Harvester", "Scavenging unit.", "Scavenging units that prioritize and consume power-ups.", "THREATS"),
     ENEMY_PHASE_WRAITH("Phase Wraith", "Ethereal guardian.", "Ethereal guardians vulnerable only when your systems are critical.", "THREATS"),
-    ENEMY_GRAVITY_RAM("Gravity Ram", "Geometric construct.", "Heavy geometric constructs that execute telegraphed kinetic strikes.", "THREATS")
+    ENEMY_GRAVITY_RAM("Gravity Ram", "Geometric construct.", "Heavy geometric constructs that execute telegraphed kinetic strikes.", "THREATS"),
+    ENEMY_SCOUT_DRONE("Surveyor Probe", "Autonomous scout.", "Drones guarding the lower altitudes, reporting all movement to command.", "THREATS"),
+    ENEMY_CLOUD_SKIMMER("Sky Ray", "High-altitude organism.", "Biological entities that have adapted to ride the jet streams.", "THREATS"),
+    ENEMY_SWARM_BOTS("Aerosol Swarm", "Nano-colony.", "Floating nano-colonies that drift through the clouds, shifting shape in the wind.", "THREATS"),
+    ENEMY_ORBITAL_SENTRY("Defense Node", "Orbital turret.", "Ancient defensive structures still active in high orbit, firing on all threats.", "THREATS"),
+    ENEMY_CORRUPTED_HULL("Derelict Echo", "Ghost vessel.", "Ghostly remains of previous failed ascents, now hostile to all living pilots.", "THREATS"),
+    ENEMY_STALKER("Void Tracker", "Thermal hunter.", "Predatory machines that hunt by following thermal signatures across the void.", "THREATS"),
+    ENEMY_VOID_WHALE("Cosmic Leviathan", "Ethereal giant.", "Massive ethereal beings that drift through the outer reaches, disturbing space-time.", "THREATS"),
+    ENEMY_VOID_WRAITH("Shadow Entity", "Non-Euclidean horror.", "Entities that exist only within the Void, phasing between dimensions.", "THREATS"),
+    THREAT_SINGULARITY("The Singularity", "The ultimate intelligence.", "It doesn't just fight you; it distorts your very perception of reality.", "THREATS")
 }
 
 enum class RocketType(
@@ -140,9 +159,11 @@ class PowerUp(
     var y: Float,
     val type: PowerUpType = PowerUpType.FUEL_TANK,
     val isMissionReward: Boolean = false,
-    var hoverTimer: Float = 2.0f, // Task 0: Brief hover before descent
-    var life: Float = 25.0f,      // Task 1: Increased world lifetime to prevent mid-screen despawn
-    var velocityY: Float = 0f     // Task 1: Support for accelerated descent
+    var hoverTimer: Float = 2.0f,
+    var life: Float = 25.0f,
+    var velocityY: Float = 0f,
+    var despawnTimer: Float = 8.0f,
+    var glowPulseSpeed: Float = 1.0f
 )
 
 class LandingEffect(
@@ -231,4 +252,21 @@ class Player(
     // EPIC 7: Module System
     val activeModules = mutableStateListOf<Module>()
     val moduleCooldowns = mutableStateMapOf<String, Float>()
+
+    fun updateTimers(dt: Float) {
+        if (turboTimer > 0) turboTimer = max(0f, turboTimer - dt)
+        if (efficiencyTimer > 0) efficiencyTimer = max(0f, efficiencyTimer - dt)
+        if (stabilityTimer > 0) stabilityTimer = max(0f, stabilityTimer - dt)
+        if (fluxCooldown > 0) fluxCooldown = max(0f, fluxCooldown - dt)
+        if (kineticBatteryTimer > 0) kineticBatteryTimer = max(0f, kineticBatteryTimer - dt)
+        if (magneticSiphonTimer > 0) magneticSiphonTimer = max(0f, magneticSiphonTimer - dt)
+        if (overdriveTimer > 0) {
+            overdriveTimer = max(0f, overdriveTimer - dt)
+            integrity = max(0f, integrity - 2f * dt)
+        }
+        if (invulnerabilityTimer > 0) invulnerabilityTimer = max(0f, invulnerabilityTimer - dt)
+        if (comboFreezeTimer > 0) comboFreezeTimer = max(0f, comboFreezeTimer - dt)
+        if (controlInversionTimer > 0) controlInversionTimer = max(0f, controlInversionTimer - dt)
+        if (hudInterferenceTimer > 0) hudInterferenceTimer = max(0f, hudInterferenceTimer - dt)
+    }
 }

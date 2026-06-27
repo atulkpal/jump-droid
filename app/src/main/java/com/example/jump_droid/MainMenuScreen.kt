@@ -11,13 +11,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -53,7 +56,9 @@ fun MainMenuScreen(
     onNavigate: (GameState) -> Unit,
     onExit: () -> Unit,
     highScore: Int = 0,
-    onPrestige: () -> Unit = {}
+    onPrestige: () -> Unit = {},
+    soundManager: SoundManager? = null,
+    hasNewEntries: Boolean = false
 ) {
     val context = LocalContext.current
     val infiniteTransition = rememberInfiniteTransition(label = "MenuTransition")
@@ -130,7 +135,10 @@ fun MainMenuScreen(
                     else -> SciFiCyan
                 }
                 Button(
-                    onClick = action,
+                    onClick = {
+                        soundManager?.playSfx(if (index == 0) "sfx_ui_confirm" else "sfx_ui_click")
+                        action()
+                    },
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                     shape = SciFiButtonShape,
                     colors = ButtonDefaults.buttonColors(
@@ -139,7 +147,15 @@ fun MainMenuScreen(
                     ),
                     border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = borderPulse))
                 ) {
-                    Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontSize = 12.sp)
+                    if (index == 3 && hasNewEntries) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontSize = 12.sp)
+                            Spacer(Modifier.width(6.dp))
+                            Box(Modifier.size(8.dp).background(SciFiPurple, CircleShape))
+                        }
+                    } else {
+                        Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontSize = 12.sp)
+                    }
                 }
                 Spacer(Modifier.height(10.dp))
             }
@@ -182,6 +198,8 @@ fun MainMenuScreen(
                 fontSize = 9.sp,
                 letterSpacing = 2.sp
             )
+            Spacer(Modifier.height(8.dp))
+            GlobalAdBanner()
         }
     }
 }

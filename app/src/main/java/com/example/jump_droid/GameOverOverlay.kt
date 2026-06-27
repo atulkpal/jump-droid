@@ -1,5 +1,6 @@
 package com.example.jump_droid
 
+import android.app.Activity
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -32,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -169,13 +171,24 @@ fun GameOverOverlay(
             Spacer(Modifier.height(36.dp))
 
             if (continuesUsed < 1) {
+                val context = LocalContext.current
+                LaunchedEffect(Unit) { RewardedAdHelper.load(context) }
                 Button(
-                    onClick = onContinue,
+                    onClick = {
+                        RewardedAdHelper.show(context as Activity,
+                            onReward = onContinue,
+                            onFailed = onContinue
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
                 ) {
-                    Text("RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("[AD]", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp)
+                        Spacer(Modifier.padding(start = 8.dp))
+                        Text("RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    }
                 }
                 Spacer(Modifier.height(12.dp))
             }
@@ -200,6 +213,8 @@ fun GameOverOverlay(
             ) {
                 Text("RETURN TO BASE", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
             }
+            Spacer(Modifier.height(8.dp))
+            GlobalAdBanner()
         }
     }
 }

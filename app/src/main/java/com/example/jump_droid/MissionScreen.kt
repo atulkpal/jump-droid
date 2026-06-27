@@ -160,6 +160,8 @@ fun MissionScreen(
             ) {
                 Text("BACK TO COMMAND", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
+            Spacer(Modifier.height(8.dp))
+            GlobalAdBanner()
 
             // Claim celebration overlay
             if (claimEffectAlpha > 0f) {

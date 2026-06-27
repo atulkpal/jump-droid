@@ -460,30 +460,56 @@ fun ComboDisplay(
 @Composable
 fun NotificationLayer(
     modifier: Modifier = Modifier,
-    activeNotification: String?,
+    activeNotification: NotificationEntry?,
     notificationAlpha: Float,
+    queue: List<NotificationEntry>,
     screenWidth: Float,
-    zone: AltitudeZone = AltitudeZone.EARTH
+    zone: AltitudeZone = AltitudeZone.EARTH,
+    maxStack: Int = 3
 ) {
-    if (activeNotification != null) {
-        val isHighAlert = activeNotification.contains("!!!") || activeNotification.contains(">>>")
-        val zoneAccent = zoneGaugeAccents[zone] ?: SciFiCyan
-        Text(
-            text = activeNotification,
-            modifier = modifier.graphicsLayer(alpha = notificationAlpha).widthIn(max = screenWidth.dp * 0.9f),
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp,
-                shadow = Shadow(
-                    if (isHighAlert) SciFiRed.copy(alpha = 0.5f) else zoneAccent.copy(alpha = 0.4f),
-                    blurRadius = 15f
-                )
-            ),
-            color = if (isHighAlert) SciFiRed else zoneAccent,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+    val displayEntries = buildList {
+        if (activeNotification != null) add(activeNotification)
+        addAll(queue.take(maxStack - 1))
+    }
+    if (displayEntries.isEmpty()) return
+
+    val zoneAccent = zoneGaugeAccents[zone] ?: SciFiCyan
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        displayEntries.forEachIndexed { index, entry ->
+            val alpha = if (index == 0) notificationAlpha else 0.6f
+            val priorityColor = when (entry.priority) {
+                NotificationPriority.CRITICAL -> SciFiRed
+                NotificationPriority.TACTICAL -> zoneAccent
+                NotificationPriority.FLAVOR -> zoneAccent.copy(alpha = 0.7f)
+            }
+            val shadowColor = when (entry.priority) {
+                NotificationPriority.CRITICAL -> SciFiRed.copy(alpha = 0.5f)
+                NotificationPriority.TACTICAL -> zoneAccent.copy(alpha = 0.4f)
+                NotificationPriority.FLAVOR -> zoneAccent.copy(alpha = 0.2f)
+            }
+            Text(
+                text = entry.message,
+                modifier = Modifier.graphicsLayer(alpha = alpha).widthIn(max = screenWidth.dp * 0.9f),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (entry.priority == NotificationPriority.FLAVOR) FontWeight.Medium else FontWeight.Black,
+                    letterSpacing = if (entry.priority == NotificationPriority.FLAVOR) 1.sp else 2.sp,
+                    shadow = Shadow(shadowColor, blurRadius = 15f),
+                    fontSize = when (entry.priority) {
+                        NotificationPriority.CRITICAL -> 16.sp
+                        NotificationPriority.TACTICAL -> 14.sp
+                        NotificationPriority.FLAVOR -> 12.sp
+                    }
+                ),
+                color = priorityColor,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 

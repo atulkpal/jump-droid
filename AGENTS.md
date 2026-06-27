@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-06-25
-**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅
-**Current Stable Tag:** `epic10-complete`
-**Branch:** `epic11-ascension`
+**Last Updated:** 2026-06-27
+**Project Status:** Release Polish — Phases 1–4 Complete ✅, Phase 5 In Progress (Audio Sourcing), Phase 6 Active (Archive Popups)
+**Current Stable Tag:** `epic11-complete`
+**Branch:** `refactor/cleanup`
 **Base Commit:** `HEAD`
 
 ---
@@ -32,31 +32,33 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `epic11-ascension`
-*   **Current Stable Tag**: `epic10-complete`
-*   **Current EPIC**: EPIC 11 — Ascension (The End)
-*   **Current Status**: **EPIC 11 COMPLETE**. Meta-boss (The Singularity) with HUD Pull + control glitch mechanics. Origin reset at 100,000m. Ascension Ceremony overlay with Architect's Log + Hall of Pioneers. Prestige system (+10% per reset). Omega Modules (Void Engine / Singularity Core). Eternal Mode beyond 100,000m with capped scaling. PlayerInputProcessor extracted from GameScreen.kt. **Bug fixes applied**: All boss death sequences stabilized (escape phase correction + AI timer guard), Star Eater rebalanced (suction 3000→1500, weak point orbited at 100px), boss pursuit speeds increased across 5 bosses, fuel/heat gauge 3-digit alignment padded, HUD zone-adaptive colors removed from FuelGauge, platform colors for Earth/Cloud zones added, hidden signal `isUnlocked` persistence fixed in `syncState()`, claimable dashboard now shows hidden count.
-*   **Known Issues**: 
-    *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
-    *   GameScreen.kt at ~1,900 lines — remaining God Object. Future extraction planned for future sprints.
-    *   GameScreen.kt continues to be touched by multiple agents — potential merge surface.
-*   **Current Priorities**: Future EPIC planning / EPIC 12.
-*   **Next Planned Work**: EPIC 12 — Fleet Expansion (planned).
+*   **Current Branch**: `refactor/cleanup`
+*   **Current Stable Tag**: `epic11-complete`
+*   **Current EPIC**: Release Polish (pre-ship sprint)
+*   **Current Status**: **RELEASE POLISH ACTIVE**. Phases 1–4 complete, Phase 5 (audio) in progress — user sourcing audio assets. Phase 6 (release prep) remaining. See `docs/roadmap/RELEASE_POLISH_PLAN.md`.
+*   **Active Sprint**: None — user sourcing audio assets; ready for Phase 6 when complete.
+*   **Completed Work**:
+    *   Phase 1 — Core Game Feel (power-up spawns, combo rewards, boss deaths, mission celebrations, rewarded continue UX)
+    *   Phase 2 — Notification Architecture (3-tier priority, unified area, weak notification removal, ad placeholder UI)
+    *   Phase 3 — Tutorial Removal + Discovery (tutorial pop-ups removed, learning moved to archives, platform discoveries, unlock celebrations)
+    *   Phase 4 — Data Archives + Monetization (archives redesign, AdMob SDK integration, GlobalAdBanner with test ads, RewardedAd helper, PurchaseManager/Settings premium toggle)
+*   **Current Priorities**: Phase 5 audio sourcing (user-driven) → Phase 6 Release Prep (bug bash, performance, store listing, final APK).
+*   **Next Planned Work**: Phase 6 — Release Preparation (post-audio).
 
 ---
 
 ## 3. Project Timeline
 
-*   **EPIC 4: The Ascension Program**: Established core mission tree, achievement tracking, and the Codex system.
-*   **EPIC 5: Survival Protocol**: Introduced the Shield/Hull health model, environmental hazards, and the catastrophic destruction sequence.
-*   **EPIC 6: Hostile Skies**: Framework for advanced AI entities, projectile systems, and multi-phase Boss encounters.
-*   **EPIC 7: Rocket Evolution**: Transformed the rocket into a customizable "Build" with Rocket Classes and a 17-module Registry.
-*   **EPIC 8: Missions & Progression (Recovery)**: Reconciled legacy prototype data with the production engine. Implemented the **Intelligence Network** for real-time stat tracking.
-*   **EPIC 8.5: Architecture Decomposition**: Structural sprint decomposed `GameScreen.kt` (3,901→2,011 lines) and `ActiveThreat.kt` (1,224→123 lines) God Objects. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and HUD components extracted. Aligned mission logic with lifetime statistics.
+*   **EPIC 8.5 Architecture Decomposition**: Structural sprint decomposed `GameScreen.kt` (3,901→1,900 lines) and `ActiveThreat.kt` (1,224→123 lines) God Objects. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and HUD components extracted. Aligned mission logic with lifetime statistics. **Note: Deferred decomposition of GameScreen.kt resumed post-EPIC 11.**
+*   **EPIC 11: Ascension**: Finalized the vertical journey, meta-boss, and origin reset mechanics.
 
 ---
 
 ## 4. Major Milestones
+...
+### **EPIC 8.5 Refactor Execution**
+*   **Tracking**: `docs/roadmap/EPIC_8_5_REFACTOR_EXECUTION_TRACKER.md`
+*   **Status**: Active Refactor phase.
 
 ### **EPIC 7 Complete**
 *   **Tag**: `epic7-complete`
@@ -92,10 +94,10 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 | System | Primary Document | Supporting Documents |
 | :--- | :--- | :--- |
-| **Governance** | `AGENTS.md` | `docs/REPORTS/Doc_Migration.md` |
-| **History** | `docs/CHANGELOG.md` | `docs/analysis/MISSION_RECOVERY_AUDIT.md` |
+| **Governance** | `AGENTS.md` | `docs/REPORTS/Documentation_Migration_Report.md` |
+| **History** | `docs/CHANGELOG.md` | `docs/analysis/EPIC8_UNIFIED_RECOVERY_REPORT.md` |
 | **Architecture** | `docs/ARCHITECTURE.md` | `docs/architecture/Refactor_T4_Report.md` |
-| **Mission System** | `docs/analysis/MISSION_ARCHITECTURE_AUDIT.md` | `docs/roadmap/EPIC_8_MIGRATION_PLAN.md` |
+| **Mission System** | `docs/analysis/MISSION_ARCHITECTURE_AUDIT.md` | `docs/roadmap/EPIC_8_TRACKER.md` |
 | **Progression** | `docs/analysis/Progression_Architecture_Audit.md` | `ProgressionManager.kt` |
 | **Threat System** | `docs/gameplay/THREATS.md` | `docs/THREAT_MASTER_TABLE.md` |
 | **Rocket System** | `docs/design/ROCKET_LIBRARY.md` | `docs/analysis/Rocket_Class_Audit.md` |
@@ -108,8 +110,8 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **EPIC 8 Validation** | `docs/REPORTS/EPIC8_VALIDATION_REPORT.md` | `docs/analysis/EPIC8_MISSION_EVENT_AUDIT.md` |
 | **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
 | **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` |
+| **Release Polish** | `docs/roadmap/RELEASE_POLISH_PLAN.md` | `docs/roadmap/MONETIZATION_VISION.md` |
 | **EPIC 8.5 Planning** | `docs/REPORTS/EPIC8_5_PLANNING_REPORT.md` | (Sprint Planning) |
-| **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
 
 ---
 

@@ -31,7 +31,7 @@ class EncounterDirector {
         ),
         AltitudeZone.ORBIT to ZoneConfig(
             zone = AltitudeZone.ORBIT,
-            spawnWeights = mapOf("HAZ_RADIATION" to 1.5f, "HAZ_SOLAR_FLARE" to 1.5f, "HAZ_LIGHTNING" to 0.3f, "ENT_ORBITAL_SENTRY" to 1.0f),
+            spawnWeights = mapOf("HAZ_RADIATION" to 1.5f, "HAZ_SOLAR_FLARE" to 1.5f, "HAZ_LIGHTNING" to 0.3f, "ENT_ORBITAL_SENTRY" to 1.0f, "ENT_VOID_HARVESTER" to 1.0f),
             intensity = 3.0f,
             bossMilestone = "BOSS_GATEKEEPER"
         ),
@@ -43,7 +43,7 @@ class EncounterDirector {
         ),
         AltitudeZone.DEEP_SPACE to ZoneConfig(
             zone = AltitudeZone.DEEP_SPACE,
-            spawnWeights = mapOf("HAZ_RADIATION" to 1.5f, "HAZ_SOLAR_FLARE" to 1.5f, "HAZ_EMP" to 1.5f, "ENT_CORRUPTED_HULL" to 1.0f, "ENT_STALKER" to 1.0f, "ENT_VOID_WHALE" to 1.0f),
+            spawnWeights = mapOf("HAZ_RADIATION" to 1.5f, "HAZ_SOLAR_FLARE" to 1.5f, "HAZ_EMP" to 1.5f, "ENT_CORRUPTED_HULL" to 1.0f, "ENT_STALKER" to 1.0f, "ENT_VOID_WHALE" to 1.0f, "ENT_VOID_HARVESTER" to 1.0f),
             intensity = 4.0f,
             bossMilestone = "BOSS_LEVIATHAN"
         ),
@@ -54,30 +54,30 @@ class EncounterDirector {
         ),
         AltitudeZone.VOID to ZoneConfig(
             zone = AltitudeZone.VOID,
-            spawnWeights = mapOf("DEFAULT_HAZARD" to 2.0f, "ENT_VOID_WRAITH" to 1.0f),
+            spawnWeights = mapOf("DEFAULT_HAZARD" to 2.0f, "ENT_VOID_WRAITH" to 1.0f, "ENT_VOID_WHALE" to 1.0f, "ENT_PHASE_WRAITH" to 1.0f),
             intensity = 5.0f,
             bossMilestone = "BOSS_VOID_ENGINE"
         ),
         AltitudeZone.THE_BEYOND to ZoneConfig(
             zone = AltitudeZone.THE_BEYOND,
-            spawnWeights = mapOf("DEFAULT_HAZARD" to 2.2f, "ENT_VOID_WRAITH" to 1.2f),
+            spawnWeights = mapOf("DEFAULT_HAZARD" to 2.2f, "ENT_VOID_WRAITH" to 1.2f, "ENT_VOID_HARVESTER" to 1.0f),
             intensity = 6.0f,
             bossMilestone = "BOSS_ARCHITECT"
         ),
         AltitudeZone.STELLAR_GATE to ZoneConfig(
             zone = AltitudeZone.STELLAR_GATE,
-            spawnWeights = mapOf("HAZ_EMP" to 1.8f, "ENT_ORBITAL_SENTRY" to 1.5f),
+            spawnWeights = mapOf("HAZ_EMP" to 1.8f, "ENT_ORBITAL_SENTRY" to 1.5f, "ENT_PHASE_WRAITH" to 1.0f),
             intensity = 7.0f
         ),
         AltitudeZone.ANCIENT_CONSTRUCT to ZoneConfig(
             zone = AltitudeZone.ANCIENT_CONSTRUCT,
-            spawnWeights = mapOf("HAZ_GRAVITY" to 2.0f, "ENT_STALKER" to 1.5f),
+            spawnWeights = mapOf("HAZ_GRAVITY" to 2.0f, "ENT_STALKER" to 1.5f, "ENT_GRAVITY_RAM" to 1.0f),
             intensity = 8.5f,
             bossMilestone = "BOSS_ENTROPY_CORE"
         ),
         AltitudeZone.SINGULARITY to ZoneConfig(
             zone = AltitudeZone.SINGULARITY,
-            spawnWeights = mapOf("DEFAULT_HAZARD" to 3.0f, "ENT_VOID_WRAITH" to 2.0f),
+            spawnWeights = mapOf("DEFAULT_HAZARD" to 3.0f, "ENT_VOID_WRAITH" to 2.0f, "ENT_PHASE_WRAITH" to 1.0f, "ENT_GRAVITY_RAM" to 1.0f),
             intensity = 10.0f
         )
     )
@@ -154,7 +154,7 @@ class EncounterDirector {
         val speedMult = 1.0f + cappedFactor
         val finalVx = (def.spawnVx * speedMult) * vxSign + (Random.nextFloat() - 0.5f) * 20f
         threatManager.spawnThreat(def, sx, sy, vx = finalVx, vy = svy, difficultyMultiplier = difficultyMultiplier)
-        message?.let { notificationManager.post(it) }
+        message?.let { notificationManager.post(it, NotificationPriority.TACTICAL) }
     }
 
     /**
@@ -220,6 +220,7 @@ class EncounterDirector {
                             "BOSS_SIGNAL" -> DiscoveryType.THREAT_SIGNAL
                             "BOSS_ARCHITECT" -> DiscoveryType.THREAT_ARCHITECT
                             "BOSS_ENTROPY_CORE" -> DiscoveryType.THREAT_ENTROPY_CORE
+                            "BOSS_SINGULARITY" -> DiscoveryType.THREAT_SINGULARITY
                             else -> null
                         }
                         discovery?.let { onDiscovery(it) }
@@ -277,7 +278,11 @@ class EncounterDirector {
                 if (currentCount < maxCount && Random.nextFloat() < enemy.spawnRules.spawnChance * spawnChanceMod) {
                     val messages = mapOf(
                         "ENT_SCOUT_DRONE" to "SURVEYOR PROBE DETECTED",
-                        "ENT_SWARM_BOTS" to "AEROSOL SWARM DETECTED"
+                        "ENT_SWARM_BOTS" to "AEROSOL SWARM DETECTED",
+                        "ENT_CLOUD_SKIMMER" to "SKY RAY SIGHTED",
+                        "ENT_ORBITAL_SENTRY" to "DEFENSE NODE ACTIVE",
+                        "ENT_CORRUPTED_HULL" to "DERELICT ECHO DETECTED",
+                        "ENT_HEAT_BAT" to "THERMAL PREDATOR APPROACHING"
                     )
                     spawnAtConfigPosition(
                         enemy, screenWidth, screenHeight, cameraY,
@@ -336,7 +341,7 @@ class EncounterDirector {
                         val side = if (Random.nextBoolean()) 1f else -1f
                         val spawnX = if (side > 0) -100f else screenWidth + 100f
                         threatManager.spawnThreat(def, spawnX, activeBoss.y + 100f, vx = side * 200f)
-                        notificationManager.post("REINFORCEMENTS INBOUND")
+                        // Removed: clutter — player is already engaged in combat
                     }
                 }
                 if (Random.nextFloat() < 0.15f) {

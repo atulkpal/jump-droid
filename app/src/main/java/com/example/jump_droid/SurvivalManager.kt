@@ -23,7 +23,9 @@ class SurvivalManager {
         isGameOver: Boolean,
         onGameOver: () -> Unit,
         onVisualFeedback: (shake: Float, flash: Float) -> Unit,
-        onBurst: (x: Float, y: Float, count: Int, color: Color, speed: Float) -> Unit
+        onBurst: (x: Float, y: Float, count: Int, color: Color, speed: Float) -> Unit,
+        onPlaySfx: (String) -> Unit = {},
+        onVibrate: (HapticManager.HapticType) -> Unit = {}
     ) {
         if (amount <= 0 || isGameOver) return
 
@@ -51,6 +53,8 @@ class SurvivalManager {
 
             // Shield Hit Feedback (Cyan)
             onBurst(player.x, player.y, 12, SciFiCyan, 450f)
+            onPlaySfx("sfx_hit_shield")
+            onVibrate(HapticManager.HapticType.IMPACT_MEDIUM)
         }
 
         // 2. Integrity Damage
@@ -60,6 +64,8 @@ class SurvivalManager {
             // Hull Hit Feedback (Red/Gold sparks)
             onBurst(player.x, player.y, 18, SciFiRed, 650f)
             onBurst(player.x, player.y, 8, SciFiGold, 400f)
+            onPlaySfx("sfx_hit_hull")
+            onVibrate(HapticManager.HapticType.IMPACT_HEAVY)
 
             if (player.integrity <= 0) {
                 onGameOver()
@@ -80,7 +86,9 @@ class SurvivalManager {
         notificationManager: NotificationManager,
         onGameOver: () -> Unit,
         onShake: (Float) -> Unit,
-        shieldRegenMultiplier: Float = 1.0f
+        shieldRegenMultiplier: Float = 1.0f,
+        onPlaySfx: (String) -> Unit = {},
+        onVibrate: (HapticManager.HapticType) -> Unit = {}
     ) {
         // Shield Regeneration
         if (player.shieldRegenPauseTimer > 0) {
@@ -93,6 +101,8 @@ class SurvivalManager {
         if (player.integrity <= 0 && player.destructionTimer <= 0) {
             player.destructionTimer = 0.01f // Start sequence
             onShake(30f)
+            onPlaySfx("death")
+            onVibrate(HapticManager.HapticType.EXPLOSION)
         }
 
         if (player.destructionTimer > 0) {
@@ -108,10 +118,16 @@ class SurvivalManager {
         // Emergency Warnings (Throttled)
         if (gameTime % 3000 < (dt * 1000).toLong().coerceAtLeast(1L)) {
             if (player.shield > 0 && player.shield < player.maxShield * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
-                notificationManager.post("!!! SHIELD CRITICAL !!!")
+                notificationManager.post("!!! SHIELD CRITICAL !!!", NotificationPriority.CRITICAL)
             }
             if (player.integrity < player.maxIntegrity * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
-                notificationManager.post("!!! HULL CRITICAL !!!")
+                notificationManager.post("!!! HULL CRITICAL !!!", NotificationPriority.CRITICAL)
+                onPlaySfx("sfx_alarm_critical")
+                onVibrate(HapticManager.HapticType.WARNING)
+            }
+            if (player.fuel < player.maxFuel * 0.2f) {
+                onPlaySfx("sfx_alarm_low_fuel")
+                onVibrate(HapticManager.HapticType.WARNING)
             }
         }
     }
