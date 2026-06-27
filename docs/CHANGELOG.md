@@ -36,8 +36,8 @@ All notable changes to this project are recorded as dated engineering events.
 ### Phase 4 — Data Archives + Monetization
 - **Archives redesign** (`ArchiveScreen.kt`): Re-organized into 12 categories. Added MECHANICS category. New ArchiveCard composable with locked/unlocked visual states.
 - **AdMob SDK integration**: `play-services-ads:23.6.0` dependency, INTERNET permission, test AdMob app ID. MobileAds initialization in MainActivity.
-- **GlobalAdBanner rewrite**: Real AdView rendering Google test banner ad (`ca-app-pub-3940256099942544/6300978111`).
-- **Rewarded continue**: RewardedAdHelper preloads test RewardedAd, shows on continue button click, falls back to free continue on failure.
+- **GlobalAdBanner rewrite**: Real AdView rendering Google banner ad (`ca-app-pub-4153575596488132/3022346201`).
+- **Rewarded continue**: RewardedAdHelper preloads RewardedAd (`ca-app-pub-4153575596488132/5155087899`), shows on continue button click, falls back to free continue on failure.
 - **Premium purchase**: PurchaseManager wraps isPremiumUser flag. SettingsScreen shows "UPGRADE: REMOVE ADS" / "ADS REMOVED ✓" button.
 
 ### Documentation

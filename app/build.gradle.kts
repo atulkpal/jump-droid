@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.jump_droid"
+    namespace = "com.ashwathai.jump_droid"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.jump_droid"
+        applicationId = "com.ashwathai.jump_droid"
         minSdk = 24
         targetSdk = 37
         versionCode = 1

@@ -309,8 +309,8 @@ Reserve layout space on non-gameplay screens so banner ads never overlap buttons
 
 - **Archives redesign** (`ArchiveScreen.kt`): Re-organized into 12 categories splitting THREATS into BOSSES (THREAT_*), ENEMIES (ENEMY_*), and HAZARDS (HAZARD_*). Renamed AREAS → ZONES, ROCKETS → MODULES. Added MECHANICS category. Category accent colors per type. New `ArchiveCard` composable with locked/unlocked visual states, colored dot indicator, italic locked descriptions.
 - **AdMob SDK integration** (`build.gradle.kts`, `AndroidManifest.xml`): Added `play-services-ads:23.6.0` dependency, `INTERNET` permission, test AdMob app ID. `MainActivity.onCreate()` initializes `MobileAds`.
-- **GlobalAdBanner rewrite** (`AdComponents.kt`): Replaced dark placeholder with real `AdView` rendering Google test banner ad (`ca-app-pub-3940256099942544/6300978111`). Reads `isPremiumUser` from SharedPreferences internally — no parameter wiring needed.
-- **Rewarded continue** (`AdComponents.kt`, `GameOverOverlay.kt`): `RewardedAdHelper` object preloads test `RewardedAd` (`ca-app-pub-3940256099942544/5224354917`) when overlay appears. Continue button shows ad on click; falls back to free continue on failure.
+- **GlobalAdBanner rewrite** (`AdComponents.kt`): Replaced dark placeholder with real `AdView` rendering Google banner ad (`ca-app-pub-4153575596488132/3022346201`). Reads `isPremiumUser` from SharedPreferences internally — no parameter wiring needed.
+- **Rewarded continue** (`AdComponents.kt`, `GameOverOverlay.kt`): `RewardedAdHelper` object preloads `RewardedAd` (`ca-app-pub-4153575596488132/5155087899`) when overlay appears. Continue button shows ad on click; falls back to free continue on failure.
 - **Premium purchase** (`PurchaseManager.kt`, `SettingsScreen.kt`): `PurchaseManager` wraps `isPremiumUser` flag in SharedPreferences. SettingsScreen shows "UPGRADE: REMOVE ADS" / "ADS REMOVED ✓" button. Real Google Play Billing integration stubbed — sets flag directly for dev (billing requires Play Console setup).
 - **Archive badge** (Phase 3 carryover): `MainMenuScreen` shows SciFiPurple dot on ARCHIVE button when `engine.codexNotification != null`. Cleared on navigate to Archive.
 
@@ -320,17 +320,19 @@ Reserve layout space on non-gameplay screens so banner ads never overlap buttons
 
  # | Item | Status | Effort | Risk |
 ---|------|--------|--------|------|
- 14 | Audio pass | **Wiring Complete (Generated)** | Large | Low |
+ 14 | Audio pass | **Production Assets Loaded** | Large | Low |
  19 | Haptic feedback | **Wiring Complete — GameEngine Activated** | Small | Low |
 
 ### Implementation Strategy
 
 **Audio:**
-- Procedural wiring complete using `playGenerated` tones.
-- Call sites established in `SurvivalManager`, `GameEngine`, `ThreatInteractionProcessor`, and UI screens.
-- **Multi-material Landing SFX**: Unique landing sounds for ICE, ENERGY (Boost/Phase/Flux), GRAVITY (Magnetic/Graviton), FRAGILE (Breakable/Mimic), and UTILITY (Cooling/Fuel/Stability) platform types.
-- **12-Zone Dynamic Music**: Procedural tones established for all 12 altitude thresholds; ready for asset drop-in.
-- Ready for asset drop-in via `loadSfx()`.
+- **Full Production Asset Swap**: All 46+ procedural tones replaced with high-quality `.ogg` assets in `res/raw`.
+- **Menu BGM**: Added `bgm_menu` support for all non-gameplay screens (Title, Hangar, Archive, etc.).
+- **Impact Randomization**: `sfx_impact_small` now dynamically alternates between version `_1` and `_2` to prevent audio fatigue.
+- **Thrust Loop**: Switched from white-noise thread to native `SoundPool` looping for `sfx_thrust_loop.ogg`.
+- **12-Zone Dynamic Music**: Full mapping for all 12 zones from `bgm_earth` to `bgm_singularity`.
+- **Multi-material Landing SFX**: Mapped real assets for ICE, ENERGY, GRAVITY, FRAGILE, and UTILITY types.
+- **Audio Ducking**: Engine ducks BGM by 50% during boss death sequences to emphasize explosions.
 
 **Haptics:**
 - `HapticManager.kt` created for pattern management.
