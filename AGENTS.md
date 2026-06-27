@@ -1,8 +1,8 @@
 # Jump Droid — Authoritative Agent Manual
 
 **Last Updated:** 2026-06-27
-**Project Status:** Release Polish — Phases 1–4 Complete ✅, Phase 5 In Progress (Audio Sourcing), Phase 6 Active (Archive Popups)
-**Current Stable Tag:** `epic11-complete`
+**Project Status:** Release Polish — Phases 1–6 Complete ✅, Phase 7 Active (Release Prep)
+**Current Stable Tag:** `release-candidate-1`
 **Branch:** `refactor/cleanup`
 **Base Commit:** `HEAD`
 
@@ -35,15 +35,17 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Current Branch**: `refactor/cleanup`
 *   **Current Stable Tag**: `epic11-complete`
 *   **Current EPIC**: Release Polish (pre-ship sprint)
-*   **Current Status**: **RELEASE POLISH ACTIVE**. Phases 1–4 complete, Phase 5 (audio) in progress — user sourcing audio assets. Phase 6 (release prep) remaining. See `docs/roadmap/RELEASE_POLISH_PLAN.md`.
-*   **Active Sprint**: None — user sourcing audio assets; ready for Phase 6 when complete.
+*   **Current Status**: **RELEASE POLISH ACTIVE**. Phases 1–6 complete. Phase 7 (release prep) remaining. See `docs/roadmap/RELEASE_POLISH_PLAN.md`.
+*   **Active Sprint**: None — ready for Phase 7 Final Build.
 *   **Completed Work**:
     *   Phase 1 — Core Game Feel (power-up spawns, combo rewards, boss deaths, mission celebrations, rewarded continue UX)
     *   Phase 2 — Notification Architecture (3-tier priority, unified area, weak notification removal, ad placeholder UI)
     *   Phase 3 — Tutorial Removal + Discovery (tutorial pop-ups removed, learning moved to archives, platform discoveries, unlock celebrations)
-    *   Phase 4 — Data Archives + Monetization (archives redesign, AdMob SDK integration, GlobalAdBanner with test ads, RewardedAd helper, PurchaseManager/Settings premium toggle)
-*   **Current Priorities**: Phase 5 audio sourcing (user-driven) → Phase 6 Release Prep (bug bash, performance, store listing, final APK).
-*   **Next Planned Work**: Phase 6 — Release Preparation (post-audio).
+    *   Phase 4 — Data Archives + Monetization (archives redesign, AdMob SDK integration, GlobalAdBanner with production ads, RewardedAd helper, PurchaseManager/Settings premium toggle)
+    *   Phase 5 — Audio Pass & Haptics (Production assets loaded, volume normalization, 12-zone BGM mapping, material-based landing SFX, boosted haptics)
+    *   Phase 6 — Data Archives Detail View (Deep lore registry, animated entity previews, glitch-noise detail popups for all 100+ entities)
+*   **Current Priorities**: Phase 7 Release Prep (bug bash, performance, store listing, final APK).
+*   **Next Planned Work**: Phase 7 — Release Preparation.
 
 ---
 
