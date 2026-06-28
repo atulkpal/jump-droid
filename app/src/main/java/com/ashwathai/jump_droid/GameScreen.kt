@@ -1,10 +1,13 @@
 package com.ashwathai.jump_droid
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 
 @Composable
 fun GameScreen() {
     // This is now a legacy entry point. 
     // Navigation is handled in MainActivity via JumpDroidApp.
-    JumpDroidApp(onExit = {})
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val engine = remember { GameEngine(context) }
+    JumpDroidApp(engine = engine, onExit = {})
 }

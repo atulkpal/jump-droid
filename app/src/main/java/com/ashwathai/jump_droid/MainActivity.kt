@@ -44,7 +44,7 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
             val route = backStackEntry.destination.route
             if (route == "game") {
-                // Ensure menu music is killed when entering game
+                engine.soundManager.stopMusic()
             } else {
                 engine.soundManager.playMenuMusic()
             }

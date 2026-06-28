@@ -3,17 +3,22 @@ package com.ashwathai.jump_droid
 import android.content.Context
 import android.content.SharedPreferences
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.SoundPool
 import android.util.Log
 import androidx.core.content.edit
 import kotlin.random.Random
 
-class SoundManager(private val appContext: Context) {
+class SoundManager(context: Context) {
 
+    private val appContext = context.applicationContext
     private val sharedPrefs: SharedPreferences = appContext.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE)
+    
     private var soundPool: SoundPool? = null
     private val loadedSfx = mutableMapOf<String, Int>()
+    private val loadingStatus = mutableMapOf<Int, Boolean>()
+    
     private var musicPlayer: MediaPlayer? = null
     private var currentMusicResId: Int? = null
     
@@ -23,7 +28,7 @@ class SoundManager(private val appContext: Context) {
     // Thrust Loop Handle
     private var thrustStreamId: Int = 0
 
-    var sfxVolume = 0.7f
+    var sfxVolume = 0.8f
         set(value) {
             field = value.coerceIn(0f, 1f)
             if (thrustStreamId != 0) {
@@ -31,64 +36,81 @@ class SoundManager(private val appContext: Context) {
                 soundPool?.setVolume(thrustStreamId, field * bias, field * bias)
             }
         }
-    var musicVolume = 0.5f
+    var musicVolume = 0.6f
         set(value) {
             field = value.coerceIn(0f, 1f)
             updateMusicVolume()
         }
 
-    var isMuted = sharedPrefs.getBoolean("is_muted", false)
+    private var _isMuted = sharedPrefs.getBoolean("is_muted", false)
+    var isMuted: Boolean
+        get() = _isMuted
         set(value) {
-            field = value
+            _isMuted = value
             sharedPrefs.edit { putBoolean("is_muted", value) }
-            if (value) {
-                stopMusicInternal()
-                stopThrust()
-                soundPool?.autoPause()
-            } else {
-                soundPool?.autoResume()
-                // Resume appropriate music
-                if (isBossMusicPlaying) {
-                    playBossMusic()
-                } else {
-                    currentZone?.let { playZoneMusic(it) } ?: playMenuMusic()
-                }
-            }
+            applyMuteState(value)
         }
 
-    // --- Volume Balancing (Normalization) ---
     private val sfxBias = mapOf(
-        "sfx_thrust_loop" to 0.35f,   // Engine is usually very loud
-        "sfx_collect_item" to 0.8f,   // High-pitched sounds pierce more
+        "sfx_thrust_loop" to 0.45f,
+        "sfx_collect_item" to 0.85f,
         "sfx_hit_hull" to 1.0f,
-        "sfx_hit_shield" to 0.9f,
-        "sfx_impact_small_1" to 1.2f, // Boost weak impacts
-        "sfx_impact_small_2" to 1.2f,
-        "sfx_overheat_alarm" to 0.7f,
-        "sfx_ui_click" to 0.6f,       // UI should be subtle
-        "sfx_ui_confirm" to 0.8f,
-        "sfx_cooling_vent" to 0.9f,
-        "sfx_land_impact" to 0.85f
+        "sfx_hit_shield" to 0.95f,
+        "sfx_impact_small_1" to 1.3f,
+        "sfx_impact_small_2" to 1.3f,
+        "sfx_overheat_alarm" to 0.75f,
+        "sfx_ui_click" to 0.7f,
+        "sfx_ui_confirm" to 0.9f,
+        "sfx_cooling_vent" to 0.95f,
+        "sfx_land_impact" to 0.9f
     )
 
     private val musicBias = mapOf(
-        R.raw.bgm_menu to 0.7f,      // Menu music is often mixed loud
-        R.raw.bgm_boss to 1.0f,      // Boss needs presence
-        R.raw.bgm_singularity to 1.2f // Epic finale boost
+        R.raw.bgm_menu to 0.8f,
+        R.raw.bgm_boss to 1.0f,
+        R.raw.bgm_singularity to 1.2f
     )
 
     init {
-        val attrs = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_GAME)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        
-        soundPool = SoundPool.Builder()
-            .setMaxStreams(12)
-            .setAudioAttributes(attrs)
-            .build()
+        try {
+            val attrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA) // Changed to MEDIA for better compatibility
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+            
+            soundPool = SoundPool.Builder()
+                .setMaxStreams(15)
+                .setAudioAttributes(attrs)
+                .build()
+        } catch (e: Exception) {
+            // Legacy fallback
+            @Suppress("DEPRECATION")
+            soundPool = SoundPool(15, AudioManager.STREAM_MUSIC, 0)
+        }
+            
+        soundPool?.setOnLoadCompleteListener { _, sampleId, status ->
+            if (status == 0) {
+                loadingStatus[sampleId] = true
+            }
+        }
 
         loadAllSfx()
+        applyMuteState(_isMuted)
+    }
+
+    private fun applyMuteState(muted: Boolean) {
+        if (muted) {
+            stopMusicInternal()
+            stopThrust()
+            soundPool?.autoPause()
+        } else {
+            soundPool?.autoResume()
+            if (isBossMusicPlaying) {
+                playBossMusic()
+            } else {
+                currentZone?.let { playZoneMusic(it) } ?: playMenuMusic()
+            }
+        }
     }
 
     private fun loadAllSfx() {
@@ -135,7 +157,7 @@ class SoundManager(private val appContext: Context) {
     }
 
     fun playSfx(name: String, loop: Boolean = false) {
-        if (isMuted) return
+        if (_isMuted) return
         val targetName = if (name == "sfx_impact_small") {
             if (Random.nextBoolean()) "sfx_impact_small_1" else "sfx_impact_small_2"
         } else {
@@ -143,19 +165,23 @@ class SoundManager(private val appContext: Context) {
         }
         
         loadedSfx[targetName]?.let { id ->
-            val bias = sfxBias[targetName] ?: 1.0f
-            val vol = sfxVolume * bias
-            val loopVal = if (loop) -1 else 0
-            soundPool?.play(id, vol, vol, 1, loopVal, 1f)
+            if (loadingStatus[id] == true) {
+                val bias = sfxBias[targetName] ?: 1.0f
+                val vol = sfxVolume * bias
+                val loopVal = if (loop) -1 else 0
+                soundPool?.play(id, vol, vol, 1, loopVal, 1f)
+            }
         }
     }
 
     fun startThrust() {
-        if (isMuted || thrustStreamId != 0) return
+        if (_isMuted || thrustStreamId != 0) return
         loadedSfx["sfx_thrust_loop"]?.let { id ->
-            val bias = sfxBias["sfx_thrust_loop"] ?: 0.4f
-            val vol = sfxVolume * bias
-            thrustStreamId = soundPool?.play(id, vol, vol, 1, -1, 1f) ?: 0
+            if (loadingStatus[id] == true) {
+                val bias = sfxBias["sfx_thrust_loop"] ?: 0.5f
+                val vol = sfxVolume * bias
+                thrustStreamId = soundPool?.play(id, vol, vol, 1, -1, 1f) ?: 0
+            }
         }
     }
 
@@ -167,7 +193,7 @@ class SoundManager(private val appContext: Context) {
     }
 
     fun playMusic(resId: Int) {
-        if (isMuted) {
+        if (_isMuted) {
             currentMusicResId = resId
             return
         }
@@ -210,7 +236,7 @@ class SoundManager(private val appContext: Context) {
 
     fun handleZoneChange(zone: AltitudeZone) {
         currentZone = zone
-        if (!isBossMusicPlaying) {
+        if (!isBossMusicPlaying && !_isMuted) {
             playZoneMusic(zone)
         }
     }
@@ -239,7 +265,9 @@ class SoundManager(private val appContext: Context) {
         if (active) {
             playBossMusic()
         } else {
-            currentZone?.let { playZoneMusic(it) } ?: playMenuMusic()
+            if (!_isMuted) {
+                currentZone?.let { playZoneMusic(it) } ?: playMenuMusic()
+            }
         }
     }
 
@@ -253,15 +281,21 @@ class SoundManager(private val appContext: Context) {
     }
 
     fun pauseAll() {
-        musicPlayer?.pause()
-        soundPool?.autoPause()
-        stopThrust()
+        try {
+            if (musicPlayer?.isPlaying == true) {
+                musicPlayer?.pause()
+            }
+            soundPool?.autoPause()
+            stopThrust()
+        } catch (_: Exception) {}
     }
 
     fun resumeAll() {
-        if (isMuted) return
-        musicPlayer?.start()
-        soundPool?.autoResume()
+        if (_isMuted) return
+        try {
+            musicPlayer?.start()
+            soundPool?.autoResume()
+        } catch (_: Exception) {}
     }
 
     fun release() {
