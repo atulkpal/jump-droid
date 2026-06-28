@@ -5,27 +5,38 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
+    private var gameEngine: GameEngine? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         MobileAds.initialize(this) {}
         enableEdgeToEdge()
         setContent {
-            JumpDroidApp(onExit = { finish() })
+            val engine = remember { GameEngine(this) }
+            gameEngine = engine
+            JumpDroidApp(engine, onExit = { finish() })
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        gameEngine?.soundManager?.pauseAll()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        gameEngine?.soundManager?.resumeAll()
     }
 }
 
 @Composable
-fun JumpDroidApp(onExit: () -> Unit) {
-    val context = LocalContext.current
-    val engine = remember { GameEngine(context) }
+fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
     val navController = rememberNavController()
 
     // --- Audio: Menu Music Management ---
@@ -34,9 +45,6 @@ fun JumpDroidApp(onExit: () -> Unit) {
             val route = backStackEntry.destination.route
             if (route == "game") {
                 // Ensure menu music is killed when entering game
-                if (engine.soundManager.isMuted.not()) {
-                   // Engine handles its own music, but we can force a stop here if needed
-                }
             } else {
                 engine.soundManager.playMenuMusic()
             }

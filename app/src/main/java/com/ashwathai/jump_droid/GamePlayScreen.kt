@@ -110,7 +110,10 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
                 onResume = { engine.gameState = engine.preOverlayState },
                 onRestart = { engine.restartGame() },
                 onMainMenu = onMainMenu,
-                zone = altitudeManager.currentZone
+                zone = altitudeManager.currentZone,
+                soundManager = engine.soundManager,
+                hapticManager = engine.hapticManager,
+                sharedPrefs = engine.sharedPrefs
             )
         }
 

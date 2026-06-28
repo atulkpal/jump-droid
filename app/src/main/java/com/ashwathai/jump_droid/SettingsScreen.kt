@@ -128,8 +128,10 @@ fun SettingsScreen(
                 Row(Modifier.fillMaxWidth(0.6f), horizontalArrangement = Arrangement.Center) {
                     Button(
                         onClick = { 
-                            soundManager?.isMuted = !(soundManager?.isMuted ?: false) 
-                            soundManager?.playSfx("sfx_ui_click")
+                            if (soundManager != null) {
+                                soundManager.isMuted = !soundManager.isMuted
+                                soundManager.playSfx("sfx_ui_click")
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (soundManager?.isMuted == true) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),

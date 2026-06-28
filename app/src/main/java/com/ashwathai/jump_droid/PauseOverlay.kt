@@ -1,5 +1,6 @@
 package com.ashwathai.jump_droid
 
+import android.content.SharedPreferences
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
 import com.ashwathai.jump_droid.ui.theme.SciFiGold
 import com.ashwathai.jump_droid.ui.theme.SciFiGreen
@@ -57,6 +59,7 @@ private val zonePalette = mapOf(
     AltitudeZone.CLOUD_LAYER to Color(0xFF00BCD4),
     AltitudeZone.UPPER_ATMOSPHERE to Color(0xFF9C27B0),
     AltitudeZone.ORBIT to Color(0xFFFFD700),
+    AltitudeZone.THE_FOUNDRY to Color(0xFFE91E63),
     AltitudeZone.DEEP_SPACE to Color(0xFF673AB7),
     AltitudeZone.VOID to Color(0xFFD32F2F)
 )
@@ -102,7 +105,10 @@ fun PauseOverlay(
     onResume: () -> Unit,
     onRestart: () -> Unit,
     onMainMenu: () -> Unit,
-    zone: AltitudeZone = AltitudeZone.EARTH
+    zone: AltitudeZone = AltitudeZone.EARTH,
+    soundManager: SoundManager? = null,
+    hapticManager: HapticManager? = null,
+    sharedPrefs: SharedPreferences? = null
 ) {
     val accent = zonePalette[zone] ?: SciFiCyan
     val infiniteTransition = rememberInfiniteTransition(label = "PauseTransition")
@@ -160,7 +166,47 @@ fun PauseOverlay(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(Modifier.height(48.dp))
+                Spacer(Modifier.height(32.dp))
+
+                // --- Quick Audio/Haptic Toggles ---
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { 
+                            if (soundManager != null) {
+                                soundManager.isMuted = !soundManager.isMuted
+                                soundManager.playSfx("sfx_ui_click")
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (soundManager?.isMuted == true) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),
+                            contentColor = if (soundManager?.isMuted == true) SciFiRed else SciFiCyan
+                        ),
+                        modifier = Modifier.height(36.dp).weight(1f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(if (soundManager?.isMuted == true) "MUTED" else "MUTE", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    val hapticEnabled = sharedPrefs?.getBoolean("haptic_enabled", true) ?: true
+                    Button(
+                        onClick = { 
+                            val newState = !hapticEnabled
+                            sharedPrefs?.edit { putBoolean("haptic_enabled", newState) }
+                            soundManager?.playSfx("sfx_ui_click")
+                            if (newState) hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (!hapticEnabled) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),
+                            contentColor = if (!hapticEnabled) SciFiRed else SciFiCyan
+                        ),
+                        modifier = Modifier.height(36.dp).weight(1f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(if (!hapticEnabled) "HAPTIC OFF" else "HAPTIC ON", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
 
                 val pauseButtons = listOf(
                     "RESUME" to onResume,
@@ -182,7 +228,7 @@ fun PauseOverlay(
                 }
 
                 if (cheatsEnabled) {
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(16.dp))
                     Button(
                         onClick = onToggleDevMenu,
                         modifier = Modifier.fillMaxWidth(),
@@ -191,7 +237,7 @@ fun PauseOverlay(
                         Text("DEV OVERRIDE", fontSize = 12.sp, letterSpacing = 2.sp)
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 Text("MISSION PAUSED // ${zone.zoneName.uppercase()} SECTOR", color = accent.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
                 Spacer(Modifier.height(8.dp))
                 GlobalAdBanner()

@@ -1,14 +1,17 @@
 package com.ashwathai.jump_droid
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.SoundPool
 import android.util.Log
+import androidx.core.content.edit
 import kotlin.random.Random
 
 class SoundManager(private val appContext: Context) {
 
+    private val sharedPrefs: SharedPreferences = appContext.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE)
     private var soundPool: SoundPool? = null
     private val loadedSfx = mutableMapOf<String, Int>()
     private var musicPlayer: MediaPlayer? = null
@@ -33,7 +36,25 @@ class SoundManager(private val appContext: Context) {
             field = value.coerceIn(0f, 1f)
             updateMusicVolume()
         }
-    var isMuted = false
+
+    var isMuted = sharedPrefs.getBoolean("is_muted", false)
+        set(value) {
+            field = value
+            sharedPrefs.edit { putBoolean("is_muted", value) }
+            if (value) {
+                stopMusicInternal()
+                stopThrust()
+                soundPool?.autoPause()
+            } else {
+                soundPool?.autoResume()
+                // Resume appropriate music
+                if (isBossMusicPlaying) {
+                    playBossMusic()
+                } else {
+                    currentZone?.let { playZoneMusic(it) } ?: playMenuMusic()
+                }
+            }
+        }
 
     // --- Volume Balancing (Normalization) ---
     private val sfxBias = mapOf(
@@ -146,8 +167,12 @@ class SoundManager(private val appContext: Context) {
     }
 
     fun playMusic(resId: Int) {
+        if (isMuted) {
+            currentMusicResId = resId
+            return
+        }
         if (currentMusicResId == resId && musicPlayer?.isPlaying == true) return
-        stopMusic()
+        stopMusicInternal()
         currentMusicResId = resId
         try {
             musicPlayer = MediaPlayer.create(appContext, resId).apply {
@@ -169,12 +194,18 @@ class SoundManager(private val appContext: Context) {
     }
 
     fun stopMusic() {
+        stopMusicInternal()
+        currentMusicResId = null
+    }
+
+    private fun stopMusicInternal() {
         musicPlayer?.apply {
-            if (isPlaying) stop()
+            try {
+                if (isPlaying) stop()
+            } catch (_: Exception) {}
             release()
         }
         musicPlayer = null
-        currentMusicResId = null
     }
 
     fun handleZoneChange(zone: AltitudeZone) {
@@ -206,10 +237,14 @@ class SoundManager(private val appContext: Context) {
         if (isBossMusicPlaying == active) return
         isBossMusicPlaying = active
         if (active) {
-            playMusic(R.raw.bgm_boss)
+            playBossMusic()
         } else {
             currentZone?.let { playZoneMusic(it) } ?: playMenuMusic()
         }
+    }
+
+    fun playBossMusic() {
+        playMusic(R.raw.bgm_boss)
     }
 
     fun playMenuMusic() {
@@ -217,9 +252,21 @@ class SoundManager(private val appContext: Context) {
         playMusic(R.raw.bgm_menu)
     }
 
+    fun pauseAll() {
+        musicPlayer?.pause()
+        soundPool?.autoPause()
+        stopThrust()
+    }
+
+    fun resumeAll() {
+        if (isMuted) return
+        musicPlayer?.start()
+        soundPool?.autoResume()
+    }
+
     fun release() {
         stopThrust()
-        stopMusic()
+        stopMusicInternal()
         soundPool?.release()
         soundPool = null
     }
