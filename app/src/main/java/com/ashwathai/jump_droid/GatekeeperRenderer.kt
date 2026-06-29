@@ -31,7 +31,7 @@ class GatekeeperRenderer : ThreatRenderer {
                 drawCircle(Color.White.copy(alpha = 0.8f * arrivalProgress), radius = 250f, center = Offset(tx, ty), style = Stroke(width = 20f))
 
                 repeat(4) { i ->
-                    val isWpDestroyed = i >= threat.activeWeakPoints
+                    val isWpDestroyed = (threat.wpDestroyedMask and (1 shl i)) != 0
                     rotate(i * 90f, pivot = Offset(tx, ty)) {
                         val safeColor = if (isWpDestroyed) Color.Red.copy(alpha = 0.2f) else Color(0xFF00E676).copy(alpha = 0.4f)
                         val dangerColor = Color.Red.copy(alpha = 0.5f)

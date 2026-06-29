@@ -458,7 +458,7 @@ fun NotificationLayer(
     queue: List<NotificationEntry>,
     screenWidth: Float,
     zone: AltitudeZone = AltitudeZone.EARTH,
-    maxStack: Int = 3
+    maxStack: Int = 1
 ) {
     val displayEntries = buildList {
         if (activeNotification != null) add(activeNotification)

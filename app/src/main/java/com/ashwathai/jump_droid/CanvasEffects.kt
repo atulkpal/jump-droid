@@ -229,14 +229,31 @@ fun DrawScope.drawPowerUps(
             close()
         }
         drawPath(hexPath, Color(0xFF1A1A2E).copy(alpha = 0.7f))
-        drawPath(hexPath, baseColor.copy(alpha = 0.6f), style = Stroke(width = 2f))
+        drawPath(hexPath, baseColor.copy(alpha = 0.7f * glowPulse), style = Stroke(width = 3f))
 
-        // D2: Enhanced glow
+        // D2: Outer glow ring (wide, soft)
         drawCircle(
-            color = baseColor.copy(alpha = 0.35f * glowPulse),
+            color = baseColor.copy(alpha = 0.18f * glowPulse),
+            radius = 52f,
+            center = Offset(px, py)
+        )
+
+        // D3: Inner glow (bright, tight)
+        drawCircle(
+            color = baseColor.copy(alpha = 0.55f * glowPulse),
             radius = 32f,
             center = Offset(px, py)
         )
+
+        // D4: Despawn flash — brighter right before vanishing
+        val despawnGlow = (1f - despawnAlpha).coerceIn(0f, 1f) * 0.5f
+        if (despawnGlow > 0.05f) {
+            drawCircle(
+                color = Color.White.copy(alpha = despawnGlow * glowPulse),
+                radius = 40f,
+                center = Offset(px, py)
+            )
+        }
 
         when (pu.type) {
             PowerUpType.FUEL_TANK -> {

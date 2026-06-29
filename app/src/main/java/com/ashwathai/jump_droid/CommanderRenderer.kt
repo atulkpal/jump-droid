@@ -113,7 +113,7 @@ class CommanderRenderer : ThreatRenderer {
             }
 
             repeat(threat.maxWeakPoints) { i ->
-                val isDestroyed = i >= threat.activeWeakPoints
+                val isDestroyed = (threat.wpDestroyedMask and (1 shl i)) != 0
                 val wx = tx - 80f + (i * 80f)
                 val wy = ty - 40f
                 if (!isDestroyed) {

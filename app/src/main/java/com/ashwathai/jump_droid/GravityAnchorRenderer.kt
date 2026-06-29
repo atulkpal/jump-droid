@@ -109,5 +109,17 @@ class GravityAnchorRenderer : ThreatRenderer {
                 style = Stroke(width = 3f)
             )
         }
+
+        // Weak point indicators
+        if (threat.activeWeakPoints > 0) {
+            val wpPulse = sin(gameTime / 200f) * 0.3f + 0.7f
+            repeat(2) { i ->
+                if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
+                val wy = cy + (if (i == 0) -50f else 50f)
+                drawScope.drawCircle(Color.Magenta.copy(alpha = 0.8f * wpPulse * alpha), radius = 10f * wpPulse, center = Offset(cx, wy))
+                drawScope.drawCircle(Color.White.copy(alpha = 0.5f * alpha), radius = 4f, center = Offset(cx, wy))
+                }
+            }
+        }
     }
 }

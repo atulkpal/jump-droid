@@ -1,6 +1,6 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-06-27
+**Last Updated:** 2026-06-29
 **Project Status:** Release Polish — Phases 1–6 Complete ✅, Phase 7 Active (Release Prep)
 **Current Stable Tag:** `release-candidate-1`
 **Branch:** `refactor/cleanup`
@@ -44,8 +44,9 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
     *   Phase 4 — Data Archives + Monetization (archives redesign, AdMob SDK integration, GlobalAdBanner with production ads, RewardedAd helper, PurchaseManager/Settings premium toggle)
     *   Phase 5 — Audio Pass & Haptics (Production assets loaded, volume normalization, 12-zone BGM mapping, material-based landing SFX, boosted haptics)
     *   Phase 6 — Data Archives Detail View (Deep lore registry, animated entity previews, glitch-noise detail popups for all 100+ entities)
-*   **Current Priorities**: Phase 7 Release Prep (bug bash, performance, store listing, final APK).
-*   **Next Planned Work**: Phase 7 — Release Preparation.
+    *   Phase 7 — Bug Bash (player hitbox collision radius, per-WP `wpDestroyedMask` bitmask tracking, WP hitbox positions aligned to visuals across 11 bosses, Signal ghost platform capping, Gravity Anchor pull safe window, Lightning dissolve effect)
+*   **Current Priorities**: Phase 7 Release Prep (remaining bug bash, performance, store listing, final APK).
+*   **Next Planned Work**: Phase 7 — Release Preparation (complete remaining bug bash items, performance profiling, store listing prep).
 
 ---
 

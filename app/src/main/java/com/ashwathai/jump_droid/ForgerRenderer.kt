@@ -115,5 +115,17 @@ class ForgerRenderer : ThreatRenderer {
                 center = Offset(cx, cy + 28f)
             )
         }
+
+        // Weak point indicators
+        if (threat.activeWeakPoints > 0) {
+            val wpPulse = sin(gameTime / 200f) * 0.3f + 0.7f
+            repeat(3) { i ->
+                if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
+                val wx = cx + (i - 1) * 60f
+                drawScope.drawCircle(Color.Magenta.copy(alpha = 0.8f * wpPulse * alpha), radius = 8f * wpPulse, center = Offset(wx, cy))
+                drawScope.drawCircle(Color.White.copy(alpha = 0.5f * alpha), radius = 3f, center = Offset(wx, cy))
+                }
+            }
+        }
     }
 }

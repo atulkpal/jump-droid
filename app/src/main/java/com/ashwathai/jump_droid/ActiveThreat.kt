@@ -58,6 +58,7 @@ class ActiveThreat(
     // Weak Point System
     var maxWeakPoints by mutableIntStateOf(0)
     var activeWeakPoints by mutableIntStateOf(0)
+    var wpDestroyedMask by mutableIntStateOf(0)
 
     // Death Sequence
     var destructionTimer by mutableFloatStateOf(0f)
@@ -111,7 +112,8 @@ class ActiveThreat(
         onSpawnThreat: (id: String, x: Float, y: Float, vx: Float, vy: Float) -> Unit = { _, _, _, _, _ -> },
         onDamage: (amount: Float) -> Unit = {},
         onPlaySfx: (String) -> Unit = {},
-        onVibrate: (HapticManager.HapticType) -> Unit = {}
+        onVibrate: (HapticManager.HapticType) -> Unit = {},
+        onDuck: (Long) -> Unit = {}
     ) {
         processInteractionHandler(
             player = player, sdt = sdt, isThrusting = isThrusting,
@@ -124,7 +126,8 @@ class ActiveThreat(
             onSpawnReinforcements = onSpawnReinforcements, onAnchoredText = onAnchoredText,
             onEscalationEvent = onEscalationEvent, activeThreats = activeThreats,
             onSpawnProjectile = onSpawnProjectile, onSpawnThreat = onSpawnThreat,
-            onDamage = onDamage, onPlaySfx = onPlaySfx, onVibrate = onVibrate
+            onDamage = onDamage, onPlaySfx = onPlaySfx, onVibrate = onVibrate,
+            onDuck = onDuck
         )
     }
 }

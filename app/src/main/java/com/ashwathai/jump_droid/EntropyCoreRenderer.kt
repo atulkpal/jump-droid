@@ -73,7 +73,7 @@ class EntropyCoreRenderer : ThreatRenderer {
             val px = cx + cos(angle) * dist
             val py = cy + sin(angle) * dist
 
-            val isDestroyed = i >= threat.activeWeakPoints
+            val isDestroyed = (threat.wpDestroyedMask and (1 shl i)) != 0
             val pylonColor = if (isDestroyed) Color.Gray.copy(alpha = 0.3f) else SciFiRed
 
             if (isDestroyed) {

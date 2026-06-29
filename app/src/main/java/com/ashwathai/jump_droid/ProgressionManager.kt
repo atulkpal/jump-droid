@@ -354,7 +354,8 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         reevaluateSetBonuses()
         val totalDiscoveries = DiscoveryType.values().count { sharedPrefs.getBoolean("discovery_$it", false) }
         val artifactCount = artifactsCollected.size
-        val zoneCount = AltitudeZone.values().count { sharedPrefs.getBoolean("discovery_AREA_${it.name}", false) }
+        val areaTypes = DiscoveryType.values().filter { it.name.startsWith("AREA_") }
+        val zoneCount = areaTypes.count { sharedPrefs.getBoolean("discovery_${it.name}", false) }
         
         // Progression score calculation
         val score = totalDiscoveries + (artifactCount * 3) + (zoneCount * 5)

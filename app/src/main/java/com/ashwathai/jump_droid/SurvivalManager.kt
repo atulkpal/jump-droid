@@ -14,6 +14,10 @@ import kotlin.math.min
  */
 class SurvivalManager {
 
+    // Loop state tracking for alarm SFX
+    private var wasHullCritical = false
+    private var wasFuelLow = false
+
     /**
      * Applies damage to the player, distributing it between shields and hull integrity.
      */
@@ -88,7 +92,9 @@ class SurvivalManager {
         onShake: (Float) -> Unit,
         shieldRegenMultiplier: Float = 1.0f,
         onPlaySfx: (String) -> Unit = {},
-        onVibrate: (HapticManager.HapticType) -> Unit = {}
+        onVibrate: (HapticManager.HapticType) -> Unit = {},
+        onStartLoop: (String) -> Unit = {},
+        onStopLoop: (String) -> Unit = {}
     ) {
         // Shield Regeneration
         if (player.shieldRegenPauseTimer > 0) {
@@ -115,18 +121,33 @@ class SurvivalManager {
             }
         }
 
-        // Emergency Warnings (Throttled)
+        // Loop-based alarms (checked every frame for state transitions)
+        val isHullCritical = player.integrity < player.maxIntegrity * Constants.SURVIVAL_CRITICAL_THRESHOLD
+        if (isHullCritical && !wasHullCritical) {
+            onStartLoop("sfx_alarm_critical")
+        } else if (!isHullCritical && wasHullCritical) {
+            onStopLoop("sfx_alarm_critical")
+        }
+        wasHullCritical = isHullCritical
+
+        val isFuelLow = player.fuel < player.maxFuel * 0.2f
+        if (isFuelLow && !wasFuelLow) {
+            onStartLoop("sfx_alarm_low_fuel")
+        } else if (!isFuelLow && wasFuelLow) {
+            onStopLoop("sfx_alarm_low_fuel")
+        }
+        wasFuelLow = isFuelLow
+
+        // Emergency Notifications (Throttled — every ~3 seconds)
         if (gameTime % 3000 < (dt * 1000).toLong().coerceAtLeast(1L)) {
             if (player.shield > 0 && player.shield < player.maxShield * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
                 notificationManager.post("!!! SHIELD CRITICAL !!!", NotificationPriority.CRITICAL)
             }
-            if (player.integrity < player.maxIntegrity * Constants.SURVIVAL_CRITICAL_THRESHOLD) {
+            if (isHullCritical) {
                 notificationManager.post("!!! HULL CRITICAL !!!", NotificationPriority.CRITICAL)
-                onPlaySfx("sfx_alarm_critical")
                 onVibrate(HapticManager.HapticType.WARNING)
             }
-            if (player.fuel < player.maxFuel * 0.2f) {
-                onPlaySfx("sfx_alarm_low_fuel")
+            if (isFuelLow) {
                 onVibrate(HapticManager.HapticType.WARNING)
             }
         }

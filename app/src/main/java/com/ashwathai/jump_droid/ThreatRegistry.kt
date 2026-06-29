@@ -307,6 +307,7 @@ object ThreatRegistry {
             description = "A massive tactical vessel overseeing regional surveillance and drone deployments.",
             type = ThreatType.MINI_BOSS,
             tier = ThreatTier.TIER_4,
+            baseHealth = 150f,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.05f)
         ))
 
@@ -316,6 +317,7 @@ object ThreatRegistry {
             description = "Ancient orbital defense platform that creates rotating safe zones.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
+            baseHealth = 250f,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f)
         ))
 
@@ -325,6 +327,7 @@ object ThreatRegistry {
             description = "Massive cosmic organism that consumes light and energy.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
+            baseHealth = 400f,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f)
         ))
 
@@ -334,6 +337,7 @@ object ThreatRegistry {
             description = "Reality-warping machine that periodically alters gravity direction.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
+            baseHealth = 450f,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.01f)
         ))
 
@@ -343,6 +347,7 @@ object ThreatRegistry {
             description = "Gigantic living creature that creates moving slipstreams.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
+            baseHealth = 350f,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f)
         ))
 
@@ -352,6 +357,7 @@ object ThreatRegistry {
             description = "Unknown intelligence that creates false navigation cues.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
+            baseHealth = 500f,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.01f)
         ))
 
@@ -363,6 +369,7 @@ object ThreatRegistry {
             description = "Heat-sensitive collective that spawns swarms when engines run hot.",
             type = ThreatType.MINI_BOSS,
             tier = ThreatTier.TIER_4,
+            baseHealth = 180f,
             discoveryType = DiscoveryType.THREAT_THERMAL_HIVE,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.CLOUD_LAYER), spawnChance = 0.04f)
         ))
@@ -373,6 +380,7 @@ object ThreatRegistry {
             description = "Static spatial anchor that intensifies downward pull over time.",
             type = ThreatType.MINI_BOSS,
             tier = ThreatTier.TIER_4,
+            baseHealth = 300f,
             discoveryType = DiscoveryType.THREAT_GRAVITY_ANCHOR,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.THE_BEYOND), spawnChance = 0.03f)
         ))
@@ -383,6 +391,7 @@ object ThreatRegistry {
             description = "Industrial fabricator that converts safe surfaces into hazardous ones.",
             type = ThreatType.MINI_BOSS,
             tier = ThreatTier.TIER_4,
+            baseHealth = 200f,
             discoveryType = DiscoveryType.THREAT_FORGER,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.THE_FOUNDRY, AltitudeZone.ORBIT), spawnChance = 0.04f)
         ))
@@ -393,6 +402,7 @@ object ThreatRegistry {
             description = "Automated level controller that deconstructs your path to the stars.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
+            baseHealth = 600f,
             discoveryType = DiscoveryType.THREAT_ARCHITECT,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE), spawnChance = 0.01f)
         ))
@@ -403,6 +413,7 @@ object ThreatRegistry {
             description = "A massive radiator that siphons energy and integrity across multiple vectors.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
+            baseHealth = 800f,
             discoveryType = DiscoveryType.THREAT_ENTROPY_CORE,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY), spawnChance = 0.01f)
         ))
@@ -413,6 +424,7 @@ object ThreatRegistry {
             description = "The ultimate intelligence. It doesn't just fight you; it distorts your very perception of reality.",
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
+            baseHealth = 1200f,
             discoveryType = DiscoveryType.THREAT_SINGULARITY,
             spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.SINGULARITY), spawnChance = 0.01f)
         ))

@@ -77,8 +77,15 @@ class StarEaterRenderer : ThreatRenderer {
             }
 
             if (threat.activeWeakPoints > 0) {
-                drawCircle(Color.Magenta.copy(alpha = 1.0f), radius = 50f * pulse, center = Offset(tx, ty))
-                drawCircle(Color.White, radius = 15f, center = Offset(tx, ty))
+                val wpPulse = (sin(gameTime / 300f) * 0.3f + 0.7f)
+                repeat(threat.maxWeakPoints) { i ->
+                    if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
+                        val wx = tx + cos(threat.lifetime * 2f + i) * 100f
+                        val wy = ty + sin(threat.lifetime * 2f + i) * 100f
+                        drawCircle(Color.Magenta.copy(alpha = 0.9f), radius = 15f * wpPulse, center = Offset(wx, wy))
+                        drawCircle(Color.White.copy(alpha = 0.6f), radius = 5f, center = Offset(wx, wy))
+                    }
+                }
             }
 
             val pDist = sqrt((player.x - tx) * (player.x - tx) + (player.y - cameraY - ty) * (player.y - cameraY - ty))

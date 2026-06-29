@@ -24,7 +24,7 @@ class RepeatingParallaxLayer(
     var densityMultiplier: Float = 1.0f
 
     override fun render(drawScope: DrawScope, cameraY: Float, opacity: Float, gameTime: Long) {
-        if (opacity <= 0.01f) return
+        if (opacity <= 0f) return
         val random = Random(seed)
         val width = drawScope.size.width
         val height = drawScope.size.height
@@ -51,7 +51,7 @@ class SilhouetteParallaxLayer(
 ) : ParallaxLayer {
 
     override fun render(drawScope: DrawScope, cameraY: Float, opacity: Float, gameTime: Long) {
-        if (opacity <= 0.01f) return
+        if (opacity <= 0f) return
         val width = drawScope.size.width
         val height = drawScope.size.height
 
@@ -78,7 +78,7 @@ class SingleObjectParallaxLayer(
     private val renderElement: DrawScope.(opacity: Float, gameTime: Long) -> Unit
 ) : ParallaxLayer {
     override fun render(drawScope: DrawScope, cameraY: Float, opacity: Float, gameTime: Long) {
-        if (opacity <= 0.01f) return
+        if (opacity <= 0f) return
         drawScope.translate(top = -cameraY * parallaxFactor) {
             renderElement(opacity, gameTime)
         }

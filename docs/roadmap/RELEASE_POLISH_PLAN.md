@@ -475,18 +475,22 @@ To activate haptics project-wide, `GameEngine.kt` needs to initialize the manage
 
 ## Phase 7 — Release Preparation (Item 15)
 
+**Status: Active** — Bug bash in progress (hitboxes, WP tracking, balance)
+
  # | Item | Effort | Risk |
 ---|------|--------|------|
  15 | Release preparation | Large | Medium |
 
 ### Sub-tasks
 
-- [ ] Bug bash: full playthrough of all zones, threats, bosses
+- [~] Bug bash: full playthrough of all zones, threats, bosses
+  - [x] Player hitbox collision radius added (28f) — full 40×70 rocket counts
+  - [x] WP tracking fixed per-WP `wpDestroyedMask` — no more index-ordering bug
+  - [x] WP hitbox positions aligned to rendered visuals (11 bosses)
+  - [~] Remaining: verify every boss plays correctly
 - [ ] Performance profiling (frame drops in upper zones / dense threat fields)
 - [ ] Play Store listing prep (screenshots, description, assets)
 - [ ] Final APK build + testing
-
----
 
 ## Phase Sequencing Rationale
 

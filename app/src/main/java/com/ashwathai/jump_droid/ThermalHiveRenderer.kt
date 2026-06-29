@@ -104,5 +104,18 @@ class ThermalHiveRenderer : ThreatRenderer {
                 }
             }
         }
+
+        // Weak point indicators
+        if (threat.activeWeakPoints > 0) {
+            val wpPulse = sin(gameTime / 200f) * 0.3f + 0.7f
+            repeat(2) { i ->
+                if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
+                val wx = cx + (if (i == 0) -60f else 60f)
+                val wy = cy + 20f
+                drawScope.drawCircle(Color.Magenta.copy(alpha = 0.8f * wpPulse * alpha), radius = 12f * wpPulse, center = Offset(wx, wy))
+                drawScope.drawCircle(Color.White.copy(alpha = 0.5f * alpha), radius = 5f, center = Offset(wx, wy))
+                }
+            }
+        }
     }
 }

@@ -456,7 +456,7 @@ object EntityDetailRegistry {
             status = "COMMANDER // ARMOR ACTIVE",
             classification = "AUTONOMOUS DEFENSE PLATFORM",
             archiveRecord = "A heavy tactical vessel overseeing surveillance and regional drone deployments in the upper atmosphere.",
-            tacticalNote = "Destroy the 4 shield emitters to expose the reactor core. Watch for expanding gravity pulses."
+            tacticalNote = "Destroy the 3 shield emitters to expose the reactor core. Watch for expanding gravity pulses."
         ),
         DiscoveryType.THREAT_VOID_ENGINE to EntityDetail(
             id = "THREAT_VOID_ENGINE",

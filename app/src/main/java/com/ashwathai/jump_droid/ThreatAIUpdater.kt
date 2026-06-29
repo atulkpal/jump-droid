@@ -44,18 +44,20 @@ fun ActiveThreat.updateAI(
             maxWeakPoints = when (definition.id) {
                 "MINI_BOSS_COMMANDER" -> 3
                 "BOSS_GATEKEEPER" -> 4
-                "BOSS_STAR_EATER" -> 1
+                "BOSS_STAR_EATER" -> 3
                 "BOSS_LEVIATHAN" -> 3
                 "BOSS_VOID_ENGINE" -> 2
-                "BOSS_SIGNAL" -> 1
+                "BOSS_SIGNAL" -> 3
                 "MINI_BOSS_THERMAL_HIVE" -> 2
-                "MINI_BOSS_GRAVITY_ANCHOR" -> 1
+                "MINI_BOSS_GRAVITY_ANCHOR" -> 2
                 "MINI_BOSS_FORGER" -> 3
                 "BOSS_ARCHITECT" -> 4
                 "BOSS_ENTROPY_CORE" -> 4
+                "BOSS_SINGULARITY" -> 4
                 else -> 1
             }
             activeWeakPoints = maxWeakPoints
+            wpDestroyedMask = 0
         }
     }
 
@@ -69,24 +71,26 @@ fun ActiveThreat.updateAI(
             ThreatType.HAZARD -> {
                 localTimer += dt
                 
-                if (lifetime > duration) {
-                    state = ThreatState.DESTROYED
-                }
-
                 when (definition.id) {
                     "HAZ_LIGHTNING" -> {
-                        val cycleTime = 4f
-                        val telegraphTime = 1.5f
-                        val strikeTime = 0.5f
-                        val t = lifetime % cycleTime
-                        
-                        val subPhase = if (t < telegraphTime) 1 else if (t < telegraphTime + strikeTime) 2 else 3
-                        scanPulse = if (subPhase == 1) t / telegraphTime else if (subPhase == 2) 1.0f else 0f
-                        
-                        val dx = targetX - x
-                        val dy = targetY - y
-                        x += dx * 0.4f * dt
-                        y += dy * 0.15f * dt
+                        if (lifetime > duration) {
+                            if (phase != 4) { phase = 4; destructionTimer = 0f }
+                            destructionTimer += dt
+                            if (destructionTimer > 1.5f) { state = ThreatState.DESTROYED }
+                        } else {
+                            val cycleTime = 4f
+                            val telegraphTime = 1.5f
+                            val strikeTime = 0.5f
+                            val t = lifetime % cycleTime
+                            
+                            val subPhase = if (t < telegraphTime) 1 else if (t < telegraphTime + strikeTime) 2 else 3
+                            scanPulse = if (subPhase == 1) t / telegraphTime else if (subPhase == 2) 1.0f else 0f
+                            
+                            val dx = targetX - x
+                            val dy = targetY - y
+                            x += dx * 0.4f * dt
+                            y += dy * 0.15f * dt
+                        }
                     }
                     "HAZ_SOLAR_FLARE" -> {
                         y += 400f * dt
@@ -134,6 +138,7 @@ fun ActiveThreat.updateAI(
                         // Pulsates
                         scanPulse = (sin(lifetime * 3f) * 0.5f + 0.5f)
                     }
+                    else -> if (lifetime > duration) state = ThreatState.DESTROYED
                 }
             }
             ThreatType.ENEMY -> {
@@ -316,8 +321,9 @@ fun ActiveThreat.updateAI(
             when (phase) {
                 2 -> {
                     isTracking = true
-                    vy = sin(lifetime * 1.5f) * 50f 
-                    x += (targetX - x) * 0.7f * dt 
+                    vy = sin(lifetime * 1.5f) * 50f
+                    x += (targetX - x) * 0.7f * dt
+                    y += (targetY - y) * 0.30f * dt
                     
                     val dx = targetX - x
                     val dy = targetY - y
@@ -333,6 +339,7 @@ fun ActiveThreat.updateAI(
                     isTracking = true
                     vy = sin(lifetime * 2.5f) * 80f
                     x += (targetX - x) * 0.9f * dt
+                    y += (targetY - y) * 0.30f * dt
                     scanPulse = (scanPulse + dt * 2.5f) % 1.0f
                     
                     val dx = targetX - x
@@ -348,6 +355,7 @@ fun ActiveThreat.updateAI(
                     isTracking = true
                     vy = sin(lifetime * 2.5f) * 70f
                     x += (targetX - x) * 0.9f * dt
+                    y += (targetY - y) * 0.30f * dt
                     scanPulse = (scanPulse + dt * 3.0f) % 1.0f
                     
                     val dx = targetX - x
@@ -388,7 +396,8 @@ fun ActiveThreat.updateAI(
                 2 -> {
                     rotation += (80f + (1f - activeWeakPoints.toFloat()/maxWeakPoints) * 80f) * dt
                     scanPulse = (scanPulse + dt * 0.8f) % 1.0f
-                    x += (targetX - x) * 0.3f * dt 
+                    x += (targetX - x) * 0.3f * dt
+                    y += (targetY - y) * 0.40f * dt
                     if (localTimer > 10f || activeWeakPoints < maxWeakPoints) {
                         phase = 3
                         localTimer = 0f
@@ -399,6 +408,7 @@ fun ActiveThreat.updateAI(
                     rotation += (120f * dir) * dt
                     scanPulse = (scanPulse + dt * 1.5f) % 1.0f
                     x += (targetX - x) * 0.5f * dt
+                    y += (targetY - y) * 0.40f * dt
                     
                     if (localTimer > 12f || activeWeakPoints <= 0) {
                         phase = 4
@@ -440,6 +450,7 @@ fun ActiveThreat.updateAI(
                 3 -> {
                     scanPulse = (scanPulse + dt * 1.5f) % 1.0f
                     x += (targetX - x) * 0.6f * dt
+                    y += (targetY - y) * 0.35f * dt
                     vy = sin(lifetime * 3f) * 150f
                     if (localTimer > 8f) {
                         phase = 4
@@ -476,6 +487,7 @@ fun ActiveThreat.updateAI(
                     val pulsePhase = sin(lifetime * 2f)
                     scanPulse = (pulsePhase * 0.5f + 0.5f)
                     x += (targetX - x) * 0.4f * dt
+                    y += (targetY - y) * 0.40f * dt
                     if (localTimer > 12f || activeWeakPoints < maxWeakPoints) {
                         phase = 3
                         localTimer = 0f
@@ -486,6 +498,7 @@ fun ActiveThreat.updateAI(
                     scanPulse = (scanPulse + dt * 3.0f) % 1.0f
                     val shift = sin(lifetime * 3f) * 2f
                     x += (targetX - x) * (0.5f + shift * 0.1f) * dt
+                    y += (targetY - y) * 0.40f * dt
                     if (localTimer > 15f || activeWeakPoints <= 0) {
                         phase = 4
                         localTimer = 0f
@@ -518,6 +531,7 @@ fun ActiveThreat.updateAI(
                 2 -> {
                     x += vx * dt
                     vy = sin(lifetime * 1.2f) * 100f
+                    y += (targetY - y) * 0.25f * dt
                     scanPulse = (sin(lifetime * 0.5f) * 0.5f + 0.5f) * 0.6f
                     if (x < 50f) vx = abs(vx)
                     if (x > screenWidth - 50f) vx = -abs(vx)
@@ -530,6 +544,7 @@ fun ActiveThreat.updateAI(
                     val speedMul = 1f + (1f - activeWeakPoints.toFloat() / maxWeakPoints) * 2f
                     x += vx * 3f * speedMul * dt
                     vy = sin(lifetime * 2.5f) * 200f
+                    y += (targetY - y) * 0.25f * dt
                     scanPulse = (sin(lifetime * 3f) * 0.5f + 0.5f)
                     if (x < 20f) vx = abs(vx)
                     if (x > screenWidth - 20f) vx = -abs(vx)
@@ -565,6 +580,7 @@ fun ActiveThreat.updateAI(
                 2 -> {
                     scanPulse = (sin(lifetime * 5f) * 0.5f + 0.5f)
                     x += (targetX - x) * 0.15f * dt
+                    y += (targetY - y) * 0.25f * dt
                     if (localTimer > 15f || activeWeakPoints <= 0) {
                         phase = 3
                         localTimer = 0f
@@ -574,6 +590,7 @@ fun ActiveThreat.updateAI(
                     scanPulse = (sin(lifetime * 8f) * 0.5f + 0.5f)
                     val fakeDrift = sin(lifetime * 2f) * 2f
                     x += (targetX - x) * (0.25f + fakeDrift * 0.05f) * dt
+                    y += (targetY - y) * 0.25f * dt
                     vy = (sin(lifetime * 3f) * 150f)
                     if (localTimer > 20f) {
                         phase = 4
@@ -606,9 +623,8 @@ fun ActiveThreat.updateAI(
                 2 -> {
                     x += (targetX - x) * 0.3f * dt
                     vy = sin(lifetime * 2f) * 40f
+                    y += (targetY - y) * 0.30f * dt
                     if (targetHeat > 60f && threatSpawnCooldown <= 0f) {
-                        // Spawn swarm bots handled in interaction? No, let's keep it in AI if possible 
-                        // or just use a flag for GameScreen. Actually interaction processor is better for spawning.
                         threatSpawnCooldown = 3f
                     }
                     if (activeWeakPoints < maxWeakPoints || localTimer > 15f) phase = 3
@@ -616,6 +632,7 @@ fun ActiveThreat.updateAI(
                 3 -> {
                     x += (targetX - x) * 0.5f * dt
                     vy = sin(lifetime * 4f) * 80f
+                    y += (targetY - y) * 0.30f * dt
                     if (activeWeakPoints <= 0) {
                         phase = 4
                         localTimer = 0f
@@ -640,11 +657,24 @@ fun ActiveThreat.updateAI(
                 return
             }
             localTimer += dt
-            alertLevel = (localTimer / 10f).coerceIn(0f, 3f) // Intensity multiplier
-            vy = 0f
-            if (activeWeakPoints <= 0) {
-                vy = 0f
-                vx *= 0.95f
+            if (activeWeakPoints <= 0 && phase < 4) { phase = 4; localTimer = 0f }
+            when (phase) {
+                2 -> {
+                    alertLevel = (localTimer / 10f).coerceIn(0f, 2f)
+                    vy = 0f
+                    scanPulse = (scanPulse + dt * 0.3f) % 1.0f
+                    if (activeWeakPoints < maxWeakPoints || localTimer > 15f) { phase = 3; localTimer = 0f }
+                }
+                3 -> {
+                    alertLevel = (2f + localTimer / 8f).coerceIn(0f, 3f)
+                    vy = 0f
+                    scanPulse = (scanPulse + dt * 1.0f) % 1.0f
+                    if (activeWeakPoints <= 0) { phase = 4; localTimer = 0f }
+                }
+                4 -> {
+                    vy = 0f
+                    vx *= 0.95f
+                }
             }
         }
 
@@ -661,11 +691,26 @@ fun ActiveThreat.updateAI(
                 }
                 return
             }
-            x += (targetX - x) * 0.4f * dt
-            vy = sin(lifetime * 1.5f) * 30f
-            if (activeWeakPoints <= 0) {
-                vy = 0f
-                vx *= 0.95f
+            if (activeWeakPoints <= 0 && phase < 4) { phase = 4; localTimer = 0f }
+            when (phase) {
+                2 -> {
+                    x += (targetX - x) * 0.4f * dt
+                    y += (targetY - y) * 0.20f * dt
+                    vy = sin(lifetime * 1.5f) * 30f
+                    scanPulse = (scanPulse + dt * 0.5f) % 1.0f
+                    if (activeWeakPoints < maxWeakPoints || localTimer > 12f) { phase = 3; localTimer = 0f }
+                }
+                3 -> {
+                    x += (targetX - x) * 0.5f * dt
+                    y += (targetY - y) * 0.20f * dt
+                    vy = sin(lifetime * 2.5f) * 50f
+                    scanPulse = (scanPulse + dt * 1.5f) % 1.0f
+                    if (activeWeakPoints <= 0) { phase = 4; localTimer = 0f }
+                }
+                4 -> {
+                    vy = 0f
+                    vx *= 0.95f
+                }
             }
         }
 
@@ -683,11 +728,26 @@ fun ActiveThreat.updateAI(
                 }
                 return
             }
-            rotation += 30f * dt
-            x += (targetX - x) * 0.3f * dt
-            if (activeWeakPoints <= 0) {
-                vy = 0f
-                vx *= 0.95f
+            if (activeWeakPoints <= 0 && phase < 4) { phase = 4; localTimer = 0f }
+            when (phase) {
+                2 -> {
+                    rotation += 30f * dt
+                    scanPulse = (scanPulse + dt * 0.4f) % 1.0f
+                    x += (targetX - x) * 0.3f * dt
+                    y += (targetY - y) * 0.20f * dt
+                    if (activeWeakPoints < maxWeakPoints || localTimer > 12f) { phase = 3; localTimer = 0f }
+                }
+                3 -> {
+                    rotation += 60f * dt
+                    scanPulse = (scanPulse + dt * 1.2f) % 1.0f
+                    x += (targetX - x) * 0.5f * dt
+                    y += (targetY - y) * 0.20f * dt
+                    if (activeWeakPoints <= 0) { phase = 4; localTimer = 0f }
+                }
+                4 -> {
+                    vy = 0f
+                    vx *= 0.95f
+                }
             }
         }
 
@@ -704,16 +764,30 @@ fun ActiveThreat.updateAI(
                 }
                 return
             }
-            scanPulse = (sin(lifetime * 2.5f) * 0.5f + 0.5f)
-            x += (targetX - x) * 0.2f * dt
-            if (activeWeakPoints <= 0) {
-                vy = 0f
-                vx *= 0.95f
+            if (activeWeakPoints <= 0 && phase < 4) { phase = 4; localTimer = 0f }
+            when (phase) {
+                2 -> {
+                    scanPulse = (sin(lifetime * 2.5f) * 0.5f + 0.5f)
+                    x += (targetX - x) * 0.2f * dt
+                    y += (targetY - y) * 0.20f * dt
+                    if (activeWeakPoints < maxWeakPoints || localTimer > 14f) { phase = 3; localTimer = 0f }
+                }
+                3 -> {
+                    scanPulse = (sin(lifetime * 4f) * 0.5f + 0.5f)
+                    x += (targetX - x) * 0.35f * dt
+                    y += (targetY - y) * 0.20f * dt
+                    if (activeWeakPoints <= 0) { phase = 4; localTimer = 0f }
+                }
+                4 -> {
+                    vy = 0f
+                    vx *= 0.95f
+                }
             }
         }
 
         if (definition.id == "BOSS_SINGULARITY") {
             localTimer += dt
+            projectileCooldown -= dt
             if (!isArrived) {
                 arrivalTimer += dt
                 vy = 50f
@@ -725,20 +799,53 @@ fun ActiveThreat.updateAI(
                 return
             }
             
-            // HUD Pull Logic (Task 1.2)
-            val pullCycle = 8f
-            val t = localTimer % pullCycle
-            hudPullFactor = if (t < 3f) (t / 3f) else if (t < 5f) 1.0f else max(0f, 1.0f - (t - 5f) / 3f)
+            // Phase progression based on weak points remaining (4 layers)
+            val remaining = activeWeakPoints
+            val maxWp = maxWeakPoints
             
-            // Movement: Slowly drift and stay near player
-            x += (targetX - x) * 0.05f * dt
-            y += (targetY - y) * 0.05f * dt
+            when {
+                remaining <= 0 -> { state = ThreatState.DESTROYED; return }
+                remaining <= maxWp / 4 -> {
+                    // Phase 4 — Event Horizon (<= 1 wp remaining)
+                    if (phase != 4) { phase = 4; localTimer = 0f }
+                }
+                remaining <= maxWp / 2 -> {
+                    // Phase 3 — Laser Grid (<= 2 wp remaining)
+                    if (phase != 3) { phase = 3; localTimer = 0f }
+                }
+                remaining <= maxWp * 3 / 4 -> {
+                    // Phase 2 — Photon Barrage (3 wp remaining)
+                    if (phase != 2) { phase = 2; localTimer = 0f }
+                }
+            }
+
+            // HUD Pull — intensifies with each phase
+            val pullDuration = when (phase) { 4 -> 12f; 3 -> 10f; else -> 8f }
+            val pullStrength = when (phase) { 4 -> 1.3f; 3 -> 1.2f; else -> 1.0f }
+            val t = localTimer % pullDuration
+            val basePull = if (t < pullDuration * 0.4f) (t / (pullDuration * 0.4f)) else if (t < pullDuration * 0.7f) 1.0f else max(0f, 1.0f - (t - pullDuration * 0.7f) / (pullDuration * 0.3f))
+            hudPullFactor = (basePull * pullStrength).coerceIn(0f, 1.2f)
             
-            rotation += 90f * dt
-            scanPulse = (sin(lifetime * 5f) * 0.5f + 0.5f)
+            // Movement: pursuit toward player, faster in later phases
+            val driftSpeed = when (phase) { 4 -> 0.35f; 3 -> 0.25f; else -> 0.20f }
+            x += (targetX - x) * driftSpeed * dt
+            y += (targetY - y) * driftSpeed * dt
             
-            if (activeWeakPoints <= 0) {
-                state = ThreatState.DESTROYED
+            // Rotation speeds up in later phases
+            val rotSpeed = when (phase) { 4 -> 180f; 3 -> 135f; else -> 90f }
+            rotation += rotSpeed * dt
+            
+            // Pulse telegraph for projectiles
+            val pulseSpeed = when (phase) { 4 -> 12f; 3 -> 8f; else -> 5f }
+            scanPulse = (sin(lifetime * pulseSpeed) * 0.5f + 0.5f)
+            
+            // Set projectile cooldown based on phase (actual firing happens in interaction handler)
+            if (projectileCooldown <= 0f) {
+                projectileCooldown = when (phase) {
+                    4 -> 0.6f
+                    3 -> 1.2f
+                    else -> 2.0f
+                }
             }
         }
 

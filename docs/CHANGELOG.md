@@ -4,6 +4,33 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-29
+
+**Sprint / Phase:** Release Polish — Phase 7 Bug Bash & Hitbox Fixes
+
+**Branch:** `refactor/cleanup`
+
+**Status:** Phases 1–6 Complete ✅ — Phase 7 Bug Bash Active
+
+### Fixed
+- **Player hitbox** (`ThreatInteractionProcessor.kt`): Added `rPlayer = 28f` to all 5 threat collision checks + WP hit check. The rocket's full 40×70 body now counts for contact, not just its center point.
+- **WP system — per-WP tracking** (`ActiveThreat.kt`, 11 renderers): Replaced broken `i >= activeWeakPoints` index assumption with `wpDestroyedMask` bitmask. WPs now track correctly regardless of destruction order. Previously, hitting WP0 first would make WP2 invisible/untargetable and leave WP0 falsely visible — affecting all multi-WP bosses.
+- **WP hitbox positions** (11 bosses): Every boss's WP detection now matches exactly where the WP is rendered. Signals: random→center. GravityAnchor: center→`(x, y ± 50)`. Forger: `(i-1)*70, y-30` → `(i-1)*60, y`. Architect, EntropyCore, Singularity: static orbits → time-based/jittered orbits matching renderers. StarEater: 1 at center → 3 orbiting (renderer + hitbox). Leviathan: all indices → every-other segment. VoidEngine: 180° → 120° arms.
+- **Signal ghost platform spam** (`ThreatInteractionProcessor.kt`): Per-frame rate reduced 0.15→0.01 / 0.25→0.02 with 600ms cooldown gate. ≈1–2 ghost platforms/sec max instead of 36–60.
+- **Gravity Anchor pull** (`ThreatInteractionProcessor.kt`): Added 3s cycle with 0.6s "PULL WEAKENED" safe window (pull drops to 15%). Strength capped at 3500×2.5 max. WP hit distance increased 60→100f.
+- **Lightning dissolve** (`ThreatAIUpdater.kt`, `LightningRenderer.kt`): 1.5s dissolve phase with cloud fragment particles and fading sparks instead of instant vanish.
+
+### Changed
+- **Boss rebalance** (`ThreatAIUpdater.kt`, `ThreatInteractionProcessor.kt`, `ThreatRegistry.kt`): Boss HP scaling by zone (150–1200). Y-pursuit added to all 10 bosses. Phase-based AI for Forger, GravityAnchor, Architect, EntropyCore. WP counts: StarEater 1→3, Signal 1→3, GravityAnchor 1→2. Destruction burst scaling by boss type with continuous emission. Power-up glow enhanced with outer halo ring.
+
+### Documentation
+- `CHANGELOG.md`: Added this entry.
+- `docs/roadmap/RELEASE_POLISH_PLAN.md`: Updated Phase 7 checklist.
+- `docs/JumpDroid_EPIC_Tracker.md`: Updated Release Polish section.
+- `AGENTS.md`: Updated project state to Release Polish Phase 7 Active.
+
+---
+
 ## 2026-06-27
 
 **Sprint / Phase:** Release Polish — Phases 1–4 Complete

@@ -116,14 +116,25 @@ class GameEngine(
     init {
         altitudeManager.onZoneChanged = { zone ->
             soundManager.handleZoneChange(zone)
+            discoveryManager.discoverZone(zone)
         }
         threatManager.onThreatDestroyed = { def ->
             if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
                 totalBossesDefeated++
+                val celebrationX = player.x
+                val celebrationY = cameraY + screenHeight * 0.3f
+                spawnBurst(celebrationX, celebrationY, 50, SciFiGold, 400f)
+                spawnBurst(celebrationX - 80f, celebrationY + 30f, 25, SciFiCyan, 300f)
+                spawnBurst(celebrationX + 80f, celebrationY + 30f, 25, SciFiCyan, 300f)
+                floatingTextManager.add(FloatingText("BOSS DEFEATED", celebrationX, celebrationY - 50f, color = SciFiGold, isCritical = true, life = 2.0f))
             }
         }
         missionManager.onMissionCompleted = { progressionManager.recordMissionCompletion(it.id) }
-        missionManager.onHiddenSignalRevealed = { signalDecodedMissionName = it.name }
+        missionManager.onHiddenSignalRevealed = { mission ->
+            notificationManager.post("SIGNAL DECODED: ${mission.name.uppercase()}", NotificationPriority.CRITICAL, 4.0f, SciFiCyan)
+            spawnBurst(player.x, player.y, 40, SciFiCyan, 350f)
+            floatingTextManager.add(FloatingText("SIGNAL DECODED", player.x, player.y - 120f, color = SciFiCyan, isCritical = true, life = 2.0f))
+        }
         progressionManager.onModuleUnlocked = { module ->
             floatingTextManager.add(FloatingText(
                 text = "MODULE UNLOCKED: ${module.name.uppercase()}",
@@ -132,6 +143,8 @@ class GameEngine(
                 color = SciFiGold,
                 isCritical = true
             ))
+            spawnBurst(player.x, player.y - 100f, 30, SciFiGold, 300f)
+            soundManager.duck(2000L)
             soundManager.playSfx("sfx_fanfare_unlock")
             hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
             screenShake = 15f
@@ -144,6 +157,7 @@ class GameEngine(
                 color = SciFiWhite,
                 isCritical = false
             ))
+            soundManager.duck(2000L)
             soundManager.playSfx("sfx_data_scan")
             notificationManager.post("SIGNAL ARCHIVED: ${log.category.name}", NotificationPriority.FLAVOR)
             screenShake = 8f
@@ -156,6 +170,7 @@ class GameEngine(
                 color = SciFiGold,
                 isCritical = true
             ))
+            soundManager.duck(2000L)
             soundManager.playSfx("sfx_fanfare_unlock")
             hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
             impactFlashAlpha = 0.4f
@@ -269,6 +284,7 @@ class GameEngine(
             player = player,
             onRocketUnlock = { type -> 
                 unlockedRocket = type
+                soundManager.duck(2000L)
                 soundManager.playSfx("sfx_fanfare_unlock")
                 preOverlayState = gameState
                 gameState = GameState.UNLOCK 
@@ -293,7 +309,10 @@ class GameEngine(
             player = player,
             isGameOver = gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL,
             onGameOver = {
-                soundManager.playSfx("sfx_gameover")
+                soundManager.setBossActive(false)
+                soundManager.fadeOutAndPlayGameOver {
+                    soundManager.playSfx("sfx_gameover")
+                }
                 soundManager.stopThrust()
                 spawnBurst(player.x, player.y, 50, SciFiRed, 500f)
                 screenShake = 25f
@@ -686,6 +705,7 @@ class GameEngine(
             if (mission.isCompleted && !missionManager.isInCeremony(mission.id)) {
                 missionManager.startCeremony(mission.id)
                 notificationManager.post("MISSION COMPLETE: ${mission.name.uppercase()}", NotificationPriority.TACTICAL)
+                soundManager.duck(2000L)
                 soundManager.playSfx("sfx_fanfare_mission")
                 hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
                 val celebrationX = screenWidth / 2f
@@ -705,12 +725,14 @@ class GameEngine(
         missionManager.selectNextMission()
 
         // Survival
-        survivalManager.update(dt, player, gameTime, notificationManager, 
-            onGameOver = { gameState = GameState.GAMEOVER; saveHighScore(score) }, 
-            onShake = { screenShake = max(screenShake, it) }, 
+        survivalManager.update(dt, player, gameTime, notificationManager,
+            onGameOver = { soundManager.setBossActive(false); gameState = GameState.GAMEOVER; saveHighScore(score) },
+            onShake = { screenShake = max(screenShake, it) },
             shieldRegenMultiplier = progressionManager.getShieldRegenMultiplier(),
             onPlaySfx = { soundManager.playSfx(it) },
-            onVibrate = { hapticManager.vibrate(it) }
+            onVibrate = { hapticManager.vibrate(it) },
+            onStartLoop = { soundManager.startLoop(it) },
+            onStopLoop = { soundManager.stopLoop(it) }
         )
 
         // Visuals
@@ -821,7 +843,8 @@ class GameEngine(
                     onSpawnThreat = { id, x, y, vx, vy -> ThreatRegistry.getById(id)?.let { threatManager.spawnThreat(it, x, y, vx, vy) } },
                     onDamage = { amount -> applyDamage(amount) },
                     onPlaySfx = { sfx -> soundManager.playSfx(sfx) },
-                    onVibrate = { hapticType -> hapticManager.vibrate(hapticType) }
+                    onVibrate = { hapticType -> hapticManager.vibrate(hapticType) },
+                    onDuck = { duration -> soundManager.duck(duration) }
                 )
             }
 
@@ -848,7 +871,7 @@ class GameEngine(
         powerUpManager.updateMovement(dt, gameTime, player, platforms, cameraY, screenHeight)
         for (pu in powerUpManager.checkCollection(player)) {
             totalPowerUps++
-            soundManager.playSfx("collect")
+            soundManager.playSfx("sfx_collect_item")
             handlePowerUp(pu)
         }
 
@@ -907,6 +930,7 @@ class GameEngine(
         }
 
         if (player.y - (ROCKET_HEIGHT / 2) > cameraY + screenHeight && screenHeight > 0f) {
+            soundManager.setBossActive(false)
             spawnBurst(player.x, player.y, 30, SciFiRed, 400f)
             screenShake = 20f
             gameState = GameState.GAMEOVER
@@ -1061,10 +1085,10 @@ class GameEngine(
         }
 
         player.velocityX = 0f; player.velocityY = 0f
-        player.fuel = player.maxFuel * 0.5f
+        player.fuel = player.maxFuel
         player.maxIntegrity = progressionManager.permanentMaxIntegrity + progressionManager.getHullBonusAmount()
-        player.integrity = player.maxIntegrity * 0.5f
-        player.shield = player.maxShield * 0.5f
+        player.integrity = player.maxIntegrity
+        player.shield = player.maxShield
         player.destructionTimer = 0f
         player.heat = 0f
         player.isOverheated = false
@@ -1076,6 +1100,7 @@ class GameEngine(
         impactFlashAlpha = 1.0f
         floatingTextManager.add(FloatingText("SYSTEM REBOOTED", player.x, player.y - 150f, color = SciFiCyan))
 
+        soundManager.setBossActive(false)
         continuesUsed++
         gameState = GameState.PLAYING
     }

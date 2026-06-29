@@ -31,13 +31,15 @@ fun ActiveThreat.processInteractionHandler(
     onSpawnThreat: (id: String, x: Float, y: Float, vx: Float, vy: Float) -> Unit = { _, _, _, _, _ -> },
     onDamage: (amount: Float) -> Unit = {},
     onPlaySfx: (String) -> Unit = {},
-    onVibrate: (HapticManager.HapticType) -> Unit = {}
+    onVibrate: (HapticManager.HapticType) -> Unit = {},
+    onDuck: (Long) -> Unit = {}
 ) {
     if (state != ThreatState.ACTIVE) return
 
     val dx = player.x - x
     val dy = player.y - y
     val distSq = dx * dx + dy * dy
+    val rPlayer = 28f
 
     definition.discoveryType?.let { discoveryType ->
         val baseDiscDist = 500f
@@ -63,7 +65,7 @@ fun ActiveThreat.processInteractionHandler(
             }
         }
         "HAZ_DEBRIS" -> {
-            if (distSq < 80f * 80f) {
+            if (distSq < (80f + rPlayer) * (80f + rPlayer)) {
                 if (player.invulnerabilityTimer <= 0f) {
                     onDamage(25f)
                     player.invulnerabilityTimer = 0.8f
@@ -225,14 +227,14 @@ fun ActiveThreat.processInteractionHandler(
                     health = min(definition.baseHealth * 2f, health + 20f)
                 }
             }
-            if (distSq < 100f * 100f && player.invulnerabilityTimer <= 0f) {
+            if (distSq < (100f + rPlayer) * (100f + rPlayer) && player.invulnerabilityTimer <= 0f) {
                 player.fuel = max(0f, player.fuel - 15f)
                 player.invulnerabilityTimer = 0.8f
                 onVisualFeedback(10f, 0f)
             }
         }
         "ENT_PHASE_WRAITH" -> {
-            if (isMaterialized && distSq < 100f * 100f && player.invulnerabilityTimer <= 0f) {
+            if (isMaterialized && distSq < (100f + rPlayer) * (100f + rPlayer) && player.invulnerabilityTimer <= 0f) {
                 onDamage(15f)
                 player.invulnerabilityTimer = 1.2f
                 onVisualFeedback(20f, 0.5f)
@@ -240,7 +242,7 @@ fun ActiveThreat.processInteractionHandler(
             }
         }
         "ENT_GRAVITY_RAM" -> {
-            if (distSq < 120f * 120f && player.invulnerabilityTimer <= 0f) {
+            if (distSq < (120f + rPlayer) * (120f + rPlayer) && player.invulnerabilityTimer <= 0f) {
                 player.velocityX += (if (dx > 0) 1f else -1f) * 2000f
                 player.velocityY += 3000f // Massive downward knockback
                 onDamage(25f)
@@ -270,9 +272,9 @@ fun ActiveThreat.processInteractionHandler(
             }
         }
         "MINI_BOSS_COMMANDER", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL", 
-        "MINI_BOSS_THERMAL_HIVE", "MINI_BOSS_GRAVITY_ANCHOR", "MINI_BOSS_FORGER", "BOSS_ARCHITECT", "BOSS_ENTROPY_CORE" -> {
+        "MINI_BOSS_THERMAL_HIVE", "MINI_BOSS_GRAVITY_ANCHOR", "MINI_BOSS_FORGER", "BOSS_ARCHITECT", "BOSS_ENTROPY_CORE", "BOSS_SINGULARITY" -> {
             if (phase in 2..4) {
-                if (distSq < 100f * 100f && player.invulnerabilityTimer <= 0f) {
+                if (distSq < (100f + rPlayer) * (100f + rPlayer) && player.invulnerabilityTimer <= 0f) {
                     player.fuel = max(0f, player.fuel - 20f)
                     player.heat = min(Constants.MAX_HEAT, player.heat + 30f)
                     player.invulnerabilityTimer = 1.0f
@@ -281,7 +283,7 @@ fun ActiveThreat.processInteractionHandler(
                 }
 
                 repeat(maxWeakPoints) { i ->
-                    val isDestroyed = i >= activeWeakPoints
+                    val isDestroyed = (wpDestroyedMask and (1 shl i)) != 0
                     if (!isDestroyed) {
                         val (wx, wy) = when (definition.id) {
                             "MINI_BOSS_COMMANDER" -> Pair(x - 80f + (i * 80f), y - 40f)
@@ -291,35 +293,45 @@ fun ActiveThreat.processInteractionHandler(
                             }
                             "BOSS_STAR_EATER" -> Pair(x + cos(lifetime * 2f + i) * 100f, y + sin(lifetime * 2f + i) * 100f)
                             "BOSS_LEVIATHAN" -> {
-                                val ox = sin(lifetime * 1.5f - i * 0.5f) * 100f
-                                Pair(x + ox, y + i * 60f)
+                                val ox = sin(gameTime / 1000f - i * 1f) * 100f
+                                Pair(x + ox, y + i * 120f)
                             }
                             "BOSS_VOID_ENGINE" -> {
-                                val angle = (rotation + i * 180f) * (PI.toFloat() / 180f)
-                                Pair(x + cos(angle) * 150f, y + sin(angle) * 150f)
+                                val angle = i * 120f * (PI.toFloat() / 180f)
+                                Pair(x + 150f * sin(angle), y - 150f * cos(angle))
                             }
-                            "BOSS_SIGNAL" -> Pair(x + (Random.nextFloat()-0.5f)*200f, y + (Random.nextFloat()-0.5f)*200f)
+                            "BOSS_SIGNAL" -> Pair(x, y)
                             "MINI_BOSS_THERMAL_HIVE" -> Pair(x + (if (i == 0) -60f else 60f), y + 20f)
-                            "MINI_BOSS_GRAVITY_ANCHOR" -> Pair(x, y)
-                            "MINI_BOSS_FORGER" -> Pair(x + (i - 1) * 70f, y - 30f)
+                            "MINI_BOSS_GRAVITY_ANCHOR" -> Pair(x, y + (if (i == 0) -50f else 50f))
+                            "MINI_BOSS_FORGER" -> Pair(x + (i - 1) * 60f, y)
                             "BOSS_ARCHITECT" -> {
-                                val angle = (rotation + i * 90f) * (PI.toFloat() / 180f)
-                                Pair(x + cos(angle) * 200f, y + sin(angle) * 200f)
+                                val angle = (i * 90f + gameTime / 400f) * (PI.toFloat() / 180f)
+                                val dist = 95f + sin(gameTime / 500f + i * 1.5f) * 10f
+                                Pair(x + cos(angle) * dist, y + sin(angle) * dist)
                             }
                             "BOSS_ENTROPY_CORE" -> {
-                                val angle = (i * 90f) * (PI.toFloat() / 180f)
-                                Pair(x + cos(angle) * 180f, y + sin(angle) * 180f)
+                                val angle = (i * 90f + sin(gameTime / 500f) * 10f) * (PI.toFloat() / 180f)
+                                val dist = 150f + sin(gameTime / 300f + i * 1.2f) * 10f
+                                Pair(x + cos(angle) * dist, y + sin(angle) * dist)
+                            }
+                            "BOSS_SINGULARITY" -> {
+                                val wpAngleStep = 360f / maxWeakPoints.coerceAtLeast(1)
+                                val wpAngle = (gameTime / 600f) * (180f / PI.toFloat()) + i * wpAngleStep
+                                val wpRad = wpAngle * (PI.toFloat() / 180f)
+                                Pair(x + cos(wpRad) * 80f, y + sin(wpRad) * 80f)
                             }
                             else -> Pair(x, y)
                         }
 
                         val ddx = player.x - wx
                         val ddy = player.y - wy
-                        val hitDist = if (definition.id == "BOSS_STAR_EATER") 120f else {
-                            if (player.rocketType == RocketType.SCOUT) 70f else 50f
+                        val hitDist = when (definition.id) {
+                            "MINI_BOSS_GRAVITY_ANCHOR" -> 100f
+                            else -> if (player.rocketType == RocketType.SCOUT) 80f else 60f
                         }
 
-                        if (sqrt(ddx*ddx + ddy*ddy) < hitDist && player.invulnerabilityTimer <= 0f) {
+                        if (sqrt(ddx*ddx + ddy*ddy) < hitDist + rPlayer && player.invulnerabilityTimer <= 0f) {
+                            wpDestroyedMask = wpDestroyedMask or (1 shl i)
                             activeWeakPoints--
                             player.invulnerabilityTimer = 0.5f
                             player.velocityY = -400f
@@ -337,6 +349,7 @@ fun ActiveThreat.processInteractionHandler(
                             if (activeWeakPoints <= 0) {
                                 phase = when (definition.id) {
                                     "MINI_BOSS_COMMANDER" -> 5
+                                    "BOSS_SINGULARITY" -> 4
                                     else -> 4
                                 }
                                 onScoreUpdate(1000)
@@ -589,8 +602,8 @@ fun ActiveThreat.processInteractionHandler(
                         projectileCooldown = 1.5f
                     }
                     if (phase >= 2 && phase <= 3) {
-                        val ghostRate = if (phase == 3) 0.25f else 0.15f
-                        if (Random.nextFloat() < ghostRate) {
+                        val ghostRate = if (phase == 3) 0.02f else 0.01f
+                        if (gameTime % 600 < 20 && Random.nextFloat() < ghostRate) {
                             onSpawnGhostPlatform(Random.nextFloat() * screenWidth, cameraY + Random.nextFloat() * screenHeight)
                         }
                     }
@@ -641,9 +654,16 @@ fun ActiveThreat.processInteractionHandler(
                 "MINI_BOSS_GRAVITY_ANCHOR" -> {
                     val dist = sqrt(distSq)
                     if (dist < 1000f) {
-                        val anchorStrength = (1f - dist / 1000f) * 4000f * alertLevel
+                        // Safe window every 3s — pull briefly pauses, giving time to attack or escape
+                        val inSafeWindow = (gameTime % 3000) > 2400
+                        val pullMul = if (inSafeWindow) 0.15f else 1.0f
+                        val cappedAlert = min(alertLevel, 2.5f)
+                        val anchorStrength = (1f - dist / 1000f) * 3500f * cappedAlert * pullMul
                         player.velocityY += anchorStrength * sdt
-                        if (gameTime % 500 < 50) onVisualFeedback(2f * alertLevel, 0f)
+                        if (!inSafeWindow && gameTime % 500 < 50) onVisualFeedback(2f * cappedAlert, 0f)
+                        if (inSafeWindow && gameTime % 100 < 50) {
+                            onFloatingText("PULL WEAKENED", x, y - 60f, Color(0xFFFFD700), false, 0.3f)
+                        }
                     }
                 }
                 "MINI_BOSS_FORGER" -> {
@@ -724,13 +744,94 @@ fun ActiveThreat.processInteractionHandler(
                         }
                     }
                 }
+                "BOSS_SINGULARITY" -> {
+                    val phaseColor = when (phase) {
+                        4 -> Color(0xFFFF1744)
+                        3 -> Color(0xFFD500F9)
+                        else -> Color(0xFF00E5FF)
+                    }
+
+                    // Phase 2: Photon Barrage — homing projectiles
+                    if (phase == 2 && projectileCooldown <= 0f) {
+                        val ang = atan2(dy, dx)
+                        val spread = 0.3f
+                        repeat(2) { i ->
+                            val a = ang + (i - 0.5f) * spread
+                            onSpawnProjectile(x, y, cos(a) * 350f, sin(a) * 350f, ProjectileType.BOLT, ProjectileOwner.THREAT, 10f, phaseColor, 6f, 3f)
+                        }
+                        onPlaySfx("sfx_projectile_fire")
+                        projectileCooldown = 2.0f
+                    }
+
+                    // Phase 3: Laser Grid — rotating BEAM projectiles + burst fire
+                    if (phase == 3) {
+                        val rotRad = rotation * (PI.toFloat() / 180f)
+                        if (projectileCooldown <= 0f) {
+                            repeat(3) { i ->
+                                val a = rotRad + i * (PI.toFloat() * 2f / 3f)
+                                onSpawnProjectile(x, y, cos(a) * 500f, sin(a) * 500f, ProjectileType.BOLT, ProjectileOwner.THREAT, 12f, phaseColor, 8f, 3f)
+                            }
+                            onPlaySfx("sfx_projectile_fire")
+                            projectileCooldown = 2.5f
+                        }
+
+                        // Rotating laser beam every 4s
+                        if (projectileCooldown < 1.5f && sqrt(distSq) < 600f) {
+                            val beamAng = atan2(player.y - y, player.x - x)
+                            val beamDx = cos(beamAng) * 600f
+                            val beamDy = sin(beamAng) * 600f
+                            onSpawnProjectile(x, y, beamDx.toFloat(), beamDy.toFloat(), ProjectileType.BEAM, ProjectileOwner.THREAT, 8f, phaseColor, 4f, 0.8f)
+                        }
+                    }
+
+                    // Phase 4: Event Horizon — death spiral burst + control inversion + gravity flux
+                    if (phase == 4) {
+                        val rotRad = rotation * (PI.toFloat() / 180f)
+                        if (projectileCooldown <= 0f) {
+                            repeat(6) { i ->
+                                val a = rotRad + i * (PI.toFloat() / 3f) + sin(lifetime + i) * 0.5f
+                                onSpawnProjectile(x, y, cos(a) * 600f, sin(a) * 600f, ProjectileType.BOLT, ProjectileOwner.THREAT, 15f, phaseColor, 10f, 2.5f)
+                            }
+                            onPlaySfx("sfx_projectile_fire")
+                            projectileCooldown = 1.2f
+                        }
+
+                        // Random control inversion bursts
+                        if (Random.nextFloat() < 0.008f) {
+                            player.controlInversionTimer = 1.5f
+                            onFloatingText("CONTROL INVERTED", player.x, player.y - 60f, Color(0xFFE91E63), true, 1.0f)
+                            onBurst(player.x, player.y, 15, Color(0xFFFF1744), 400f)
+                        }
+
+                        // Gravity flux — random velocity kicks
+                        if (Random.nextFloat() < 0.015f) {
+                            player.velocityY += (Random.nextFloat() - 0.5f) * 800f
+                            player.velocityX += (Random.nextFloat() - 0.5f) * 600f
+                            onVisualFeedback(15f, 0.3f)
+                            onFloatingText("GRAVITY FLUX", player.x, player.y - 80f, Color(0xFFD500F9), true, 0.8f)
+                        }
+
+                        // HUD interference in death spiral
+                        if (Random.nextFloat() < 0.02f) {
+                            player.hudInterferenceTimer = 1.0f
+                        }
+                    }
+
+                    // HUD pull proximity effect
+                    if (sqrt(distSq) < 400f) {
+                        player.velocityX *= (1f - 0.3f * sdt)
+                        player.velocityY *= (1f - 0.2f * sdt)
+                        if (gameTime % 200 < 50 && phase == 4) {
+                            onFloatingText("SINGULARITY PULL", player.x, player.y + 60f, Color.White, false, 0.5f)
+                        }
+                    }
+                }
             }
 
             if (activeWeakPoints <= 0 && maxWeakPoints > 0 && !bossRewardDropped) {
                 if (!hasInteracted) {
                     hasInteracted = true
                     destructionTimer = 0f
-                    bossRewardDropped = true
                     powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
                     onFloatingText("!!! ${definition.name.uppercase()} DEFEATED !!!", player.x, player.y, Color.Cyan, true, 1.0f)
                     onNotification(">>> MISSION DATA RECOVERED <<<", 5.0f)
@@ -740,6 +841,7 @@ fun ActiveThreat.processInteractionHandler(
                 destructionTimer += sdt
                 val t = destructionTimer
                 val debrisColor = when (definition.id) {
+                    "MINI_BOSS_COMMANDER" -> Color(0xFF1565C0)
                     "BOSS_GATEKEEPER" -> Color(0xFFFF9800)
                     "BOSS_STAR_EATER" -> Color(0xFFE040FB)
                     "BOSS_LEVIATHAN" -> Color(0xFF00BCD4)
@@ -754,44 +856,61 @@ fun ActiveThreat.processInteractionHandler(
                     else -> Color(0xFF9C27B0)
                 }
 
-                // Progressive bursts
-                if (t < 0.3f) {
-                    if (t - sdt < 0.1f) {
-                        onBurst(x, y - 50f, 25, debrisColor, 300f)
+                // Burst intensity scaling by boss type
+                val burstMultiplier = when (definition.type) {
+                    ThreatType.BOSS -> when (definition.id) {
+                        "BOSS_SINGULARITY" -> 4f
+                        "BOSS_ENTROPY_CORE", "BOSS_ARCHITECT" -> 3f
+                        else -> 2f
                     }
-                } else if (t < 0.6f) {
-                    if (t - sdt < 0.3f) {
-                        onBurst(x + (Random.nextFloat() - 0.5f) * 100f, y + (Random.nextFloat() - 0.5f) * 100f, 30, Color.White, 400f)
-                        onBurst(x - 50f, y + 50f, 20, debrisColor, 350f)
-                    }
-                } else if (t < 0.9f) {
-                    if (t - sdt < 0.6f) {
-                        repeat(2) {
-                            onBurst(x + (Random.nextFloat() - 0.5f) * 150f, y + (Random.nextFloat() - 0.5f) * 150f, 35, debrisColor, 500f)
-                        }
-                        onBurst(x, y, 20, Color.White, 600f)
-                    }
-                } else if (t < 1.2f) {
-                    if (t - sdt < 0.9f) {
-                        repeat(3) {
-                            onBurst(x + (Random.nextFloat() - 0.5f) * 200f, y + (Random.nextFloat() - 0.5f) * 200f, 40, debrisColor.copy(alpha = 0.8f), 600f)
-                        }
-                        onBurst(x, y + 50f, 30, Color.White, 700f)
+                    else -> 1f
+                }
+                val burstRadius = 100f + burstMultiplier * 60f
+                val burstSpeed = 200f + burstMultiplier * 150f
+
+                // Continuous debris bursts throughout the 1.5s
+                val burstInterval = max(1, (20 * burstMultiplier).toInt())
+                val burstIndex = (t * 60f).toInt()
+                if (hashCode() % burstInterval == burstIndex % burstInterval) {
+                    val bx = x + (Random.nextFloat() - 0.5f) * burstRadius * 1.5f
+                    val by = y + (Random.nextFloat() - 0.5f) * burstRadius
+                    val bCount = (8 + burstMultiplier * 6).toInt()
+                    val bSpeed = burstSpeed + Random.nextFloat() * burstSpeed * 0.5f
+                    onBurst(bx, by, bCount, debrisColor.copy(alpha = 0.7f + Random.nextFloat() * 0.3f), bSpeed)
+                    if (Random.nextFloat() < 0.3f) {
+                        onBurst(bx + (Random.nextFloat() - 0.5f) * 40f, by + (Random.nextFloat() - 0.5f) * 40f, (bCount * 0.5f).toInt(), Color.White, bSpeed * 0.7f)
                     }
                 }
 
-                if (t >= 1.5f) {
-                    // Final large explosion
-                    onBurst(x, y, 100, debrisColor, 1200f)
-                    repeat(4) {
-                        onBurst(x + (Random.nextFloat() - 0.5f) * 250f, y + (Random.nextFloat() - 0.5f) * 250f, 50, Color.White, 900f)
+                // Escalating shockwave at each 0.4s milestone
+                if (t < 1.5f && t - sdt < (t / 0.4f).toInt() * 0.4f - 0.05f) {
+                    val ringCount = (8 + burstMultiplier * 6).toInt()
+                    val ringRadius = 200f + (t / 1.5f) * 400f
+                    repeat(ringCount) { i ->
+                        val ra = Random.nextFloat() * 2f * PI.toFloat()
+                        val rd = Random.nextFloat() * ringRadius
+                        onBurst(x + cos(ra) * rd, y + sin(ra) * rd, (10 + burstMultiplier * 5).toInt(), debrisColor, ringRadius * 1.5f)
                     }
-                    onVisualFeedback(70f, 1.0f)
+                    onVisualFeedback(10f + burstMultiplier * 8f, 0.2f + burstMultiplier * 0.1f)
+                }
+
+                if (t >= 1.5f) {
+                    // Final cataclysmic explosion
+                    bossRewardDropped = true
+                    val finalCount = (60 + burstMultiplier * 40).toInt()
+                    onBurst(x, y, finalCount, debrisColor, 1200f * burstMultiplier)
+                    repeat((3 + burstMultiplier).toInt()) {
+                        val fx = x + (Random.nextFloat() - 0.5f) * 300f * burstMultiplier
+                        val fy = y + (Random.nextFloat() - 0.5f) * 300f * burstMultiplier
+                        onBurst(fx, fy, (30 + burstMultiplier * 20).toInt(), Color.White, 900f * burstMultiplier)
+                    }
+                    onVisualFeedback(50f + burstMultiplier * 20f, 1.0f)
+                    onDuck(2000L)
                     onPlaySfx("sfx_boss_defeat")
                     onVibrate(HapticManager.HapticType.EXPLOSION)
                     state = ThreatState.DESTROYED
 
-                    if (definition.id == "MINI_BOSS_COMMANDER") {
+                    if (definition.id == "MINI_BOSS_COMMANDER" || definition.id == "BOSS_SINGULARITY") {
                         onMissionProgress(MissionType.BOSS)
                     }
                 }

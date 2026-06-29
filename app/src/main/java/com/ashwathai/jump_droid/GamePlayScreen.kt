@@ -155,10 +155,7 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
         }
         
         engine.signalDecodedMissionName?.let { name ->
-            SignalDecodedOverlay(
-                missionName = name,
-                onDismiss = { engine.signalDecodedMissionName = null }
-            )
+            // Replaced by notification + burst in GameEngine init callback
         }
     }
 }

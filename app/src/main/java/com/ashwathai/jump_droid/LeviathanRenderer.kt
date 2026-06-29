@@ -58,7 +58,7 @@ class LeviathanRenderer : ThreatRenderer {
                 }
 
                 val wpIndex = i / 2
-                if (i % 2 == 0 && wpIndex < threat.activeWeakPoints) {
+                if (i % 2 == 0 && (threat.wpDestroyedMask and (1 shl wpIndex)) == 0) {
                     drawCircle(Color.Magenta, radius = 30f * segmentPulse, center = Offset(tx + ox, ty + oy))
                     drawCircle(Color.White, radius = 10f, center = Offset(tx + ox, ty + oy))
                 }

@@ -103,5 +103,28 @@ class ArchitectRenderer : ThreatRenderer {
                 style = Stroke(width = 2f)
             )
         }
+
+        // Weak point indicators — orbiting magenta diamonds
+        if (threat.activeWeakPoints > 0) {
+            val wpPulse = sin(gameTime / 200f) * 0.3f + 0.7f
+            repeat(4) { i ->
+                if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
+                val angle = (i * 90f + gameTime / 400f) * (kotlin.math.PI.toFloat() / 180f)
+                val dist = 95f + sin(gameTime / 500f + i * 1.5f) * 10f
+                val wx = cx + cos(angle) * dist
+                val wy = cy + sin(angle) * dist
+                val ws = 6f * wpPulse
+                val wpPath = Path().apply {
+                    moveTo(wx, wy - ws)
+                    lineTo(wx + ws, wy)
+                    lineTo(wx, wy + ws)
+                    lineTo(wx - ws, wy)
+                    close()
+                }
+                drawScope.drawPath(wpPath, Color.Magenta.copy(alpha = 0.7f * alpha))
+                drawScope.drawPath(wpPath, Color.White.copy(alpha = 0.3f * alpha), style = Stroke(width = 2f))
+                }
+            }
+        }
     }
 }

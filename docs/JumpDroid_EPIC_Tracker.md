@@ -286,7 +286,7 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 # Release Polish — Pre-Ship Sprint
 
-**Status:** Phase 1–4 Complete, Phase 5 (Audio) In Progress — user sourcing assets
+**Status:** Phases 1–6 Complete ✅ — Phase 7 (Release Prep) Active
 **Plan:** [docs/roadmap/RELEASE_POLISH_PLAN.md](roadmap/RELEASE_POLISH_PLAN.md)
 
 ## Phase 1 - Core Game Feel (COMPLETE)
@@ -313,14 +313,17 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 - [x] 6. Redesign Data Archives
 - [x] 18. Premium purchase + SDK integration (Test Ads Wired)
 
-## Phase 5 - Audio Pass & Haptics (IN PROGRESS)
-- [~] 14. Audio pass (wiring complete, sourcing assets)
-- [~] 19. Haptic feedback (wiring complete, GameEngine activated)
+## Phase 5 - Audio Pass & Haptics (COMPLETE)
+- [x] 14. Audio pass (production assets loaded, volume normalized, 12-zone BGM mapping, material-based landing SFX)
+- [x] 19. Haptic feedback (wiring complete, GameEngine activated, boosted haptics)
 
-## Phase 6 - Release Preparation (NOT STARTED)
-- [ ] Bug bash: full playthrough
-- [ ] Performance profiling
-- [ ] Play Store listing prep
+## Phase 6 - Archive Entity Detail Popups (COMPLETE)
+- [x] 20. Entity detail popup + preview renders (full lore registry, animated previews, glitch-noise detail popups)
+
+## Phase 7 - Release Preparation (ACTIVE)
+- [~] Bug bash: full playthrough — hitbox/WP fixes applied, verifying remaining
+- [ ] Performance profiling: frame drops in upper zones / dense threat fields
+- [ ] Play Store listing prep: screenshots, description, assets
 - [ ] Final APK build + testing
 
 ---
