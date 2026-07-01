@@ -106,6 +106,7 @@ class ArchitectRenderer : ThreatRenderer {
 
         // Weak point indicators — orbiting magenta diamonds
         if (threat.activeWeakPoints > 0) {
+            val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
             val wpPulse = sin(gameTime / 200f) * 0.3f + 0.7f
             repeat(4) { i ->
                 if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
@@ -121,8 +122,8 @@ class ArchitectRenderer : ThreatRenderer {
                     lineTo(wx - ws, wy)
                     close()
                 }
-                drawScope.drawPath(wpPath, Color.Magenta.copy(alpha = 0.7f * alpha))
-                drawScope.drawPath(wpPath, Color.White.copy(alpha = 0.3f * alpha), style = Stroke(width = 2f))
+                drawScope.drawPath(wpPath, Color.Magenta.copy(alpha = 0.7f * wpGlow * alpha))
+                drawScope.drawPath(wpPath, Color.White.copy(alpha = 0.3f * wpGlow * alpha), style = Stroke(width = 2f))
                 }
             }
         }

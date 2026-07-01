@@ -113,19 +113,22 @@ fun MainMenuScreen(
                 "LAUNCH" to { onLaunch() },
                 "HANGAR" to { onNavigate(GameState.HANGAR) },
                 "MISSIONS" to { onNavigate(GameState.MISSIONS) },
+                "SHOP" to { onNavigate(GameState.SHOP) },
                 "ARCHIVE" to { onNavigate(GameState.ARCHIVE) },
                 "TERMINAL" to { onNavigate(GameState.LEADERBOARD) },
                 "PROTOCOL" to { onNavigate(GameState.ABOUT) },
                 "SETTINGS" to { onNavigate(GameState.SETTINGS) }
             )
+            val shopIndex = 3
 
             menuButtons.forEachIndexed { index, (label, action) ->
                 val accentColor = when (index) {
                     0 -> SciFiCyan
                     1 -> SciFiGold
                     2 -> SciFiCyan
-                    3 -> SciFiPurple
-                    4 -> SciFiGold
+                    3 -> SciFiGold
+                    4 -> SciFiPurple
+                    5 -> SciFiGold
                     else -> SciFiCyan
                 }
                 Button(
@@ -141,7 +144,7 @@ fun MainMenuScreen(
                     ),
                     border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = borderPulse))
                 ) {
-                    if (index == 3 && hasNewEntries) {
+                    if (index == 4 && hasNewEntries) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(label, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontSize = 12.sp)
                             Spacer(Modifier.width(6.dp))

@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
@@ -56,6 +57,9 @@ fun GameOverOverlay(
     highScore: Int,
     progressionManager: ProgressionManager,
     continuesUsed: Int,
+    isPremiumUser: Boolean = false,
+    runBossesDefeated: Int = 0,
+    bestComboThisRun: Int = 0,
     onContinue: () -> Unit,
     onRestart: () -> Unit,
     onMainMenu: () -> Unit
@@ -169,26 +173,76 @@ fun GameOverOverlay(
 
             Spacer(Modifier.height(36.dp))
 
-            if (continuesUsed < 1) {
+            val earnedContinues = (runBossesDefeated / 5) + (bestComboThisRun / 15)
+            val maxContinues = (if (isPremiumUser) 5 else 3) + earnedContinues
+            val isFreeContinue = isPremiumUser && continuesUsed == 0
+            val continuesRemaining = maxContinues - continuesUsed
+
+            if (continuesUsed < maxContinues) {
                 val context = LocalContext.current
-                LaunchedEffect(Unit) { RewardedAdHelper.load(context) }
+                var retryCount by remember { mutableStateOf(0) }
+
+                if (!isFreeContinue) {
+                    LaunchedEffect(retryCount, continuesUsed) { RewardedAdHelper.load(context) }
+                }
+
                 Button(
                     onClick = {
-                        RewardedAdHelper.show(context as Activity,
-                            onReward = onContinue,
-                            onFailed = onContinue
-                        )
+                        if (isFreeContinue) {
+                            onContinue()
+                        } else {
+                            RewardedAdHelper.show(context as Activity,
+                                onReward = onContinue,
+                                onFailed = {
+                                    if (retryCount >= 2) {
+                                        onContinue()
+                                    } else {
+                                        retryCount++
+                                    }
+                                }
+                            )
+                        }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isFreeContinue) SciFiGold else SciFiCyan
+                    )
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("[AD]", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp)
-                        Spacer(Modifier.padding(start = 8.dp))
-                        Text("RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    if (isFreeContinue) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("FREE CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("[AD]", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp)
+                            Spacer(Modifier.padding(start = 8.dp))
+                            Text("RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        }
                     }
                 }
+
+                if (continuesRemaining > 0) {
+                    Text(
+                        text = "Continue ${continuesUsed + 1} of $maxContinues",
+                        color = SciFiWhite.copy(alpha = 0.4f),
+                        fontSize = 11.sp,
+                        letterSpacing = 1.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
+                val nextBossTarget = ((runBossesDefeated / 5) + 1) * 5
+                val nextComboTarget = ((bestComboThisRun / 15) + 1) * 15
+                Text(
+                    text = "Bosses: $runBossesDefeated/$nextBossTarget  ·  Best Combo: $bestComboThisRun/$nextComboTarget",
+                    color = SciFiWhite.copy(alpha = 0.25f),
+                    fontSize = 9.sp,
+                    letterSpacing = 1.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
                 Spacer(Modifier.height(12.dp))
             }
 

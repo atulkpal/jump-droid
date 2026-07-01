@@ -1,7 +1,7 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-06-29
-**Project Status:** Release Polish — Phases 1–6 Complete ✅, Phase 7 Active (Release Prep)
+**Last Updated:** 2026-07-01
+**Project Status:** Release Polish — Phases 1–7 Complete ✅
 **Current Stable Tag:** `release-candidate-1`
 **Branch:** `refactor/cleanup`
 **Base Commit:** `HEAD`
@@ -22,6 +22,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Ethical Revenue**: No pay-to-win. No purchasable power or progression. No mission skips.
 *   **Cosmetic Focus**: Revenue is driven by high-quality rocket skins, engine trails, and UI themes.
 *   **Supportive Ads**: Optional rewarded continues and non-obstructive menu banners only.
+*   **Premium Purchase**: Google Play Store only. Fallback dialog tells user to download from Play Store — no direct `confirmPurchase()` from UI.
 
 ### Player Experience Philosophy
 *   **The "Flow" State**: Smooth transitions between platforms and rewards.
@@ -35,18 +36,20 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Current Branch**: `refactor/cleanup`
 *   **Current Stable Tag**: `epic11-complete`
 *   **Current EPIC**: Release Polish (pre-ship sprint)
-*   **Current Status**: **RELEASE POLISH ACTIVE**. Phases 1–6 complete. Phase 7 (release prep) remaining. See `docs/roadmap/RELEASE_POLISH_PLAN.md`.
+*   **Current Status**: **RELEASE POLISH COMPLETE**. Phases 1–7 complete. Remaining: performance profiling, store listing, final APK. See `docs/roadmap/RELEASE_POLISH_PLAN.md`.
 *   **Active Sprint**: None — ready for Phase 7 Final Build.
 *   **Completed Work**:
     *   Phase 1 — Core Game Feel (power-up spawns, combo rewards, boss deaths, mission celebrations, rewarded continue UX)
     *   Phase 2 — Notification Architecture (3-tier priority, unified area, weak notification removal, ad placeholder UI)
     *   Phase 3 — Tutorial Removal + Discovery (tutorial pop-ups removed, learning moved to archives, platform discoveries, unlock celebrations)
-    *   Phase 4 — Data Archives + Monetization (archives redesign, AdMob SDK integration, GlobalAdBanner with production ads, RewardedAd helper, PurchaseManager/Settings premium toggle)
+    *   Phase 4 — Data Archives + Monetization (archives redesign, AdMob SDK integration, GlobalAdBanner with production ads, RewardedAd helper, PurchaseManager BillingClient rewrite, ShopScreen, cash tracking)
     *   Phase 5 — Audio Pass & Haptics (Production assets loaded, volume normalization, 12-zone BGM mapping, material-based landing SFX, boosted haptics)
     *   Phase 6 — Data Archives Detail View (Deep lore registry, animated entity previews, glitch-noise detail popups for all 100+ entities)
-    *   Phase 7 — Bug Bash (player hitbox collision radius, per-WP `wpDestroyedMask` bitmask tracking, WP hitbox positions aligned to visuals across 11 bosses, Signal ghost platform capping, Gravity Anchor pull safe window, Lightning dissolve effect)
-*   **Current Priorities**: Phase 7 Release Prep (remaining bug bash, performance, store listing, final APK).
-*   **Next Planned Work**: Phase 7 — Release Preparation (complete remaining bug bash items, performance profiling, store listing prep).
+    *   Phase 7 — Bug Bash + Polish (player hitbox collision radius, per-WP `wpDestroyedMask` bitmask tracking, WP hitbox positions aligned to visuals across 11 bosses, Signal ghost platform capping, Gravity Anchor pull safe window, Lightning dissolve effect, alarm loop fix all 3 death paths, shield hit sound for bypass damage, Heat Bat aura, Lightning 25→13, boss HP/WP scaling by difficultyMultiplier, wpInvulnerabilityTimer separation, WP cooldown 0.25s/hit radius 45f, Cloud Zone purple-blue storm clouds, Earth Zone golden hour gradient, Shield Platform restore, Conveyor velocity fix, Zone jump freeze fix, Zone change notification, multi-hit WPs, Heat Bat visibility/damage rebalance)
+    *   Phase 7 — Billing + Shop (PurchaseManager BillingClient rewrite, ShopScreen new, ProgressionManager cash tracking, SettingsScreen premium no-toggle-off + data reset buttons, MainActivity/MainMenu shop route + button, AboutScreen V1.5.0 update, Play Store purchase gating, dev menu gated on BuildConfig.DEBUG)
+    *   Phase 7 — Boss Density & Score Integrity (score removal from boss kills, milestone threshold rebalance, one-boss-per-frame guard, no boss while boss alive, boss recurrence system, MINI_BOSS music fix, hazard suppression 0.3f→0.1f, Solar Flare filter during bosses, ThreatRegistry.getEntries())
+*   **Current Priorities**: Performance profiling, Play Store listing prep, final APK build.
+*   **Next Planned Work**: Performance profiling (frame drops in upper zones / dense threat fields), Play Store listing (screenshots, description, assets), final APK build + testing.
 
 ---
 

@@ -112,12 +112,13 @@ class GravityAnchorRenderer : ThreatRenderer {
 
         // Weak point indicators
         if (threat.activeWeakPoints > 0) {
+            val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
             val wpPulse = sin(gameTime / 200f) * 0.3f + 0.7f
             repeat(2) { i ->
                 if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
                 val wy = cy + (if (i == 0) -50f else 50f)
-                drawScope.drawCircle(Color.Magenta.copy(alpha = 0.8f * wpPulse * alpha), radius = 10f * wpPulse, center = Offset(cx, wy))
-                drawScope.drawCircle(Color.White.copy(alpha = 0.5f * alpha), radius = 4f, center = Offset(cx, wy))
+                drawScope.drawCircle(Color.Magenta.copy(alpha = 0.8f * wpPulse * wpGlow * alpha), radius = 10f * wpPulse, center = Offset(cx, wy))
+                drawScope.drawCircle(Color.White.copy(alpha = 0.5f * wpGlow * alpha), radius = 4f, center = Offset(cx, wy))
                 }
             }
         }

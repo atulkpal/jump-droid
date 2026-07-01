@@ -57,10 +57,11 @@ class LeviathanRenderer : ThreatRenderer {
                     drawLine(Color.Cyan.copy(alpha = 0.4f), Offset(windX, windY), Offset(windX, windY + 60f), strokeWidth = 3f)
                 }
 
+                val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
                 val wpIndex = i / 2
                 if (i % 2 == 0 && (threat.wpDestroyedMask and (1 shl wpIndex)) == 0) {
-                    drawCircle(Color.Magenta, radius = 30f * segmentPulse, center = Offset(tx + ox, ty + oy))
-                    drawCircle(Color.White, radius = 10f, center = Offset(tx + ox, ty + oy))
+                    drawCircle(Color.Magenta.copy(alpha = wpGlow), radius = 30f * segmentPulse * wpGlow, center = Offset(tx + ox, ty + oy))
+                    drawCircle(Color.White.copy(alpha = wpGlow), radius = 10f, center = Offset(tx + ox, ty + oy))
                 }
 
                 if (i == 0) {

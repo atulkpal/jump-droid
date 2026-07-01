@@ -10,6 +10,7 @@ import kotlin.random.Random
  */
 class EncounterDirector {
     var threatSpawnTimer = 0f
+    private var bossRecurrenceTimer = 0f
 
     private val zoneConfigs = mapOf(
         AltitudeZone.EARTH to ZoneConfig(
@@ -182,48 +183,55 @@ class EncounterDirector {
         // 1. Milestone Spawning (Boss Progression)
         val bossMilestones = listOf(
             "MINI_BOSS_COMMANDER" to 1500,
-            "MINI_BOSS_THERMAL_HIVE" to 2500,
-            "BOSS_GATEKEEPER" to 4000,
-            "MINI_BOSS_FORGER" to 5500,
-            "BOSS_LEVIATHAN" to 7000,
-            "BOSS_STAR_EATER" to 10000,
-            "MINI_BOSS_GRAVITY_ANCHOR" to 13000,
-            "BOSS_VOID_ENGINE" to 15000,
-            "BOSS_SIGNAL" to 18000,
-            "BOSS_ARCHITECT" to 25000,
+            "MINI_BOSS_THERMAL_HIVE" to 3000,
+            "BOSS_GATEKEEPER" to 4500,
+            "MINI_BOSS_FORGER" to 6500,
+            "BOSS_LEVIATHAN" to 8500,
+            "BOSS_STAR_EATER" to 11000,
+            "MINI_BOSS_GRAVITY_ANCHOR" to 14000,
+            "BOSS_VOID_ENGINE" to 17000,
+            "BOSS_SIGNAL" to 21000,
+            "BOSS_ARCHITECT" to 30000,
             "BOSS_ENTROPY_CORE" to 50000,
             "BOSS_SINGULARITY" to 100000
         )
 
-        bossMilestones.forEach { (id, threshold) ->
-            if (score >= threshold && !bossesSpawned.contains(id)) {
-                ThreatRegistry.getById(id)?.let { def ->
-                    if (currentZone in def.spawnRules.allowedZones || def.spawnRules.allowedZones.isEmpty()) {
-                        bossesSpawned.add(id)
-                        spawnAtConfigPosition(
-                            def, screenWidth, screenHeight, cameraY,
-                            threatManager, notificationManager, score,
-                            difficultyMultiplier = zoneMultiplier,
-                            message = "!!! ${def.name.uppercase()} ARRIVING !!!"
-                        )
-                        onVisualFeedback(50f, 1.0f)
+        // Skip milestone spawning if a boss is already alive — one boss at a time
+        if (threatManager.activeThreats.any { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }) {
+            // Boss alive — skip milestone spawns
+        } else {
+            var spawnedThisFrame = false
+            bossMilestones.forEach { (id, threshold) ->
+                if (!spawnedThisFrame && score >= threshold && !bossesSpawned.contains(id)) {
+                    ThreatRegistry.getById(id)?.let { def ->
+                        if (currentZone in def.spawnRules.allowedZones || def.spawnRules.allowedZones.isEmpty()) {
+                            spawnedThisFrame = true
+                            bossesSpawned.add(id)
+                            spawnAtConfigPosition(
+                                def, screenWidth, screenHeight, cameraY,
+                                threatManager, notificationManager, score,
+                                difficultyMultiplier = zoneMultiplier,
+                                message = "!!! ${def.name.uppercase()} ARRIVING !!!"
+                            )
+                            onVisualFeedback(50f, 1.0f)
 
-                        val discovery = when(id) {
-                            "MINI_BOSS_COMMANDER" -> DiscoveryType.THREAT_SENTINEL
-                            "MINI_BOSS_THERMAL_HIVE" -> DiscoveryType.THREAT_THERMAL_HIVE
-                            "BOSS_GATEKEEPER" -> DiscoveryType.THREAT_GATEKEEPER
-                            "MINI_BOSS_FORGER" -> DiscoveryType.THREAT_FORGER
-                            "BOSS_LEVIATHAN" -> DiscoveryType.THREAT_LEVIATHAN
-                            "MINI_BOSS_GRAVITY_ANCHOR" -> DiscoveryType.THREAT_GRAVITY_ANCHOR
-                            "BOSS_STAR_EATER" -> DiscoveryType.THREAT_STAR_EATER
-                            "BOSS_VOID_ENGINE" -> DiscoveryType.THREAT_VOID_ENGINE
-                            "BOSS_SIGNAL" -> DiscoveryType.THREAT_SIGNAL
-                            "BOSS_ARCHITECT" -> DiscoveryType.THREAT_ARCHITECT
-                            "BOSS_ENTROPY_CORE" -> DiscoveryType.THREAT_ENTROPY_CORE
-                            "BOSS_SINGULARITY" -> DiscoveryType.THREAT_SINGULARITY
-                            else -> null
+                            val discovery = when(id) {
+                                "MINI_BOSS_COMMANDER" -> DiscoveryType.THREAT_SENTINEL
+                                "MINI_BOSS_THERMAL_HIVE" -> DiscoveryType.THREAT_THERMAL_HIVE
+                                "BOSS_GATEKEEPER" -> DiscoveryType.THREAT_GATEKEEPER
+                                "MINI_BOSS_FORGER" -> DiscoveryType.THREAT_FORGER
+                                "BOSS_LEVIATHAN" -> DiscoveryType.THREAT_LEVIATHAN
+                                "MINI_BOSS_GRAVITY_ANCHOR" -> DiscoveryType.THREAT_GRAVITY_ANCHOR
+                                "BOSS_STAR_EATER" -> DiscoveryType.THREAT_STAR_EATER
+                                "BOSS_VOID_ENGINE" -> DiscoveryType.THREAT_VOID_ENGINE
+                                "BOSS_SIGNAL" -> DiscoveryType.THREAT_SIGNAL
+                                "BOSS_ARCHITECT" -> DiscoveryType.THREAT_ARCHITECT
+                                "BOSS_ENTROPY_CORE" -> DiscoveryType.THREAT_ENTROPY_CORE
+                                "BOSS_SINGULARITY" -> DiscoveryType.THREAT_SINGULARITY
+                                else -> null
+                            }
+                            discovery?.let { onDiscovery(it) }
                         }
-                        discovery?.let { onDiscovery(it) }
                     }
                 }
             }
@@ -231,6 +239,7 @@ class EncounterDirector {
 
         // 2. Threat Spawning Logic
         threatSpawnTimer += dt
+        bossRecurrenceTimer += dt
         
         // EPIC 11: Eternal Mode Scaling (Capped)
         val eternalFactor = if (score > 100000) (score - 100000) / 15000f else 0f
@@ -246,12 +255,14 @@ class EncounterDirector {
             // Slow down spawning if boss is present; scale up with zone intensity
             val bossPresent = activeThreats.any { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }
             val zoneSpawnMod = 0.5f + intensityFactor * 0.5f
-            val spawnChanceMod = zoneSpawnMod * if (bossPresent) 0.3f else 1.0f
+            val spawnChanceMod = zoneSpawnMod * if (bossPresent) 0.1f else 1.0f
 
             // 2.1 Environmental Hazards — data-driven from config weights + ThreatDefinition spawn config
             val maxHazards = max(1, (intensityFactor * 0.5f).toInt())
             if (activeThreats.count { it.definition.type == ThreatType.HAZARD } < maxHazards) {
-                val hazards = eligible.filter { it.type == ThreatType.HAZARD }.shuffled()
+                val hazards = eligible.filter { it.type == ThreatType.HAZARD }
+                    .filter { !(bossPresent && it.id == "HAZ_SOLAR_FLARE") }
+                    .shuffled()
                 for (hazard in hazards) {
                     val weight = config.spawnWeights[hazard.id] ?: config.spawnWeights["DEFAULT_HAZARD"] ?: 1.0f
                     if (Random.nextFloat() < hazard.spawnRules.spawnChance * spawnChanceMod * weight) {
@@ -348,6 +359,38 @@ class EncounterDirector {
                     val escortHazards = eligible.filter { it.type == ThreatType.HAZARD && it.id != activeBoss.definition.id }
                     escortHazards.randomOrNull()?.let { def ->
                         threatManager.spawnThreat(def, activeBoss.x, activeBoss.y + 100f)
+                    }
+                }
+            }
+
+            // 2.6 Boss Recurrence — previously-defeated bosses reappear during dry spells
+            if (bossRecurrenceTimer > 3f
+                && activeThreats.none { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }
+            ) {
+                // Eligible: previously-defeated bosses that can spawn here + any mini-boss allowed in this zone
+                val defeatedBosses = bossesSpawned.filter { id ->
+                    val def = ThreatRegistry.getById(id)
+                    def != null && currentZone in def.spawnRules.allowedZones
+                }
+                val zoneMiniBosses = ThreatRegistry.getEntries()
+                    .filter { it.type == ThreatType.MINI_BOSS && currentZone in it.spawnRules.allowedZones }
+                    .map { it.id }
+                val eligible = (defeatedBosses + zoneMiniBosses).distinct()
+                if (eligible.isNotEmpty()) {
+                    val recChance = (0.05f * intensityFactor).coerceAtMost(0.25f)
+                    if (Random.nextFloat() < recChance) {
+                        val bossId = eligible.random()
+                        ThreatRegistry.getById(bossId)?.let { def ->
+                            spawnAtConfigPosition(
+                                def, screenWidth, screenHeight, cameraY,
+                                threatManager, notificationManager, score,
+                                difficultyMultiplier = zoneMultiplier * 1.3f,
+                                message = "RECURRENCE: ${def.name.uppercase()}"
+                            )
+                            onVisualFeedback(30f, 0.5f)
+                            def.discoveryType?.let { onDiscovery(it) }
+                        }
+                        bossRecurrenceTimer = 0f
                     }
                 }
             }

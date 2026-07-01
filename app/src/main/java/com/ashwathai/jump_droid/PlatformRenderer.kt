@@ -42,7 +42,7 @@ class PlatformRenderer {
                 PlatformType.PHASE -> drawPhasePlatform(this, px, py, platform.width, currentZone, gameTime)
                 PlatformType.FUEL -> drawEnergyPlatform(this, px, py, platform.width, SciFiGreen, "FUEL", currentZone, gameTime)
                 PlatformType.COOLING -> drawEnergyPlatform(this, px, py, platform.width, SciFiCyan, "COOL", currentZone, gameTime)
-                PlatformType.STABILITY -> drawEnergyPlatform(this, px, py, platform.width, SciFiWhite, "STAB", currentZone, gameTime)
+                PlatformType.STABILITY -> drawEnergyPlatform(this, px, py, platform.width, SciFiCyan, "SHLD", currentZone, gameTime)
                 PlatformType.MAGNETIC -> drawMagneticPlatform(this, platform, py, currentZone, gameTime)
                 PlatformType.FLUX -> FluxRenderer.draw(this, platform, py, currentZone, gameTime)
                 PlatformType.GRAVITON -> GravitonRenderer.draw(this, platform, py, currentZone, gameTime)

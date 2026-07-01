@@ -142,6 +142,7 @@ class SingularityRenderer : ThreatRenderer {
         
         // 7. Weak point indicators
         if (remainingWp > 0) {
+            val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
             val wpAngleStep = 360f / threat.maxWeakPoints.coerceAtLeast(1)
             repeat(threat.maxWeakPoints) { i ->
                 if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
@@ -152,12 +153,12 @@ class SingularityRenderer : ThreatRenderer {
                 val wpy = cy + sin(wpRad) * wpDist
                 val wpPulse = sin(gameTime / 200f + i * 2f) * 0.3f + 0.7f
                 drawScope.drawCircle(
-                    color = Color(0xFFFF1744).copy(alpha = 0.6f * alpha * wpPulse),
+                    color = Color(0xFFFF1744).copy(alpha = 0.6f * alpha * wpPulse * wpGlow),
                     radius = 6f * wpPulse,
                     center = Offset(wpx, wpy)
                 )
                 drawScope.drawCircle(
-                    color = Color.White.copy(alpha = 0.3f * alpha * wpPulse),
+                    color = Color.White.copy(alpha = 0.3f * alpha * wpPulse * wpGlow),
                     radius = 3f,
                     center = Offset(wpx, wpy)
                 )

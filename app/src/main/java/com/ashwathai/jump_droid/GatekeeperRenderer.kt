@@ -32,7 +32,7 @@ class GatekeeperRenderer : ThreatRenderer {
 
                 repeat(4) { i ->
                     val isWpDestroyed = (threat.wpDestroyedMask and (1 shl i)) != 0
-                    rotate(i * 90f, pivot = Offset(tx, ty)) {
+                    rotate(threat.rotation + i * 90f, pivot = Offset(tx, ty)) {
                         val safeColor = if (isWpDestroyed) Color.Red.copy(alpha = 0.2f) else Color(0xFF00E676).copy(alpha = 0.4f)
                         val dangerColor = Color.Red.copy(alpha = 0.5f)
                         drawArc(safeColor, startAngle = 45f, sweepAngle = 10f, useCenter = false, topLeft = Offset(tx - 250f, ty - 250f), size = Size(500f, 500f), style = Stroke(width = 80f))
@@ -42,10 +42,11 @@ class GatekeeperRenderer : ThreatRenderer {
                         drawRect(Color(0xFFFF1744).copy(alpha = 0.15f), Offset(tx + 245f, ty - 300f), Size(10f, 600f))
 
                         if (!isWpDestroyed) {
+                            val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
                             val shieldAngle = (gameTime / 30f) % 360f
-                            drawCircle(Color.Magenta, radius = 25f, center = Offset(tx + 250f, ty))
-                            drawCircle(Color.White, radius = 10f, center = Offset(tx + 250f, ty))
-                            drawArc(Color.Cyan.copy(alpha = 0.4f), startAngle = shieldAngle, sweepAngle = 120f, useCenter = false, topLeft = Offset(tx + 225f, ty - 25f), size = Size(50f, 50f), style = Stroke(width = 4f))
+                            drawCircle(Color.Magenta.copy(alpha = wpGlow), radius = 25f, center = Offset(tx + 250f, ty))
+                            drawCircle(Color.White.copy(alpha = 0.5f * wpGlow), radius = 10f, center = Offset(tx + 250f, ty))
+                            drawArc(Color.Cyan.copy(alpha = 0.4f * wpGlow), startAngle = shieldAngle, sweepAngle = 120f, useCenter = false, topLeft = Offset(tx + 225f, ty - 25f), size = Size(50f, 50f), style = Stroke(width = 4f))
                         }
                     }
                 }

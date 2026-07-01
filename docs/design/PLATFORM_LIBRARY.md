@@ -80,12 +80,13 @@ These platforms are fully implemented with unique physics and visual rendering.
 *   **Zone Usage:** Upper Atmosphere and above.
 *   **Current Status:** Complete.
 
-### 9. Stability Platform
-*   **Name:** Stability Platform
-*   **Description:** Stabilizes flight control temporarily.
-*   **Visual Appearance:** White block with pulsing inner border, corner decals, animated resource-flow particles, and "STAB" text label with white glow shadow.
-*   **Behavior:** Grants a 10-second stability buff (improved steering).
-*   **Spawn Rules:** Utility variant.
+### 9. Shield Platform (formerly Stability Platform)
+*   **Name:** Shield Platform
+*   **Internal ID:** `PlatformType.STABILITY` (legacy name — not renamed to avoid scope creep)
+*   **Description:** Fully recharges energy shields on contact.
+*   **Visual Appearance:** Cyan block with pulsing inner border, corner decals, animated resource-flow particles, and "SHLD" text label with cyan glow shadow.
+*   **Behavior:** Instantly restores `player.shield = player.maxShield` and resets `shieldRegenPauseTimer` to `0f` on landing.
+*   **Spawn Rules:** Utility variant (same spawn slot as FUEL/COOLING).
 *   **Zone Usage:** Upper Atmosphere and above.
 *   **Current Status:** Complete.
 

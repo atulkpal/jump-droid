@@ -112,16 +112,17 @@ class CommanderRenderer : ThreatRenderer {
                 }
             }
 
+            val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
             repeat(threat.maxWeakPoints) { i ->
                 val isDestroyed = (threat.wpDestroyedMask and (1 shl i)) != 0
                 val wx = tx - 80f + (i * 80f)
                 val wy = ty - 40f
                 if (!isDestroyed) {
-                    drawRect(Color.Magenta, topLeft = Offset(wx - 10f, wy - 10f), size = Size(20f, 20f))
-                    drawRect(Color.White, topLeft = Offset(wx - 10f, wy - 10f), size = Size(20f, 20f), style = Stroke(width = 2f))
+                    drawRect(Color.Magenta.copy(alpha = wpGlow), topLeft = Offset(wx - 10f, wy - 10f), size = Size(20f, 20f))
+                    drawRect(Color.White.copy(alpha = 0.5f * wpGlow), topLeft = Offset(wx - 10f, wy - 10f), size = Size(20f, 20f), style = Stroke(width = 2f))
                     val beaconAngle = (gameTime / 20f + i * 120f) % 360f
                     rotate(beaconAngle, pivot = Offset(wx, wy)) {
-                        drawLine(Color.White.copy(alpha = 0.5f), Offset(wx, wy), Offset(wx + 15f, wy), strokeWidth = 2f)
+                        drawLine(Color.White.copy(alpha = 0.5f * wpGlow), Offset(wx, wy), Offset(wx + 15f, wy), strokeWidth = 2f)
                     }
                 }
             }

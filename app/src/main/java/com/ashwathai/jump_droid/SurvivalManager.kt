@@ -107,7 +107,7 @@ class SurvivalManager {
         if (player.integrity <= 0 && player.destructionTimer <= 0) {
             player.destructionTimer = 0.01f // Start sequence
             onShake(30f)
-            onPlaySfx("death")
+            onPlaySfx("sfx_gameover")
             onVibrate(HapticManager.HapticType.EXPLOSION)
         }
 

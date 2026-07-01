@@ -77,13 +77,14 @@ class StarEaterRenderer : ThreatRenderer {
             }
 
             if (threat.activeWeakPoints > 0) {
+                val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
                 val wpPulse = (sin(gameTime / 300f) * 0.3f + 0.7f)
                 repeat(threat.maxWeakPoints) { i ->
                     if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
                         val wx = tx + cos(threat.lifetime * 2f + i) * 100f
                         val wy = ty + sin(threat.lifetime * 2f + i) * 100f
-                        drawCircle(Color.Magenta.copy(alpha = 0.9f), radius = 15f * wpPulse, center = Offset(wx, wy))
-                        drawCircle(Color.White.copy(alpha = 0.6f), radius = 5f, center = Offset(wx, wy))
+                        drawCircle(Color.Magenta.copy(alpha = 0.9f * wpGlow), radius = 15f * wpPulse * wpGlow, center = Offset(wx, wy))
+                        drawCircle(Color.White.copy(alpha = 0.6f * wpGlow), radius = 5f, center = Offset(wx, wy))
                     }
                 }
             }

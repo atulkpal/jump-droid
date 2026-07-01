@@ -5,7 +5,11 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,6 +30,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -396,9 +403,21 @@ fun ComboDisplay(
         else -> SciFiRed
     }
 
+    // Pulse animation on combo increase
+    val ringScale = remember { Animatable(1f) }
+    var prevCombo by remember { mutableIntStateOf(0) }
+    LaunchedEffect(currentCombo) {
+        if (currentCombo > prevCombo && prevCombo > 0) {
+            ringScale.snapTo(1.35f)
+            ringScale.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+        }
+        prevCombo = currentCombo
+    }
+
     Box(
         modifier = modifier
-            .size(52.dp),
+            .size(52.dp)
+            .graphicsLayer(scaleX = ringScale.value, scaleY = ringScale.value),
         contentAlignment = Alignment.Center
     ) {
         // Background Ring (Scanner/Radar style)
@@ -434,6 +453,16 @@ fun ComboDisplay(
                 sweepAngle = 40f,
                 useCenter = true,
             )
+
+            // Pulse flash ring on combo increase
+            val pulseAlpha = ((ringScale.value - 1f) / 0.35f).coerceIn(0f, 1f) * 0.6f
+            if (pulseAlpha > 0.05f) {
+                drawCircle(
+                    color = Color.White.copy(alpha = pulseAlpha),
+                    radius = size.minDimension / 2 + 4f,
+                    style = Stroke(width = 3.dp.toPx())
+                )
+            }
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

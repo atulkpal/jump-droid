@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 import kotlin.math.*
 
 enum class GameState {
-    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS, ASCENSION_PROTOCOL
+    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS, ASCENSION_PROTOCOL, SHOP
 }
 
 enum class PowerUpType {
@@ -23,7 +23,7 @@ enum class DiscoveryType(val title: String, val description: String, val lore: S
     PHASE_PLATFORM("Phase Platform", "Appears and disappears. Time your landing carefully.", "Time your landing carefully.", "PLATFORMS"),
     FUEL_PLATFORM("Fuel Platform", "Restores fuel reserves.", "Equipped with automated refueling nozzles.", "PLATFORMS"),
     COOLING_PLATFORM("Cooling Platform", "Reduces engine heat. Useful during long climbs.", "Advanced liquid nitrogen heat exchangers.", "PLATFORMS"),
-    STABILITY_PLATFORM("Stability Platform", "Improves flight control. Reduces environmental influence.", "Emits a dampening field that stabilizes rocket trajectory.", "PLATFORMS"),
+    STABILITY_PLATFORM("Shield Platform", "Fully recharges energy shields on landing.", "Residual shield energy saturates the surface — contact triggers an emergency capacitor dump into droid systems.", "PLATFORMS"),
     MAGNETIC_PLATFORM("Magnetic Platform", "Generates a gravity field. Movement is influenced inside the field.", "Movement is influenced inside the field.", "PLATFORMS"),
     CONVEYOR_PLATFORM("Conveyor Platform", "Automated transport surface.", "Ancient industrial belts used for orbital logistics.", "PLATFORMS"),
     MIMIC_PLATFORM("Mimic Platform", "Deceptive structural failure.", "Unstable matter that shatters upon physical contact.", "PLATFORMS"),
@@ -238,6 +238,7 @@ class Player(
     // Visual Feedback State
     var squashStretch by mutableFloatStateOf(1.0f)
     var invulnerabilityTimer by mutableFloatStateOf(0f)
+    var wpInvulnerabilityTimer by mutableFloatStateOf(0f)
     var isOnPlatform by mutableStateOf(false)
     var destructionTimer by mutableFloatStateOf(0f) // Task 3: Destruction sequence
     var activeTether by mutableStateOf<Tether?>(null)
@@ -264,6 +265,7 @@ class Player(
             integrity = max(0f, integrity - 2f * dt)
         }
         if (invulnerabilityTimer > 0) invulnerabilityTimer = max(0f, invulnerabilityTimer - dt)
+        if (wpInvulnerabilityTimer > 0) wpInvulnerabilityTimer = max(0f, wpInvulnerabilityTimer - dt)
         if (comboFreezeTimer > 0) comboFreezeTimer = max(0f, comboFreezeTimer - dt)
         if (controlInversionTimer > 0) controlInversionTimer = max(0f, controlInversionTimer - dt)
         if (hudInterferenceTimer > 0) hudInterferenceTimer = max(0f, hudInterferenceTimer - dt)

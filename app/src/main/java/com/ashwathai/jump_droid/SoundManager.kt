@@ -7,6 +7,9 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.SoundPool
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +27,6 @@ class SoundManager(context: Context) {
 
     private var soundPool: SoundPool? = null
     private val loadedSfx = mutableMapOf<String, Int>()
-    private val loadingStatus = mutableMapOf<Int, Boolean>()
 
     // Dual MediaPlayer for crossfade
     private var musicPlayerA: MediaPlayer? = null
@@ -68,7 +70,7 @@ class SoundManager(context: Context) {
             updateMusicVolume()
         }
 
-    private var _isMuted = sharedPrefs.getBoolean("is_muted", false)
+    private var _isMuted by mutableStateOf(sharedPrefs.getBoolean("is_muted", false))
     var isMuted: Boolean
         get() = _isMuted
         set(value) {
@@ -118,12 +120,6 @@ class SoundManager(context: Context) {
             soundPool = SoundPool(15, AudioManager.STREAM_MUSIC, 0)
         }
 
-        soundPool?.setOnLoadCompleteListener { _, sampleId, status ->
-            if (status == 0) {
-                loadingStatus[sampleId] = true
-            }
-        }
-
         loadAllSfx()
         applyMuteState(_isMuted)
         Log.d("SoundManager", "Initialized — sfx=$sfxVolume music=$musicVolume muted=$_isMuted")
@@ -138,7 +134,10 @@ class SoundManager(context: Context) {
         } else {
             soundPool?.autoResume()
             // Restart ambient loop
-            currentZone?.let { startAmbientForZone(it) }
+            currentZone?.let {
+                ambientLoop = null
+                startAmbientForZone(it)
+            }
             if (isBossMusicPlaying) {
                 playBossMusic()
             } else {
@@ -199,12 +198,10 @@ class SoundManager(context: Context) {
         }
 
         loadedSfx[targetName]?.let { id ->
-            if (loadingStatus[id] == true) {
-                val bias = sfxBias[targetName] ?: 1.0f
-                val vol = (sfxVolume * bias).coerceIn(0f, 1f)
-                val loopVal = if (loop) -1 else 0
-                soundPool?.play(id, vol, vol, 1, loopVal, 1f)
-            }
+            val bias = sfxBias[targetName] ?: 1.0f
+            val vol = (sfxVolume * bias).coerceIn(0f, 1f)
+            val loopVal = if (loop) -1 else 0
+            soundPool?.play(id, vol, vol, 1, loopVal, 1f)
         }
     }
 
@@ -214,14 +211,12 @@ class SoundManager(context: Context) {
         if (_isMuted) return
         if (activeLoopNames.contains(name)) return // prevent duplicates
         loadedSfx[name]?.let { id ->
-            if (loadingStatus[id] == true) {
-                val bias = sfxBias[name] ?: 1.0f
-                val vol = (sfxVolume * bias).coerceIn(0f, 1f)
-                val streamId = soundPool?.play(id, vol, vol, 1, -1, 1f) ?: return
-                loopStreams[name] = streamId
-                activeLoopNames.add(name)
-                Log.d("SoundManager", "startLoop: $name (stream=$streamId)")
-            }
+            val bias = sfxBias[name] ?: 1.0f
+            val vol = (sfxVolume * bias).coerceIn(0f, 1f)
+            val streamId = soundPool?.play(id, vol, vol, 1, -1, 1f) ?: return
+            loopStreams[name] = streamId
+            activeLoopNames.add(name)
+            Log.d("SoundManager", "startLoop: $name (stream=$streamId)")
         }
     }
 
@@ -326,12 +321,10 @@ class SoundManager(context: Context) {
     fun startThrust() {
         if (_isMuted || thrustStreamId != 0) return
         loadedSfx["sfx_thrust_loop"]?.let { id ->
-            if (loadingStatus[id] == true) {
-                val bias = sfxBias["sfx_thrust_loop"] ?: 0.5f
-                val vol = (sfxVolume * bias).coerceIn(0f, 1f)
-                thrustStreamId = soundPool?.play(id, vol, vol, 1, -1, 1f) ?: 0
-                Log.d("SoundManager", "Thrust started (stream=$thrustStreamId)")
-            }
+            val bias = sfxBias["sfx_thrust_loop"] ?: 0.5f
+            val vol = (sfxVolume * bias).coerceIn(0f, 1f)
+            thrustStreamId = soundPool?.play(id, vol, vol, 1, -1, 1f) ?: 0
+            Log.d("SoundManager", "Thrust started (stream=$thrustStreamId)")
         }
     }
 

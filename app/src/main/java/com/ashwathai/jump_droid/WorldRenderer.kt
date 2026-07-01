@@ -61,6 +61,7 @@ class WorldRenderer {
             // 10. Threats
             engine.threatManager.activeThreats.forEach { threat ->
                 ThreatRendererRegistry.forId(threat.definition.id)?.render(this, threat, cameraY, 1.0f, gameTime, player)
+                drawBossHealthBar(threat, cameraY)
             }
 
             // 11. PowerUps

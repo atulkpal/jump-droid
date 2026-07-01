@@ -443,6 +443,8 @@ object ThreatRegistry {
     /**
      * Returns a list of threats that are eligible to spawn at a specific altitude and zone.
      */
+    fun getEntries(): Collection<ThreatDefinition> = threats.values
+
     fun getEligibleThreats(altitude: Int, zone: AltitudeZone): List<ThreatDefinition> {
         return threats.values.filter { threat ->
             val rules = threat.spawnRules

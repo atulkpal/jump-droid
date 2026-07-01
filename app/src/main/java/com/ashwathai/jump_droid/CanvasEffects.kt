@@ -1,5 +1,6 @@
 package com.ashwathai.jump_droid
 
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -14,6 +15,7 @@ import com.ashwathai.jump_droid.ui.theme.SciFiGreen
 import com.ashwathai.jump_droid.ui.theme.SciFiGold
 import com.ashwathai.jump_droid.ui.theme.SciFiPurple
 import com.ashwathai.jump_droid.ui.theme.SciFiRed
+import androidx.compose.ui.graphics.nativeCanvas
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -201,7 +203,12 @@ fun DrawScope.drawPowerUps(
     powerUps.forEach { pu ->
         val px = pu.x
         val py = pu.y - cameraY
-        val despawnAlpha = (pu.despawnTimer / 8.0f).coerceIn(0f, 1f)
+        val rawAlpha = (pu.despawnTimer / 8.0f).coerceIn(0f, 1f)
+        // Blink rapidly in last 1.5s
+        val blinkMod = if (pu.despawnTimer < 1.5f && (gameTime / 100).toInt() % 2 == 0) 0f else 1f
+        val despawnAlpha = rawAlpha * blinkMod
+        // Shrink in last 2s
+        val despawnScale = if (pu.despawnTimer < 2f) (pu.despawnTimer / 2f).coerceIn(0.3f, 1f) else 1f
         val glowFreq = gameTime / (120f / pu.glowPulseSpeed)
         val glowPulse = sin(glowFreq) * 0.2f * despawnAlpha + 0.8f * despawnAlpha
         val baseColor = when (pu.type) {
@@ -218,6 +225,7 @@ fun DrawScope.drawPowerUps(
             PowerUpType.OVERDRIVE_MODULE -> Color.Red
         }
 
+        scale(despawnScale, pivot = Offset(px, py)) {
         // D1: Hexagonal background plate
         val plateRadius = 28f
         val hexPath = Path().apply {
@@ -370,6 +378,7 @@ fun DrawScope.drawPowerUps(
                 drawPath(path, pulseColor)
             }
         }
+        } // scale(despawnScale)
     }
 }
 
@@ -604,4 +613,43 @@ fun DrawScope.drawImpactFlash(
             style = Stroke(width = 20f)
         )
     }
+}
+
+fun DrawScope.drawBossHealthBar(threat: ActiveThreat, cameraY: Float) {
+    if (threat.definition.type != ThreatType.BOSS && threat.definition.type != ThreatType.MINI_BOSS) return
+    if (threat.state != ThreatState.ACTIVE || threat.phase < 2) return
+
+    val barWidth = 180f
+    val barHeight = 10f
+    val x = threat.x - barWidth / 2
+    val y = threat.y - cameraY - 80f
+
+    val maxHealth = threat.definition.baseHealth * threat.difficultyMultiplier
+    val healthRatio = (threat.health / maxHealth).coerceIn(0f, 1f)
+    val barColor = when {
+        healthRatio > 0.6f -> Color(0xFF4CAF50)
+        healthRatio > 0.3f -> Color(0xFFFFA000)
+        else -> Color(0xFFE53935)
+    }
+
+    drawRoundRect(Color.DarkGray.copy(alpha = 0.6f), topLeft = Offset(x, y), size = Size(barWidth, barHeight), cornerRadius = CornerRadius(3f, 3f))
+    if (healthRatio > 0f) {
+        drawRoundRect(barColor.copy(alpha = 0.9f), topLeft = Offset(x + 1f, y + 1f), size = Size((barWidth - 2f) * healthRatio, barHeight - 2f), cornerRadius = CornerRadius(2f, 2f))
+    }
+    drawRoundRect(Color.White.copy(alpha = 0.3f), topLeft = Offset(x, y), size = Size(barWidth, barHeight), cornerRadius = CornerRadius(3f, 3f), style = Stroke(width = 1f))
+
+    // Boss name above HP bar
+    val nameStr = threat.definition.name.uppercase()
+    drawContext.canvas.nativeCanvas.drawText(
+        nameStr,
+        threat.x - nameStr.length * 4.5f,
+        y - 6f,
+        android.graphics.Paint().apply {
+            color = android.graphics.Color.argb(230, 0, 255, 255)
+            textSize = 18f
+            textAlign = android.graphics.Paint.Align.LEFT
+            this.typeface = android.graphics.Typeface.MONOSPACE
+            isAntiAlias = true
+        }
+    )
 }

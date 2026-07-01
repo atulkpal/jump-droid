@@ -159,7 +159,15 @@ fun MissionScreen(
             ) {
                 Text("BACK TO COMMAND", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "CURRENCY SHOP — COMING IN V2",
+                color = SciFiWhite.copy(alpha = 0.3f),
+                fontSize = 8.sp,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(4.dp))
             GlobalAdBanner()
 
             // Claim celebration overlay
@@ -247,7 +255,7 @@ private fun TrackRow(
                     Spacer(Modifier.height(4.dp))
                     val rewardTexts = mission.rewards.mapNotNull { reward ->
                         when (reward) {
-                            is MissionReward.Cash -> "+${reward.amount} CASH"
+                            is MissionReward.Cash -> "+${reward.amount} CASH (v2)"
                             is MissionReward.ModuleUnlock -> "MODULE"
                             is MissionReward.Artifact -> "ARTIFACT"
                             is MissionReward.PowerUp -> reward.type.name.replace("_", " ")

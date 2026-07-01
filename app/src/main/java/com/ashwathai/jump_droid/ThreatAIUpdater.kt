@@ -17,7 +17,7 @@ fun ActiveThreat.updateAI(
     
     // --- Life Cycle Calculation (Adjustment Run 1) ---
     val lifeRatio = (lifetime / duration).coerceIn(0f, 1f)
-    if (definition.type == ThreatType.HAZARD) {
+    if (definition.type == ThreatType.HAZARD && phase != 4) {
         phase = when {
             lifeRatio < 0.15f -> 1 
             lifeRatio < 0.85f -> 2
@@ -58,6 +58,7 @@ fun ActiveThreat.updateAI(
             }
             activeWeakPoints = maxWeakPoints
             wpDestroyedMask = 0
+            wpHitCounts = IntArray(maxWeakPoints) { 0 }
         }
     }
 
@@ -386,6 +387,8 @@ fun ActiveThreat.updateAI(
                     isArrived = true
                     phase = 2
                     localTimer = 0f
+                    vy = 0f
+                    vx = 0f
                 }
                 return
             }
@@ -410,7 +413,7 @@ fun ActiveThreat.updateAI(
                     x += (targetX - x) * 0.5f * dt
                     y += (targetY - y) * 0.40f * dt
                     
-                    if (localTimer > 12f || activeWeakPoints <= 0) {
+                    if (activeWeakPoints <= 0) {
                         phase = 4
                         localTimer = 0f
                     }

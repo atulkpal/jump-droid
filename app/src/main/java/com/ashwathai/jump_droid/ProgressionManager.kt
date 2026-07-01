@@ -69,7 +69,12 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     var ascensionPrestigeLevel by mutableIntStateOf(0)
         private set
 
+    var totalCash by mutableIntStateOf(0)
+        private set
+
     val missionsCompleted: Int get() = completedMissionIds.size
+
+    fun getCashBalance(): Int = totalCash
 
     override var highScore by mutableIntStateOf(0)
         internal set
@@ -110,6 +115,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         lifetimeLandings = sharedPrefs.getInt("stat_lifetime_landings", 0)
         lifetimeMissionsCompleted = sharedPrefs.getInt("missions_completed", 0)
         ascensionPrestigeLevel = sharedPrefs.getInt("ascension_prestige", 0)
+        totalCash = sharedPrefs.getInt("total_cash", 0)
 
         val artifactTypes = DiscoveryType.values().filter { it.category == "ARTIFACTS" }
         val loadedArtifacts = mutableMapOf<String, ArtifactRecord>()
@@ -344,7 +350,9 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
                 grantModule(reward.moduleId)
             }
             is MissionReward.Cash -> {
-                // Cash system placeholder
+                totalCash += reward.amount
+                sharedPrefs.edit { putInt("total_cash", totalCash) }
+                android.util.Log.d("Progression", "Cash reward +${reward.amount} granted — balance=$totalCash")
             }
             is MissionReward.None -> {}
         }
@@ -405,6 +413,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         currentRank = AscensionRank.EXPLORER_I
         permanentMaxIntegrity = Constants.BASE_INTEGRITY
         permanentMaxShield = Constants.BASE_SHIELD
+        totalCash = 0
     }
 
     /**

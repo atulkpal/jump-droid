@@ -26,10 +26,27 @@ class ZoneBackgroundRenderer {
     }
 
     private fun setupEarthLayers() {
+        // Stars (night sky)
+        parallaxManager.registerLayer(AltitudeZone.EARTH, RepeatingParallaxLayer(
+            parallaxFactor = 0.03f,
+            zIndex = 0,
+            density = 30,
+            seed = 999,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val twinkle = (sin(gameTime / 600f + random.nextInt(100)) * 0.4f + 0.6f)
+                val brightness = (0.3f + random.nextFloat() * 0.7f) * opacity * twinkle
+                drawCircle(
+                    color = Color.White.copy(alpha = brightness),
+                    radius = 0.8f + random.nextFloat() * 1.5f,
+                    center = Offset(x, y)
+                )
+            }
+        ))
+
         parallaxManager.registerLayer(AltitudeZone.EARTH, SilhouetteParallaxLayer(
             parallaxFactor = 0.10f,
             zIndex = 1,
-            color = Color(0xFF1A0033).copy(alpha = 0.4f),
+            color = Color(0xFF0D0020).copy(alpha = 0.6f),
             pathPoints = listOf(
                 Offset(0f, 0.85f), Offset(0.25f, 0.7f), Offset(0.5f, 0.9f),
                 Offset(0.75f, 0.65f), Offset(1f, 0.95f)
@@ -40,7 +57,7 @@ class ZoneBackgroundRenderer {
         parallaxManager.registerLayer(AltitudeZone.EARTH, SilhouetteParallaxLayer(
             parallaxFactor = 0.25f,
             zIndex = 2,
-            color = Color(0xFF2E7D32).copy(alpha = 0.3f),
+            color = Color(0xFF0A1A0A).copy(alpha = 0.5f),
             pathPoints = listOf(
                 Offset(0f, 0.92f), Offset(0.2f, 0.88f), Offset(0.4f, 0.95f),
                 Offset(0.6f, 0.9f), Offset(0.8f, 0.94f), Offset(1f, 0.9f)
@@ -56,7 +73,7 @@ class ZoneBackgroundRenderer {
             renderElement = { x, y, opacity, random, gameTime ->
                 val drift = sin(gameTime / 2000f + random.nextInt(100)) * 50f
                 drawCircle(
-                    color = Color.White.copy(alpha = 0.25f * opacity),
+                    color = Color(0xFF90CAF9).copy(alpha = 0.10f * opacity),
                     radius = 100f + random.nextFloat() * 150f,
                     center = Offset(x + drift, y)
                 )
@@ -68,16 +85,29 @@ class ZoneBackgroundRenderer {
             zIndex = 5,
             renderElement = { opacity, gameTime ->
                 val fade = (1f - opacity).coerceIn(0f, 1f)
-                val sunAlpha = (1f - fade).coerceIn(0f, 1f) * 0.6f
+                val moonAlpha = (1f - fade).coerceIn(0f, 1f) * 0.5f
+                // Moon glow
                 drawCircle(
-                    color = Color(0xFFFFF9C4).copy(alpha = sunAlpha),
-                    radius = 50f,
-                    center = Offset(size.width - 80f, 100f)
+                    color = Color(0xFFB0BEC5).copy(alpha = moonAlpha * 0.2f),
+                    radius = 80f,
+                    center = Offset(size.width - 100f, 80f)
+                )
+                // Moon body
+                drawCircle(
+                    color = Color(0xFFE0E0E0).copy(alpha = moonAlpha),
+                    radius = 30f,
+                    center = Offset(size.width - 100f, 80f)
+                )
+                // Moon crater detail
+                drawCircle(
+                    color = Color(0xFF9E9E9E).copy(alpha = moonAlpha * 0.5f),
+                    radius = 6f,
+                    center = Offset(size.width - 110f, 75f)
                 )
                 drawCircle(
-                    color = Color.White.copy(alpha = sunAlpha * 0.3f),
-                    radius = 70f,
-                    center = Offset(size.width - 80f, 100f)
+                    color = Color(0xFF9E9E9E).copy(alpha = moonAlpha * 0.4f),
+                    radius = 4f,
+                    center = Offset(size.width - 90f, 85f)
                 )
             }
         ))
@@ -94,7 +124,7 @@ class ZoneBackgroundRenderer {
                 val cx = x + drift
                 val cy = y
                 val baseR = 150f + random.nextFloat() * 200f
-                val c = Color.White.copy(alpha = 0.2f * opacity)
+                val c = Color(0xFF4A148C).copy(alpha = 0.25f * opacity)
                 drawOval(c, Offset(cx - baseR * 0.6f, cy - baseR * 0.2f), Size(baseR * 1.2f, baseR * 0.8f))
                 drawOval(c, Offset(cx - baseR * 0.8f, cy - baseR * 0.3f), Size(baseR * 0.8f, baseR * 0.7f))
                 drawOval(c, Offset(cx + baseR * 0.4f, cy - baseR * 0.25f), Size(baseR * 0.9f, baseR * 0.75f))
@@ -112,7 +142,7 @@ class ZoneBackgroundRenderer {
                 val cx = x + drift
                 val cy = y
                 val baseR = 100f + random.nextFloat() * 150f
-                val c = Color.White.copy(alpha = 0.35f * opacity)
+                val c = Color(0xFF6A1B9A).copy(alpha = 0.35f * opacity)
                 drawOval(c, Offset(cx - baseR * 0.6f, cy - baseR * 0.2f), Size(baseR * 1.2f, baseR * 0.8f))
                 drawOval(c, Offset(cx - baseR * 0.8f, cy - baseR * 0.3f), Size(baseR * 0.8f, baseR * 0.7f))
                 drawOval(c, Offset(cx + baseR * 0.4f, cy - baseR * 0.25f), Size(baseR * 0.9f, baseR * 0.75f))
@@ -130,7 +160,7 @@ class ZoneBackgroundRenderer {
                 val cx = x + drift
                 val cy = y
                 val baseR = 80f + random.nextFloat() * 100f
-                val c = Color.White.copy(alpha = 0.5f * opacity)
+                val c = Color(0xFF8E24AA).copy(alpha = 0.5f * opacity)
                 drawOval(c, Offset(cx - baseR * 0.6f, cy - baseR * 0.2f), Size(baseR * 1.2f, baseR * 0.8f))
                 drawOval(c, Offset(cx - baseR * 0.8f, cy - baseR * 0.3f), Size(baseR * 0.8f, baseR * 0.7f))
                 drawOval(c, Offset(cx + baseR * 0.4f, cy - baseR * 0.25f), Size(baseR * 0.9f, baseR * 0.75f))
@@ -704,20 +734,20 @@ class ZoneBackgroundRenderer {
                 AltitudeZone.EARTH -> {
                     drawInterpolatedBackground(
                         progress = progress,
-                        topStart = Color(0xFF1A237E),
-                        middleStart = Color(0xFF2196F3),
-                        bottomStart = Color(0xFF66BB6A),
-                        topEnd = Color(0xFF42A5F5),
-                        middleEnd = Color(0xFF90CAF9),
-                        bottomEnd = Color(0xFFA5D6A7)
+                        topStart = Color(0xFF1A0033),
+                        middleStart = Color(0xFFBF360C),
+                        bottomStart = Color(0xFF33691E),
+                        topEnd = Color(0xFF1A0033),
+                        middleEnd = Color(0xFF0D001A),
+                        bottomEnd = Color(0xFF0D3311)
                     )
                 }
                 AltitudeZone.CLOUD_LAYER -> {
                     drawInterpolatedBackground(
                         progress = progress,
-                        topStart = Color(0xFF00BCD4),
-                        middleStart = Color(0xFF4DD0E1),
-                        bottomStart = Color(0xFFE0F7FA),
+                        topStart = Color(0xFF1A0033),
+                        middleStart = Color(0xFF0D001A),
+                        bottomStart = Color(0xFF1A1A3E),
                         topEnd = Color(0xFF0D001A),
                         middleEnd = Color(0xFF1A0033),
                         bottomEnd = Color(0xFF311B92)

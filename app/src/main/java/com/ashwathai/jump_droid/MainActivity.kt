@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.core.content.edit
 import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
@@ -87,6 +88,7 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                         GameState.ABOUT -> navController.navigate("about")
                         GameState.MISSIONS -> navController.navigate("missions")
                         GameState.LEADERBOARD -> navController.navigate("leaderboard")
+                        GameState.SHOP -> navController.navigate("shop")
                         else -> {}
                     }
                 },
@@ -153,6 +155,11 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                     engine.restartGame()
                     navController.navigate("title") 
                 },
+                onFactoryReset = {
+                    engine.sharedPrefs.edit { clear() }
+                    engine.restartGame()
+                    navController.navigate("title")
+                },
                 onReturn = { navController.popBackStack() }
             )
         }
@@ -168,6 +175,14 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
         }
         composable("leaderboard") {
             LeaderboardScreen(onDismiss = { navController.popBackStack() })
+        }
+        composable("shop") {
+            ShopScreen(
+                progressionManager = engine.progressionManager,
+                purchaseManager = engine.purchaseManager,
+                soundManager = engine.soundManager,
+                onDismiss = { navController.popBackStack() }
+            )
         }
     }
 }

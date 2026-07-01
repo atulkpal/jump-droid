@@ -28,6 +28,13 @@ class HeatBatRenderer : ThreatRenderer {
         val wingFlap = sin(gameTime / 100f) * 20f
         val diveIntensity = if (isHeatTriggered) (sin(gameTime / 50f) * 0.3f + 0.7f) else 0.3f
 
+        // Always-visible faint aura for visibility in dark zones
+        drawScope.drawCircle(
+            color = Color(0xFF80DEEA).copy(alpha = 0.15f * alpha * (sin(gameTime / 80f) * 0.3f + 0.7f)),
+            radius = 35f,
+            center = Offset(centerX, centerY)
+        )
+
         // Heat distortion haze
         val hazeSize = 60f + heatFactor * 40f
         drawScope.drawCircle(
@@ -103,7 +110,7 @@ class HeatBatRenderer : ThreatRenderer {
         }
 
         // Wing-beat shadow
-        val shadowAlpha = 0.08f * alpha * (sin(gameTime / 100f) * 0.5f + 0.5f)
+        val shadowAlpha = 0.15f * alpha * (sin(gameTime / 100f) * 0.5f + 0.5f)
         val shadowPath = Path().apply {
             moveTo(centerX - 5f, centerY + 20f)
             lineTo(centerX - 35f, centerY + 25f - wingFlap * 0.3f)
@@ -114,7 +121,7 @@ class HeatBatRenderer : ThreatRenderer {
 
         // Eyes
         val eyeGlow = if (isHeatTriggered)
-            (sin(gameTime / 30f) * 0.3f + 0.7f) else 0.5f
+            (sin(gameTime / 30f) * 0.3f + 0.7f) else 0.7f
         val eyeColor = if (isHeatTriggered) SciFiRed else Color.White
 
         drawScope.drawCircle(
@@ -126,6 +133,19 @@ class HeatBatRenderer : ThreatRenderer {
             color = eyeColor.copy(alpha = alpha * eyeGlow),
             radius = if (isHeatTriggered) 3f else 2f,
             center = Offset(centerX + 3f, centerY - 2f)
+        )
+
+        // Silhouette outline for visibility against dark backgrounds
+        val outlineAlpha = 0.1f * alpha * (sin(gameTime / 120f) * 0.3f + 0.7f)
+        drawScope.drawPath(
+            bodyPath,
+            Color.White.copy(alpha = outlineAlpha),
+            style = Stroke(width = 0.5f)
+        )
+        drawScope.drawPath(
+            wingPath,
+            Color.White.copy(alpha = outlineAlpha),
+            style = Stroke(width = 0.5f)
         )
 
         // Heat-triggered outer glow ring

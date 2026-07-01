@@ -128,10 +128,10 @@ object EntityDetailRegistry {
             threatId = null,
             platformType = PlatformType.STABILITY,
             powerUpType = null,
-            status = "OPERATIONAL // GYRO-DAMPENING",
-            classification = "FLIGHT STABILIZATION ARRAY",
-            archiveRecord = "Emits a localized dampening field that synchronizes with droid flight controllers to counteract turbulence.",
-            tacticalNote = "Grants a 10-second stability buff. Drastically improves steering precision and resists horizontal drift."
+            status = "OPERATIONAL // SHIELD INFUSION",
+            classification = "SHIELD RECHARGE ARRAY",
+            archiveRecord = "Residual shield energy saturates the surface — contact triggers an emergency capacitor dump into droid systems.",
+            tacticalNote = "Landing instantly restores shields to maximum. Prioritize during heavy combat."
         ),
         DiscoveryType.MAGNETIC_PLATFORM to EntityDetail(
             id = "MAGNETIC_PLATFORM",

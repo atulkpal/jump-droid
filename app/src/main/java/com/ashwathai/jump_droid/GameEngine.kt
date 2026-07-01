@@ -67,6 +67,7 @@ class GameEngine(
     var totalPowerUps by mutableIntStateOf(0)
     var totalPlatformLandings by mutableIntStateOf(0)
     var totalBossesDefeated by mutableIntStateOf(0)
+    var runBossesDefeated by mutableIntStateOf(0)
     var totalArtifactsCollected by mutableIntStateOf(0)
     var totalDashes by mutableIntStateOf(0)
     var momentumValue by mutableFloatStateOf(0f)
@@ -81,6 +82,9 @@ class GameEngine(
     var unlockedRocket by mutableStateOf<RocketType?>(null)
     var codexNotification by mutableStateOf<DiscoveryType?>(null)
     val isPremiumUser: Boolean get() = purchaseManager.isPremiumUser
+    val earnedContinues: Int get() = (runBossesDefeated / 5) + (comboManager.bestComboThisRun / 15)
+    val maxContinues: Int get() = (if (isPremiumUser) 5 else 3) + earnedContinues
+    val needsAdForNextContinue: Boolean get() = !(isPremiumUser && continuesUsed == 0)
     var signalDecodedMissionName by mutableStateOf<String?>(null)
     var showAscensionCredits by mutableStateOf(false)
     var screenWidth by mutableFloatStateOf(0f)
@@ -117,10 +121,13 @@ class GameEngine(
         altitudeManager.onZoneChanged = { zone ->
             soundManager.handleZoneChange(zone)
             discoveryManager.discoverZone(zone)
+            notificationManager.showImmediately("ZONE: ${zone.zoneName}", priority = NotificationPriority.TACTICAL, duration = 3.0f)
+            impactFlashAlpha = 0.3f
         }
         threatManager.onThreatDestroyed = { def ->
             if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
                 totalBossesDefeated++
+                runBossesDefeated++
                 val celebrationX = player.x
                 val celebrationY = cameraY + screenHeight * 0.3f
                 spawnBurst(celebrationX, celebrationY, 50, SciFiGold, 400f)
@@ -310,6 +317,7 @@ class GameEngine(
             isGameOver = gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL,
             onGameOver = {
                 soundManager.setBossActive(false)
+                soundManager.stopAllLoops()
                 soundManager.fadeOutAndPlayGameOver {
                     soundManager.playSfx("sfx_gameover")
                 }
@@ -330,9 +338,10 @@ class GameEngine(
     fun handleLanding(platform: Platform?, yTop: Float) {
         player.velocityY = 0f
         val alreadyLanded = platform?.hasBeenLandedOn ?: false
-        if (!alreadyLanded) {
+
+        // Always play audiovisual feedback with cooldown to prevent spam
+        if (gameTime - player.lastLandingTime > 300) {
             player.squashStretch = 0.8f
-            
             val landSfx = when (platform?.type) {
                 PlatformType.ICE -> "sfx_land_ice"
                 PlatformType.BOOST, PlatformType.PHASE, PlatformType.FLUX -> "sfx_land_energy"
@@ -342,10 +351,12 @@ class GameEngine(
                 else -> "sfx_land_metal"
             }
             soundManager.playSfx(landSfx)
-
             hapticManager.vibrate(HapticManager.HapticType.IMPACT_LIGHT)
             landingEffects.add(LandingEffect(player.x, yTop))
             spawnBurst(player.x, yTop, 15, SciFiBorder, 120f)
+        }
+
+        if (!alreadyLanded) {
             platform?.hasBeenLandedOn = true
             if (player.kineticBatteryTimer > 0f) {
                 player.fuel = min(player.maxFuel, player.fuel + 5f)
@@ -361,13 +372,13 @@ class GameEngine(
                 totalPlatformLandings++
             }
             // Combo logic and lastPlatform tracking (restored from original)
+            player.lastLandingTime = gameTime
             if (platform != player.lastPlatform) {
                 if (player.comboFreezeTimer <= 0f) {
                     if (!alreadyLanded) {
                         comboManager.onLanding()
                     }
                 }
-                player.lastLandingTime = gameTime
             }
             player.lastPlatform = platform
             when (platform.type) {
@@ -393,10 +404,11 @@ class GameEngine(
                 }
                 PlatformType.STABILITY -> {
                     player.velocityY = com.ashwathai.jump_droid.Constants.LANDING_BOUNCE_VELOCITY
-                    player.stabilityTimer = 10f
-                    spawnBurst(player.x, yTop, 20, SciFiWhite, 200f)
-                    floatingTextManager.add(FloatingText("FLIGHT STABILIZED", player.x, player.y - 100f, color = SciFiWhite))
-                    if (checkDiscovery(DiscoveryType.STABILITY_PLATFORM)) { floatingTextManager.add(FloatingText("STABILITY — Improves flight control!", player.x, player.y - 140f, color = SciFiWhite)) }
+                    player.shield = player.maxShield
+                    player.shieldRegenPauseTimer = 0f
+                    spawnBurst(player.x, yTop, 20, SciFiCyan, 200f)
+                    floatingTextManager.add(FloatingText("SHIELDS RESTORED", player.x, player.y - 100f, color = SciFiCyan))
+                    if (checkDiscovery(DiscoveryType.STABILITY_PLATFORM)) { floatingTextManager.add(FloatingText("SHIELD — Fully recharges shields!", player.x, player.y - 140f, color = SciFiCyan)) }
                 }
                 PlatformType.MIMIC -> {
                     player.velocityY = com.ashwathai.jump_droid.Constants.LANDING_BOUNCE_VELOCITY
@@ -453,7 +465,7 @@ class GameEngine(
                     if (checkDiscovery(DiscoveryType.BREAKABLE_PLATFORM)) { floatingTextManager.add(FloatingText("BREAKABLE — Don't linger!", player.x, player.y - 100f, color = Color.Red)) }
                 }
                 PlatformType.CONVEYOR -> {
-                    player.velocityY = com.ashwathai.jump_droid.Constants.LANDING_BOUNCE_VELOCITY
+                    player.velocityY = 0f
                     if (checkDiscovery(DiscoveryType.CONVEYOR_PLATFORM)) { floatingTextManager.add(FloatingText("CONVEYOR — Hold your line!", player.x, player.y - 100f, color = SciFiCyan)) }
                 }
                 else -> {
@@ -564,15 +576,11 @@ class GameEngine(
                     wasAbove && player.velocityY >= 0 -> {
                         // Top landing
                         player.isOnPlatform = true
-                        if (platform != player.lastPlatform) {
-                            handleLanding(platform, pTop)
-                        } else {
-                            player.y = pTop - rHalfH
-                            player.velocityY = 0f
-                        }
+                        player.y = pTop - rHalfH
+                        handleLanding(platform, pTop)
                         // Moving platform carry-over
                         if (platform.isMoving) player.x += platform.speed * dt
-                        if (platform.type == PlatformType.CONVEYOR) player.x += 150f * dt
+                        if (platform.type == PlatformType.CONVEYOR) player.velocityX = 150f
                     }
                     wasBelow && player.velocityY < 0 -> {
                         // Underside hit
@@ -599,10 +607,10 @@ class GameEngine(
                         when (minOverlap) {
                             overlapTop -> if (player.velocityY >= 0) {
                                 player.isOnPlatform = true
-                                if (platform != player.lastPlatform) handleLanding(platform, pTop)
-                                else { player.y = pTop - rHalfH; player.velocityY = 0f }
+                                player.y = pTop - rHalfH
+                                handleLanding(platform, pTop)
                                 if (platform.isMoving) player.x += platform.speed * dt
-                                if (platform.type == PlatformType.CONVEYOR) player.x += 150f * dt
+                                if (platform.type == PlatformType.CONVEYOR) player.velocityX = 150f
                             }
                             overlapBottom -> if (player.velocityY < 0) {
                                 player.y = pBottom + rHalfH; player.velocityY = -player.velocityY * 0.5f
@@ -617,8 +625,14 @@ class GameEngine(
         if (player.y > groundY && groundY > 0f) {
             player.isOnPlatform = true
             player.y = groundY
-            if (player.lastPlatform != null) handleLanding(null, groundY)
-            else { if (player.velocityY > 0) player.velocityY = -player.velocityY * 0.2f; if (abs(player.velocityY) < 50f) player.velocityY = 0f }
+            if (player.lastPlatform != null) {
+                handleLanding(null, groundY)
+                player.lastPlatform = null
+                player.lastLandingTime = gameTime
+            } else {
+                if (player.velocityY > 0) player.velocityY = -player.velocityY * 0.2f
+                if (abs(player.velocityY) < 50f) player.velocityY = 0f
+            }
         }
     }
 
@@ -652,7 +666,7 @@ class GameEngine(
         ambientManager.update(dt, cameraY, screenWidth, screenHeight, altitudeManager.currentZone)
         
         // Audio: Boss Music Check
-        val hasBoss = threatManager.activeThreats.any { it.definition.type == ThreatType.BOSS }
+        val hasBoss = threatManager.activeThreats.any { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }
         soundManager.setBossActive(hasBoss)
 
         comboManager.update(dt)
@@ -726,7 +740,13 @@ class GameEngine(
 
         // Survival
         survivalManager.update(dt, player, gameTime, notificationManager,
-            onGameOver = { soundManager.setBossActive(false); gameState = GameState.GAMEOVER; saveHighScore(score) },
+            onGameOver = {
+                soundManager.setBossActive(false)
+                soundManager.stopAllLoops()
+                soundManager.stopThrust()
+                soundManager.fadeOutAndPlayGameOver { soundManager.playSfx("sfx_gameover") }
+                gameState = GameState.GAMEOVER; saveHighScore(score)
+            },
             onShake = { screenShake = max(screenShake, it) },
             shieldRegenMultiplier = progressionManager.getShieldRegenMultiplier(),
             onPlaySfx = { soundManager.playSfx(it) },
@@ -931,6 +951,9 @@ class GameEngine(
 
         if (player.y - (ROCKET_HEIGHT / 2) > cameraY + screenHeight && screenHeight > 0f) {
             soundManager.setBossActive(false)
+            soundManager.stopAllLoops()
+            soundManager.stopThrust()
+            soundManager.fadeOutAndPlayGameOver { soundManager.playSfx("sfx_gameover") }
             spawnBurst(player.x, player.y, 30, SciFiRed, 400f)
             screenShake = 20f
             gameState = GameState.GAMEOVER
@@ -956,7 +979,7 @@ class GameEngine(
         player.maxHeat = com.ashwathai.jump_droid.Constants.MAX_HEAT * player.rocketType.heatMult
 
         player.isOverheated = false; player.lastPlatform = null; player.combo = 0
-        score = 0; cameraY = 0f; baseAltitude = 0f; continuesUsed = 0; airborneTimer = 0f; noOverheatTimer = 0f
+        score = 0; cameraY = 0f; baseAltitude = 0f; continuesUsed = 0; runBossesDefeated = 0; airborneTimer = 0f; noOverheatTimer = 0f
         highestYReached = player.y
         lastFrameTime = 0L
         platforms.clear(); flyingRewards.clear(); particles.clear(); landingEffects.clear()
@@ -972,15 +995,28 @@ class GameEngine(
 
     // --- Developer Cheats ---
     fun jumpToZone(zone: AltitudeZone) {
+        if (screenWidth <= 0f) return
         score = zone.threshold
         highestYReached = groundY - score * 10f
+        player.x = screenWidth / 2f
         player.y = highestYReached
         cameraY = player.y - screenHeight * 0.5f
         player.velocityX = 0f; player.velocityY = 0f
-        platforms.clear()
+        player.fuel = player.maxFuel
+        player.shield = player.maxShield
+        player.integrity = player.maxIntegrity
+        player.isOverheated = false
+        player.lastPlatform = null
+        player.combo = 0
+        player.activeTether = null
+        baseAltitude = 0f; continuesUsed = 0; airborneTimer = 0f; noOverheatTimer = 0f
+        lastFrameTime = 0L
+        platforms.clear(); flyingRewards.clear(); particles.clear(); landingEffects.clear()
+        powerUpManager.powerUps.clear(); threatManager.clear(); projectileManager.clear(); bossesSpawned.clear()
         var currentY = player.y - 250f
         repeat(15) { generatePlatform(currentY).let { platforms.add(it); currentY = it.y } }
         altitudeManager.updateAltitude(score)
+        soundManager.playZoneMusic(zone)
         gameState = GameState.PLAYING
     }
 
@@ -1061,7 +1097,7 @@ class GameEngine(
     }
 
     fun continueRun() {
-        if (continuesUsed >= 1) return
+        if (continuesUsed >= maxContinues) return
 
         val visibleBottom = cameraY + screenHeight
         val visibleTop = cameraY
@@ -1101,6 +1137,7 @@ class GameEngine(
         floatingTextManager.add(FloatingText("SYSTEM REBOOTED", player.x, player.y - 150f, color = SciFiCyan))
 
         soundManager.setBossActive(false)
+        soundManager.playZoneMusic(altitudeManager.currentZone)
         continuesUsed++
         gameState = GameState.PLAYING
     }

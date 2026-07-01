@@ -61,7 +61,8 @@ class VoidEngineRenderer : ThreatRenderer {
                         drawRect(Color(0xFF880E4F), topLeft = Offset(tx - 40f, ty - 200f), size = Size(80f, 400f))
                         drawRect(Color.White, topLeft = Offset(tx - 40f, ty - 200f), size = Size(80f, 400f), style = Stroke(width = 4f))
                         if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
-                            drawCircle(Color.Magenta, radius = 20f, center = Offset(tx, ty - 150f))
+                            val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
+                            drawCircle(Color.Magenta.copy(alpha = wpGlow), radius = 20f * wpGlow, center = Offset(tx, ty - 150f))
                         }
                     }
                 }

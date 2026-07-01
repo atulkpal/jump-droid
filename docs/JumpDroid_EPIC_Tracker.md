@@ -286,7 +286,7 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 # Release Polish — Pre-Ship Sprint
 
-**Status:** Phases 1–6 Complete ✅ — Phase 7 (Release Prep) Active
+**Status:** Phases 1–7 Complete ✅ — Performance Profiling, Store Listing, Final APK Remaining
 **Plan:** [docs/roadmap/RELEASE_POLISH_PLAN.md](roadmap/RELEASE_POLISH_PLAN.md)
 
 ## Phase 1 - Core Game Feel (COMPLETE)
@@ -320,8 +320,38 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 ## Phase 6 - Archive Entity Detail Popups (COMPLETE)
 - [x] 20. Entity detail popup + preview renders (full lore registry, animated previews, glitch-noise detail popups)
 
-## Phase 7 - Release Preparation (ACTIVE)
-- [~] Bug bash: full playthrough — hitbox/WP fixes applied, verifying remaining
+## Phase 7 - Release Preparation (COMPLETE)
+- [x] Bug bash: hitbox/WP fixes applied (collision radius 28f, per-WP wpDestroyedMask, 11 bosses aligned)
+- [x] Cloud/Earth visual polish (dark purple gradient, golden hour Earth, purple-blue storm clouds)
+- [x] Alarm loop fix (all 3 death paths: applyDamage, destruction timer, fell off screen)
+- [x] Shield hit sound + haptics for HAZ_RADIATION / BOSS_ENTROPY_CORE drain bypass
+- [x] Heat Bat always-visible cyan aura + damage rebalance (10/5)
+- [x] Lightning damage rebalanced (25→13, ~26% base shield)
+- [x] Boss HP/WP scaled by difficultyMultiplier
+- [x] wpInvulnerabilityTimer separated from body invulnerability
+- [x] Boss balance: WP cooldown 0.25s, WP hit radius 45f
+- [x] Billing integration: PurchaseManager.kt rewritten with BillingClient + fallback dialog
+- [x] ShopScreen: currency exchange with premium purchase card, cash balance, V2 placeholders
+- [x] ProgressionManager: totalCash persistence with grantReward accumulation
+- [x] SettingsScreen: premium no-toggle-off, disabled ADS REMOVED ✓ state, RESET PROGRESS / FACTORY RESET buttons
+- [x] MainActivity/MainMenu: shop route + SHOP button added
+- [x] AboutScreen: updated to V1.5.0 with cash balance display
+- [x] Shield Platform (STABILITY→SHLD): velocityY=0f, shield fully restored, "SHIELDS RESTORED" text
+- [x] Conveyor Platform fix: velocityX=150f continuous push (no bounce)
+- [x] Zone jump freeze fix: jumpToZone() full cleanup matching restartGame()
+- [x] Zone change notification: TACTICAL notification + ZoneDiscoveryCard auto-fade
+- [x] Multi-hit WPs: wpHitCounts tiered by difficulty (1-4 hits per WP), partial-hit purple burst
+- [x] Heat Bat visibility: cyan aura 0.06→0.15, wing-beat shadow 0.08→0.15, eye glow 0.5→0.7, white silhouette outline
+- [x] Boss kill score removed: all 3 onScoreUpdate(1000) calls removed — score = altitude only
+- [x] Milestone threshold rebalance: 8 thresholds increased for even late-game spacing
+- [x] One boss per frame guard + no boss while boss alive check
+- [x] Boss Recurrence system: ~3s timer, previously-defeated bosses + zone-eligible mini-bosses, 5-25% chance, 1.3× difficulty
+- [x] Boss music fix: setBossActive checks BOSS || MINI_BOSS (4 mini-bosses now play bgm_boss)
+- [x] Hazard suppression 0.3f→0.1f during bosses, Solar Flare filtered out
+- [x] Data reset safety: RESET PROGRESS (preserves premium) + FACTORY RESET (wipes all)
+- [x] Dev menu gated on BuildConfig.DEBUG: cheatsEnabled = BuildConfig.DEBUG
+- [x] Play Store purchase gating: debug=confirm dialog, release="PLAY STORE REQUIRED" info dialog
+- [x] ThreatRegistry.getEntries() added for recurrence pool filtering
 - [ ] Performance profiling: frame drops in upper zones / dense threat fields
 - [ ] Play Store listing prep: screenshots, description, assets
 - [ ] Final APK build + testing

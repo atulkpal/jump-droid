@@ -22,16 +22,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
@@ -59,6 +62,7 @@ fun SettingsScreen(
     hapticManager: HapticManager? = null,
     purchaseManager: PurchaseManager? = null,
     onWipeData: () -> Unit,
+    onFactoryReset: () -> Unit = onWipeData,
     onReturn: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "SettingsTransition")
@@ -165,36 +169,127 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(16.dp))
                 val isPremium = purchaseManager?.isPremiumUser ?: sharedPrefs.getBoolean("premium_user", false)
+                var showDebugPurchaseDialog by remember { mutableStateOf(false) }
+                var showStoreDialog by remember { mutableStateOf(false) }
                 Button(
                     onClick = {
                         soundManager?.playSfx("sfx_ui_click")
-                        if (isPremium) {
-                            purchaseManager?.setPremiumUser(false)
-                        } else {
-                            purchaseManager?.launchPurchaseFlow(context as android.app.Activity)
+                        if (!isPremium) {
+                            purchaseManager?.launchPurchaseFlow(context as android.app.Activity) {
+                                if (BuildConfig.DEBUG) showDebugPurchaseDialog = true else showStoreDialog = true
+                            }
                         }
                     },
+                    enabled = !isPremium,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isPremium) SciFiGreen.copy(alpha = 0.2f) else SciFiGold.copy(alpha = 0.2f),
-                        contentColor = if (isPremium) SciFiGreen else SciFiGold
+                        contentColor = if (isPremium) SciFiGreen else SciFiGold,
+                        disabledContainerColor = SciFiGreen.copy(alpha = 0.15f),
+                        disabledContentColor = SciFiGreen.copy(alpha = 0.5f)
                     ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.5f) else SciFiGold.copy(alpha = 0.5f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.3f) else SciFiGold.copy(alpha = 0.5f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(if (isPremium) "ADS REMOVED ✓" else "UPGRADE: REMOVE ADS", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text(if (isPremium) "ADS REMOVED ✓" else "UPGRADE: REMOVE ADS (\$1.99)", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                }
+                if (showDebugPurchaseDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showDebugPurchaseDialog = false },
+                        title = { Text("Purchase Remove Ads?", color = SciFiWhite, fontWeight = FontWeight.Bold) },
+                        text = { Text("Remove all ads for a one-time payment of \$1.99.", color = SciFiWhite.copy(alpha = 0.8f)) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                purchaseManager?.confirmPurchase()
+                                showDebugPurchaseDialog = false
+                            }) { Text("PURCHASE", color = SciFiGold, fontWeight = FontWeight.Bold) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showDebugPurchaseDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
+                        },
+                        containerColor = Color(0xFF1A1A2E),
+                        titleContentColor = SciFiWhite,
+                        textContentColor = SciFiWhite.copy(alpha = 0.8f)
+                    )
+                }
+                if (showStoreDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showStoreDialog = false },
+                        title = { Text("PLAY STORE REQUIRED", color = SciFiGold, fontWeight = FontWeight.Bold) },
+                        text = { Text("Premium purchase is only available through the Google Play Store.\n\nDownload Jump Droid from the Play Store to remove ads.", color = SciFiWhite.copy(alpha = 0.8f)) },
+                        confirmButton = {
+                            TextButton(onClick = { showStoreDialog = false }) { Text("DISMISS", color = SciFiGold, fontWeight = FontWeight.Bold) }
+                        },
+                        containerColor = Color(0xFF1A1A2E),
+                        titleContentColor = SciFiGold,
+                        textContentColor = SciFiWhite.copy(alpha = 0.8f)
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                var showResetDialog by remember { mutableStateOf(false) }
+                var showFactoryResetDialog by remember { mutableStateOf(false) }
+                Button(
+                    onClick = {
+                        soundManager?.playSfx("sfx_ui_click")
+                        showResetDialog = true
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = SciFiGold.copy(alpha = 0.15f), contentColor = SciFiGold),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SciFiGold.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("RESET PROGRESS", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                }
+                if (showResetDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showResetDialog = false },
+                        title = { Text("Reset Progress?", color = SciFiGold, fontWeight = FontWeight.Bold) },
+                        text = { Text("This will clear all game data:\n• Missions & Milestones\n• Discoveries & Lore\n• Cash Balance\n• Zone Progression\n\nYour Premium Purchase will NOT be affected.", color = SciFiWhite.copy(alpha = 0.8f)) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                val wasPremium = sharedPrefs.getBoolean("premium_user", false)
+                                sharedPrefs.edit { clear() }
+                                if (wasPremium) sharedPrefs.edit { putBoolean("premium_user", true) }
+                                showResetDialog = false
+                                onWipeData()
+                            }) { Text("RESET", color = SciFiGold, fontWeight = FontWeight.Bold) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showResetDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
+                        },
+                        containerColor = Color(0xFF1A1A2E),
+                        titleContentColor = SciFiGold,
+                        textContentColor = SciFiWhite.copy(alpha = 0.8f)
+                    )
                 }
                 Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = {
                         soundManager?.playSfx("sfx_ui_click")
-                        sharedPrefs.edit { clear() }
-                        onWipeData()
+                        showFactoryResetDialog = true
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = SciFiRed.copy(alpha = 0.2f), contentColor = SciFiRed),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SciFiRed.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.buttonColors(containerColor = SciFiRed.copy(alpha = 0.15f), contentColor = SciFiRed),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SciFiRed.copy(alpha = 0.4f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("WIPE TELEMETRY DATA", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("FACTORY RESET (incl. purchases)", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 11.sp)
+                }
+                if (showFactoryResetDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showFactoryResetDialog = false },
+                        title = { Text("FACTORY RESET", color = SciFiRed, fontWeight = FontWeight.Bold) },
+                        text = { Text("This will clear ALL data including:\n• Premium Purchase (ads will return)\n• All game progress & cash\n• All preferences\n\nThis cannot be undone.", color = SciFiWhite.copy(alpha = 0.8f)) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                showFactoryResetDialog = false
+                                onFactoryReset()
+                            }) { Text("FACTORY RESET", color = SciFiRed, fontWeight = FontWeight.Bold) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showFactoryResetDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
+                        },
+                        containerColor = Color(0xFF1A1A2E),
+                        titleContentColor = SciFiRed,
+                        textContentColor = SciFiWhite.copy(alpha = 0.8f)
+                    )
                 }
                 Spacer(Modifier.height(16.dp))
                 GlobalAdBanner()

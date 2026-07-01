@@ -66,8 +66,9 @@ class SignalRenderer : ThreatRenderer {
                 }
 
                 if (threat.activeWeakPoints > 0) {
+                    val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
                     val wpPulse = (sin(gameTime / 100f) * 0.3f + 0.7f)
-                    drawCircle(Color.Magenta.copy(alpha = 0.6f * wpPulse), radius = 50f, center = Offset(tx, ty))
+                    drawCircle(Color.Magenta.copy(alpha = 0.6f * wpPulse * wpGlow), radius = 50f, center = Offset(tx, ty))
                 }
 
                 drawCircle(Color.White.copy(alpha = 0.1f * threat.scanPulse), radius = 600f, center = Offset(tx, ty))

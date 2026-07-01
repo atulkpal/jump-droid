@@ -90,10 +90,11 @@ class EntropyCoreRenderer : ThreatRenderer {
                     strokeWidth = 2f
                 )
             } else {
+                val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
                 // Active pylon with glow
                 drawScope.drawRect(
                     brush = Brush.verticalGradient(
-                        colors = listOf(SciFiRed.copy(alpha = alpha), Color(0xFFFF6D00).copy(alpha = alpha * 0.7f)),
+                        colors = listOf(SciFiRed.copy(alpha = alpha * wpGlow), Color(0xFFFF6D00).copy(alpha = alpha * 0.7f * wpGlow)),
                         startY = py - 20f,
                         endY = py + 20f
                     ),
@@ -101,7 +102,7 @@ class EntropyCoreRenderer : ThreatRenderer {
                     size = androidx.compose.ui.geometry.Size(40f, 40f)
                 )
                 drawScope.drawRect(
-                    color = SciFiRed.copy(alpha = (0.3f + pulse * 0.3f) * alpha),
+                    color = SciFiRed.copy(alpha = (0.3f + pulse * 0.3f) * alpha * wpGlow),
                     topLeft = Offset(px - 24f, py - 24f),
                     size = androidx.compose.ui.geometry.Size(48f, 48f),
                     style = Stroke(width = 2f)

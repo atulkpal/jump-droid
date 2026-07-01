@@ -96,7 +96,7 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
                 disableHeat = engine.disableHeat,
                 infiniteShield = player.infiniteShield,
                 invincibleHull = player.invincibleHull,
-                cheatsEnabled = true,
+                cheatsEnabled = BuildConfig.DEBUG,
                 onToggleDevMenu = { engine.showDevMenu = !engine.showDevMenu },
                 onJumpToZone = { engine.jumpToZone(it) },
                 onSpawnDevThreat = { engine.spawnDevThreat(it) },
@@ -123,6 +123,9 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
                 highScore = engine.progressionManager.highScore,
                 progressionManager = engine.progressionManager,
                 continuesUsed = engine.continuesUsed,
+                isPremiumUser = engine.isPremiumUser,
+                runBossesDefeated = engine.runBossesDefeated,
+                bestComboThisRun = engine.comboManager.bestComboThisRun,
                 onContinue = { engine.continueRun() },
                 onRestart = { engine.restartGame() },
                 onMainMenu = onMainMenu
@@ -238,5 +241,12 @@ fun HUDLayer(engine: GameEngine) {
         }
 
         FloatingTextsLayer(texts = engine.floatingTextManager.texts, cameraY = engine.cameraY)
+
+        val activeEvent = engine.discoveryManager.activeEvent
+        if (activeEvent is DiscoveryEvent.Zone) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                ZoneDiscoveryCard(activeEvent = activeEvent, score = engine.score)
+            }
+        }
     }
 }

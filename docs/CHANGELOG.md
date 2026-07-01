@@ -31,6 +31,48 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-01
+
+**Sprint / Phase:** Release Polish — Phase 7 Boss Density & Score Integrity
+
+**Branch:** `refactor/cleanup`
+
+**Status:** Phases 1–7 Complete ✅ — Performance Profiling, Store Listing, Final APK
+
+### Changed
+- **Score integrity** (`ThreatInteractionProcessor.kt`): Removed `onScoreUpdate(1000)` from all 3 boss defeat paths (WP phase transition, WP auto-collapse, full defeat). Score is now purely altitude-based — no more artificial spikes. Boss kills no longer push score toward the next milestone, preventing cascading boss spawns.
+- **Milestone guards** (`EncounterDirector.kt`): Added two guards to milestone spawning — (1) one boss per frame (`spawnedThisFrame` + break), (2) no new milestone boss while any boss/mini-boss is alive. Prevents 2–3 bosses from spawning simultaneously and ensures one-at-a-time encounters.
+- **Milestone thresholds rebalanced** (`EncounterDirector.kt`): Commander 1500 (unchanged), Thermal Hive 2500→3000, Gatekeeper 4000→4500, Forger 5500→6500, Leviathan 7000→8500, Star Eater 10000→11000, Gravity Anchor 13000→14000, Void Engine 15000→17000, Signal 18000→21000, Architect 25000→30000. Entropy Core and Singularity unchanged. More even spacing through late game.
+- **Boss Recurrence system** (`EncounterDirector.kt`, `ThreatRegistry.kt`): New `bossRecurrenceTimer` field (~3s cadence). When no boss is alive, picks from previously-defeated bosses + any zone-eligible mini-boss and spawns at 1.3× difficulty. Fills all dead zones between milestones with dynamic repeat encounters.
+- **Boss music fix** (`GameEngine.kt`): Changed `setBossActive` check from `ThreatType.BOSS` only to `BOSS || MINI_BOSS`. All 4 mini-bosses now trigger `bgm_boss` — previously only full bosses played boss music.
+- **Hazard suppression during bosses** (`EncounterDirector.kt`): `spawnChanceMod` reduced from `0.3f` to `0.1f` when a boss is alive. Solar Flare explicitly filtered out during boss fights. Prevents unfair hazard+boss combinations.
+- **Heat Bat visibility & damage** (`HeatBatRenderer.kt`, `ThreatInteractionProcessor.kt`): Cyan aura alpha 0.06f→0.15f (2.5× brighter), wing-beat shadow 0.08f→0.15f, eye glow 0.5f→0.7f, added 0.1f white silhouette outline. Damage reduced: heat ≥ 70 from 20→10, heat < 70 from 10→5.
+- **Shield Platform** (`GameEngine.kt`, `PlatformRenderer.kt`, `Models.kt`): STABILITY_PLATFORM renamed to Shield Platform — no bounce, velocityY = 0f, shield fully restored, "SHIELDS RESTORED" floating text. Visual label "STAB"→"SHLD" in SciFiCyan.
+- **Conveyor Platform fix** (`GameEngine.kt`): Position push replaced with `velocityX = 150f` for continuous velocity-based push every sub-step. Removed bounce.
+- **Zone jump freeze fix** (`GameEngine.kt`): `jumpToZone()` rewritten with full cleanup matching `restartGame()` (clears threats/projectiles/tethers/particles, resets timers, fuel/shield/integrity, plays zone music).
+- **Zone change notification** (`GameEngine.kt`, `GamePlayScreen.kt`): `onZoneChanged` posts TACTICAL notification. `ZoneDiscoveryCard` wired in HUDLayer via `discoveryManager.activeEvent` with 4s auto-fade.
+- **Multi-hit weak points** (`ActiveThreat.kt`, `ThreatAIUpdater.kt`, `ThreatInteractionProcessor.kt`): Added `wpHitCounts: IntArray` per-WP hit counter. Tiered difficulty: 4 zone tiers based on `difficultyMultiplier` control hitDist (45→22f), wpRequiredHits (1→4), and wpInvulnerabilityTimer (0.25→0.75s). WP only destroys when `wpHitCounts[i] >= tierWpHits`. Partial hits show purple burst + shield-hit SFX.
+- **Data reset safety** (`SettingsScreen.kt`): Added RESET PROGRESS button (preserves premium_user) and FACTORY RESET button (wipes everything including premium) with confirmation dialogs.
+- **Dev menu gated on BuildConfig.DEBUG** (`GamePlayScreen.kt`): `cheatsEnabled = BuildConfig.DEBUG` — dev UI hidden in release builds.
+- **Play Store purchase gating** (`SettingsScreen.kt`, `ShopScreen.kt`): Fallback dialog switches on `BuildConfig.DEBUG` — debug shows purchase confirmation, release shows "PLAY STORE REQUIRED" info-only dialog.
+- **Cloud Layer gradient** (`ZoneBackgroundRenderer.kt`): Dark purple (`#1A0033`/`#0D001A`/`#1A1A3E`).
+- **Earth Zone golden hour** (`ZoneBackgroundRenderer.kt`): Night palette replaced with warm golden hour gradient.
+- **Bug fixes**: Alarm loops stop on all 3 death paths, BGM restarts on continue, shield hit sound for bypass damage, Heat Bat always-visible cyan aura, Lightning damage 25→13, boss HP/WP scaling by difficultyMultiplier, wpInvulnerabilityTimer separation, WP cooldown 0.25s / radius 45f, Cloud Zone purple-blue clouds.
+
+### Added
+- `ThreatRegistry.getEntries()` — exposes all registered threat definitions for recurrence pool queries.
+
+### Documentation
+- `AGENTS.md`: Updated project state to Release Polish Phase 7 Complete. Added boss recurrence, score fix, Heat Bat, Shield Platform, multi-hit WP, data reset to Completed Work. Updated Next Planned Work.
+- `CHANGELOG.md`: Added this entry.
+- `docs/THREAT_MASTER_TABLE.md`: Removed "+1000 score" from Thermal Hive entry. Updated Heat Bat damage values (10/20→5/10).
+- `docs/JumpDroid_EPIC_Tracker.md`: Updated Phase 7 checklist with boss recurrence, score integrity, Heat Bat, Shield Platform, notifications, multi-hit WP, Play Store gating, data reset.
+- `docs/roadmap/RELEASE_POLISH_PLAN.md`: Updated Phase 7 status.
+- `docs/REPORTS/SPRINT_10_6_IMPLEMENTATION_REPORT.md`: Updated milestone thresholds.
+- `docs/gameplay/BOSS_DESIGN_BIBLE.md`: Added Boss Recurrence section.
+
+---
+
 ## 2026-06-27
 
 **Sprint / Phase:** Release Polish — Phases 1–4 Complete

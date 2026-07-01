@@ -59,6 +59,7 @@ class ActiveThreat(
     var maxWeakPoints by mutableIntStateOf(0)
     var activeWeakPoints by mutableIntStateOf(0)
     var wpDestroyedMask by mutableIntStateOf(0)
+    var wpHitCounts: IntArray = IntArray(0) { 0 }
 
     // Death Sequence
     var destructionTimer by mutableFloatStateOf(0f)

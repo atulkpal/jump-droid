@@ -1,6 +1,6 @@
 # Jump Droid — Release Polish Plan
 
-**Status:** Phases 1–6 Complete — Phase 7 (Release Prep) Activated
+**Status:** Phases 1–6 Complete — Phase 7 (Release Prep) Active, Bug Bash Done, Billing/Shop Integrated
 **Branch:** `refactor/cleanup`
 **Target:** Play Store Release
 
@@ -311,7 +311,9 @@ Reserve layout space on non-gameplay screens so banner ads never overlap buttons
 - **AdMob SDK integration** (`build.gradle.kts`, `AndroidManifest.xml`): Added `play-services-ads:23.6.0` dependency, `INTERNET` permission, test AdMob app ID. `MainActivity.onCreate()` initializes `MobileAds`.
 - **GlobalAdBanner rewrite** (`AdComponents.kt`): Replaced dark placeholder with real `AdView` rendering Google banner ad (`ca-app-pub-4153575596488132/3022346201`). Reads `isPremiumUser` from SharedPreferences internally — no parameter wiring needed.
 - **Rewarded continue** (`AdComponents.kt`, `GameOverOverlay.kt`): `RewardedAdHelper` object preloads `RewardedAd` (`ca-app-pub-4153575596488132/5155087899`) when overlay appears. Continue button shows ad on click; falls back to free continue on failure.
-- **Premium purchase** (`PurchaseManager.kt`, `SettingsScreen.kt`): `PurchaseManager` wraps `isPremiumUser` flag in SharedPreferences. SettingsScreen shows "UPGRADE: REMOVE ADS" / "ADS REMOVED ✓" button. Real Google Play Billing integration stubbed — sets flag directly for dev (billing requires Play Console setup).
+- **Premium purchase** (`PurchaseManager.kt`, `SettingsScreen.kt`): `PurchaseManager` rewritten with full `BillingClient` implementation — `setListener`, `queryPurchasesAsync`, `queryProductDetailsAsync`, `launchBillingFlow`, `acknowledgePurchase`. Fallback confirmation dialog when Play Store unavailable (sets `isPremiumUser` flag directly). SettingsScreen shows "ADS REMOVED ✓" disabled button when premium, "UPGRADE: REMOVE ADS ($1.99)" otherwise with purchase flow + fallback dialog. No toggle-off.
+- **ShopScreen** (`ShopScreen.kt`): New currency exchange composable with cash balance display, premium purchase card ($1.99, "ADS REMOVED ✓" when purchased), V2 placeholder items (Rocket Skins, Engine Trails, UI Themes — greyed out with "V2" badge). Route added to MainActivity. `GameState.SHOP` added to enum. SHOP button in MainMenuScreen.
+- **ProgressionManager cash tracking**: `totalCash` field persisted in SharedPreferences (`getInt("total_cash", 0)`). `grantReward(Cash)` now accumulates (`totalCash += reward.amount`). `wipeData()` resets to 0. `getCashBalance()` returns current total.
 - **Archive badge** (Phase 3 carryover): `MainMenuScreen` shows SciFiPurple dot on ARCHIVE button when `engine.codexNotification != null`. Cleared on navigate to Archive.
 
 ---
@@ -475,7 +477,7 @@ To activate haptics project-wide, `GameEngine.kt` needs to initialize the manage
 
 ## Phase 7 — Release Preparation (Item 15)
 
-**Status: Active** — Bug bash in progress (hitboxes, WP tracking, balance)
+**Status: Complete** — All sub-tasks finished, remaining only performance profiling, store listing, final APK
 
  # | Item | Effort | Risk |
 ---|------|--------|------|
@@ -483,11 +485,41 @@ To activate haptics project-wide, `GameEngine.kt` needs to initialize the manage
 
 ### Sub-tasks
 
-- [~] Bug bash: full playthrough of all zones, threats, bosses
+- [x] Bug bash: full playthrough of all zones, threats, bosses
   - [x] Player hitbox collision radius added (28f) — full 40×70 rocket counts
   - [x] WP tracking fixed per-WP `wpDestroyedMask` — no more index-ordering bug
   - [x] WP hitbox positions aligned to rendered visuals (11 bosses)
-  - [~] Remaining: verify every boss plays correctly
+  - [x] Alarm loop fix (all 3 death paths: applyDamage, destruction timer, fell off screen)
+  - [x] Shield hit sound + haptics for HAZ_RADIATION / BOSS_ENTROPY_CORE drain bypass
+  - [x] Heat Bat always-visible cyan aura + damage rebalance (10→5 / 20→10)
+  - [x] Lightning damage rebalanced (25→13, ~26% base shield)
+  - [x] Boss HP/WP scaled by difficultyMultiplier
+  - [x] wpInvulnerabilityTimer separated from body invulnerability
+  - [x] Boss balance: WP cooldown 0.25s, WP hit radius 45f
+  - [x] Cloud Zone purple-blue storm clouds (washed-out whites → purple cumulus)
+  - [x] Earth Zone golden hour gradient (night → warm golden hour palette)
+- [x] Shield Platform (STABILITY→SHLD): no bounce, shield fully restored, "SHIELDS RESTORED" text
+- [x] Conveyor Platform fix: velocityX=150f continuous push (no bounce cycle)
+- [x] Zone jump freeze fix: jumpToZone() full cleanup (threats, projectiles, tethers, particles, stats, music)
+- [x] Zone change notification: TACTICAL notification + ZoneDiscoveryCard auto-fade (4s)
+- [x] Multi-hit WPs: wpHitCounts: IntArray per-WP, tiered by difficulty (1-4 hits), partial-hit purple burst + shield-hit SFX
+- [x] Heat Bat visibility: cyan aura 0.06→0.15, wing-beat shadow 0.08→0.15, eye glow 0.5→0.7, white silhouette outline
+- [x] Boss kill score removed: all 3 onScoreUpdate(1000) removed — score = altitude only
+- [x] Milestone threshold rebalance: 8 thresholds increased (Commander 1500, Hive 3000, Gatekeeper 4500, Forger 6500, Leviathan 8500, Star Eater 11000, Anchor 14000, Engine 17000, Signal 21000, Architect 30000, Core 50000, Singularity 100000)
+- [x] One boss per frame guard + no boss while boss alive check
+- [x] Boss Recurrence system: ~3s bossRecurrenceTimer, previously-defeated bosses + zone-eligible mini-bosses, 5-25% chance per check, 1.3× difficulty, RECURRENCE notification
+- [x] Boss music fix: setBossActive checks BOSS || MINI_BOSS
+- [x] Hazard suppression 0.3f→0.1f during bosses, Solar Flare filtered out
+- [x] ThreatRegistry.getEntries() added
+- [x] Billing integration: PurchaseManager rewritten with BillingClient + fallback dialog
+- [x] ShopScreen: currency exchange with premium card, cash balance, V2 placeholders
+- [x] ProgressionManager: totalCash persistence (grantReward accumulation)
+- [x] SettingsScreen: premium no-toggle-off (ADS REMOVED ✓ disabled) + RESET PROGRESS / FACTORY RESET buttons
+- [x] MainActivity/MainMenu: shop route + SHOP button added
+- [x] AboutScreen: updated to V1.5.0 with cash balance display
+- [x] Dev menu gated on BuildConfig.DEBUG: cheatsEnabled = BuildConfig.DEBUG
+- [x] Play Store purchase gating: debug=confirm dialog, release="PLAY STORE REQUIRED" info dialog
+- [x] Cloud/Earth visual polish
 - [ ] Performance profiling (frame drops in upper zones / dense threat fields)
 - [ ] Play Store listing prep (screenshots, description, assets)
 - [ ] Final APK build + testing

@@ -51,10 +51,20 @@ fun ActiveThreat.processInteractionHandler(
 
     when (definition.id) {
         "HAZ_LIGHTNING" -> {
+            // Play strike SFX at the start of each strike cycle (lifetime crosses 1.5s in 4s cycle)
+            val cyclePos = lifetime % 4f
+            val frameDt = sdt * 5f
+            val prevPos = ((lifetime - frameDt) % 4f + 4f) % 4f
+            val isStrike = cyclePos >= 1.5f && cyclePos < 2.0f
+            val wasStrike = prevPos >= 1.5f && prevPos < 2.0f
+            if (isStrike && !wasStrike) {
+                onPlaySfx("sfx_hazard_lightning")
+            }
+
             if (distSq < 200f * 200f) {
                 if (phase == 2) {
                     if (player.invulnerabilityTimer <= 0f) {
-                        onDamage(25f)
+                        onDamage(13f)
                         player.invulnerabilityTimer = 0.5f
                         onVisualFeedback(20f, 0.8f)
                         onPlaySfx("sfx_hazard_lightning")
@@ -77,7 +87,11 @@ fun ActiveThreat.processInteractionHandler(
         }
         "HAZ_RADIATION" -> {
             if (distSq < 300f * 300f) {
-                if (!player.infiniteShield) player.shield = max(0f, player.shield - 15f * sdt)
+                if (!player.infiniteShield) {
+                    player.shield = max(0f, player.shield - 15f * sdt)
+                    onPlaySfx("sfx_hit_shield")
+                    onVibrate(HapticManager.HapticType.IMPACT_LIGHT)
+                }
                 definition.discoveryType?.let { onDiscovery(it) }
             }
         }
@@ -206,7 +220,7 @@ fun ActiveThreat.processInteractionHandler(
         }
         "ENT_HEAT_BAT" -> {
             if (distSq < 80f * 80f && player.invulnerabilityTimer <= 0f) {
-                val damage = if (player.heat >= 70f) 20f else 10f
+                val damage = if (player.heat >= 70f) 10f else 5f
                 onDamage(damage)
                 player.invulnerabilityTimer = 1.0f
                 onVisualFeedback(15f, 0.2f)
@@ -274,14 +288,6 @@ fun ActiveThreat.processInteractionHandler(
         "MINI_BOSS_COMMANDER", "BOSS_GATEKEEPER", "BOSS_STAR_EATER", "BOSS_VOID_ENGINE", "BOSS_LEVIATHAN", "BOSS_SIGNAL", 
         "MINI_BOSS_THERMAL_HIVE", "MINI_BOSS_GRAVITY_ANCHOR", "MINI_BOSS_FORGER", "BOSS_ARCHITECT", "BOSS_ENTROPY_CORE", "BOSS_SINGULARITY" -> {
             if (phase in 2..4) {
-                if (distSq < (100f + rPlayer) * (100f + rPlayer) && player.invulnerabilityTimer <= 0f) {
-                    player.fuel = max(0f, player.fuel - 20f)
-                    player.heat = min(Constants.MAX_HEAT, player.heat + 30f)
-                    player.invulnerabilityTimer = 1.0f
-                    onVisualFeedback(15f, 0f)
-                    onFloatingText("HULL COLLISION", player.x, player.y, Color.Red, false, 1.0f)
-                }
-
                 repeat(maxWeakPoints) { i ->
                     val isDestroyed = (wpDestroyedMask and (1 shl i)) != 0
                     if (!isDestroyed) {
@@ -325,26 +331,43 @@ fun ActiveThreat.processInteractionHandler(
 
                         val ddx = player.x - wx
                         val ddy = player.y - wy
+
+                        val tierHitDist: Float
+                        val tierWpHits: Int
+                        val tierCooldown: Float
+                        when {
+                            difficultyMultiplier < 1.6f -> { tierHitDist = 45f; tierWpHits = 1; tierCooldown = 0.25f }
+                            difficultyMultiplier < 2.4f -> { tierHitDist = 38f; tierWpHits = 2; tierCooldown = 0.35f }
+                            difficultyMultiplier < 3.6f -> { tierHitDist = 30f; tierWpHits = 3; tierCooldown = 0.5f }
+                            else ->                       { tierHitDist = 22f; tierWpHits = 4; tierCooldown = 0.75f }
+                        }
                         val hitDist = when (definition.id) {
                             "MINI_BOSS_GRAVITY_ANCHOR" -> 100f
-                            else -> if (player.rocketType == RocketType.SCOUT) 80f else 60f
+                            else -> if (player.rocketType == RocketType.SCOUT) 80f else tierHitDist
                         }
 
-                        if (sqrt(ddx*ddx + ddy*ddy) < hitDist + rPlayer && player.invulnerabilityTimer <= 0f) {
-                            wpDestroyedMask = wpDestroyedMask or (1 shl i)
-                            activeWeakPoints--
-                            player.invulnerabilityTimer = 0.5f
-                            player.velocityY = -400f
-                            onBurst(wx, wy, 25, Color(0xFF9C27B0), 300f)
-                            onVisualFeedback(20f, 0f)
-                            onPlaySfx("sfx_boss_weakpoint")
-                            onVibrate(HapticManager.HapticType.SUCCESS)
-                            onFloatingText("WEAK POINT DESTROYED", player.x, player.y, Color(0xFF9C27B0), true, 1.0f)
+                        if (sqrt(ddx*ddx + ddy*ddy) < hitDist + rPlayer && player.wpInvulnerabilityTimer <= 0f) {
+                            wpHitCounts[i]++
+                            if (wpHitCounts[i] >= tierWpHits) {
+                                wpDestroyedMask = wpDestroyedMask or (1 shl i)
+                                activeWeakPoints--
+                                player.velocityY = -400f
+                                onBurst(wx, wy, 25, Color(0xFF9C27B0), 300f)
+                                onPlaySfx("sfx_boss_weakpoint")
+                                onVibrate(HapticManager.HapticType.SUCCESS)
+                                onFloatingText("WEAK POINT DESTROYED", player.x, player.y, Color(0xFF9C27B0), true, 1.0f)
 
-                            if (player.rocketType == RocketType.TANK) {
-                                onBurst(wx, wy, 60, Color.White, 800f)
-                                onVisualFeedback(40f, 0.6f)
+                                if (player.rocketType == RocketType.TANK) {
+                                    onBurst(wx, wy, 60, Color.White, 800f)
+                                    onVisualFeedback(40f, 0.6f)
+                                }
+                            } else {
+                                onBurst(wx, wy, 10, Color(0xFFCE93D8), 150f)
+                                onVisualFeedback(8f, 0f)
+                                onPlaySfx("sfx_hit_shield")
                             }
+                            health = max(0f, health - definition.baseHealth * difficultyMultiplier / (maxWeakPoints * tierWpHits).coerceAtLeast(1))
+                            player.wpInvulnerabilityTimer = tierCooldown
 
                             if (activeWeakPoints <= 0) {
                                 phase = when (definition.id) {
@@ -352,8 +375,42 @@ fun ActiveThreat.processInteractionHandler(
                                     "BOSS_SINGULARITY" -> 4
                                     else -> 4
                                 }
-                                onScoreUpdate(1000)
-                                onFloatingText("BOSS CRITICAL - RETREATING", player.x, player.y, Color.Cyan, true, 1.0f)
+                                onFloatingText("BOSS DESTROYED", player.x, player.y, Color.Cyan, true, 1.0f)
+                            }
+                        }
+                    }
+                }
+                if (distSq < (100f + rPlayer) * (100f + rPlayer) && player.invulnerabilityTimer <= 0f) {
+                    val hitsPerWp = if (definition.type == ThreatType.BOSS) 16 else 8
+                    val dmg = definition.baseHealth * difficultyMultiplier / (maxWeakPoints * hitsPerWp).coerceAtLeast(1)
+                    health = max(0f, health - dmg)
+                    player.fuel = max(0f, player.fuel - 20f)
+                    player.heat = min(Constants.MAX_HEAT, player.heat + 30f)
+                    player.invulnerabilityTimer = 1.0f
+                    onVisualFeedback(15f, 0f)
+                    onFloatingText("HULL COLLISION", player.x, player.y, Color.Red, false, 1.0f)
+
+                    if (maxWeakPoints > 0 && activeWeakPoints > 0) {
+                        val healthPerWp = definition.baseHealth * difficultyMultiplier / maxWeakPoints
+                        if (health < activeWeakPoints * healthPerWp) {
+                            for (i in (maxWeakPoints - 1) downTo 0) {
+                                if ((wpDestroyedMask and (1 shl i)) == 0) {
+                                    wpDestroyedMask = wpDestroyedMask or (1 shl i)
+                                    activeWeakPoints--
+                                    onBurst(x, y, 30, Color(0xFFFF5722), 350f)
+                                    onPlaySfx("sfx_boss_weakpoint")
+                                    onVibrate(HapticManager.HapticType.SUCCESS)
+                                    onFloatingText("WEAK POINT COLLAPSED", player.x, player.y, Color(0xFFFF5722), true, 1.0f)
+                                    if (activeWeakPoints <= 0) {
+                                        phase = when (definition.id) {
+                                            "MINI_BOSS_COMMANDER" -> 5
+                                            "BOSS_SINGULARITY" -> 4
+                                            else -> 4
+                                        }
+                                        onFloatingText("BOSS DESTROYED", player.x, player.y, Color.Cyan, true, 1.0f)
+                                    }
+                                    break
+                                }
                             }
                         }
                     }
@@ -740,7 +797,11 @@ fun ActiveThreat.processInteractionHandler(
                             player.fuel = max(0f, player.fuel - 10f * factor * sdt)
                             player.shield = max(0f, player.shield - 5f * factor * sdt)
                             player.heat = min(Constants.MAX_HEAT, player.heat + 20f * factor * sdt)
-                            if (gameTime % 800 < 50) onFloatingText("ENTROPY DRAIN", player.x, player.y - 100f, Color.Red, false, 0.5f)
+                            if (gameTime % 800 < 50) {
+                                onFloatingText("ENTROPY DRAIN", player.x, player.y - 100f, Color.Red, false, 0.5f)
+                                onPlaySfx("sfx_hit_shield")
+                                onVibrate(HapticManager.HapticType.IMPACT_LIGHT)
+                            }
                         }
                     }
                 }
@@ -835,7 +896,6 @@ fun ActiveThreat.processInteractionHandler(
                     powerUps.add(PowerUp(player.x, cameraY + 200f, PowerUpType.ARTIFACT))
                     onFloatingText("!!! ${definition.name.uppercase()} DEFEATED !!!", player.x, player.y, Color.Cyan, true, 1.0f)
                     onNotification(">>> MISSION DATA RECOVERED <<<", 5.0f)
-                    onScoreUpdate(1000)
                 }
 
                 destructionTimer += sdt
