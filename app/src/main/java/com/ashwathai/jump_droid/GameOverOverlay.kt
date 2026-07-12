@@ -64,6 +64,7 @@ fun GameOverOverlay(
     onRestart: () -> Unit,
     onMainMenu: () -> Unit
 ) {
+    val analytics = LocalAnalytics.current
     val infiniteTransition = rememberInfiniteTransition(label = "GameOverTransition")
     val glitchOffset by infiniteTransition.animateFloat(0f, 3f, infiniteRepeatable(tween(200), RepeatMode.Reverse), label = "GlitchOffset")
     val borderPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(1200), RepeatMode.Reverse), label = "BorderPulse")
@@ -191,7 +192,9 @@ fun GameOverOverlay(
                         if (isFreeContinue) {
                             onContinue()
                         } else {
+                            analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
                             RewardedAdHelper.show(context as Activity,
+                                analytics = analytics,
                                 onReward = onContinue,
                                 onFailed = {
                                     if (retryCount >= 2) {

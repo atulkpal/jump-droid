@@ -1,7 +1,7 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-01
-**Project Status:** Release Polish — Phases 1–7 Complete ✅
+**Last Updated:** 2026-07-02
+**Project Status:** Release Polish — Phases 1–8 Complete ✅
 **Current Stable Tag:** `release-candidate-1`
 **Branch:** `refactor/cleanup`
 **Base Commit:** `HEAD`
@@ -48,6 +48,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
     *   Phase 7 — Bug Bash + Polish (player hitbox collision radius, per-WP `wpDestroyedMask` bitmask tracking, WP hitbox positions aligned to visuals across 11 bosses, Signal ghost platform capping, Gravity Anchor pull safe window, Lightning dissolve effect, alarm loop fix all 3 death paths, shield hit sound for bypass damage, Heat Bat aura, Lightning 25→13, boss HP/WP scaling by difficultyMultiplier, wpInvulnerabilityTimer separation, WP cooldown 0.25s/hit radius 45f, Cloud Zone purple-blue storm clouds, Earth Zone golden hour gradient, Shield Platform restore, Conveyor velocity fix, Zone jump freeze fix, Zone change notification, multi-hit WPs, Heat Bat visibility/damage rebalance)
     *   Phase 7 — Billing + Shop (PurchaseManager BillingClient rewrite, ShopScreen new, ProgressionManager cash tracking, SettingsScreen premium no-toggle-off + data reset buttons, MainActivity/MainMenu shop route + button, AboutScreen V1.5.0 update, Play Store purchase gating, dev menu gated on BuildConfig.DEBUG)
     *   Phase 7 — Boss Density & Score Integrity (score removal from boss kills, milestone threshold rebalance, one-boss-per-frame guard, no boss while boss alive, boss recurrence system, MINI_BOSS music fix, hazard suppression 0.3f→0.1f, Solar Flare filter during bosses, ThreatRegistry.getEntries())
+    *   Phase 8 — Firebase Integration & Quality Assurance (Firebase Analytics & Crashlytics integrated, debug-gated Crashlytics test action added to Dev Menu, domain-driven GameAnalytics layer implemented, AdMob hardening with AdConfig centralized IDs and debug/release gating, high-value instrumentation complete)
 *   **Current Priorities**: Performance profiling, Play Store listing prep, final APK build.
 *   **Next Planned Work**: Performance profiling (frame drops in upper zones / dense threat fields), Play Store listing (screenshots, description, assets), final APK build + testing.
 

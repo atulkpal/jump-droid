@@ -10,18 +10,26 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.core.content.edit
 import com.google.android.gms.ads.MobileAds
+import com.google.firebase.FirebaseApp
+
+val LocalAnalytics = staticCompositionLocalOf<GameAnalytics> { error("No Analytics provided") }
 
 class MainActivity : ComponentActivity() {
     private var gameEngine: GameEngine? = null
+    private lateinit var analytics: GameAnalytics
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        FirebaseApp.initializeApp(this)
+        analytics = FirebaseGameAnalytics(this)
         MobileAds.initialize(this) {}
         enableEdgeToEdge()
         setContent {
-            val engine = remember { GameEngine(this) }
+            val engine = remember { GameEngine(this, analytics) }
             gameEngine = engine
-            JumpDroidApp(engine, onExit = { finish() })
+            CompositionLocalProvider(LocalAnalytics provides analytics) {
+                JumpDroidApp(engine, onExit = { finish() })
+            }
         }
     }
 
@@ -39,14 +47,17 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
     val navController = rememberNavController()
+    val analytics = LocalAnalytics.current
 
     // --- Audio: Menu Music Management ---
     LaunchedEffect(navController) {
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
-            val route = backStackEntry.destination.route
+            val route = backStackEntry.destination.route ?: "unknown"
+            analytics.logScreenView(route, route.replaceFirstChar { it.uppercase() })
             if (route == "game") {
                 engine.soundManager.stopMusic()
             } else {
+                engine.soundManager.killAllMusic()
                 engine.soundManager.playMenuMusic()
             }
         }

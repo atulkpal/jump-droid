@@ -8,6 +8,6 @@ fun GameScreen() {
     // This is now a legacy entry point. 
     // Navigation is handled in MainActivity via JumpDroidApp.
     val context = androidx.compose.ui.platform.LocalContext.current
-    val engine = remember { GameEngine(context) }
+    val engine = remember { GameEngine(context, FirebaseGameAnalytics(context)) }
     JumpDroidApp(engine = engine, onExit = {})
 }

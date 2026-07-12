@@ -9,6 +9,8 @@ import androidx.core.content.edit
  */
 class LoadoutManager(private val sharedPrefs: SharedPreferences) {
 
+    var onModuleEquipped: ((moduleId: String, slotIndex: Int) -> Unit)? = null
+
     private val _equippedModuleIds = mutableStateListOf<String?>(null, null) // 2 Slots
     val equippedModuleIds: List<String?> get() = _equippedModuleIds
 
@@ -49,6 +51,7 @@ class LoadoutManager(private val sharedPrefs: SharedPreferences) {
         }
 
         _equippedModuleIds[slotIndex] = moduleId
+        onModuleEquipped?.invoke(moduleId, slotIndex)
         saveLoadout()
     }
 

@@ -21,7 +21,8 @@ import com.ashwathai.jump_droid.Constants.SCREEN_PADDING
 import com.ashwathai.jump_droid.Constants.ZONE_THRESHOLD_SINGULARITY
 
 class GameEngine(
-    context: android.content.Context
+    context: android.content.Context,
+    val analytics: GameAnalytics
 ) {
     val sharedPrefs = context.getSharedPreferences("JumpDroidPrefs", android.content.Context.MODE_PRIVATE)
     val soundManager = SoundManager(context)
@@ -123,11 +124,13 @@ class GameEngine(
             discoveryManager.discoverZone(zone)
             notificationManager.showImmediately("ZONE: ${zone.zoneName}", priority = NotificationPriority.TACTICAL, duration = 3.0f)
             impactFlashAlpha = 0.3f
+            analytics.logZoneChanged(zone)
         }
         threatManager.onThreatDestroyed = { def ->
             if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
                 totalBossesDefeated++
                 runBossesDefeated++
+                analytics.logBossDefeated(def, altitudeManager.currentZone)
                 val celebrationX = player.x
                 val celebrationY = cameraY + screenHeight * 0.3f
                 spawnBurst(celebrationX, celebrationY, 50, SciFiGold, 400f)
@@ -136,7 +139,16 @@ class GameEngine(
                 floatingTextManager.add(FloatingText("BOSS DEFEATED", celebrationX, celebrationY - 50f, color = SciFiGold, isCritical = true, life = 2.0f))
             }
         }
-        missionManager.onMissionCompleted = { progressionManager.recordMissionCompletion(it.id) }
+        missionManager.onMissionCompleted = { mission -> 
+            progressionManager.recordMissionCompletion(mission.id)
+            analytics.logMissionCompleted(mission)
+        }
+        missionManager.onMissionStarted = { mission ->
+            analytics.logMissionStarted(mission)
+        }
+        loadoutManager.onModuleEquipped = { moduleId, slotIndex ->
+            analytics.logModuleEquipped(moduleId, slotIndex)
+        }
         missionManager.onHiddenSignalRevealed = { mission ->
             notificationManager.post("SIGNAL DECODED: ${mission.name.uppercase()}", NotificationPriority.CRITICAL, 4.0f, SciFiCyan)
             spawnBurst(player.x, player.y, 40, SciFiCyan, 350f)
@@ -291,6 +303,7 @@ class GameEngine(
             player = player,
             onRocketUnlock = { type -> 
                 unlockedRocket = type
+                analytics.logRocketUnlocked(type)
                 soundManager.duck(2000L)
                 soundManager.playSfx("sfx_fanfare_unlock")
                 preOverlayState = gameState
@@ -327,6 +340,7 @@ class GameEngine(
                 gameState = GameState.GAMEOVER
                 saveHighScore(score)
                 progressionManager.commitSessionStats(getGameStats())
+                analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "structural_failure")
             },
             onVisualFeedback = { shake, flash -> screenShake = shake; impactFlashAlpha = flash },
             onBurst = { x, y, count, color, speed -> spawnBurst(x, y, count, color, speed) },
@@ -746,6 +760,7 @@ class GameEngine(
                 soundManager.stopThrust()
                 soundManager.fadeOutAndPlayGameOver { soundManager.playSfx("sfx_gameover") }
                 gameState = GameState.GAMEOVER; saveHighScore(score)
+                analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "hull_breach")
             },
             onShake = { screenShake = max(screenShake, it) },
             shieldRegenMultiplier = progressionManager.getShieldRegenMultiplier(),
@@ -926,7 +941,12 @@ class GameEngine(
         }
 
         // Director
-        encounterDirector.update(dt, score, altitudeManager.currentZone, screenWidth, screenHeight, cameraY, player.x, player.y, bossesSpawned, threatManager, notificationManager, onDiscovery = { checkDiscovery(it) }, onVisualFeedback = { s, f -> screenShake = max(screenShake, s); impactFlashAlpha = max(impactFlashAlpha, f) })
+        encounterDirector.update(
+            dt, score, altitudeManager.currentZone, screenWidth, screenHeight, cameraY, player.x, player.y, bossesSpawned, threatManager, notificationManager, 
+            onDiscovery = { checkDiscovery(it) }, 
+            onVisualFeedback = { s, f -> screenShake = max(screenShake, s); impactFlashAlpha = max(impactFlashAlpha, f) },
+            onBossSpawned = { analytics.logBossSpawned(it, altitudeManager.currentZone) }
+        )
 
         // Camera
         if (player.y < cameraY + screenHeight * 0.4f) cameraY = player.y - screenHeight * 0.4f
@@ -958,6 +978,7 @@ class GameEngine(
             screenShake = 20f
             gameState = GameState.GAMEOVER
             saveHighScore(score)
+            analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "off_screen_fall")
         }
     }
 
@@ -965,6 +986,7 @@ class GameEngine(
 
     fun restartGame() {
         if (screenWidth <= 0f) return
+        analytics.logGameStart(player.rocketType)
         player.x = screenWidth / 2f
         player.y = groundY
         player.velocityX = 0f; player.velocityY = 0f

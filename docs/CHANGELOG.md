@@ -4,30 +4,35 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
-## 2026-06-29
+## 2026-07-02
 
-**Sprint / Phase:** Release Polish — Phase 7 Bug Bash & Hitbox Fixes
+**Sprint / Phase:** Firebase Integration & Release Hardening Pass
 
 **Branch:** `refactor/cleanup`
 
-**Status:** Phases 1–6 Complete ✅ — Phase 7 Bug Bash Active
+**Status:** Production Hardened ✅
 
-### Fixed
-- **Player hitbox** (`ThreatInteractionProcessor.kt`): Added `rPlayer = 28f` to all 5 threat collision checks + WP hit check. The rocket's full 40×70 body now counts for contact, not just its center point.
-- **WP system — per-WP tracking** (`ActiveThreat.kt`, 11 renderers): Replaced broken `i >= activeWeakPoints` index assumption with `wpDestroyedMask` bitmask. WPs now track correctly regardless of destruction order. Previously, hitting WP0 first would make WP2 invisible/untargetable and leave WP0 falsely visible — affecting all multi-WP bosses.
-- **WP hitbox positions** (11 bosses): Every boss's WP detection now matches exactly where the WP is rendered. Signals: random→center. GravityAnchor: center→`(x, y ± 50)`. Forger: `(i-1)*70, y-30` → `(i-1)*60, y`. Architect, EntropyCore, Singularity: static orbits → time-based/jittered orbits matching renderers. StarEater: 1 at center → 3 orbiting (renderer + hitbox). Leviathan: all indices → every-other segment. VoidEngine: 180° → 120° arms.
-- **Signal ghost platform spam** (`ThreatInteractionProcessor.kt`): Per-frame rate reduced 0.15→0.01 / 0.25→0.02 with 600ms cooldown gate. ≈1–2 ghost platforms/sec max instead of 36–60.
-- **Gravity Anchor pull** (`ThreatInteractionProcessor.kt`): Added 3s cycle with 0.6s "PULL WEAKENED" safe window (pull drops to 15%). Strength capped at 3500×2.5 max. WP hit distance increased 60→100f.
-- **Lightning dissolve** (`ThreatAIUpdater.kt`, `LightningRenderer.kt`): 1.5s dissolve phase with cloud fragment particles and fading sparks instead of instant vanish.
+### Added
+- **Analytics Layer** (`GameAnalytics.kt`, `FirebaseGameAnalytics.kt`): Created domain-driven abstraction for high-value events.
+  - No gameplay code references Firebase SDK directly.
+  - Strongly typed events: `game_start`, `game_over` (with reason), `zone_changed`, `mission_status`, `boss_encounter`, `rocket_unlock`, `module_equip`, `ad_impression`, `ad_clicked`.
+- **Ad Configuration** (`AdConfig.kt`): Centralized unit IDs with automatic debug/release switching.
+  - Debug builds use Google sample IDs to prevent invalid production traffic.
+  - Release builds use production AdMob unit IDs.
+- **Dependency Injection**: `GameAnalytics` injected into `GameEngine` and provided to UI via `LocalAnalytics` CompositionLocal.
 
 ### Changed
-- **Boss rebalance** (`ThreatAIUpdater.kt`, `ThreatInteractionProcessor.kt`, `ThreatRegistry.kt`): Boss HP scaling by zone (150–1200). Y-pursuit added to all 10 bosses. Phase-based AI for Forger, GravityAnchor, Architect, EntropyCore. WP counts: StarEater 1→3, Signal 1→3, GravityAnchor 1→2. Destruction burst scaling by boss type with continuous emission. Power-up glow enhanced with outer halo ring.
+- **GameEngine Instrumentation**: Level start, game over (with reason), boss events, and mission events hooked into the analytics layer.
+- **MainActivity Refactor**: Entry point for analytics initialization and automatic screen tracking via NavHost listener.
+- **AdMob Hardening**: `GlobalAdBanner` and `RewardedAdHelper` migrated to `AdConfig` and instrumented for impression/click tracking.
+- **Loadout Tracking**: Added callback to `LoadoutManager` to track module equipping.
+- **Mission Tracking**: Added callback to `MissionManager` to track mission activation.
 
-### Documentation
-- `CHANGELOG.md`: Added this entry.
-- `docs/roadmap/RELEASE_POLISH_PLAN.md`: Updated Phase 7 checklist.
-- `docs/JumpDroid_EPIC_Tracker.md`: Updated Release Polish section.
-- `AGENTS.md`: Updated project state to Release Polish Phase 7 Active.
+### Validation
+- `:app:assembleDebug` — BUILD SUCCESSFUL.
+- `:app:assembleRelease` — BUILD SUCCESSFUL.
+- Verified debug ads (sample IDs) and production ad configuration.
+- Verified domain models used for all analytics calls.
 
 ---
 
@@ -70,6 +75,33 @@ All notable changes to this project are recorded as dated engineering events.
 - `docs/roadmap/RELEASE_POLISH_PLAN.md`: Updated Phase 7 status.
 - `docs/REPORTS/SPRINT_10_6_IMPLEMENTATION_REPORT.md`: Updated milestone thresholds.
 - `docs/gameplay/BOSS_DESIGN_BIBLE.md`: Added Boss Recurrence section.
+
+---
+
+## 2026-06-29
+
+**Sprint / Phase:** Release Polish — Phase 7 Bug Bash & Hitbox Fixes
+
+**Branch:** `refactor/cleanup`
+
+**Status:** Phases 1–6 Complete ✅ — Phase 7 Bug Bash Active
+
+### Fixed
+- **Player hitbox** (`ThreatInteractionProcessor.kt`): Added `rPlayer = 28f` to all 5 threat collision checks + WP hit check. The rocket's full 40×70 body now counts for contact, not just its center point.
+- **WP system — per-WP tracking** (`ActiveThreat.kt`, 11 renderers): Replaced broken `i >= activeWeakPoints` index assumption with `wpDestroyedMask` bitmask. WPs now track correctly regardless of destruction order. Previously, hitting WP0 first would make WP2 invisible/untargetable and leave WP0 falsely visible — affecting all multi-WP bosses.
+- **WP hitbox positions** (11 bosses): Every boss's WP detection now matches exactly where the WP is rendered. Signals: random→center. GravityAnchor: center→`(x, y ± 50)`. Forger: `(i-1)*70, y-30` → `(i-1)*60, y`. Architect, EntropyCore, Singularity: static orbits → time-based/jittered orbits matching renderers. StarEater: 1 at center → 3 orbiting (renderer + hitbox). Leviathan: all indices → every-other segment. VoidEngine: 180° → 120° arms.
+- **Signal ghost platform spam** (`ThreatInteractionProcessor.kt`): Per-frame rate reduced 0.15→0.01 / 0.25→0.02 with 600ms cooldown gate. ≈1–2 ghost platforms/sec max instead of 36–60.
+- **Gravity Anchor pull** (`ThreatInteractionProcessor.kt`): Added 3s cycle with 0.6s "PULL WEAKENED" safe window (pull drops to 15%). Strength capped at 3500×2.5 max. WP hit distance increased 60→100f.
+- **Lightning dissolve** (`ThreatAIUpdater.kt`, `LightningRenderer.kt`): 1.5s dissolve phase with cloud fragment particles and fading sparks instead of instant vanish.
+
+### Changed
+- **Boss rebalance** (`ThreatAIUpdater.kt`, `ThreatInteractionProcessor.kt`, `ThreatRegistry.kt`): Boss HP scaling by zone (150–1200). Y-pursuit added to all 10 bosses. Phase-based AI for Forger, GravityAnchor, Architect, EntropyCore. WP counts: StarEater 1→3, Signal 1→3, GravityAnchor 1→2. Destruction burst scaling by boss type with continuous emission. Power-up glow enhanced with outer halo ring.
+
+### Documentation
+- `CHANGELOG.md`: Added this entry.
+- `docs/roadmap/RELEASE_POLISH_PLAN.md`: Updated Phase 7 checklist.
+- `docs/JumpDroid_EPIC_Tracker.md`: Updated Release Polish section.
+- `AGENTS.md`: Updated project state to Release Polish Phase 7 Active.
 
 ---
 
@@ -386,36 +418,6 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
-## 2026-06-19
-
-**Sprint / Phase:** Engine Expansion — Core Systems
-
-**Status:** Completed
-
-### Added
-- **Projectile Engine**: `Projectile.kt` and `ProjectileManager.kt` for global ranged attack tracking.
-- **Input Buffer**: `InputBufferManager.kt` for time-delayed input processing (Chrono-Lag support).
-- **Tether Physics**: `Tether.kt` for physical links between the player and anchors.
-- **Visual Obstruction**: `globalFogAlpha` state and `drawVisualObstruction` renderer for fog/smoke effects.
-- **Engine Documentation**: `docs/design/ENGINE_EXTENSIONS.md`.
-
-### Changed
-- **ActiveThreat Refactor**: Updated `update()` and `processInteraction()` signatures to support Entity-to-Entity (E2E) logic.
-- **Physics Loop**: Integrated projectile collision and tether tension sub-routines into the sub-stepped physics loop.
-- **Canvas Rendering**: Added hooks for projectiles, tethers, and fog layers.
-- **DevConfig**: Added toggles for all new engine systems (enabled by default).
-- **Player Model**: Added `activeTether` and `inputLatency` state fields.
-
-### Validation
-- `./gradlew assembleDebug` — BUILD SUCCESSFUL
-- Verified baseline gameplay feel is preserved with default (zero) latency.
-
-### Notes
-- This sprint provides the technical foundation for Advanced Threats (Sprint C) and Boss Phases (EPIC 6).
-- All systems are modular and can be disabled via `DevConfig.kt`.
-
----
-
 ## 2026-06-18
 
 **Sprint / Phase:** Refactor Sprint T3 — Logic & Manager Extraction
@@ -446,36 +448,6 @@ All notable changes to this project are recorded as dated engineering events.
 ### Notes
 - This sprint shifted the focus from UI extraction to logic modularization.
 - Core game loop remains in `GameScreen.kt` but is now significantly leaner.
-
----
-
-## 2026-06-19
-
-**Sprint / Phase:** Engine Expansion — Core Systems
-
-**Status:** Completed
-
-### Added
-- **Projectile Engine**: `Projectile.kt` and `ProjectileManager.kt` for global ranged attack tracking.
-- **Input Buffer**: `InputBufferManager.kt` for time-delayed input processing (Chrono-Lag support).
-- **Tether Physics**: `Tether.kt` for physical links between the player and anchors.
-- **Visual Obstruction**: `globalFogAlpha` state and `drawVisualObstruction` renderer for fog/smoke effects.
-- **Engine Documentation**: `docs/design/ENGINE_EXTENSIONS.md`.
-
-### Changed
-- **ActiveThreat Refactor**: Updated `update()` and `processInteraction()` signatures to support Entity-to-Entity (E2E) logic.
-- **Physics Loop**: Integrated projectile collision and tether tension sub-routines into the sub-stepped physics loop.
-- **Canvas Rendering**: Added hooks for projectiles, tethers, and fog layers.
-- **DevConfig**: Added toggles for all new engine systems (enabled by default).
-- **Player Model**: Added `activeTether` and `inputLatency` state fields.
-
-### Validation
-- `./gradlew assembleDebug` — BUILD SUCCESSFUL
-- Verified baseline gameplay feel is preserved with default (zero) latency.
-
-### Notes
-- This sprint provides the technical foundation for Advanced Threats (Sprint C) and Boss Phases (EPIC 6).
-- All systems are modular and can be disabled via `DevConfig.kt`.
 
 ---
 
@@ -517,36 +489,6 @@ All notable changes to this project are recorded as dated engineering events.
 
 ### Notes
 - GameScreen.kt still contains inline implementations for all screens, overlays, and HUD widgets. The extracted files are defined but not yet called. Phase 2 will perform the replacement.
-
----
-
-## 2026-06-19
-
-**Sprint / Phase:** Engine Expansion — Core Systems
-
-**Status:** Completed
-
-### Added
-- **Projectile Engine**: `Projectile.kt` and `ProjectileManager.kt` for global ranged attack tracking.
-- **Input Buffer**: `InputBufferManager.kt` for time-delayed input processing (Chrono-Lag support).
-- **Tether Physics**: `Tether.kt` for physical links between the player and anchors.
-- **Visual Obstruction**: `globalFogAlpha` state and `drawVisualObstruction` renderer for fog/smoke effects.
-- **Engine Documentation**: `docs/design/ENGINE_EXTENSIONS.md`.
-
-### Changed
-- **ActiveThreat Refactor**: Updated `update()` and `processInteraction()` signatures to support Entity-to-Entity (E2E) logic.
-- **Physics Loop**: Integrated projectile collision and tether tension sub-routines into the sub-stepped physics loop.
-- **Canvas Rendering**: Added hooks for projectiles, tethers, and fog layers.
-- **DevConfig**: Added toggles for all new engine systems (enabled by default).
-- **Player Model**: Added `activeTether` and `inputLatency` state fields.
-
-### Validation
-- `./gradlew assembleDebug` — BUILD SUCCESSFUL
-- Verified baseline gameplay feel is preserved with default (zero) latency.
-
-### Notes
-- This sprint provides the technical foundation for Advanced Threats (Sprint C) and Boss Phases (EPIC 6).
-- All systems are modular and can be disabled via `DevConfig.kt`.
 
 ---
 
@@ -592,36 +534,6 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
-## 2026-06-19
-
-**Sprint / Phase:** Engine Expansion — Core Systems
-
-**Status:** Completed
-
-### Added
-- **Projectile Engine**: `Projectile.kt` and `ProjectileManager.kt` for global ranged attack tracking.
-- **Input Buffer**: `InputBufferManager.kt` for time-delayed input processing (Chrono-Lag support).
-- **Tether Physics**: `Tether.kt` for physical links between the player and anchors.
-- **Visual Obstruction**: `globalFogAlpha` state and `drawVisualObstruction` renderer for fog/smoke effects.
-- **Engine Documentation**: `docs/design/ENGINE_EXTENSIONS.md`.
-
-### Changed
-- **ActiveThreat Refactor**: Updated `update()` and `processInteraction()` signatures to support Entity-to-Entity (E2E) logic.
-- **Physics Loop**: Integrated projectile collision and tether tension sub-routines into the sub-stepped physics loop.
-- **Canvas Rendering**: Added hooks for projectiles, tethers, and fog layers.
-- **DevConfig**: Added toggles for all new engine systems (enabled by default).
-- **Player Model**: Added `activeTether` and `inputLatency` state fields.
-
-### Validation
-- `./gradlew assembleDebug` — BUILD SUCCESSFUL
-- Verified baseline gameplay feel is preserved with default (zero) latency.
-
-### Notes
-- This sprint provides the technical foundation for Advanced Threats (Sprint C) and Boss Phases (EPIC 6).
-- All systems are modular and can be disabled via `DevConfig.kt`.
-
----
-
 ## 2026-06-18
 
 **Sprint / Phase:** Refactor Sprint T2 — Phase A (Low Risk)
@@ -652,36 +564,6 @@ All notable changes to this project are recorded as dated engineering events.
 - All 4 extractions use explicit parameter patterns; `BoxScope`-dependent composables accept `Modifier` parameter
 - T2B (Canvas effects, ~104 lines) is planned but not started
 - Threat entity rendering (~826 lines) remains inline indefinitely
-
----
-
-## 2026-06-19
-
-**Sprint / Phase:** Engine Expansion — Core Systems
-
-**Status:** Completed
-
-### Added
-- **Projectile Engine**: `Projectile.kt` and `ProjectileManager.kt` for global ranged attack tracking.
-- **Input Buffer**: `InputBufferManager.kt` for time-delayed input processing (Chrono-Lag support).
-- **Tether Physics**: `Tether.kt` for physical links between the player and anchors.
-- **Visual Obstruction**: `globalFogAlpha` state and `drawVisualObstruction` renderer for fog/smoke effects.
-- **Engine Documentation**: `docs/design/ENGINE_EXTENSIONS.md`.
-
-### Changed
-- **ActiveThreat Refactor**: Updated `update()` and `processInteraction()` signatures to support Entity-to-Entity (E2E) logic.
-- **Physics Loop**: Integrated projectile collision and tether tension sub-routines into the sub-stepped physics loop.
-- **Canvas Rendering**: Added hooks for projectiles, tethers, and fog layers.
-- **DevConfig**: Added toggles for all new engine systems (enabled by default).
-- **Player Model**: Added `activeTether` and `inputLatency` state fields.
-
-### Validation
-- `./gradlew assembleDebug` — BUILD SUCCESSFUL
-- Verified baseline gameplay feel is preserved with default (zero) latency.
-
-### Notes
-- This sprint provides the technical foundation for Advanced Threats (Sprint C) and Boss Phases (EPIC 6).
-- All systems are modular and can be disabled via `DevConfig.kt`.
 
 ---
 
@@ -720,36 +602,6 @@ All notable changes to this project are recorded as dated engineering events.
 ### Notes
 - Refactor Sprint T2 is fully complete. T1 + T2 cumulative reduction: 4,344 → 3,109 lines (−28.4%)
 - Threat entity rendering (~826 lines) remains inline indefinitely
-
----
-
-## 2026-06-19
-
-**Sprint / Phase:** Engine Expansion — Core Systems
-
-**Status:** Completed
-
-### Added
-- **Projectile Engine**: `Projectile.kt` and `ProjectileManager.kt` for global ranged attack tracking.
-- **Input Buffer**: `InputBufferManager.kt` for time-delayed input processing (Chrono-Lag support).
-- **Tether Physics**: `Tether.kt` for physical links between the player and anchors.
-- **Visual Obstruction**: `globalFogAlpha` state and `drawVisualObstruction` renderer for fog/smoke effects.
-- **Engine Documentation**: `docs/design/ENGINE_EXTENSIONS.md`.
-
-### Changed
-- **ActiveThreat Refactor**: Updated `update()` and `processInteraction()` signatures to support Entity-to-Entity (E2E) logic.
-- **Physics Loop**: Integrated projectile collision and tether tension sub-routines into the sub-stepped physics loop.
-- **Canvas Rendering**: Added hooks for projectiles, tethers, and fog layers.
-- **DevConfig**: Added toggles for all new engine systems (enabled by default).
-- **Player Model**: Added `activeTether` and `inputLatency` state fields.
-
-### Validation
-- `./gradlew assembleDebug` — BUILD SUCCESSFUL
-- Verified baseline gameplay feel is preserved with default (zero) latency.
-
-### Notes
-- This sprint provides the technical foundation for Advanced Threats (Sprint C) and Boss Phases (EPIC 6).
-- All systems are modular and can be disabled via `DevConfig.kt`.
 
 ---
 
@@ -820,36 +672,6 @@ All notable changes to this project are recorded as dated engineering events.
 ### Technical Debt
 - `GameScreen.kt` line count: ~1,943 lines (budget: 2,200) — headroom for future work.
 - `PlayerInputProcessor.kt` extracted, reducing GameScreen complexity.
-
----
-
-## 2026-06-19
-
-**Sprint / Phase:** Engine Expansion — Core Systems
-
-**Status:** Completed
-
-### Added
-- **Projectile Engine**: `Projectile.kt` and `ProjectileManager.kt` for global ranged attack tracking.
-- **Input Buffer**: `InputBufferManager.kt` for time-delayed input processing (Chrono-Lag support).
-- **Tether Physics**: `Tether.kt` for physical links between the player and anchors.
-- **Visual Obstruction**: `globalFogAlpha` state and `drawVisualObstruction` renderer for fog/smoke effects.
-- **Engine Documentation**: `docs/design/ENGINE_EXTENSIONS.md`.
-
-### Changed
-- **ActiveThreat Refactor**: Updated `update()` and `processInteraction()` signatures to support Entity-to-Entity (E2E) logic.
-- **Physics Loop**: Integrated projectile collision and tether tension sub-routines into the sub-stepped physics loop.
-- **Canvas Rendering**: Added hooks for projectiles, tethers, and fog layers.
-- **DevConfig**: Added toggles for all new engine systems (enabled by default).
-- **Player Model**: Added `activeTether` and `inputLatency` state fields.
-
-### Validation
-- `./gradlew assembleDebug` — BUILD SUCCESSFUL
-- Verified baseline gameplay feel is preserved with default (zero) latency.
-
-### Notes
-- This sprint provides the technical foundation for Advanced Threats (Sprint C) and Boss Phases (EPIC 6).
-- All systems are modular and can be disabled via `DevConfig.kt`.
 
 ---
 

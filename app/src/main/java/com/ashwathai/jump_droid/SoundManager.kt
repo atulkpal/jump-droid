@@ -33,6 +33,7 @@ class SoundManager(context: Context) {
     private var musicPlayerB: MediaPlayer? = null
     private var currentMusicResId: Int? = null
     private var crossfadeJob: Job? = null
+    private var pendingReleasePlayer: MediaPlayer? = null
 
     private var currentZone: AltitudeZone? = null
     private var isBossMusicPlaying = false
@@ -301,6 +302,9 @@ class SoundManager(context: Context) {
                         delay(33)
                     }
                     player.stop()
+                    player.release()
+                    if (musicPlayerA == player) musicPlayerA = null
+                    if (musicPlayerB == player) musicPlayerB = null
                     Log.d("SoundManager", "Music faded out for game over")
                 }
             }
@@ -345,6 +349,11 @@ class SoundManager(context: Context) {
         }
         if (currentMusicResId == resId && isMusicPlaying()) return
 
+        crossfadeJob?.cancel()
+        crossfadeJob = null
+        pendingReleasePlayer?.let { releasePlayer(it) }
+        pendingReleasePlayer = null
+
         val oldPlayer = getActiveMusicPlayer()
         currentMusicResId = resId
 
@@ -366,7 +375,7 @@ class SoundManager(context: Context) {
             if (oldPlayer?.isPlaying == true) {
                 // Crossfade: ramp new up, old down over 600ms async
                 newPlayer.setVolume(0f, 0f)
-                crossfadeJob?.cancel()
+                pendingReleasePlayer = oldPlayer
                 crossfadeJob = scope.launch {
                     val oldBias = musicBias[resId] ?: 1.0f
                     val oldVol = (musicVolume * oldBias).coerceIn(0f, 1f)
@@ -381,10 +390,12 @@ class SoundManager(context: Context) {
                     oldPlayer.release()
                     if (musicPlayerA == oldPlayer) musicPlayerA = null
                     if (musicPlayerB == oldPlayer) musicPlayerB = null
+                    if (pendingReleasePlayer == oldPlayer) pendingReleasePlayer = null
                     Log.d("SoundManager", "Crossfade complete: new track=$resId")
                     crossfadeJob = null
                 }
             } else {
+                oldPlayer?.let { releasePlayer(it) }
                 newPlayer.setVolume(targetVol, targetVol)
                 Log.d("SoundManager", "Music started: resId=$resId vol=$targetVol")
             }
@@ -405,6 +416,22 @@ class SoundManager(context: Context) {
     }
 
     fun stopMusic() {
+        stopMusicInternal()
+        currentMusicResId = null
+    }
+
+    private fun releasePlayer(player: MediaPlayer) {
+        try { if (player.isPlaying) player.stop() } catch (_: Exception) {}
+        player.release()
+        if (musicPlayerA == player) musicPlayerA = null
+        if (musicPlayerB == player) musicPlayerB = null
+    }
+
+    fun killAllMusic() {
+        crossfadeJob?.cancel()
+        crossfadeJob = null
+        pendingReleasePlayer?.let { releasePlayer(it) }
+        pendingReleasePlayer = null
         stopMusicInternal()
         currentMusicResId = null
     }
@@ -494,6 +521,10 @@ class SoundManager(context: Context) {
 
     fun release() {
         scope.cancel()
+        crossfadeJob?.cancel()
+        crossfadeJob = null
+        pendingReleasePlayer?.let { releasePlayer(it) }
+        pendingReleasePlayer = null
         stopAllLoops()
         stopThrust()
         stopMusicInternal()

@@ -436,6 +436,14 @@ private fun DevMenuContent(
     }
     Spacer(Modifier.height(4.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (BuildConfig.DEBUG) {
+            Button(
+                onClick = { throw RuntimeException("Crashlytics Test") },
+                modifier = Modifier.weight(1f).height(32.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SciFiRed.copy(alpha = 0.3f), contentColor = SciFiRed),
+                shape = RoundedCornerShape(4.dp)
+            ) { Text("TEST CRASH", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+        }
         Button(
             onClick = onUnlockAll,
             modifier = Modifier.weight(1f).height(32.dp),

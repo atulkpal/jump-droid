@@ -17,6 +17,7 @@ class MissionManager(private val progressionService: ProgressionService) {
 
     var onMissionCompleted: ((Mission) -> Unit)? = null
     var onHiddenSignalRevealed: ((Mission) -> Unit)? = null
+    var onMissionStarted: ((Mission) -> Unit)? = null
     
     // Tracks IDs of missions completed during this session to prevent repetition
     private val completedIdsInRun = mutableSetOf<String>()
@@ -206,6 +207,7 @@ class MissionManager(private val progressionService: ProgressionService) {
         val template = allMissionInstances[missionId]
         if (template != null && activeMissions.none { it.id == missionId }) {
             activeMissions.add(template)
+            onMissionStarted?.invoke(template)
             android.util.Log.d("MissionHUD", "MISSION ACTIVATED TO HUD: ${template.id}")
         }
     }

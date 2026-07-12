@@ -174,7 +174,8 @@ class EncounterDirector {
         threatManager: ThreatManager,
         notificationManager: NotificationManager,
         onDiscovery: (DiscoveryType) -> Unit,
-        onVisualFeedback: (shake: Float, flash: Float) -> Unit
+        onVisualFeedback: (shake: Float, flash: Float) -> Unit,
+        onBossSpawned: (ThreatDefinition) -> Unit = {}
     ) {
         val config = zoneConfigs[currentZone] ?: return
         val intensityFactor = config.intensity
@@ -213,6 +214,7 @@ class EncounterDirector {
                                 difficultyMultiplier = zoneMultiplier,
                                 message = "!!! ${def.name.uppercase()} ARRIVING !!!"
                             )
+                            onBossSpawned(def)
                             onVisualFeedback(50f, 1.0f)
 
                             val discovery = when(id) {
@@ -335,6 +337,7 @@ class EncounterDirector {
                                 threatManager, notificationManager, score,
                                 difficultyMultiplier = zoneMultiplier
                             )
+                            onBossSpawned(bossDef)
                             onVisualFeedback(20f, 0f)
                             bossDef.discoveryType?.let { onDiscovery(it) }
                             break
@@ -387,6 +390,7 @@ class EncounterDirector {
                                 difficultyMultiplier = zoneMultiplier * 1.3f,
                                 message = "RECURRENCE: ${def.name.uppercase()}"
                             )
+                            onBossSpawned(def)
                             onVisualFeedback(30f, 0.5f)
                             def.discoveryType?.let { onDiscovery(it) }
                         }

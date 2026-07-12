@@ -12,20 +12,27 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 
-private const val TEST_BANNER_UNIT = "ca-app-pub-4153575596488132/3022346201"
-
 @Composable
 fun GlobalAdBanner(isPremiumUser: Boolean = false) {
     val context = LocalContext.current
+    val analytics = LocalAnalytics.current
     val prefs = remember { context.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE) }
-    val premium = isPremiumUser || prefs.getBoolean("premium_user", false)
+    val premium = if (BuildConfig.DEBUG) false else (isPremiumUser || prefs.getBoolean("premium_user", false))
     if (premium) return
 
     AndroidView(
         factory = {
             AdView(context).apply {
                 setAdSize(AdSize.SMART_BANNER)
-                setAdUnitId(TEST_BANNER_UNIT)
+                setAdUnitId(AdConfig.BANNER_UNIT_ID)
+                adListener = object : com.google.android.gms.ads.AdListener() {
+                    override fun onAdImpression() {
+                        analytics.logAdImpression("banner", AdConfig.BANNER_UNIT_ID)
+                    }
+                    override fun onAdClicked() {
+                        analytics.logAdClicked("banner", AdConfig.BANNER_UNIT_ID)
+                    }
+                }
                 loadAd(AdRequest.Builder().build())
             }
         },
@@ -34,13 +41,11 @@ fun GlobalAdBanner(isPremiumUser: Boolean = false) {
 }
 
 object RewardedAdHelper {
-    private const val TEST_REWARDED_UNIT = "ca-app-pub-4153575596488132/5155087899"
-
     private var loadedAd: com.google.android.gms.ads.rewarded.RewardedAd? = null
 
     fun load(context: Context) {
         val adRequest = AdRequest.Builder().build()
-        com.google.android.gms.ads.rewarded.RewardedAd.load(context, TEST_REWARDED_UNIT, adRequest,
+        com.google.android.gms.ads.rewarded.RewardedAd.load(context, AdConfig.REWARDED_UNIT_ID, adRequest,
             object : com.google.android.gms.ads.rewarded.RewardedAdLoadCallback() {
                 override fun onAdLoaded(ad: com.google.android.gms.ads.rewarded.RewardedAd) {
                     loadedAd = ad
@@ -51,8 +56,9 @@ object RewardedAdHelper {
             })
     }
 
-    fun show(activity: Activity, onReward: () -> Unit, onFailed: () -> Unit) {
+    fun show(activity: Activity, analytics: GameAnalytics, onReward: () -> Unit, onFailed: () -> Unit) {
         loadedAd?.let { ad ->
+            analytics.logAdImpression("rewarded", AdConfig.REWARDED_UNIT_ID)
             ad.show(activity) { onReward() }
             loadedAd = null
         } ?: onFailed()
