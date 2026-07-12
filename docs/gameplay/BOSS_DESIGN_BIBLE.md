@@ -264,12 +264,25 @@ Since Jump Droid does not currently feature a dedicated weapon system, **weak po
 *   **Collision Detection**: The game checks the distance between the center of the rocket and the calculated position of each active weak point.
 *   **Hit Radius**: 
     *   `BOSS_STAR_EATER`: 80 pixels.
-    *   All other Bosses/Mini-Bosses: 50 pixels.
+    *   `SCOUT`: 80 pixels.
+    *   `GRAVITY_ANCHOR`: 100 pixels.
+    *   All other Bosses/Mini-Bosses: 45 pixels (reduced from 50 for tighter precision).
+*   **Multi-Hit Weak Points (Phase 7+)**: Weak points now require multiple hits to destroy, scaling with zone difficulty:
+    *   **Tier 1** (difficultyMultiplier < 1.5): 1 hit per WP
+    *   **Tier 2** (1.5–2.5): 2 hits per WP
+    *   **Tier 3** (2.5–3.5): 3 hits per WP
+    *   **Tier 4** (≥3.5): 4 hits per WP
+    *   Each partial hit deals `baseHealth * difficultyMultiplier / (maxWeakPoints * wpRequiredHits)` damage
+    *   Partial hits show purple burst + shield-hit SFX (not "WEAK POINT DESTROYED")
+    *   Per-WP hit counter (`wpHitCounts: IntArray`) initialized to `maxWeakPoints` zeros
+    *   WP only flags as destroyed when `wpHitCounts[i] >= wpRequiredHits`
+*   **Separate invulnerability timer**: `wpInvulnerabilityTimer` (on Player model) is independent from `invulnerabilityTimer`. Body/hazard damage no longer blocks weak point hits.
 *   **Attack Feedback**:
     *   **Knockback**: On a successful hit, the player is automatically knocked upward (`velocityY = -400f`) to prevent multi-hit frame overlapping.
-    *   **Invulnerability**: The player receives a brief **0.5s invulnerability window** to allow for safe repositioning.
-    *   **Visuals**: A purple energy burst (`onBurst`) and "WEAK POINT DESTROYED" floating text appear.
-*   **Destruction**: Once a weak point is hit once, it is destroyed. When `activeWeakPoints` reaches zero, the boss typically transitions to a retreat or final phase.
+    *   **Invulnerability**: The player receives a brief **0.25s–0.75s wpInvulnerability window** (tiered by difficulty) to allow for safe repositioning.
+    *   **Visuals**: A purple energy burst (`onBurst`) and "WEAK POINT DESTROYED" floating text appear on final hit.
+*   **WP Cooldown**: 0.25s between WP hit checks (prevents rapid multi-hit on same frame).
+*   **Destruction**: When `activeWeakPoints` reaches zero, the boss typically transitions to a retreat or final phase.
 
 | Boss | Weak Points | Damage Multiplier | Special Effect | Status |
 | :--- | :--- | :--- | :--- | :--- |
@@ -292,16 +305,19 @@ Since Jump Droid does not currently feature a dedicated weapon system, **weak po
 Boss health, damage, and attack speed scale with:
 
 1. **Altitude** — higher zones apply a difficulty multiplier to boss base health.
-2. **Player progress** — Codex completion increases challenge. *(Planned)*
-3. **Combo streaks** — longer combos may trigger harder boss phases. *(Planned)*
-4. **Rocket class** — Tank receives less speed penalty; Scout deals more weak-point damage. *(Planned)*
+2. **Score integrity** — No score reward for boss kills. Score is purely altitude-based. Boss kills removed all 3 `onScoreUpdate(1000)` calls in ThreatInteractionProcessor (WP phase transition, WP auto-collapse, full defeat).
+3. **Player progress** — Codex completion increases challenge. *(Planned)*
+4. **Combo streaks** — longer combos may trigger harder boss phases. *(Planned)*
+5. **Rocket class** — Tank receives less speed penalty; Scout deals more weak-point damage. *(Planned)*
 
 ### Scaling Table
 
 | Factor | Scaling Multiplier | Implementation |
 | :--- | :--- | :--- |
-| Base Health | ×1.0 (Earth) to ×3.0 (Void) | **Implemented** — `difficultyMultiplier` applied at spawn in EncounterDirector. |
-| Damage Output | ×1.0 to ×2.5 | **Planned** — to be applied via `difficultyMultiplier` in processInteraction. |
+| Base Health | ×1.0 (Earth) to ×3.0 (Void) | **Implemented** — `difficultyMultiplier` applied at spawn in EncounterDirector. Boss HP = `definition.baseHealth * difficultyMultiplier`. |
+| Damage Output | ×1.0 to ×2.5 | **Implemented** — `difficultyMultiplier` applied to body collision damage and WP hit damage. |
+| WP Required Hits | 1–4 per WP | **Implemented** — 4 tiers based on `difficultyMultiplier` range. Higher zones require more precision passes per WP. |
+| WP Invulnerability | 0.25s–0.75s | **Implemented** — `wpInvulnerabilityTimer` scales with `difficultyMultiplier`. |
 | Attack Speed | ×1.0 to ×2.0 | **Planned** — to be used for phase transition timer scaling. |
 | Phase Transition Threshold | ×1.0 to ×1.5 | **Planned** — later transitions in higher zones. |
 
@@ -316,7 +332,16 @@ Boss health, damage, and attack speed scale with:
 | Deep Space | ×2.5 |
 | Void | ×3.0 |
 
-Multiplier is computed in `EncounterDirector.update()` and passed to `ThreatManager.spawnThreat()` as `difficultyMultiplier`. Boss HP at spawn = `definition.baseHealth * difficultyMultiplier`.
+Multiplier is computed in `EncounterDirector.update()` via `zoneMultiplier` formula and passed to `ThreatManager.spawnThreat()` as `difficultyMultiplier`. Boss HP at spawn = `definition.baseHealth * difficultyMultiplier`.
+
+### Boss Recurrence System (Phase 7+)
+
+When no boss is alive on the field, `EncounterDirector` runs a `bossRecurrenceTimer` (~3s cadence) that picks from an eligible pool:
+
+- **Previously-defeated bosses** that can spawn in the current zone
+- **All mini-bosses** allowed in the current zone (regardless of defeat status)
+
+Spawn chance: 5% (early zones) to 25% (late zones). Spawns at 1.3× zone difficulty with `"RECURRENCE:"` notification + visual feedback. This fills all dead zones between milestones with dynamic repeat encounters.
 
 ---
 

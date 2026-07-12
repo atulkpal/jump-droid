@@ -6,11 +6,11 @@ This document is the permanent repository for all proposed, evaluated, and class
 
 ## 1. Hazards
 
-| Name | Classification | Role | Zone | Difficulty | Logic & Rationale |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Cryo-Mist** | **APPROVED** | Heat Controller | Atmosphere | ⭐⭐ | **Freezes Heat bar.** While inside, heat cannot change. Low technical risk; unique tactical choice. |
-| **Mirror Shards** | **APPROVED** | Deceiver | Deep Space | ⭐⭐⭐⭐ | **Inverts Horizontal Axis.** High gameplay impact with minimal code overhead. |
-| **Gravity Shear** | **APPROVED** | Controller | Deep Space | ⭐⭐⭐ | **Split Force.** Top half pushes UP, bottom half pulls DOWN. Leverages existing physics. |
+| Name | Classification | Role | Zone | Difficulty | Visual | Logic & Rationale |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Cryo-Mist** | **APPROVED** | Heat Controller | Atmosphere | ⭐⭐ | Pulsing cyan radial gradient frost field with inner core, hoarfrost rim, drifting ice crystals, falling frost particles, vapor wisps, player-triggered shatter sparks | **Freezes Heat bar.** While inside, heat cannot change. Low technical risk; unique tactical choice. |
+| **Mirror Shards** | **APPROVED** | Deceiver | Deep Space | ⭐⭐⭐⭐ | Purple glow field, 6 rotating shards with specular highlight sweep, refraction lines, cyan trail particles, shatter-threshold warning flash | **Inverts Horizontal Axis.** High gameplay impact with minimal code overhead. |
+| **Gravity Shear** | **APPROVED** | Controller | Deep Space | ⭐⭐⭐ | Dynamic Up/Down arrow indicators showing force direction relative to shear line | **Split Force.** Top half pushes UP, bottom half pulls DOWN. Leverages existing physics. |
 | **Fuel Leak** | **BACKLOG** | Resource Predator| Deep Space | ⭐⭐⭐ | **3.0x Fuel Consumption.** Good concept, but potentially redundant with fuel enemies. |
 | **Magnetic Storm**| **BACKLOG** | Controller | Orbit | ⭐⭐⭐ | **Steering Drift.** Left/Right inputs skewed toward center. Requires careful balancing. |
 | **Hull Virus** | **BACKLOG** | Timer | Void | ⭐⭐⭐⭐ | **Integrity Decay.** 2% decay/sec for 10s. Best for endgame difficulty spikes. |
@@ -25,11 +25,11 @@ This document is the permanent repository for all proposed, evaluated, and class
 
 | Name | Classification | Role | Visual | Difficulty | Behavior & Rationale |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Heat Bat** | **APPROVED** | Ambusher | Dark Silhouette | ⭐⭐⭐ | **Heat Trigger.** Dives when player Heat >= 70%. Encourages thermal management. |
+| **Heat Bat** | **APPROVED** | Ambusher | Dark silhouette with red body/wing glow when heat-triggered, heat-distortion haze, ember trail during dive, wing-beat shadow, eyes glow red when player heat ≥ 70% | ⭐⭐⭐ | **Heat Trigger.** Dives when player Heat >= 70%. Encourages thermal management. |
 | **Mimic Platform**| **APPROVED** | Deceiver | Platform Clone | ⭐⭐⭐⭐ | **Shatters on Landing.** Deals 15 Integrity damage. High interaction value. |
-| **Void Harvester**| **APPROVED** | Resource Predator| Mechanical Squid | ⭐⭐⭐ | **Eats Power-Ups.** Rushes to spawned items. Rewards fast racing for resources. |
-| **Phase Wraith** | **APPROVED** | Stalker | Blue Humanoid | ⭐⭐⭐⭐ | **Overheat Only.** Damagable only when player is Overheated. Rewards high-risk play. |
-| **Gravity Ram** | **APPROVED** | Ambusher | Triangular Ship | ⭐⭐⭐ | **Telegraphed Dash.** Red line indicator followed by massive knockback charge. |
+| **Void Harvester**| **APPROVED** | Resource Predator| Mechanical squid with segmented animated tentacles (joint dots), glowing tracking-lens eye, ambient purple field, detection pulse rings, harvest burst particles | ⭐⭐⭐ | **Eats Power-Ups.** Rushes to spawned items. Rewards fast racing for resources. |
+| **Phase Wraith** | **APPROVED** | Stalker | Ethereal cyan humanoid with flickering transparency, afterimage ghost trails, phase-transition ripple ring, white-hot vulnerability glow, ambient distortion field, whisper particles | ⭐⭐⭐⭐ | **Overheat Only.** Damagable only when player is Overheated. Rewards high-risk play. |
+| **Gravity Ram** | **APPROVED** | Ambusher | Dark-steel triangular hull with heat-haze engine glow, hull stress cracks during charge, expanding shockwave, ground-scorch trail, impact prediction crosshair at destination | ⭐⭐⭐ | **Telegraphed Dash.** Red line indicator followed by massive knockback charge. |
 | **Drift Mine** | **BACKLOG** | Area Denial | Spiky Orb | ⭐⭐⭐ | **Explodes into Debris.** Prox trigger + object spawning. Similar to Debris fields. |
 | **Orbital Tug** | **BACKLOG** | Controller | Industrial Ship| ⭐⭐⭐ | **Tractor Beam.** Pulls player toward Hazards. Force-based AI is difficult to tune. |
 | **Sentinel Block** | **BACKLOG** | Juggernaut | Rune Stone | ⭐⭐ | **Slow Patrol.** Predictable horizontal movement. Good for early zones only. |
@@ -45,6 +45,7 @@ This document is the permanent repository for all proposed, evaluated, and class
 | **Thermal Hive** | **APPROVED** | Summoner | Atmosphere | ⭐⭐⭐ | **Heat-Based Spawning.** Only spawns Swarm Bots when player Heat is high. |
 | **Gravity Anchor** | **APPROVED** | Controller | Deep Space | ⭐⭐⭐⭐ | **Climb or Die.** Downward pull increases every 10s. Static boss scaling race. |
 | **The Forger** | **APPROVED** | Platform Control| Orbit | ⭐⭐⭐ | **Platform Conversion.** Periodically turns Normal platforms into Ice or Breakable. |
+| **Command Cruiser** | **APPROVED** | Surveillance | Atmosphere–Void | ⭐⭐⭐⭐ | **Drone Deployment.** Multi-phase vessel that tracks player, fires projectiles, deploys reinforcement drones. Weak-point system. |
 | **Scrap King** | **BACKLOG** | Juggernaut | Orbit | ⭐⭐⭐ | **Debris Shield.** Pulls debris to create armor. Blocked by lack of projectile system. |
 | **Nebula Serpent**| **BACKLOG** | Visibility | Atmosphere | ⭐⭐⭐ | **Smoke Trail.** Leaves smoke that hides platforms. Requires "Fog of War" renderer. |
 
@@ -54,10 +55,15 @@ This document is the permanent repository for all proposed, evaluated, and class
 
 | Name | Classification | Role | Zone | Difficulty | Behavior & Rationale |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **The Gatekeeper** | **APPROVED** | Area Denial | Orbit–Void | ⭐⭐⭐⭐ | **Rotating Safe Zones.** Ancient defense platform that creates rotating safe zones. Weak-point system with phased combat. |
+| **Void Engine** | **APPROVED** | Reality Warper | Void | ⭐⭐⭐⭐⭐ | **Gravity Flip.** Periodically inverts gravity direction and spawns projectiles. Phase 3 introduces random control inversion and GRAVITY FLUX bursts. |
 | **The Architect** | **APPROVED** | Controller | The Foundry | ⭐⭐⭐⭐ | **Level is the Boss.** Rhythmically adds/removes platforms. Reaching the top is the win. |
 | **Entropy Core** | **APPROVED** | Resource Predator| Deep Space | ⭐⭐⭐⭐⭐ | **Global Drain.** Simultaneous Fuel/Shield/Heat pressure. Destroy 4 pylons to win. |
+| **The Leviathan** | **APPROVED** | Charger | Deep Space–Void | ⭐⭐⭐⭐ | **Slipstream Charge.** Gigantic creature that bounces between screen edges creating moving slipstreams. Weak-point system. |
+| **The Signal** | **APPROVED** | Deceiver | Void | ⭐⭐⭐⭐⭐ | **False Navigation.** Unknown intelligence that creates false navigation cues with erratic movement and fake drift. Requires player to trust instincts over visual cues. |
 | **Chrono Warden** | **BACKLOG** | Time-Warp | Chrono-Rift | ⭐⭐⭐⭐⭐ | **State Rewind.** Periodically resets player pos/stats to 3s prior. High bug risk. |
-| **The Singularity**| **BACKLOG** | Meta-Deceiver | Event Horizon | ⭐⭐⭐⭐⭐ | **HUD Distortion.** Pulls UI gauges into center.Reserved for true final expansion. |
+| **The Singularity**| **APPROVED** | Meta-Deceiver | Point Zero | ⭐⭐⭐⭐⭐ | **HUD Distortion.** Pulls UI gauges into center. Phase 3 gravity flux + control inversion. The final encounter. |
+| **Star-Eater** | **APPROVED** | Ambusher | Deep Space–Void | ⭐⭐⭐⭐ | **Light Consumer.** Massive cosmic organism that tracks player, accelerates in phase 3 with rapid pursuit. |
 | **Solar Monarch** | **REJECTED** | Juggernaut | Solar Core | ⭐⭐⭐⭐ | **Flare Dance.** Redundant with Star Eater and existing Solar Flare mechanics. |
 
 ---

@@ -4,6 +4,70 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-06-25 (Final)
+
+**Sprint / Phase:** EPIC 11 — Ascension (The End) — MERGED TO `development`
+
+**Branch:** `refactor/cleanup` → merged to `development`
+
+**Status:** Complete ✅
+
+### Added
+- **SoundManager.kt**: Audio engine with SoundPool + programmatic PCM generation. Handles thrust, landing, collect, damage, death SFX. Muted by default. Volume controls in Settings.
+- **GameEngine refactoring**: State container extracted from GameScreen.kt (~30 state vars + 12 managers moved to dedicated class).
+
+### Fixed
+- **App icon**: Removed adaptive icon XMLs causing circular crop. User's custom PNG placed in all mipmap density directories.
+- **Dev menu spawn velocity**: Was spawning threats with vx=0 — patrol-based enemies (Scout Drone, Sky Ray, Void Whale, etc.) would freeze in place. Now passes `def.spawnVx`/`spawnVy` to `spawnThreat`.
+
+### Build
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL (only pre-existing `LinearProgressIndicator` deprecation)
+
+---
+
+## 2026-06-24
+
+**Sprint / Phase:** EPIC 8.5 Execution — Architecture Decomposition Complete
+
+**Branch:** `epic8.5-rebased`
+
+**Status:** Complete ✅
+
+### Added
+- **26 Threat Renderers**: One file per threat (11 hazards, 8 enemies, 6 bosses + 3 shared). `ThreatRenderer` interface + `ThreatRendererRegistry` with eager map dispatch.
+- **ThreatAIUpdater.kt**: Extracted AI behavior `when`-block from `ActiveThreat.update()` (566 lines).
+- **ThreatInteractionProcessor.kt**: Extracted collision/damage `when`-block from `ActiveThreat.processInteraction()` (551 lines).
+- **StarfieldBackground.kt**: Shared animated starfield composable (replaced 6 copy-paste implementations).
+- **GaugeBar.kt**: Base gauge composable with shared clipPath + seg ticks + interference lines (4 gauges refactored).
+- **HudContext.kt**: Bundles `gameTime` + `interferenceTimer` + `zone` — eliminates 12 parameter passthroughs.
+- **GameEngine.kt**: State container with all managers + 40+ observable game state vars.
+- **ProgressionService.kt**: Interface decoupling MissionManager from ProgressionManager.
+- **GameStats.kt**: Data class for session stat commit.
+- **MissionScreen.kt**: Created from earlier extraction.
+- **PowerUpManager.kt**: PowerUp lifecycle extracted from GameScreen.
+
+### Changed
+- **ActiveThreat.kt**: 1,224 → 123 lines (90% reduction). AI and interaction logic delegated to extension functions.
+- **GameScreen.kt**: 3,901 → 2,011 lines (48% reduction). Threat rendering extracted to 26 files. Ceremony lifecycle extracted. PowerUpManager extracted.
+- **Mission.kt**: `checkCompletion()` made pure (side-effect moved to callers).
+- **MissionManager.kt**: Added `getBestMissionForTrack()`. Decoupled from ProgressionManager via interface. Ceremony lifecycle extracted from GameScreen.
+- **ComboManager.kt**: Rewards merged (unified tier + survival drop table). Tier table externalized to `TIERS` companion.
+- **HudWidgets.kt**: 4 gauges refactored to use shared `GaugeBar` composable. `HudContext` hoisted.
+- **MainMenuScreen.kt, AboutScreen.kt, SettingsScreen.kt, PauseOverlay.kt, GameOverOverlay.kt, HangarScreen.kt**: Starfield replaced with shared `StarfieldBackground` composable.
+- **AGENTS.md**: Updated for EPIC 8.5 completion. Points to `epic8.5-structured` tag.
+
+### Removed
+- **MissionRow.kt**: Deleted (ceremony lifecycle moved elsewhere).
+- **`isNew` property**: Removed from `Mission.kt`.
+- **`MissionType.COMBO`**: Removed.
+- **`CeremonyStage`**: Simplified to NONE/GLOW/REPLACING.
+- **Duplicate ComboDisplay**: Removed from center HUD.
+
+### Tag
+- **`epic8.5-structured`**: Rollback point at commit `9363434`.
+
+---
+
 ## 2026-06-23
 
 **Sprint / Phase:** EPIC 8.5 Planning — Architecture Decomposition Roadmap
@@ -588,6 +652,52 @@ All notable changes to this project are recorded as dated engineering events.
 ### Merged
 - `refactor/ui-extraction` merged into `development` (`af3d0ae`)
 - Git tags `refactor-t1-phase1`, `refactor-t1-phase2`, `refactor-t2` pushed to remote
+
+---
+
+## 2026-06-25
+
+**Sprint / Phase:** EPIC 11 — Ascension (The End) — COMPLETE
+
+**Branch:** `epic11-ascension`
+
+**Status:** Complete ✅
+
+### Added
+- **PlayerInputProcessor.kt**: Extracted input logic from GameScreen.kt with `glitchFactor` hook for Singularity boss fight.
+- **SingularityRenderer.kt**: Final boss renderer with white-noise core, geometric fragments, and reality rift lines.
+- **AscensionOverlay.kt**: Full-screen ceremonial credits with Architect's Log and Hall of Pioneers.
+- **Omega Modules**: `MOD_VOID_ENGINE` (infinite fuel) and `MOD_SINGULARITY_CORE` (perfect stability) — Legendary tier.
+- **Origin Reset**: Coordinate normalization at 100,000m to prevent floating-point jitter.
+- **Eternal Mode**: Capped infinite scaling beyond 100,000m (0.25s min interval, 4x max speed, overflow-safe at ~550,000m).
+- **Prestige System**: Permanent +10% hull/shield multiplier per reset, unlocked at 100km.
+- **Design Libraries**: Updated ROCKET_LIBRARY.md, AREA_LIBRARY.md, THREAT_LIBRARY.md, ARTIFACT_LIBRARY.md with EPIC 11 content.
+
+### Changed
+- **GameScreen.kt**: ASCENSION_PROTOCOL game state handling, origin reset logic, prestige wiring, ascension credits overlay.
+- **HudWidgets.kt**: HUD pull animation via `graphicsLayer.translationX` using `hudPullFactor` from Singularity.
+- **ThreatAIUpdater.kt**: Singularity AI with HUD Pull cycle (8s), slow tracking, instant DESTROYED on weak point kill.
+- **ThreatRegistry.kt**: Registered BOSS_SINGULARITY with SINGULARITY zone.
+- **ThreatRenderer.kt**: Registered SingularityRenderer in the registry.
+- **ActiveThreat.kt**: Added `hudPullFactor` field for Singularity mechanic.
+
+### Fixed
+- **Boss death sequences**: Escape phase corrected per boss (Commander→5, others→4). Added `activeWeakPoints <= 0` guard in 7 boss AIs to prevent timer-based phase override from blocking escape.
+- **Star Eater**: Suction reduced 3000→1500. Weak point moved from center to orbiting position (100px radius). Hit detection radius increased 80→120.
+- **Boss pursuit speeds**: Increased tracking factors for Void Engine (0.2→0.4), Signal (0.05→0.15, 0.2→0.25), Architect (0.2→0.3), Entropy Core (0.1→0.2).
+- **Fuel/Heat gauge alignment**: Numeric values padded to 3 characters to prevent layout shift at 100.
+- **HUD zone-adaptive colors**: Removed from FuelGauge — now uses static SciFiGreen (→SciFiRed when low/critical), matching other gauges.
+- **Platform colors**: Earth platforms now use warm brown (#795548), Cloud platforms use light cyan (#80DEEA) instead of plain white.
+- **Hidden signal `isUnlocked` persistence**: `syncState()` now restores `isUnlocked` from SharedPrefs, fixing unlocked signals showing glitch effect after restart.
+- **Claimable mission count**: Dashboard now shows "(N HIDDEN)" hint when claimable count includes hidden signals.
+
+### Gameplay Balance
+- **Eternal Mode**: Safe capped scaling prevents overflow at extreme altitudes.
+- **Prestige System**: Reset grants +10% hull/shield per level, gated behind 100km completion.
+
+### Technical Debt
+- `GameScreen.kt` line count: ~1,943 lines (budget: 2,200) — headroom for future work.
+- `PlayerInputProcessor.kt` extracted, reducing GameScreen complexity.
 
 ---
 

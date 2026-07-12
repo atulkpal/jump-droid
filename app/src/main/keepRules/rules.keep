@@ -1,12 +1,17 @@
-# Add project specific R8 rules here.
-# AGP will combine all keep rule files in src/main/keepRules to pass to R8
+# R8 Keep Rules — Jump Droid v1.5.0
 #
-# For more details, see
-#   https://d.android.com/r/tools/r8/keep-rules
+# NOTE: R8/ProGuard optimization is currently DISABLED in build.gradle.kts
+# (optimization { enable = false }). These rules are pre-configured for
+# when optimization is enabled in a future release.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Firebase — keep all classes (reflection used internally)
+-keep class com.google.firebase.** { *; }
+
+# Google Mobile Ads (AdMob) — keep all classes
+-keep class com.google.android.gms.ads.** { *; }
+
+# Google Play Billing Library — keep all classes
+-keep class com.android.billingclient.** { *; }
+
+# BuildConfig — expose for debug/release gating
+-keep class com.ashwathai.jump_droid.BuildConfig { *; }

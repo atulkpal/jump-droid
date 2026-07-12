@@ -1,9 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-06-23
-**Project Status:** EPIC 8 Functionally Complete (Awaiting Runtime Signoff) → EPIC 8.5 Architecture Decomposition Planned
-**Current Stable Tag:** `epic8-recovery-stable`
-**Base Commit:** `afbc562`
+**Last Updated:** 2026-06-25
+**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Merged to `development`
+**Current Stable Tag:** `epic11-complete`
+**Branch:** `development`
+**Base Commit:** `HEAD`
 
 ---
 
@@ -31,18 +32,15 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `epic8-mission-migration`
-*   **Current Stable Tag**: `epic8-recovery-stable`
-*   **Stable Commit**: `afbc562`
-*   **Current EPIC**: EPIC 8.5 — Architecture Decomposition
-*   **Current Status**: **PLANNING COMPLETE**. EPIC 8 validation passed (all 6 stabilization + 7 polish + mission event audit). EPIC 8.5 created as a dedicated architecture decomposition sprint to address 2 CRITICAL God Objects before Phase 9 feature work.
+*   **Current Branch**: `development`
+*   **Current Stable Tag**: `epic11-complete`
+*   **Current EPIC**: EPIC 11 — Ascension (The End) — **COMPLETE ✅**
+*   **Current Status**: **EPIC 11 COMPLETE**. Meta-boss (The Singularity) with HUD Pull + control glitch mechanics. Origin reset at 100,000m. Ascension Ceremony overlay with Architect's Log + Hall of Pioneers. Prestige system (+10% per reset). Omega Modules (Void Engine / Singularity Core). Eternal Mode beyond 100,000m with capped scaling. PlayerInputProcessor extracted from GameScreen.kt. **GameEngine state container** extracted (~30 vars + 12 managers). **SoundManager** audio system with programmatic PCM generation, volume controls, muted by default. **Bug fixes applied**: All boss death sequences stabilized (escape phase correction + AI timer guard), Star Eater rebalanced (suction 3000→1500, weak point orbited at 100px), boss pursuit speeds increased across 5 bosses, fuel/heat gauge 3-digit alignment padded, HUD zone-adaptive colors removed from FuelGauge, platform colors for Earth/Cloud zones added, hidden signal `isUnlocked` persistence fixed in `syncState()`, claimable dashboard now shows hidden count, dev menu spawn velocity bug fixed.
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
-    *   Multi-reward mission backend support — display works, backend grants all listed rewards.
-    *   GameScreen.kt at 3,901 lines — primary development bottleneck (EPIC 8.5.5 target)
-    *   ActiveThreat.kt at 1,224 lines — second God Object (EPIC 8.5.6 target)
-*   **Current Priorities**: EPIC 8.5 Architecture Decomposition per `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md`.
-*   **Next Planned Work**: EPIC 9 (Hidden Signals & Dynamic Unlocks) — DEFERRED until EPIC 8.5 completes.
+    *   GameScreen.kt at ~2,080 lines — extraction continued via GameEngine refactoring into `refactor/cleanup` branch.
+*   **Current Priorities**: Future EPIC planning / EPIC 12.
+*   **Next Planned Work**: EPIC 12 — Fleet Expansion (planned).
 
 ---
 
@@ -53,7 +51,10 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **EPIC 6: Hostile Skies**: Framework for advanced AI entities, projectile systems, and multi-phase Boss encounters.
 *   **EPIC 7: Rocket Evolution**: Transformed the rocket into a customizable "Build" with Rocket Classes and a 17-module Registry.
 *   **EPIC 8: Missions & Progression (Recovery)**: Reconciled legacy prototype data with the production engine. Implemented the **Intelligence Network** for real-time stat tracking.
-*   **EPIC 8.5: Architecture Decomposition (Planned)**: Structural sprint to decompose `GameScreen.kt` (3,901 lines) and `ActiveThreat.kt` (1,224 lines) God Objects before Phase 9 feature work begins.
+*   **EPIC 8.5: Architecture Decomposition**: Structural sprint decomposed `GameScreen.kt` (3,901→2,011 lines) and `ActiveThreat.kt` (1,224→123 lines) God Objects. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and HUD components extracted. Aligned mission logic with lifetime statistics.
+*   **EPIC 9: Hidden Signals & Dynamic Unlocks**: Secret missions, dynamic unlock engine (AND/OR), artifact set bonuses, lore logs, blueprints.
+*   **EPIC 10: The Outer Reaches**: 4 new zones, Flux/Graviton platforms, Foundry & Chrono-Rift, 12 new threats, 3 power-ups, 5 library boss encounters, full visual fidelity upgrade.
+*   **EPIC 11: Ascension (The End)**: The Singularity meta-boss, origin reset, ascension ceremony, prestige system, Omega Modules, Eternal Mode, PlayerInputProcessor extraction, GameEngine state container, SoundManager audio system, comprehensive bug fixes.
 
 ---
 
@@ -69,10 +70,10 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Commit**: `afbc562`
 *   **Outcome**: Mission architecture recovered. 12-track dashboard established. Protocol screen separated. HUD simplified. Governance introduced.
 
-### **EPIC 8.5 Architecture Decomposition (Planned)**
-*   **Tag**: TBD
-*   **Planned Start**: After EPIC 8 validation signoff
-*   **Outcome**: GameScreen.kt reduced from 3,901 to ~1,500 lines. ActiveThreat.kt reduced from 1,224 to ~250 lines. Game engine, threat rendering, threat AI, collision system, ProgressionManager, and NavHost extracted.
+### **EPIC 8.5 Architecture Decomposition**
+*   **Tag**: `epic8.5-structured`
+*   **Commit**: `9363434`
+*   **Outcome**: GameScreen.kt reduced from 3,901 to 2,011 lines (48% reduction). ActiveThreat.kt reduced from 1,224 to 123 lines (90% reduction). 26 threat renderers extracted. Mission system purified: `MissionRow.kt` deleted, `isNew` removed, `CeremonyStage` collapsed, `checkCompletion()` made pure. HUD components extracted: `StarfieldBackground`, `GaugeBar`, `HudContext`. ProgressionService interface decouples MissionManager from ProgressionManager. GameEngine state container created.
 
 ---
 
@@ -110,6 +111,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
 | **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` |
 | **EPIC 8.5 Planning** | `docs/REPORTS/EPIC8_5_PLANNING_REPORT.md` | (Sprint Planning) |
+| **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
 
 ---
 
@@ -159,3 +161,46 @@ Agent-specific files (e.g. `agent-opencode.md`) are **OPTIONAL**. They may suppl
 2.  Consult **`docs/JumpDroid_EPIC_Tracker.md`** for current milestone status.
 3.  Review **`docs/INVENTORY.md`** to locate relevant technical specs.
 4.  Execute a **`gradle_build`** to ensure a stable environment.
+
+---
+
+## 12. Design Library First Rule
+
+**All gameplay content MUST originate from the Design Libraries in `docs/design/`.**
+
+### The Rule
+Before implementing ANY new:
+- Threat (hazard/entity/boss)
+- Platform type
+- Power-Up
+- Altitude Zone
+- Lore entry
+- Achievement
+- Artifact
+
+**STOP. Check the relevant Library file first.**
+
+| Content Type | Library File |
+|---|---|
+| Threats (hazards, enemies, bosses) | `docs/design/THREAT_LIBRARY.md` |
+| Platforms | `docs/design/PLATFORM_LIBRARY.md` |
+| Power-Ups | `docs/design/POWERUP_LIBRARY.md` |
+| Zones | `docs/design/AREA_LIBRARY.md` |
+| Lore | `docs/design/LORE_LIBRARY.md` |
+| Artifacts | `docs/design/ARTIFACT_LIBRARY.md` |
+| Achievements | `docs/design/ACHIEVEMENT_LIBRARY.md` |
+| Rockets | `docs/design/ROCKET_LIBRARY.md` |
+
+### Priority Order
+1. **APPROVED** items → Implement as-is (highest priority)
+2. **BACKLOG** items → May implement with rationale
+3. **REJECTED** items → Do not implement
+4. **New invention** → Only if no Library entry exists AND a written rationale is provided AND approved
+
+### If You Must Invent
+If no existing Library entry covers the needed design:
+1. Write a **Rationale Document** explaining why existing entries are insufficient
+2. Trace the closest Library concept and explain the evolution
+3. Submit for approval before writing any code
+
+**Violations:** Any agent or engineer implementing content without library traceability will have their changes reverted and must re-submit with proper documentation.

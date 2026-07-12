@@ -52,14 +52,21 @@ Proposed artifacts to deepen the game's mystery.
 *   **Gameplay Value:** Increases permanent damage reduction by 1% (Artifact Set bonus concept).
 *   **Status:** APPROVED.
 
-### 3. Frozen Signal
+### 3. The Architect's Signature
+*   **Classification:** APPROVED (EPIC 11)
+*   **Description:** A cryptographic key containing the builder's identity.
+*   **Lore Value:** The ultimate proof of the project's purpose.
+*   **Gameplay Value:** Required for "Prestige" resets.
+*   **Status:** APPROVED.
+
+### 4. Frozen Signal
 *   **Classification:** BACKLOG
 *   **Description:** A data drive containing a physical manifestation of a transmission.
 *   **Lore Value:** Hinting at the "Signal" being a sentient entity.
 *   **Gameplay Value:** Large score bonus upon recovery.
 *   **Status:** BACKLOG.
 
-### 4. Golden Rocket Shell
+### 5. Golden Rocket Shell
 *   **Classification:** REJECTED
 *   **Rationale:** Purely cosmetic artifacts without lore or gameplay value are secondary to the "Vertical Mystery" design goal.
 *   **Status:** REJECTED.
