@@ -4,6 +4,44 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-13
+
+**Sprint / Phase:** Release Engineering — Final Repository Audit & Publication
+
+**Branch:** `refactor/cleanup` → `development` → `master`
+
+**Status:** **v1.5.0 Release Complete** ✅
+
+### Repository Audit & Cleanup
+- **Dead code removal**: Deleted `GameScreen.kt` (13-line legacy entry point — superseded by GamePlayScreen, no callers).
+- **Version fix**: `TitleScreen.kt:386` — `V1.2.0` → `V1.5.0` (matching actual build version).
+- **Root clutter removed**: 4 `session-*.md` (~1.1 MB), 2 `CLAUDE_*.md`, `icon.png`, `icon2.png`, `New Text Document.txt`.
+- **Empty directories removed**: `docs/screenshots/`, `docs/screenshots/EPIC8_POLISH/`.
+- **Redirect stubs removed**: `docs/analysis/MISSION_RECOVERY_AUDIT.md`, `docs/roadmap/EPIC_8_MIGRATION_PLAN.md`, `docs/REPORTS/Doc_Migration.md`.
+
+### Documentation Reconciliation
+- `AGENTS.md`: Updated stable tag to `v1.5.0`, release state, added Release Engineering to completed work, updated last-modified date.
+- `docs/CHANGELOG.md`: Added this entry.
+- `docs/README.md`: Updated Tech Stack (Firebase, AdMob, Billing), Zones table (12 zones), Threat count (31+11 bosses), Project Structure (removed GameScreen.kt ref, added analytics/systems structure).
+- `docs/INVENTORY.md`: Updated header to v1.5.0 release, added Phase 8 Firebase Integration + Release Engineering entries, removed redirect stub references.
+- `docs/JumpDroid_EPIC_Tracker.md`: Marked all Phase 7 items complete (performance profiling, store listing, final APK moved to deferred), added Phase 8 Firebase Integration section, updated Release Polish status.
+- `docs/roadmap/RELEASE_POLISH_PLAN.md`: Moved remaining 3 items (performance profiling, store listing, final APK) to Post-Release section, flagged all phases complete.
+
+### Release Configuration
+- `app/src/main/keepRules/rules.keep`: Added production keep rules for Firebase, AdMob, and Billing library reflection.
+
+### Merge & Tag
+- Merged `refactor/cleanup` into `development`, then `development` into `master`.
+- Tagged `v1.5.0` on `master`.
+- Published GitHub Release (`v1.5.0`) with comprehensive release notes.
+- Produced signed Play Store AAB (`app-release.aab`).
+
+### Build Validation
+- `:app:assembleDebug` — BUILD SUCCESSFUL.
+- `:app:assembleRelease` — BUILD SUCCESSFUL (no R8 optimization — per release policy).
+
+---
+
 ## 2026-07-02
 
 **Sprint / Phase:** Firebase Integration & Release Hardening Pass

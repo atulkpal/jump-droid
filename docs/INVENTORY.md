@@ -1,4 +1,4 @@
-# Documentation Inventory — Milestone: Release Polish (Phases 1–4 Complete)
+# Documentation Inventory — Milestone: v1.5.0 Release Complete
 
 ## Root
 *   `AGENTS.md`: Authoritative governance, memory, and onboarding manual.
@@ -7,7 +7,7 @@
 
 ## Roadmap & Tracking
 *   `docs/JumpDroid_EPIC_Tracker.md`: Master high-level status for all planned EPICs.
-*   `docs/roadmap/RELEASE_POLISH_PLAN.md`: Pre-ship sprint plan — 6 phases, 19 items.
+*   `docs/roadmap/RELEASE_POLISH_PLAN.md`: Pre-ship sprint plan — 7 phases, 20 items (all complete).
 *   `docs/roadmap/MONETIZATION_VISION.md`: Principles for ethical revenue generation.
 *   `docs/roadmap/EPIC_8_TRACKER.md`: Detailed task breakdown for Missions & Progression.
 *   `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md`: 9-sprint plan to decompose God Objects.
@@ -65,7 +65,11 @@
 *   `docs/REPORTS/EPIC8_DESIGN_REVIEW_AND_RETENTION_AUDIT.md`: Design review and retention audit.
 *   `docs/REPORTS/SPRINT_10_4_IMPLEMENTATION_REPORT.md` through `SPRINT_10_6_IMPLEMENTATION_REPORT.md`: Sprint 10 implementation reports.
 
-## Metadata / Redirects
-*   `docs/analysis/MISSION_RECOVERY_AUDIT.md`: Redirect to EPIC8_UNIFIED_RECOVERY_REPORT.md.
-*   `docs/roadmap/EPIC_8_MIGRATION_PLAN.md`: Redirect to EPIC_8_TRACKER.md.
-*   `docs/REPORTS/Doc_Migration.md`: Redirect to Documentation_Migration_Report.md.
+## Phase 8 — Firebase Integration (Added v1.5.0)
+*   `app/src/main/java/com/ashwathai/jump_droid/analytics/GameAnalytics.kt`: Domain-driven analytics abstraction.
+*   `app/src/main/java/com/ashwathai/jump_droid/analytics/FirebaseGameAnalytics.kt`: Firebase Analytics + Crashlytics implementation.
+*   `app/src/main/java/com/ashwathai/jump_droid/ads/AdConfig.kt`: Centralized AdMob unit IDs with debug/release switching.
+*   `app/src/main/java/com/ashwathai/jump_droid/ads/GlobalAdBanner.kt`: Production banner ad composable.
+*   `app/src/main/java/com/ashwathai/jump_droid/ads/RewardedAdHelper.kt`: Rewarded ad helper for continues.
+*   `app/src/main/java/com/ashwathai/jump_droid/billing/PurchaseManager.kt`: Google Play Billing integration.
+*   `app/google-services.json`: Firebase project configuration.

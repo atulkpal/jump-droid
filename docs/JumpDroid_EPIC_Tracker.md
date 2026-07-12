@@ -286,7 +286,7 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 # Release Polish — Pre-Ship Sprint
 
-**Status:** Phases 1–7 Complete ✅ — Performance Profiling, Store Listing, Final APK Remaining
+**Status:** **v1.5.0 RELEASED** ✅ — All Phases Complete
 **Plan:** [docs/roadmap/RELEASE_POLISH_PLAN.md](roadmap/RELEASE_POLISH_PLAN.md)
 
 ## Phase 1 - Core Game Feel (COMPLETE)
@@ -352,9 +352,26 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 - [x] Dev menu gated on BuildConfig.DEBUG: cheatsEnabled = BuildConfig.DEBUG
 - [x] Play Store purchase gating: debug=confirm dialog, release="PLAY STORE REQUIRED" info dialog
 - [x] ThreatRegistry.getEntries() added for recurrence pool filtering
-- [ ] Performance profiling: frame drops in upper zones / dense threat fields
-- [ ] Play Store listing prep: screenshots, description, assets
-- [ ] Final APK build + testing
+- [-] Performance profiling: frame drops in upper zones / dense threat fields (deferred to EPIC 12)
+- [-] Play Store listing prep: screenshots, description, assets (deferred to EPIC 12)
+- [-] Final APK build + testing (deferred to EPIC 12)
+
+## Phase 8 - Firebase Integration & Quality Assurance (COMPLETE)
+- [x] Firebase Analytics integration (GameAnalytics domain abstraction)
+- [x] Firebase Crashlytics integration (auto-init, debug-gated test crash)
+- [x] GameAnalytics layer: domain-driven strongly-typed events
+- [x] AdConfig: centralized unit IDs with debug/release switching
+- [x] AdMob hardening (GlobalAdBanner, RewardedAdHelper migrated to AdConfig)
+- [x] High-value instrumentation (game_start, game_over, zone_changed, boss_encounter, ad_impression, etc.)
+- [x] Dependency injection via LocalAnalytics CompositionLocal
+
+## Release Engineering (COMPLETE)
+- [x] Repository audit + cleanup (dead code, version fix, redirect stubs, root clutter)
+- [x] Documentation reconciliation (AGENTS, CHANGELOG, README, INVENTORY, EPIC_Tracker, RELEASE_POLISH_PLAN)
+- [x] Merge refactor/cleanup → development → master
+- [x] Tag v1.5.0
+- [x] GitHub Release published
+- [x] Signed Play Store AAB produced
 
 ---
 

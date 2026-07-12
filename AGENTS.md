@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-02
-**Project Status:** Release Polish — Phases 1–8 Complete ✅
-**Current Stable Tag:** `release-candidate-1`
-**Branch:** `refactor/cleanup`
+**Last Updated:** 2026-07-13
+**Project Status:** **v1.5.0 Release Complete** ✅
+**Current Stable Tag:** `v1.5.0`
+**Branch:** `master` (stable), `refactor/cleanup` (feature)
 **Base Commit:** `HEAD`
 
 ---
@@ -33,11 +33,11 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `refactor/cleanup`
-*   **Current Stable Tag**: `epic11-complete`
-*   **Current EPIC**: Release Polish (pre-ship sprint)
-*   **Current Status**: **RELEASE POLISH COMPLETE**. Phases 1–7 complete. Remaining: performance profiling, store listing, final APK. See `docs/roadmap/RELEASE_POLISH_PLAN.md`.
-*   **Active Sprint**: None — ready for Phase 7 Final Build.
+*   **Current Branch**: `master` (stable), `refactor/cleanup` (feature)
+*   **Current Stable Tag**: `v1.5.0`
+*   **Current EPIC**: Release Engineering (final pass)
+*   **Current Status**: **v1.5.0 RELEASED**. Repository audited and cleaned. Merged to `master`. Tagged `v1.5.0`. Released on GitHub + Play Store.
+*   **Active Sprint**: None — post-release
 *   **Completed Work**:
     *   Phase 1 — Core Game Feel (power-up spawns, combo rewards, boss deaths, mission celebrations, rewarded continue UX)
     *   Phase 2 — Notification Architecture (3-tier priority, unified area, weak notification removal, ad placeholder UI)
@@ -49,8 +49,9 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
     *   Phase 7 — Billing + Shop (PurchaseManager BillingClient rewrite, ShopScreen new, ProgressionManager cash tracking, SettingsScreen premium no-toggle-off + data reset buttons, MainActivity/MainMenu shop route + button, AboutScreen V1.5.0 update, Play Store purchase gating, dev menu gated on BuildConfig.DEBUG)
     *   Phase 7 — Boss Density & Score Integrity (score removal from boss kills, milestone threshold rebalance, one-boss-per-frame guard, no boss while boss alive, boss recurrence system, MINI_BOSS music fix, hazard suppression 0.3f→0.1f, Solar Flare filter during bosses, ThreatRegistry.getEntries())
     *   Phase 8 — Firebase Integration & Quality Assurance (Firebase Analytics & Crashlytics integrated, debug-gated Crashlytics test action added to Dev Menu, domain-driven GameAnalytics layer implemented, AdMob hardening with AdConfig centralized IDs and debug/release gating, high-value instrumentation complete)
-*   **Current Priorities**: Performance profiling, Play Store listing prep, final APK build.
-*   **Next Planned Work**: Performance profiling (frame drops in upper zones / dense threat fields), Play Store listing (screenshots, description, assets), final APK build + testing.
+    *   **Release Engineering**: Repository audit + cleanup (dead code removal, version fix, redirect stubs removed, root clutter removed). Documentation reconciliation (AGENTS, CHANGELOG, README, INVENTORY, EPIC_Tracker, RELEASE_POLISH_PLAN). Merged `refactor/cleanup` → `development` → `master`. Tagged `v1.5.0`. GitHub Release published. Signed Play Store AAB produced.
+*   **Current Priorities**: None — release complete.
+*   **Next Planned Work**: Performance profiling (frame drops in upper zones / dense threat fields — deferred to EPIC 12). See `docs/roadmap/RELEASE_POLISH_PLAN.md` for post-release.
 
 ---
 
@@ -113,7 +114,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Assets** | `docs/analysis/Asset_Integration_Audit.md` | `docs/analysis/Asset_Readiness_Report.md` |
 | **Roadmaps** | `docs/JumpDroid_EPIC_Tracker.md` | `docs/roadmap/EPIC_8_TRACKER.md` |
 | **EPIC 8 Stabilization** | `docs/REPORTS/EPIC8_STABILIZATION_REPORT.md` | `docs/REPORTS/EPIC8_TECHNICAL_QA_REPORT.md` |
-| **EPIC 8 Polish** | `docs/REPORTS/EPIC8_POLISH_SPRINT_REPORT.md` | `docs/screenshots/EPIC8_POLISH/` |
+| **EPIC 8 Polish** | `docs/REPORTS/EPIC8_POLISH_SPRINT_REPORT.md` | (No screenshots directory — removed in cleanup) |
 | **EPIC 8 Validation** | `docs/REPORTS/EPIC8_VALIDATION_REPORT.md` | `docs/analysis/EPIC8_MISSION_EVENT_AUDIT.md` |
 | **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
 | **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` |

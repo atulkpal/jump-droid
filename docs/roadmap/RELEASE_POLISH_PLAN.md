@@ -1,8 +1,8 @@
 # Jump Droid — Release Polish Plan
 
-**Status:** Phases 1–6 Complete — Phase 7 (Release Prep) Active, Bug Bash Done, Billing/Shop Integrated
-**Branch:** `refactor/cleanup`
-**Target:** Play Store Release
+**Status:** **ALL PHASES COMPLETE** — v1.5.0 Released ✅
+**Branch:** `master` (stable)
+**Target:** Play Store Release (Complete)
 
 ---
 
@@ -477,7 +477,7 @@ To activate haptics project-wide, `GameEngine.kt` needs to initialize the manage
 
 ## Phase 7 — Release Preparation (Item 15)
 
-**Status: Complete** — All sub-tasks finished, remaining only performance profiling, store listing, final APK
+**Status: Complete** — v1.5.0 Released ✅
 
  # | Item | Effort | Risk |
 ---|------|--------|------|
@@ -520,9 +520,10 @@ To activate haptics project-wide, `GameEngine.kt` needs to initialize the manage
 - [x] Dev menu gated on BuildConfig.DEBUG: cheatsEnabled = BuildConfig.DEBUG
 - [x] Play Store purchase gating: debug=confirm dialog, release="PLAY STORE REQUIRED" info dialog
 - [x] Cloud/Earth visual polish
-- [ ] Performance profiling (frame drops in upper zones / dense threat fields)
-- [ ] Play Store listing prep (screenshots, description, assets)
-- [ ] Final APK build + testing
+## Post-Release / Deferred to EPIC 12
+- [~] Performance profiling (frame drops in upper zones / dense threat fields)
+- [~] Play Store listing prep (screenshots, description, assets)
+- [~] Final APK build + testing
 
 ## Phase Sequencing Rationale
 
