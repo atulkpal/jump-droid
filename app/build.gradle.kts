@@ -21,19 +21,31 @@ android {
 
     signingConfigs {
         create("release") {
-            val propsFile = rootProject.file("keystore.properties")
-            if (propsFile.exists()) {
-                val props = mutableMapOf<String, String>()
-                propsFile.readText().lines().forEach { line ->
-                    val idx = line.indexOf("=")
-                    if (idx > 0) {
-                        props[line.substring(0, idx).trim()] = line.substring(idx + 1).trim()
+            val envStoreFile = System.getenv("STORE_FILE")
+            val envStorePassword = System.getenv("STORE_PASSWORD")
+            val envKeyAlias = System.getenv("KEY_ALIAS")
+            val envKeyPassword = System.getenv("KEY_PASSWORD")
+
+            if (envStoreFile != null && envStorePassword != null && envKeyAlias != null && envKeyPassword != null) {
+                storeFile = file(envStoreFile)
+                storePassword = envStorePassword
+                keyAlias = envKeyAlias
+                keyPassword = envKeyPassword
+            } else {
+                val propsFile = rootProject.file("keystore.properties")
+                if (propsFile.exists()) {
+                    val props = mutableMapOf<String, String>()
+                    propsFile.readText().lines().forEach { line ->
+                        val idx = line.indexOf("=")
+                        if (idx > 0) {
+                            props[line.substring(0, idx).trim()] = line.substring(idx + 1).trim()
+                        }
                     }
+                    storeFile = file(props["storeFile"] ?: "")
+                    storePassword = props["storePassword"]
+                    keyAlias = props["keyAlias"]
+                    keyPassword = props["keyPassword"]
                 }
-                storeFile = file(props["storeFile"] ?: "")
-                storePassword = props["storePassword"]
-                keyAlias = props["keyAlias"]
-                keyPassword = props["keyPassword"]
             }
         }
     }

@@ -164,7 +164,28 @@ Agent-specific files (e.g. `agent-opencode.md`) are **OPTIONAL**. They may suppl
 
 ---
 
-## 12. Design Library First Rule
+## 13. Signing & Release Security
+
+### Credential Resolution Order
+The release signing config in `app/build.gradle.kts` resolves credentials in this priority:
+1. **Environment variables**: `STORE_FILE`, `STORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`
+2. **`keystore.properties`** (file fallback, gitignored)
+
+### Git Protection
+| Asset | Ignored By | Tracked? |
+|---|---|---|
+| `app/jump_droid_release.keystore` | `*jump_droid_release.keystore` | ❌ |
+| `keystore.properties` | `keystore.properties` | ❌ |
+| `keystore.properties.example` | N/A (template only) | ✅ |
+| `.gradle/` (config cache) | `.gradle` | ❌ |
+| `app/build/` | `app/debug/`, `app/release/` | ❌ |
+
+### Hardcoded Credentials
+None. All credential lookups go through environment variables or file I/O. The repository is safe to make public.
+
+---
+
+## 14. Design Library First Rule
 
 **All gameplay content MUST originate from the Design Libraries in `docs/design/`.**
 

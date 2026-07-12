@@ -236,6 +236,37 @@ git clone https://github.com/atulkpal/jump-droid.git
 
 Open in Android Studio and run on an Android device or emulator.
 
+### Building for Release (Signed APK/AAB)
+
+Signing credentials are resolved in this priority order:
+
+1. **Environment variables** (highest priority):
+   ```bash
+   # PowerShell
+   $env:STORE_FILE="jump_droid_release.keystore"
+   $env:STORE_PASSWORD="your-password"
+   $env:KEY_ALIAS="your-alias"
+   $env:KEY_PASSWORD="your-password"
+   ./gradlew assembleRelease
+
+   # Bash
+   export STORE_FILE=jump_droid_release.keystore
+   export STORE_PASSWORD=your-password
+   export KEY_ALIAS=your-alias
+   export KEY_PASSWORD=your-password
+   ./gradlew assembleRelease
+   ```
+
+2. **`keystore.properties`** (fallback, gitignored):
+   ```properties
+   storeFile=jump_droid_release.keystore
+   storePassword=your-password
+   keyAlias=your-alias
+   keyPassword=your-password
+   ```
+
+Copy `keystore.properties.example` to `keystore.properties` and fill in your credentials. The keystore file path is relative to the `app/` directory. Both the keystore (`app/jump_droid_release.keystore`) and `keystore.properties` are **gitignored** — they will never be committed.
+
 ---
 
 ## Releases
