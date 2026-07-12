@@ -97,7 +97,7 @@
 
 ---
 
-# EPIC 7 - Rocket Evolution (IN PROGRESS)
+# EPIC 7 - Rocket Evolution (COMPLETE)
 *Detailed Tracker: [docs/roadmap/EPIC_7_TRACKER.md](roadmap/EPIC_7_TRACKER.md)*
 
 - [x] Rocket Classes (Base 4 classes: Explorer, Striker, Heavy, Prototype)
@@ -108,8 +108,8 @@
 - [x] Heat Modules (Cooling Matrix, Thermal Battery, Heat Sink)
 - [x] Exploration Modules (Survey Scanner, Artifact Locator, Threat Scanner)
 - [x] Support Modules (Auto Repair Drone, Emergency Beacon)
-- [ ] Progression & Unlocks (Sprint 7.6)
-- [ ] Balance & Validation (Sprint 7.7)
+- [x] Progression & Unlocks (Sprint 7.6)
+- [x] Balance & Validation (Sprint 7.7)
 
 ---
 
@@ -143,11 +143,9 @@ Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
 | HudWidgets.kt | 654 lines | 576 | 12% |
 | GameEngine.kt | — | 110 (new) | N/A |
 
-## Next (EPIC 9 — Hidden Signals & Dynamic Unlocks)
+## EPIC 8 — Mission Framework (Deferred / Stretch Items)
 
-**Status: IN PROGRESS** ~
-
-## Mission Framework
+**Status:** Core complete ✅ — items below are stretch goals for future EPICs
 
 - [x] Mission System Recovery Audit
 - [x] Mission Data Migration (Phase 1)
@@ -214,8 +212,7 @@ Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
 ## Notes
 
 Existing work located in: feature/mission-system
-Recover and integrate after EPIC 7 completion.
-Do not implement during EPIC 7. Track only.
+All core mission items implemented. Stretch items above deferred to future EPICs.
 
 ---
 
@@ -284,6 +281,97 @@ Do not implement during EPIC 7. Track only.
 - [x] Platform colors for Earth/Cloud zones (brown/cyan instead of plain white)
 - [x] Hidden signal isUnlocked persistence fixed in syncState()
 - [x] Claimable dashboard now shows hidden count hint
+
+---
+
+# Release Polish — Pre-Ship Sprint
+
+**Status:** **v1.5.0 RELEASED** ✅ — All Phases Complete
+**Plan:** [docs/roadmap/RELEASE_POLISH_PLAN.md](roadmap/RELEASE_POLISH_PLAN.md)
+
+## Phase 1 - Core Game Feel (COMPLETE)
+- [x] 2. Power-up spawn redesign
+- [x] 3. Combo reward animation
+- [x] 4. Boss death sequence
+- [x] 5. Mission completion celebration
+- [x] 16. Rewarded continue UX
+
+## Phase 2 - Notification Architecture (COMPLETE)
+- [x] 8. Notification system audit (3-tier priority)
+- [x] 9. Unified notification area
+- [x] 10. Improve gameplay notifications
+- [x] 11. Remove weak notifications
+- [x] 17. Banner ad placeholder UI
+
+## Phase 3 - Tutorial Removal + Discovery (COMPLETE)
+- [x] 1. Remove tutorial pop-ups
+- [x] 7. Move learning to archives
+- [x] 12. Platform discovery messages
+- [x] 13. Unlock celebration
+
+## Phase 4 - Data Archives + Monetization (COMPLETE)
+- [x] 6. Redesign Data Archives
+- [x] 18. Premium purchase + SDK integration (Test Ads Wired)
+
+## Phase 5 - Audio Pass & Haptics (COMPLETE)
+- [x] 14. Audio pass (production assets loaded, volume normalized, 12-zone BGM mapping, material-based landing SFX)
+- [x] 19. Haptic feedback (wiring complete, GameEngine activated, boosted haptics)
+
+## Phase 6 - Archive Entity Detail Popups (COMPLETE)
+- [x] 20. Entity detail popup + preview renders (full lore registry, animated previews, glitch-noise detail popups)
+
+## Phase 7 - Release Preparation (COMPLETE)
+- [x] Bug bash: hitbox/WP fixes applied (collision radius 28f, per-WP wpDestroyedMask, 11 bosses aligned)
+- [x] Cloud/Earth visual polish (dark purple gradient, golden hour Earth, purple-blue storm clouds)
+- [x] Alarm loop fix (all 3 death paths: applyDamage, destruction timer, fell off screen)
+- [x] Shield hit sound + haptics for HAZ_RADIATION / BOSS_ENTROPY_CORE drain bypass
+- [x] Heat Bat always-visible cyan aura + damage rebalance (10/5)
+- [x] Lightning damage rebalanced (25→13, ~26% base shield)
+- [x] Boss HP/WP scaled by difficultyMultiplier
+- [x] wpInvulnerabilityTimer separated from body invulnerability
+- [x] Boss balance: WP cooldown 0.25s, WP hit radius 45f
+- [x] Billing integration: PurchaseManager.kt rewritten with BillingClient + fallback dialog
+- [x] ShopScreen: currency exchange with premium purchase card, cash balance, V2 placeholders
+- [x] ProgressionManager: totalCash persistence with grantReward accumulation
+- [x] SettingsScreen: premium no-toggle-off, disabled ADS REMOVED ✓ state, RESET PROGRESS / FACTORY RESET buttons
+- [x] MainActivity/MainMenu: shop route + SHOP button added
+- [x] AboutScreen: updated to V1.5.0 with cash balance display
+- [x] Shield Platform (STABILITY→SHLD): velocityY=0f, shield fully restored, "SHIELDS RESTORED" text
+- [x] Conveyor Platform fix: velocityX=150f continuous push (no bounce)
+- [x] Zone jump freeze fix: jumpToZone() full cleanup matching restartGame()
+- [x] Zone change notification: TACTICAL notification + ZoneDiscoveryCard auto-fade
+- [x] Multi-hit WPs: wpHitCounts tiered by difficulty (1-4 hits per WP), partial-hit purple burst
+- [x] Heat Bat visibility: cyan aura 0.06→0.15, wing-beat shadow 0.08→0.15, eye glow 0.5→0.7, white silhouette outline
+- [x] Boss kill score removed: all 3 onScoreUpdate(1000) calls removed — score = altitude only
+- [x] Milestone threshold rebalance: 8 thresholds increased for even late-game spacing
+- [x] One boss per frame guard + no boss while boss alive check
+- [x] Boss Recurrence system: ~3s timer, previously-defeated bosses + zone-eligible mini-bosses, 5-25% chance, 1.3× difficulty
+- [x] Boss music fix: setBossActive checks BOSS || MINI_BOSS (4 mini-bosses now play bgm_boss)
+- [x] Hazard suppression 0.3f→0.1f during bosses, Solar Flare filtered out
+- [x] Data reset safety: RESET PROGRESS (preserves premium) + FACTORY RESET (wipes all)
+- [x] Dev menu gated on BuildConfig.DEBUG: cheatsEnabled = BuildConfig.DEBUG
+- [x] Play Store purchase gating: debug=confirm dialog, release="PLAY STORE REQUIRED" info dialog
+- [x] ThreatRegistry.getEntries() added for recurrence pool filtering
+- [-] Performance profiling: frame drops in upper zones / dense threat fields (deferred to EPIC 12)
+- [-] Play Store listing prep: screenshots, description, assets (deferred to EPIC 12)
+- [-] Final APK build + testing (deferred to EPIC 12)
+
+## Phase 8 - Firebase Integration & Quality Assurance (COMPLETE)
+- [x] Firebase Analytics integration (GameAnalytics domain abstraction)
+- [x] Firebase Crashlytics integration (auto-init, debug-gated test crash)
+- [x] GameAnalytics layer: domain-driven strongly-typed events
+- [x] AdConfig: centralized unit IDs with debug/release switching
+- [x] AdMob hardening (GlobalAdBanner, RewardedAdHelper migrated to AdConfig)
+- [x] High-value instrumentation (game_start, game_over, zone_changed, boss_encounter, ad_impression, etc.)
+- [x] Dependency injection via LocalAnalytics CompositionLocal
+
+## Release Engineering (COMPLETE)
+- [x] Repository audit + cleanup (dead code, version fix, redirect stubs, root clutter)
+- [x] Documentation reconciliation (AGENTS, CHANGELOG, README, INVENTORY, EPIC_Tracker, RELEASE_POLISH_PLAN)
+- [x] Merge refactor/cleanup → development → master
+- [x] Tag v1.5.0
+- [x] GitHub Release published
+- [x] Signed Play Store AAB produced
 
 ---
 

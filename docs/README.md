@@ -18,6 +18,9 @@ Built entirely with Kotlin and Jetpack Compose Canvas rendering. No game engine 
 | Min SDK | 24 |
 | Target SDK | 37 |
 | Persistence | SharedPreferences |
+| Analytics | Firebase Analytics + Crashlytics |
+| Ads | AdMob (Banner + Rewarded) |
+| Billing | Google Play Billing Library |
 | Game Engine | None — custom game loop via `withFrameNanos`, physics, and `DrawScope` rendering |
 
 ---
@@ -59,19 +62,25 @@ cd Jump_droid
 | Cloud Layer | 500m | Cyan | Moving/ice platforms, lightning, turbulence |
 | Upper Atmosphere | 1500m | Purple | Breakable/phase platforms, radiation |
 | Orbit | 4000m | Gold | EMP, defense nodes, Command Cruiser mini-boss |
+| Foundry | 6000m | Orange | Industrial platforms, Forger boss |
 | Deep Space | 8000m | Purple-Blue | Gravity distortion, Leviathan, Star-Eater |
+| Chrono | 13000m | Glitch | Temporal anomalies, unstable platforms |
 | The Void | 15000m | Red | All hazards, Void Engine, The Signal |
+| Beyond | 25000m | Cyan-Pink | Surreal platforms, Entropy Core |
+| The Gate | 45000m | Gold-Dark | Monolithic architecture, The Architect |
+| The Construct | 70000m | Teal | Ancient structures, Gravity Anchor |
+| Singularity | 100000m | White-Purple | Reality distortion, The Singularity |
 
 ### Platform System (10 Types)
 
 Normal, Moving, Boost, Ice, Breakable, Phase, Fuel, Cooling, Stability, Magnetic — each with unique physics and visual rendering.
 
-### Threat System (31 Entries)
+### Threat System (26+ Entries)
 
-- **8 Hazards:** Lightning, Turbulence, Debris, Radiation, Solar Flare, EMP, Gravity Distortion, Void Anomaly
-- **8 Enemies:** Surveyor Probe, Sky Ray, Aerosol Swarm, Orbital Sentry, Derelict Echo, Void Tracker, Cosmic Leviathan, Shadow Entity
-- **1 Mini-Boss:** Command Cruiser (3-phase AI)
-- **5 Bosses:** Gatekeeper, Star-Eater, Leviathan, Void Engine, The Signal — each with destructible weak points
+- **Hazards:** Lightning, Turbulence, Debris, Radiation, Solar Flare, EMP, Gravity Distortion, Void Anomaly
+- **Enemies:** Surveyor Probe, Sky Ray, Aerosol Swarm, Orbital Sentry, Derelict Echo, Void Tracker, Cosmic Leviathan, Shadow Entity, Heat Bat
+- **Mini-Bosses:** Command Cruiser, Forger, Entropy Core, Gravity Anchor
+- **Bosses:** Gatekeeper, Star-Eater, Leviathan, Void Engine, The Signal, The Architect, The Singularity — each with destructible weak points (multi-hit in late game)
 
 ### Attack System (Collision-Based)
 
@@ -106,12 +115,13 @@ Balanced (all-around), Scout (high thrust, low fuel), Tank (massive fuel capacit
 
 ---
 
-## Project Structure
+## Project Structure (Post-Release Polish — GameScreen.kt removed, architecture decomposed)
 
 ```
-app/src/main/java/com/example/jump_droid/
+app/src/main/java/com/ashwathai/jump_droid/
 ├── MainActivity.kt              # Entry point, Compose host
-├── GameScreen.kt                # The Central Orchestrator & game loop
+├── GamePlayScreen.kt            # The Central Orchestrator & game loop
+├── GameEngine.kt                # State container (110+ observable vars)
 │
 ├── screens/                     # Full-screen UI states
 │   ├── TitleScreen.kt           # Ascent initiation & animated logo

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "17868070038",
+    "project_id": "jump-droid",
+    "storage_bucket": "jump-droid.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:17868070038:android:cb2c84eb5998be33bb36b7",
+        "android_client_info": {
+          "package_name": "com.ashwathai.jump_droid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-RVStKWSy4DngKPXa2Z_s_-cxjcoyKaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
