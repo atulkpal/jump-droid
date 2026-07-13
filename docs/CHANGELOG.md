@@ -4,6 +4,27 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-13
+
+**Version:** v1.5.1 — Release Polish Update
+
+**Status:** Published ✅
+
+### Added
+- **Portrait lock**: App-wide `screenOrientation="portrait"` prevents landscape rotation.
+- **Keep screen on**: `FLAG_KEEP_SCREEN_ON` active during PLAYING, ASCENSION_PROTOCOL, and PAUSED states; clears on game over, navigation away, or app backgrounding.
+
+### Changed
+- **Version bump**: `versionCode 1 → 2`, `versionName "1.5.0" → "1.5.1"`.
+
+### Build
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL
+- `./gradlew assembleRelease` — BUILD SUCCESSFUL
+- `./gradlew bundleRelease` — BUILD SUCCESSFUL
+- All artifacts signed and verified.
+
+---
+
 ## 2026-06-25 (Final)
 
 **Sprint / Phase:** EPIC 11 — Ascension (The End) — MERGED TO `development`

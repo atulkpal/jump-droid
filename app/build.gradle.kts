@@ -13,8 +13,8 @@ android {
         applicationId = "com.ashwathai.jump_droid"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.5.0"
+        versionCode = 2
+        versionName = "1.5.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

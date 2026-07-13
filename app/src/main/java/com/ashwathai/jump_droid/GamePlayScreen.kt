@@ -1,5 +1,7 @@
 package com.ashwathai.jump_droid
 
+import android.view.WindowManager
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -11,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,6 +33,21 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
     val inputProcessor = remember { PlayerInputProcessor(engine.inputBufferManager) }
 
     val density = LocalDensity.current
+    val context = LocalContext.current
+    val activity = remember { context as? ComponentActivity }
+
+    DisposableEffect(gameState) {
+        val window = activity?.window ?: return@DisposableEffect onDispose {}
+        val isActive = gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL || gameState == GameState.PAUSED
+        if (isActive) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     BoxWithConstraints(
         modifier = Modifier

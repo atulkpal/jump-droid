@@ -8,9 +8,9 @@ A vertical sci-fi exploration game where a lone droid-piloted rocket ascends thr
 
 | | |
 |---|---|
-| **Version** | **v1.5.0** (Release Candidate) |
+| **Version** | **v1.5.1** — Release Polish Update |
 | **EPIC** | 11 — Ascension (The End) — **Complete** |
-| **Stage** | Release Candidate |
+| **Stage** | Production |
 | **Platform** | Android |
 | **Engine** | Jetpack Compose + Kotlin |
 
@@ -95,7 +95,7 @@ Copy `keystore.properties.example` to `keystore.properties` and fill in your cre
 
 ## Releases
 
-**Latest:** v1.5.0 — Release Candidate ([Download](https://github.com/atulkpal/jump-droid/releases/tag/v1.5.0))
+**Latest:** v1.5.1 — Release Polish Update ([Download](https://github.com/atulkpal/jump-droid/releases/tag/v1.5.1))
 
 ---
 

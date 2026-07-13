@@ -1,9 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-06-25
-**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Merged to `development`
-**Current Stable Tag:** `epic11-complete`
-**Branch:** `development`
+**Last Updated:** 2026-07-13
+**Current Version:** v1.5.1 — Release Polish Update
+**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Published to GitHub
+**Current Stable Tag:** `v1.5.1`
+**Branch:** `master`
 **Base Commit:** `HEAD`
 
 ---
@@ -32,10 +33,11 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `development`
-*   **Current Stable Tag**: `epic11-complete`
+*   **Current Branch**: `master`
+*   **Current Stable Tag**: `v1.5.1`
+*   **Current Version**: v1.5.1 — Release Polish Update
 *   **Current EPIC**: EPIC 11 — Ascension (The End) — **COMPLETE ✅**
-*   **Current Status**: **EPIC 11 COMPLETE**. Meta-boss (The Singularity) with HUD Pull + control glitch mechanics. Origin reset at 100,000m. Ascension Ceremony overlay with Architect's Log + Hall of Pioneers. Prestige system (+10% per reset). Omega Modules (Void Engine / Singularity Core). Eternal Mode beyond 100,000m with capped scaling. PlayerInputProcessor extracted from GameScreen.kt. **GameEngine state container** extracted (~30 vars + 12 managers). **SoundManager** audio system with programmatic PCM generation, volume controls, muted by default. **Bug fixes applied**: All boss death sequences stabilized (escape phase correction + AI timer guard), Star Eater rebalanced (suction 3000→1500, weak point orbited at 100px), boss pursuit speeds increased across 5 bosses, fuel/heat gauge 3-digit alignment padded, HUD zone-adaptive colors removed from FuelGauge, platform colors for Earth/Cloud zones added, hidden signal `isUnlocked` persistence fixed in `syncState()`, claimable dashboard now shows hidden count, dev menu spawn velocity bug fixed.
+*   **Current Status**: **v1.5.1 PUBLISHED**. Release Polish Update: portrait lock, keep-screen-on during gameplay. All EPIC 11 content preserved. See `docs/releases/v1.5.1_PUBLICATION_REPORT.md`.
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
     *   GameScreen.kt at ~2,080 lines — extraction continued via GameEngine refactoring into `refactor/cleanup` branch.

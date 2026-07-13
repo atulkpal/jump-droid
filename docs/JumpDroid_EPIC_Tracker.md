@@ -286,7 +286,7 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 # Release Polish — Pre-Ship Sprint
 
-**Status:** **v1.5.0 RELEASED** ✅ — All Phases Complete
+**Status:** **v1.5.1 RELEASED** ✅ — Release Polish Update
 **Plan:** [docs/roadmap/RELEASE_POLISH_PLAN.md](roadmap/RELEASE_POLISH_PLAN.md)
 
 ## Phase 1 - Core Game Feel (COMPLETE)
