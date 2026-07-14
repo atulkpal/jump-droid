@@ -1,10 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-13
+**Last Updated:** 2026-07-14
 **Current Version:** v1.5.1 — Release Polish Update
 **Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Published to GitHub
 **Current Stable Tag:** `v1.5.1`
-**Branch:** `master`
+**Branch:** `master` (protected — no direct commits)
 **Base Commit:** `HEAD`
 
 ---
@@ -187,7 +187,36 @@ None. All credential lookups go through environment variables or file I/O. The r
 
 ---
 
-## 14. Design Library First Rule
+## 14. Git Branch Policy
+
+**`master` is a protected, stable branch. NEVER commit directly to `master`.**
+
+All changes MUST go through an appropriate branch and be merged via pull request. The branch conventions are:
+
+| Change Type | Branch Naming | Example | Merge Target |
+|---|---|---|---|
+| **Hotfix** (urgent bug fix on live release) | `hotfix/<description>` | `hotfix/v1.5.1-crash-fix` | `master` via PR |
+| **Feature** (new capability) | `feature/<description>` | `feature/eternal-mode` | `development` via PR, then `master` |
+| **Refactor / Cleanup** | `refactor/<description>` | `refactor/cleanup` | `development` via PR, then `master` |
+| **Release** (prep branch) | `release/<version>` | `release/v1.6.0` | `master` via PR |
+
+### Workflow
+1. Create a branch from the appropriate base (`master` for hotfixes, `development` for features).
+2. Make changes on that branch.
+3. Push the branch and open a Pull Request to the merge target.
+4. After PR approval, merge and tag if releasing.
+
+### Tags
+- All releases MUST be tagged on the merge commit on `master`.
+- Tags follow semantic versioning: `v<major>.<minor>.<patch>`.
+- Hotfix tags increment the patch version (e.g., `v1.5.1` → `v1.5.2`).
+
+### Violations
+Any agent committing directly to `master` will have their changes reverted. The correct branch must be created and a PR opened.
+
+---
+
+## 15. Design Library First Rule
 
 **All gameplay content MUST originate from the Design Libraries in `docs/design/`.**
 

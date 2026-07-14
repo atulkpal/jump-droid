@@ -4,6 +4,23 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-14
+
+**Version:** v1.5.1 — Release Polish Update (Hotfix)
+
+**Status:** Hotfix ✅
+
+### Fixed
+- **Crash on game over (fadeOutAndPlayGameOver)**: `MediaPlayer.setVolume()` called after player release threw `IllegalStateException`. Wrapped in try-catch to safely handle race conditions with concurrent music operations.
+- **Crash during crossfade (playMusic)**: Same root cause — `MediaPlayer.setVolume()` in crossfade coroutine threw `IllegalStateException` when zone changes triggered rapid music swaps. Wrapped entire crossfade body in try-catch for defensive safety.
+
+### Build
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL
+- `./gradlew assembleRelease` — BUILD SUCCESSFUL
+- `./gradlew bundleRelease` — BUILD SUCCESSFUL
+
+---
+
 ## 2026-07-13
 
 **Version:** v1.5.1 — Release Polish Update
