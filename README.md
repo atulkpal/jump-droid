@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="media/logos/hero-banner.jpg" alt="Jump Droid — Ascend Beyond the Atmosphere" width="800">
+  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/logos/hero-banner.jpg" alt="Jump Droid — Ascend Beyond the Atmosphere" width="800">
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@ Jump Droid is a precision vertical exploration simulator. You pilot a droid-cont
 The core loop: **ascend → survive → discover → upgrade → ascend further.**
 
 <p align="center">
-  <img src="media/screenshots/02-master-precision-flight.jpg" alt="Gameplay in the Earth zone with HUD visible" width="800">
+  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/02-master-precision-flight.jpg" alt="Gameplay in the Earth zone with HUD visible" width="800">
   <br>
   <em>Navigating the lower atmosphere — manage your gauges and avoid hazards.</em>
 </p>
@@ -55,7 +55,7 @@ Explore 12 distinct zones, from Earth's surface to the reality-warped Singularit
 Face 11 unique bosses across your ascent. Each boss features multi-phase attack patterns, weak point targeting, and distinct AI behaviors — from the Cloud Commander's patrol patterns to the reality-warping Singularity's HUD manipulation.
 
 <p align="center">
-  <img src="media/screenshots/03-face-colossal-bosses.jpg" alt="Boss encounter with the Cloud Commander" width="800">
+  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/03-face-colossal-bosses.jpg" alt="Boss encounter with the Cloud Commander" width="800">
   <br>
   <em>Every boss demands precision, adaptation, and knowledge of their attack patterns.</em>
 </p>
@@ -69,7 +69,7 @@ Face 11 unique bosses across your ascent. Each boss features multi-phase attack 
 Your rocket is not a vehicle — it's a **Build.** Choose from 4 rocket classes and customize with 17 unlockable modules. Each module changes how you play, and the combination possibilities create deep strategic variety.
 
 <p align="center">
-  <img src="media/screenshots/04-build-your-perfect-fleet.jpg" alt="Rocket build customization in the Hangar" width="800">
+  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/04-build-your-perfect-fleet.jpg" alt="Rocket build customization in the Hangar" width="800">
   <br>
   <em>The Hangar — where you craft your perfect ascent configuration.</em>
 </p>
@@ -92,7 +92,7 @@ Secret missions, hidden lore signals, and Codex entries reward thorough explorat
 ### 🌌 Endgame
 
 <p align="center">
-  <img src="media/screenshots/07-every-expedition-makes-you-stronger.jpg" alt="The Ascension Ceremony overlay" width="800">
+  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/07-every-expedition-makes-you-stronger.jpg" alt="The Ascension Ceremony overlay" width="800">
   <br>
   <em>The Ascension Ceremony — a cinematic culmination of your journey.</em>
 </p>
@@ -110,7 +110,7 @@ Beyond 100,000 meters lies **The Singularity** — the final meta-boss with HUD 
 The tactical HUD prioritizes critical information — fuel, heat, shields, hull integrity, and combo tracking — while minimizing visual clutter.
 
 <p align="center">
-  <img src="media/screenshots/06-adapt-or-be-destroyed.jpg" alt="Game HUD showing all gauges and combo display" width="800">
+  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/06-adapt-or-be-destroyed.jpg" alt="Game HUD showing all gauges and combo display" width="800">
   <br>
   <em>Clean, tactical HUD displaying everything you need at a glance.</em>
 </p>
@@ -118,7 +118,7 @@ The tactical HUD prioritizes critical information — fuel, heat, shields, hull 
 ---
 
 <p align="center">
-  <img src="media/screenshots/01-begin-the-ascension.jpg" alt="Jump Droid title screen with scanning drone" width="800">
+  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/01-begin-the-ascension.jpg" alt="Jump Droid title screen with scanning drone" width="800">
   <br>
   <em>The title screen — your journey begins here.</em>
 </p>
@@ -277,7 +277,7 @@ Promotional assets (logos, screenshots, wallpapers, social graphics) are availab
 
 <p>
   <a href="https://github.com/atulkpal/jump-droid">
-    <img src="media/logos/extra-01-logo.jpg" alt="Jump Droid" width="64">
+    <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/logos/extra-01-logo.jpg" alt="Jump Droid" width="64">
   </a>
 </p>
 
