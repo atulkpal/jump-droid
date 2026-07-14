@@ -293,19 +293,21 @@ class SoundManager(context: Context) {
             val activePlayer = getActiveMusicPlayer()
             activePlayer?.let { player ->
                 if (player.isPlaying) {
-                    val bias = musicBias[currentMusicResId] ?: 1.0f
-                    val startVol = (musicVolume * bias).coerceIn(0f, 1f)
-                    val steps = 12
-                    repeat(steps) {
-                        val progress = (it + 1).toFloat() / steps
-                        player.setVolume(startVol * (1f - progress), startVol * (1f - progress))
-                        delay(33)
-                    }
-                    player.stop()
-                    player.release()
-                    if (musicPlayerA == player) musicPlayerA = null
-                    if (musicPlayerB == player) musicPlayerB = null
-                    Log.d("SoundManager", "Music faded out for game over")
+                    try {
+                        val bias = musicBias[currentMusicResId] ?: 1.0f
+                        val startVol = (musicVolume * bias).coerceIn(0f, 1f)
+                        val steps = 12
+                        repeat(steps) {
+                            val progress = (it + 1).toFloat() / steps
+                            player.setVolume(startVol * (1f - progress), startVol * (1f - progress))
+                            delay(33)
+                        }
+                        player.stop()
+                        player.release()
+                        if (musicPlayerA == player) musicPlayerA = null
+                        if (musicPlayerB == player) musicPlayerB = null
+                        Log.d("SoundManager", "Music faded out for game over")
+                    } catch (_: Exception) { }
                 }
             }
             // Stop all loops
@@ -377,21 +379,23 @@ class SoundManager(context: Context) {
                 newPlayer.setVolume(0f, 0f)
                 pendingReleasePlayer = oldPlayer
                 crossfadeJob = scope.launch {
-                    val oldBias = musicBias[resId] ?: 1.0f
-                    val oldVol = (musicVolume * oldBias).coerceIn(0f, 1f)
-                    val steps = 20
-                    repeat(steps) {
-                        val t = (it + 1).toFloat() / steps
-                        newPlayer.setVolume(targetVol * t, targetVol * t)
-                        oldPlayer.setVolume(oldVol * (1f - t), oldVol * (1f - t))
-                        delay(30)
-                    }
-                    oldPlayer.stop()
-                    oldPlayer.release()
-                    if (musicPlayerA == oldPlayer) musicPlayerA = null
-                    if (musicPlayerB == oldPlayer) musicPlayerB = null
-                    if (pendingReleasePlayer == oldPlayer) pendingReleasePlayer = null
-                    Log.d("SoundManager", "Crossfade complete: new track=$resId")
+                    try {
+                        val oldBias = musicBias[resId] ?: 1.0f
+                        val oldVol = (musicVolume * oldBias).coerceIn(0f, 1f)
+                        val steps = 20
+                        repeat(steps) {
+                            val t = (it + 1).toFloat() / steps
+                            newPlayer.setVolume(targetVol * t, targetVol * t)
+                            oldPlayer.setVolume(oldVol * (1f - t), oldVol * (1f - t))
+                            delay(30)
+                        }
+                        oldPlayer.stop()
+                        oldPlayer.release()
+                        if (musicPlayerA == oldPlayer) musicPlayerA = null
+                        if (musicPlayerB == oldPlayer) musicPlayerB = null
+                        if (pendingReleasePlayer == oldPlayer) pendingReleasePlayer = null
+                        Log.d("SoundManager", "Crossfade complete: new track=$resId")
+                    } catch (_: Exception) { }
                     crossfadeJob = null
                 }
             } else {
