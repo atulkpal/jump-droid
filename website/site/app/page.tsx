@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import ZoneBackgrounds from "./components/zone-backgrounds/ZoneBackgrounds";
 import FlyingRocket from "./components/FlyingRocket";
@@ -170,7 +171,7 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-6 text-sm">
               <a href="#hero" className="transition hover:text-cyan-200">Back to top</a>
               <a href="#mission-control" className="transition hover:text-cyan-200">Crew Briefing</a>
-              <a href="#" className="transition hover:text-cyan-200">Privacy Protocol</a>
+              <Link href="/privacy" className="transition hover:text-cyan-200">Privacy Policy</Link>
             </div>
           </div>
         </footer>
