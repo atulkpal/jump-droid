@@ -1,119 +1,140 @@
-<div align="center">
+<p align="center">
+  <img src="media/logos/hero-banner.jpg" alt="Jump Droid — Ascend Beyond the Atmosphere" width="800">
+</p>
 
-# 🚀 Jump Droid
+<p align="center">
+  <b>A vertical rocket exploration game built with Kotlin and Jetpack Compose Canvas.</b><br>
+  Precision propulsion, modular ship builds, and high-intensity atmospheric discovery.
+</p>
 
-**A vertical rocket exploration game built with Kotlin and Jetpack Compose Canvas.**
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT"></a>
+  <a href="https://github.com/atulkpal/jump-droid/releases/latest"><img src="https://img.shields.io/github/v/release/atulkpal/jump-droid?include_prereleases&label=release" alt="Release"></a>
+  <a href="https://github.com/atulkpal/jump-droid"><img src="https://img.shields.io/badge/platform-android-3DDC84?logo=android" alt="Android"></a>
+  <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/kotlin-2.0+-7F52FF?logo=kotlin" alt="Kotlin"></a>
+  <a href="https://github.com/atulkpal/jump-droid/issues"><img src="https://img.shields.io/github/issues/atulkpal/jump-droid" alt="Issues"></a>
+</p>
 
-Explore 12 hostile atmospheric zones, build modular rocket configurations, survive 11 boss encounters, and ascend beyond 100,000m to face The Singularity.
+<br>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Latest Release](https://img.shields.io/github/v/release/atulkpal/jump-droid?include_prereleases&label=release)](https://github.com/atulkpal/jump-droid/releases/latest)
-[![Platform](https://img.shields.io/badge/platform-android-3DDC84?logo=android)](https://github.com/atulkpal/jump-droid)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.0+-7F52FF?logo=kotlin)](https://kotlinlang.org)
+> **📥 Download Latest Release (v1.5.1)** — [Get the APK](https://github.com/atulkpal/jump-droid/releases/tag/v1.5.1)
 
-</div>
+<br>
 
 ---
 
-## 📥 Download
+## What is Jump Droid?
 
-| Build | Link |
-|-------|------|
-| **Latest Release (v1.5.1)** | [Download APK](https://github.com/atulkpal/jump-droid/releases/tag/v1.5.1) |
-| Debug APK | Build from source (see [Installation](#-installation)) |
-
----
-
-## 🎮 Gameplay Overview
-
-Jump Droid is a precision vertical exploration simulator. You pilot a droid-controlled rocket through increasingly hostile atmospheric layers, managing fuel, heat, shields, and hull integrity while battling environmental hazards, enemy drones, and colossal bosses.
+Jump Droid is a precision vertical exploration game. You pilot a droid-controlled rocket through 12 hostile atmospheric zones, managing fuel, heat, shields, and hull integrity while dodging hazards, fighting enemies, and defeating colossal bosses.
 
 The core loop: **ascend → survive → discover → upgrade → ascend further.**
 
-### Altitude Zones
+<p align="center">
+  <img src="media/screenshots/01-begin-the-ascension.jpg" alt="Begin the Ascension" width="560">
+  <br>
+  <em>Begin the Ascension</em>
+</p>
 
-| Zone | Description |
-|------|-------------|
-| Earth – Singularity | 12 distinct zones, each with unique visual themes, hazards, enemies, and BGM. |
+Every zone introduces new threats, new platform types, and new visual themes — from Earth's blue skies to the reality-warped Singularity at the edge of existence.
 
-Zone progression drives difficulty scaling, unlockable content, and the boss encounter schedule.
-
----
-
-## ✨ Core Features
-
-- **12 altitude zones** (Earth → The Singularity) — each with unique parallax backgrounds, hazards, and dynamic BGM
-- **11 boss encounters** — multi-phase fights with weak point targeting and unique AI behaviors
-- **26+ threat types** — hazards, enemies, mini-bosses, and bosses
-- **14 platform types** — Flux, Graviton, Chrono-Rift, and more with unique traversal mechanics
-- **4 rocket classes + 17 unlockable modules** — customize your build for different play styles
-- **12-track mission system** — evolving tier progression (Rookie → God)
-- **Combo & survival rewards** — risk-reward balancing for high-score play
-- **Power-ups & artifacts** — rare drops with set bonuses
-- **Prestige system** — permanent +10% hull/shield per reset after 100km
-- **Eternal Mode** — capped infinite scaling past 100,000m
-- **Secret missions & blueprints** — hidden content for deep explorers
-- **Codex & lore discovery** — cryptic signals reward thorough exploration
-
-### The Singularity
-
-The final meta-boss encounter at 100,000m features HUD Pull and control glitch mechanics. Defeating it triggers the **Ascension Ceremony** — a cinematic overlay with Architect's Log and Hall of Pioneers. Survival unlocks Omega Modules and Eternal Mode.
+<p align="center">
+  <img src="media/screenshots/02-master-precision-flight.jpg" alt="Master Precision Flight" width="560">
+  <br>
+  <em>Master Precision Flight</em>
+</p>
 
 ---
 
-## 🛠️ Technical Highlights
+## Core Features
+
+### ⚔️ Face Colossal Bosses
+
+11 unique boss encounters, each with multi-phase attack patterns, weak point targeting, and distinct AI. From the Cloud Commander's patrol patterns to The Singularity's reality-warping HUD manipulation, every boss demands precision and adaptation.
+
+<p align="center">
+  <img src="media/screenshots/03-face-colossal-bosses.jpg" alt="Face Colossal Bosses" width="560">
+  <br>
+  <em>Face Colossal Bosses</em>
+</p>
+
+### 🚀 Build Your Perfect Fleet
+
+Your rocket is not a vehicle — it's a **Build.** Choose from 4 rocket classes and customize with 17 unlockable modules. Each module changes how you play. Optimize for survivability, speed, or raw firepower.
+
+<p align="center">
+  <img src="media/screenshots/04-build-your-perfect-fleet.jpg" alt="Build Your Perfect Fleet" width="560">
+  <br>
+  <em>Build Your Perfect Fleet</em>
+</p>
+
+### 🌍 Discover a Lost Civilization
+
+Hidden lore signals, secret missions, blueprints, and cryptic Codex entries reward thorough exploration. The dynamic unlock engine uses AND/OR conditions for flexible progression paths. Every zone holds secrets.
+
+<p align="center">
+  <img src="media/screenshots/05-discover-a-lost-civilization.jpg" alt="Discover a Lost Civilization" width="560">
+  <br>
+  <em>Discover a Lost Civilization</em>
+</p>
+
+### 🛡️ Adapt or Be Destroyed
+
+Manage fuel, heat, shields, and hull integrity through 14 unique platform types — Flux, Graviton, Chrono-Rift, and more. 26+ threat types including environmental hazards, enemy drones, mini-bosses, and screen-filling bosses. Power-ups and rare artifacts with set bonuses give you the edge.
+
+<p align="center">
+  <img src="media/screenshots/06-adapt-or-be-destroyed.jpg" alt="Adapt or Be Destroyed" width="560">
+  <br>
+  <em>Adapt or Be Destroyed</em>
+</p>
+
+### 🌌 Every Expedition Makes You Stronger
+
+A 12-track mission system with tiers that evolve from Rookie to God. Beyond 100,000 meters, defeat **The Singularity** to unlock the Ascension Ceremony, prestige mode (permanent +10% hull/shield per reset), Omega Modules, and Eternal Mode — capped infinite scaling for endless ascent.
+
+<p align="center">
+  <img src="media/screenshots/07-every-expedition-makes-you-stronger.jpg" alt="Every Expedition Makes You Stronger" width="560">
+  <br>
+  <em>Every Expedition Makes You Stronger</em>
+</p>
+
+---
+
+## What's Inside
+
+| | |
+|---|---|
+| **12 altitude zones** | Earth → The Singularity, each with unique parallax backgrounds, hazards, enemies, and dynamic BGM |
+| **11 boss encounters** | Multi-phase fights with distinct AI, weak point targeting, and escalating intensity |
+| **26+ threat types** | Hazards, enemies, mini-bosses, and screen-filling bosses |
+| **14 platform types** | Flux, Graviton, Chrono-Rift — each with unique traversal mechanics |
+| **4 rocket classes + 17 modules** | Deep customization for any play style |
+| **12-track mission system** | Evolving tier progression (Rookie → God) |
+| **Power-ups & artifacts** | Rare drops with set bonuses |
+| **Secret missions & lore** | Hidden signals, blueprints, Codex discovery |
+| **Prestige system** | Permanent +10% hull/shield per reset after 100km |
+| **Eternal Mode** | Capped infinite scaling beyond 100,000m |
+| **Open source** | Built entirely with Kotlin and Jetpack Compose Canvas |
+
+---
+
+## Technical Highlights
 
 | Layer | Technology |
 |-------|-----------|
 | Language | Kotlin 2.0+ |
-| UI Framework | Jetpack Compose (Canvas rendering) |
+| UI Framework | Jetpack Compose Canvas |
 | Audio Engine | SoundPool + MediaPlayer (46 production OGG assets) |
 | Architecture | Component-based with extracted managers |
-| State Management | Observable Compose state + coroutine-based game loop |
+| Game Loop | 4 physics sub-steps per frame for collision reliability |
+| State Management | Observable Compose state + coroutines |
 | Persistence | SharedPreferences |
-| Analytics | Firebase Analytics + Crashlytics |
-| Ads | AdMob (production IDs in release, test IDs in debug) |
-| Build System | Gradle with Kotlin DSL |
-
-### Architecture
-
-The game loop uses 4 physics sub-steps per frame for collision reliability. Major systems are extracted into dedicated managers:
-
-- `GameEngine.kt` — Central state container
-- `ProgressionManager.kt` — Persistence, unlocks, prestige
-- `EncounterDirector.kt` — Spawn rules and boss milestones
-- `MissionManager.kt` — 12-track mission progression
-- `SoundManager.kt` — Audio engine with crossfade support
-- `PlayerInputProcessor.kt` — Input handling with glitch hooks
+| Analytics | Firebase + Crashlytics |
 
 ---
 
-## 📸 Screenshots
-
-> Screenshots coming soon. This section will be updated with promotional imagery during Phase 3.
-
-<!-- 
-  Phase 3 — Screenshot & Community:
-  Add promotional screenshots here:
-  - Title screen
-  - Gameplay (early zone)
-  - Gameplay (boss encounter)
-  - HUD showcase
-  - Hangar / Build customization
-  - Ascension Ceremony overlay
--->
-
-| | | |
-|---|---|---|
-| `[Screenshot 1]` | `[Screenshot 2]` | `[Screenshot 3]` |
-| `[Screenshot 4]` | `[Screenshot 5]` | `[Screenshot 6]` |
-
----
-
-## 📖 Installation
+## Installation
 
 ### Requirements
-
 - Android Studio Hedgehog (2023.1.1) or newer
 - Android SDK 34+
 - Kotlin 2.0+
@@ -125,104 +146,51 @@ git clone https://github.com/atulkpal/jump-droid.git
 cd jump-droid
 ```
 
-Open the project in Android Studio, sync Gradle, and run on a device or emulator.
-
-### Building a Release APK/AAB
-
-Signing credentials are resolved in this priority order:
-
-1. **Environment variables:**
-   ```bash
-   export STORE_FILE=jump_droid_release.keystore
-   export STORE_PASSWORD=your-password
-   export KEY_ALIAS=your-alias
-   export KEY_PASSWORD=your-password
-   ./gradlew assembleRelease
-   ```
-
-2. **`keystore.properties`** (gitignored, fallback):
-   ```properties
-   storeFile=jump_droid_release.keystore
-   storePassword=your-password
-   keyAlias=your-alias
-   keyPassword=your-password
-   ```
-
-Copy `keystore.properties.example` → `keystore.properties` and fill in credentials. The keystore (`app/jump_droid_release.keystore`) and properties file are gitignored.
+Open in Android Studio, sync Gradle, and run on a device or emulator (API 34+).
 
 ---
 
-## 🧭 Development Philosophy
-
-- **Physics-first**: Movement and collision are the heart of the experience
-- **Hard but fair**: High difficulty balanced by robust recovery mechanics
-- **Modular progression**: Your rocket is a "Build," not a vehicle
-- **No pay-to-win**: All power modules earned through gameplay
-- **Tactical HUD**: Critical info prioritized, clutter minimized
-- **Mystery & discovery**: Hidden content rewards deep exploration
-
----
-
-## 📊 Project Status
+## Project Status
 
 | | |
 |---|---|
 | **Version** | v1.5.1 — Release Polish Update |
 | **Latest EPIC** | 11 — Ascension (The End) — **Complete** |
 | **Next** | EPIC 12 — Fleet Expansion (planned) |
-| **Platform** | Android |
-| **License** | MIT |
-
-### Known Issues
-
-- Visual noise during high-combo streaks (excessive floating text) — deferred
-- GameScreen.kt at ~2,080 lines — ongoing refactoring
-
-### EPIC History
-
-| EPIC | Description |
-|------|-------------|
-| 1–3 | World, visuals, threats & bosses |
-| 4 | Mission tree, achievements, Codex |
-| 5 | Survival protocol (shield/hull, destruction) |
-| 6 | Advanced AI, projectiles, multi-phase bosses |
-| 7 | Rocket customization (4 classes, 17 modules) |
-| 8 | Missions & progression, Intelligence Network |
-| 8.5 | Architecture decomposition (48% GameScreen reduction) |
-| 9 | Hidden signals, dynamic unlocks, artifacts |
-| 10 | 4 new zones, 12 threats, 5 bosses |
-| 11 | The Singularity, prestige, Eternal Mode |
+| **Platform** | Android (API 34+) |
+| **License** | [MIT](LICENSE) |
 
 ---
 
-## 💬 Feedback & Community
+## Community & Feedback
 
-- **Issues & Feature Requests**: [GitHub Issues](https://github.com/atulkpal/jump-droid/issues)
-- **Discussions**: GitHub Discussions (coming soon)
-- **Report a Bug**: Open a [bug report](https://github.com/atulkpal/jump-droid/issues/new?labels=bug)
-
-Contributions are welcome\! Please read the design library rules in [`AGENTS.md`](AGENTS.md) before implementing gameplay content.
+- **Bug Reports**: [Open a bug report](https://github.com/atulkpal/jump-droid/issues/new?labels=bug)
+- **Feature Requests**: [Open a feature request](https://github.com/atulkpal/jump-droid/issues/new?labels=enhancement)
+- **Discussions**: [GitHub Discussions](https://github.com/atulkpal/jump-droid/discussions)
+- **Security**: See [SECURITY.md](SECURITY.md)
+- **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [`AGENTS.md`](AGENTS.md) | Project governance, architecture decisions, branch policy |
+| [`AGENTS.md`](AGENTS.md) | Governance, architecture decisions, branch policy |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Full release history |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System architecture overview |
-| [`docs/JumpDroid_EPIC_Tracker.md`](docs/JumpDroid_EPIC_Tracker.md) | EPIC roadmap |
-| [`docs/INVENTORY.md`](docs/INVENTORY.md) | Technical specs index |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System architecture |
 | [`docs/design/`](docs/design/) | Design libraries (threats, platforms, zones, power-ups, lore, artifacts, rockets) |
-| [`docs/releases/`](docs/releases/) | Publication reports |
+| [`docs/marketing/`](docs/marketing/) | Brand guide, store copy, press templates |
+| [`media/PRESS_KIT.md`](media/PRESS_KIT.md) | Press kit with asset index |
 
 ---
 
-<div align="center">
-
-Built with ❤️ using Kotlin & Jetpack Compose
-
-[Report a Bug](https://github.com/atulkpal/jump-droid/issues) · [Request a Feature](https://github.com/atulkpal/jump-droid/issues) · [Latest Release](https://github.com/atulkpal/jump-droid/releases/latest)
-
-</div>
+<p align="center">
+  <a href="https://github.com/atulkpal/jump-droid">
+    <img src="media/logos/extra-01-logo.jpg" alt="Jump Droid" width="64">
+  </a>
+  <br><br>
+  <b>Built with ❤️ using Kotlin & Jetpack Compose</b>
+  <br><br>
+  <a href="https://github.com/atulkpal/jump-droid/issues">Report a Bug</a> · <a href="https://github.com/atulkpal/jump-droid/releases/latest">Latest Release</a>
+</p>

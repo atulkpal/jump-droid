@@ -34,3 +34,7 @@ If applicable, add screenshots or a screen recording to help explain the problem
 **Additional context**
 
 Add any other context about the problem here. Crash logs from `adb logcat` are especially helpful.
+
+---
+
+> **For questions, suggestions, or general discussion**, please use [GitHub Discussions](https://github.com/atulkpal/jump-droid/discussions) if enabled. If Discussions are not yet available, open a regular issue with the `question` label.
