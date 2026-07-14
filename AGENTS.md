@@ -1,8 +1,8 @@
 # Jump Droid — Authoritative Agent Manual
 
 **Last Updated:** 2026-07-14
-**Current Version:** v1.5.1 — Release Polish Update
-**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Published to GitHub
+**Current Version:** v1.5.1 — Release Polish Update (Hotfix)
+**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Published to GitHub — Open Source (MIT)
 **Current Stable Tag:** `v1.5.1`
 **Branch:** `master` (protected — no direct commits)
 **Base Commit:** `HEAD`
