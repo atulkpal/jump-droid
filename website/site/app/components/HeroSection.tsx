@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { PLAY_STORE_URL } from "@/lib/constants";
 
 export default function HeroSection() {
   return (
@@ -33,7 +34,7 @@ export default function HeroSection() {
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
         >
           <a
-            href="https://play.google.com"
+            href={PLAY_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex min-w-[200px] items-center justify-center rounded-full bg-cyan-400 px-8 py-4 text-sm font-black uppercase tracking-[0.2em] text-slate-950 transition hover:bg-cyan-300 hover:shadow-[0_0_30px_rgba(0,229,255,0.4)]"
