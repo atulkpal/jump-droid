@@ -1,45 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import ZoneBackgrounds from "./components/zone-backgrounds/ZoneBackgrounds";
 import FlyingRocket from "./components/FlyingRocket";
 import AltitudeHUD from "./components/AltitudeHUD";
 import EncounterSystem, { ENCOUNTERS, BOSS_ENCOUNTERS } from "./components/EncounterSystem";
 import BossEncounter from "./components/BossEncounter";
-import dynamic from "next/dynamic";
 import StickyNav from "./components/StickyNav";
-import HeroSection from "./components/HeroSection";
-import GameplayExplained from "./components/GameplayExplained";
-import PlatformShowcase from "./components/PlatformShowcase";
-import BossShowcase from "./components/BossShowcase";
-import RocketShowcase from "./components/RocketShowcase";
-import DiscoveryArchive from "./components/DiscoveryArchive";
-import ProgressionSystems from "./components/ProgressionSystems";
-import MissionControl from "./components/MissionControl";
-import Footer from "./components/Footer";
+import PortalSection from "./components/PortalSection";
+import PlatformsSection from "./components/PlatformsSection";
+import RocketsSection from "./components/RocketsSection";
+import ArchiveSection from "./components/ArchiveSection";
+import GallerySection from "./components/GallerySection";
+import LaunchSection from "./components/LaunchSection";
+import FloatingDownload from "./components/FloatingDownload";
 
-const FeaturesSection = dynamic(() => import("./components/FeaturesSection"), {
-  loading: () => null,
-});
-
-const ScreenshotsGallery = dynamic(() => import("./components/ScreenshotsGallery"), {
-  loading: () => null,
-});
-
-const GameSimulator = dynamic(() => import("./components/GameSimulator"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex min-h-[300px] items-center justify-center">
-      <p className="text-xs uppercase tracking-widest text-cyan-400 animate-pulse">
-        Loading simulation bay...
-      </p>
-    </div>
-  ),
-});
-
-const DownloadSection = dynamic(() => import("./components/DownloadSection"), {
-  loading: () => null,
+const ThreatsSection = dynamic(() => import("./components/ThreatsSection"), {
+  loading: () => <div className="min-h-dvh" />,
 });
 
 const ZONES = [
@@ -123,7 +101,6 @@ export default function Home() {
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
       <StickyNav />
 
-      {/* FIXED BACKGROUND LAYERS (z-0 to z-15) */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <ZoneBackgrounds altitude={altitude} />
       </div>
@@ -136,7 +113,6 @@ export default function Home() {
         <FlyingRocket progress={progress} rocketX={rocketX} />
       </div>
 
-      {/* Boss warning/takeover overlay effect (z-30) */}
       {isBossActive && (
         <BossEncounter
           entity={activeEncounter.entity as any}
@@ -146,53 +122,18 @@ export default function Home() {
         />
       )}
 
-      {/* HUD (z-30) */}
       <AltitudeHUD altitude={altitude} zoneName={zone.name} progress={progress} />
 
-      {/* SCROLLABLE FOREGROUND CONTENT (z-20) */}
+      <FloatingDownload />
+
       <main id="main-content" className="relative z-20 pointer-events-auto">
-        <HeroSection />
-
-        <FeaturesSection />
-
-        <GameplayExplained />
-
-        <ScreenshotsGallery />
-
-        {/* Platform Showcase Section */}
-        <section id="ascent" className="relative overflow-hidden py-24 sm:py-32">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.08),transparent_20%)]" />
-          <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-            <div className="mb-12 max-w-2xl space-y-4">
-              <p className="text-sm uppercase tracking-[0.35em] text-cyan-300 font-extrabold bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 inline-block">
-                Atmospheres & Platforms
-              </p>
-              <h2 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl uppercase">
-                Twelve platform types. Adapt or fall.
-              </h2>
-              <p className="max-w-2xl text-slate-300 text-sm leading-relaxed">
-                Platforms behave differently in each zone. From simple solid ground to shifting, icy, breaking, or magnetic fields—timing your thrusters is key.
-              </p>
-            </div>
-            <PlatformShowcase />
-          </div>
-        </section>
-
-        <BossShowcase />
-
-        <RocketShowcase />
-
-        <GameSimulator />
-
-        <DiscoveryArchive />
-
-        <ProgressionSystems />
-
-        <DownloadSection />
-
-        <MissionControl />
-
-        <Footer />
+        <PortalSection />
+        <PlatformsSection />
+        <ThreatsSection />
+        <RocketsSection />
+        <ArchiveSection />
+        <GallerySection />
+        <LaunchSection />
       </main>
     </div>
   );
