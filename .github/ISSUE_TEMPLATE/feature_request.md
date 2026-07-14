@@ -21,3 +21,7 @@ Any alternative solutions or features you've considered.
 **Additional context**
 
 Add any other context, references, or screenshots about the feature request here.
+
+---
+
+> **For questions, suggestions, or general discussion**, please use [GitHub Discussions](https://github.com/atulkpal/jump-droid/discussions) if enabled. If Discussions are not yet available, open a regular issue with the `question` label.

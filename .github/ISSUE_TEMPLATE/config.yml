@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/atulkpal/jump-droid/discussions
+    about: Please use Discussions for questions, ideas, and general conversation.
+  - name: Jump Droid Documentation
+    url: https://github.com/atulkpal/jump-droid/blob/master/docs/
+    about: Check the documentation for setup guides and technical details.
