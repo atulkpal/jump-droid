@@ -4,6 +4,7 @@ import { useRef, useState, useMemo } from "react";
 import RocketSVG from "./game/RocketSVG";
 import PlatformSVG from "./game/PlatformSVG";
 import ThreatSVG from "./game/ThreatSVG";
+import { PLAY_STORE_URL } from "@/lib/constants";
 
 const ZONES = [
   { name: "Earth", threshold: 0, bg: "#0a0a12", mid: "#1a1a2e" },
@@ -137,7 +138,7 @@ export default function AscentJourney() {
       }}>
         <p className="text-sm uppercase tracking-[0.4em] text-cyan-300 font-bold mb-3">Jump Droid</p>
         <p className="text-xl text-slate-200 mb-6 font-semibold">The Signal From the Void</p>
-        <a href="https://play.google.com" target="_blank" rel="noopener noreferrer"
+        <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer"
           className="inline-block rounded-full bg-cyan-400 px-10 py-4 text-lg font-black uppercase tracking-widest text-black hover:bg-cyan-300 shadow-[0_0_40px_rgba(0,229,255,0.5)]">
           Download
         </a>
@@ -151,7 +152,7 @@ export default function AscentJourney() {
       }}>
         <p className="text-sm uppercase tracking-[0.4em] text-cyan-300 font-bold mb-3">Mission Complete</p>
         <p className="text-xl text-slate-200 mb-6 font-semibold">You reached The Signal.</p>
-        <a href="https://play.google.com" target="_blank" rel="noopener noreferrer"
+        <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer"
           className="inline-block rounded-full bg-cyan-400 px-10 py-4 text-lg font-black uppercase tracking-widest text-black hover:bg-cyan-300 shadow-[0_0_40px_rgba(0,229,255,0.5)]">
           Download
         </a>

@@ -7,6 +7,7 @@ import FlyingRocket from "./components/FlyingRocket";
 import AltitudeHUD from "./components/AltitudeHUD";
 import EncounterSystem, { ENCOUNTERS, BOSS_ENCOUNTERS } from "./components/EncounterSystem";
 import BossEncounter from "./components/BossEncounter";
+import dynamic from "next/dynamic";
 import StickyNav from "./components/StickyNav";
 import HeroSection from "./components/HeroSection";
 import GameplayExplained from "./components/GameplayExplained";
@@ -16,7 +17,30 @@ import RocketShowcase from "./components/RocketShowcase";
 import DiscoveryArchive from "./components/DiscoveryArchive";
 import ProgressionSystems from "./components/ProgressionSystems";
 import MissionControl from "./components/MissionControl";
-import GameSimulator from "./components/GameSimulator";
+import Footer from "./components/Footer";
+
+const FeaturesSection = dynamic(() => import("./components/FeaturesSection"), {
+  loading: () => null,
+});
+
+const ScreenshotsGallery = dynamic(() => import("./components/ScreenshotsGallery"), {
+  loading: () => null,
+});
+
+const GameSimulator = dynamic(() => import("./components/GameSimulator"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[300px] items-center justify-center">
+      <p className="text-xs uppercase tracking-widest text-cyan-400 animate-pulse">
+        Loading simulation bay...
+      </p>
+    </div>
+  ),
+});
+
+const DownloadSection = dynamic(() => import("./components/DownloadSection"), {
+  loading: () => null,
+});
 
 const ZONES = [
   { name: "Earth", threshold: 0 },
@@ -56,7 +80,6 @@ function getBossPhase(progress: number, encounter: any | null): { phase: BossPha
 }
 
 function calculateRocketX(progress: number): number {
-  // Base flight path: left 30% -> center 50% with sine sway
   const baseX = 30 + progress * 20;
   const sway = Math.sin(progress * 18) * 3 + Math.sin(progress * 7) * 1.5;
   return baseX + sway;
@@ -98,7 +121,6 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
-      {/* Sticky Navigation */}
       <StickyNav />
 
       {/* FIXED BACKGROUND LAYERS (z-0 to z-15) */}
@@ -128,11 +150,15 @@ export default function Home() {
       <AltitudeHUD altitude={altitude} zoneName={zone.name} progress={progress} />
 
       {/* SCROLLABLE FOREGROUND CONTENT (z-20) */}
-      <main className="relative z-20 pointer-events-auto">
+      <main id="main-content" className="relative z-20 pointer-events-auto">
         <HeroSection />
-        
+
+        <FeaturesSection />
+
         <GameplayExplained />
-        
+
+        <ScreenshotsGallery />
+
         {/* Platform Showcase Section */}
         <section id="ascent" className="relative overflow-hidden py-24 sm:py-32">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.08),transparent_20%)]" />
@@ -153,28 +179,20 @@ export default function Home() {
         </section>
 
         <BossShowcase />
-        
+
         <RocketShowcase />
-        
+
         <GameSimulator />
-        
+
         <DiscoveryArchive />
-        
+
         <ProgressionSystems />
-        
+
+        <DownloadSection />
+
         <MissionControl />
 
-        {/* Footer */}
-        <footer className="border-t border-white/10 bg-black/90 py-12 text-slate-400 relative z-20">
-          <div className="mx-auto flex flex-col gap-6 px-6 sm:px-8 lg:px-12 lg:flex-row lg:items-center lg:justify-between">
-            <p className="text-sm">Jump Droid — The Signal From the Void.</p>
-            <div className="flex flex-wrap items-center gap-6 text-sm">
-              <a href="#hero" className="transition hover:text-cyan-200">Back to top</a>
-              <a href="#mission-control" className="transition hover:text-cyan-200">Crew Briefing</a>
-              <Link href="/privacy" className="transition hover:text-cyan-200">Privacy Policy</Link>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </main>
     </div>
   );
