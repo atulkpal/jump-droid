@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/logos/hero-banner.jpg" alt="Jump Droid — Ascend Beyond the Atmosphere" width="800">
+  <img src="media/logos/hero-banner.jpg" alt="Jump Droid — Ascend Beyond the Atmosphere" width="800">
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@ Jump Droid is a precision vertical exploration game. You pilot a droid-controlle
 The core loop: **ascend → survive → discover → upgrade → ascend further.**
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/01-begin-the-ascension.jpg" alt="Begin the Ascension" width="800">
+  <img src="media/screenshots/01-begin-the-ascension.jpg" alt="Begin the Ascension" width="800">
   <br>
   <em>Begin the Ascension</em>
 </p>
@@ -38,7 +38,7 @@ The core loop: **ascend → survive → discover → upgrade → ascend further.
 Every zone introduces new threats, new platform types, and new visual themes — from Earth's blue skies to the reality-warped Singularity at the edge of existence.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/02-master-precision-flight.jpg" alt="Master Precision Flight" width="800">
+  <img src="media/screenshots/02-master-precision-flight.jpg" alt="Master Precision Flight" width="800">
   <br>
   <em>Master Precision Flight</em>
 </p>
@@ -52,7 +52,7 @@ Every zone introduces new threats, new platform types, and new visual themes —
 11 unique boss encounters, each with multi-phase attack patterns, weak point targeting, and distinct AI. From the Cloud Commander's patrol patterns to The Singularity's reality-warping HUD manipulation, every boss demands precision and adaptation.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/03-face-colossal-bosses.jpg" alt="Face Colossal Bosses" width="800">
+  <img src="media/screenshots/03-face-colossal-bosses.jpg" alt="Face Colossal Bosses" width="800">
   <br>
   <em>Face Colossal Bosses</em>
 </p>
@@ -62,7 +62,7 @@ Every zone introduces new threats, new platform types, and new visual themes —
 Your rocket is not a vehicle — it's a **Build.** Choose from 4 rocket classes and customize with 17 unlockable modules. Each module changes how you play. Optimize for survivability, speed, or raw firepower.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/04-build-your-perfect-fleet.jpg" alt="Build Your Perfect Fleet" width="800">
+  <img src="media/screenshots/04-build-your-perfect-fleet.jpg" alt="Build Your Perfect Fleet" width="800">
   <br>
   <em>Build Your Perfect Fleet</em>
 </p>
@@ -72,7 +72,7 @@ Your rocket is not a vehicle — it's a **Build.** Choose from 4 rocket classes 
 Hidden lore signals, secret missions, blueprints, and cryptic Codex entries reward thorough exploration. The dynamic unlock engine uses AND/OR conditions for flexible progression paths. Every zone holds secrets.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/05-discover-a-lost-civilization.jpg" alt="Discover a Lost Civilization" width="800">
+  <img src="media/screenshots/05-discover-a-lost-civilization.jpg" alt="Discover a Lost Civilization" width="800">
   <br>
   <em>Discover a Lost Civilization</em>
 </p>
@@ -82,7 +82,7 @@ Hidden lore signals, secret missions, blueprints, and cryptic Codex entries rewa
 Manage fuel, heat, shields, and hull integrity through 14 unique platform types — Flux, Graviton, Chrono-Rift, and more. 26+ threat types including environmental hazards, enemy drones, mini-bosses, and screen-filling bosses. Power-ups and rare artifacts with set bonuses give you the edge.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/06-adapt-or-be-destroyed.jpg" alt="Adapt or Be Destroyed" width="800">
+  <img src="media/screenshots/06-adapt-or-be-destroyed.jpg" alt="Adapt or Be Destroyed" width="800">
   <br>
   <em>Adapt or Be Destroyed</em>
 </p>
@@ -92,7 +92,7 @@ Manage fuel, heat, shields, and hull integrity through 14 unique platform types 
 A 12-track mission system with tiers that evolve from Rookie to God. Beyond 100,000 meters, defeat **The Singularity** to unlock the Ascension Ceremony, prestige mode (permanent +10% hull/shield per reset), Omega Modules, and Eternal Mode — capped infinite scaling for endless ascent.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/07-every-expedition-makes-you-stronger.jpg" alt="Every Expedition Makes You Stronger" width="800">
+  <img src="media/screenshots/07-every-expedition-makes-you-stronger.jpg" alt="Every Expedition Makes You Stronger" width="800">
   <br>
   <em>Every Expedition Makes You Stronger</em>
 </p>
@@ -187,7 +187,7 @@ Open in Android Studio, sync Gradle, and run on a device or emulator (API 34+).
 
 <p align="center">
   <a href="https://github.com/atulkpal/jump-droid">
-    <img src="https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/logos/extra-01-logo.jpg" alt="Jump Droid" width="64">
+    <img src="media/logos/extra-01-logo.jpg" alt="Jump Droid" width="64">
   </a>
   <br><br>
   <b>Built with ❤️ using Kotlin & Jetpack Compose</b>
