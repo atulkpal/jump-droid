@@ -14,11 +14,16 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://jump-droid.vercel.app"),
   title: "Jump Droid — The Signal From the Void",
   description:
     "Jump Droid is a tactical vertical expedition mobile game. Explore the ascent, master rocket builds, and uncover hidden discoveries.",
   icons: {
     icon: "/icon.png",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Jump Droid",
   },
 };
 
