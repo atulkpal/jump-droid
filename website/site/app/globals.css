@@ -48,6 +48,22 @@ body {
   box-sizing: border-box;
 }
 
+/* Focus-visible ring for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
+  border-radius: 9999px;
+}
+
 button,
 input,
 textarea,
