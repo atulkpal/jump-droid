@@ -11,31 +11,33 @@ const links = [
 
 export default function LaunchSection() {
   return (
-    <section id="launch" className="relative min-h-dvh flex flex-col items-center justify-center px-6">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,229,255,0.06),transparent_60%)]" />
-
-      <div className="relative flex flex-col items-center gap-8 text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.35em] text-cyan-300">
+    <section id="launch" className="px-6 py-24 md:py-32">
+      <div className="mx-auto max-w-md text-center">
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.35em] text-slate-500">
           Launch
         </p>
-        <h2 className="text-4xl font-black tracking-tight text-white md:text-5xl">
+        <h2 className="mb-4 text-4xl font-black tracking-tight text-white md:text-5xl">
           Ready to Ascend?
         </h2>
-        <p className="text-base text-slate-400">Free. No account. 150MB.</p>
+        <p className="mb-8 text-base text-slate-500">
+          Free. No account. 150MB.
+        </p>
 
         <a
           href={PLAY_STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-14 items-center justify-center rounded-full bg-cyan-400 px-10 text-sm font-black uppercase tracking-[0.2em] text-slate-950 transition hover:bg-cyan-300 hover:shadow-[0_0_40px_rgba(0,229,255,0.4)] md:h-16 md:px-12 md:text-base"
+          className="inline-flex h-14 items-center justify-center rounded-full bg-cyan-400 px-10 text-sm font-black uppercase tracking-[0.2em] text-slate-950 transition hover:bg-cyan-300 md:h-16 md:px-12 md:text-base"
         >
           Get It on Google Play
         </a>
 
-        <p className="text-sm text-slate-500">v1.5.1 &middot; Android 8.0+</p>
+        <p className="mt-4 text-sm text-slate-600">
+          v1.5.1 &middot; Android 8.0+
+        </p>
 
-        <nav className="pt-4" aria-label="Footer navigation">
-          <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
+        <nav className="mt-12" aria-label="Footer">
+          <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">
             {links.map((link) => (
               <li key={link.href}>
                 {link.href.startsWith("/") ? (
@@ -43,12 +45,7 @@ export default function LaunchSection() {
                     {link.label}
                   </Link>
                 ) : (
-                  <a
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="transition hover:text-cyan-300"
-                  >
+                  <a href={link.href} target="_blank" rel="noopener noreferrer" className="transition hover:text-cyan-300">
                     {link.label}
                   </a>
                 )}
@@ -57,7 +54,7 @@ export default function LaunchSection() {
           </ul>
         </nav>
 
-        <p className="text-xs text-slate-600">
+        <p className="mt-8 text-xs text-slate-700">
           &copy; {new Date().getFullYear()} Ashwathai
         </p>
       </div>

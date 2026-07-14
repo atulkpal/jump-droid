@@ -13,37 +13,37 @@ export const SOCIAL_LINKS = {
 
 export const SCREENSHOTS = [
   {
-    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/01-begin-the-ascension.jpg",
+    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/master/media/screenshots/01-begin-the-ascension.jpg",
     alt: "Begin the Ascension — title screen with scanning drone",
     caption: "Begin the Ascension",
   },
   {
-    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/02-master-precision-flight.jpg",
+    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/master/media/screenshots/02-master-precision-flight.jpg",
     alt: "Master Precision Flight — gameplay in Earth zone",
     caption: "Master Precision Flight",
   },
   {
-    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/03-face-colossal-bosses.jpg",
+    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/master/media/screenshots/03-face-colossal-bosses.jpg",
     alt: "Face Colossal Bosses — Cloud Commander encounter",
     caption: "Face Colossal Bosses",
   },
   {
-    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/04-build-your-perfect-fleet.jpg",
+    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/master/media/screenshots/04-build-your-perfect-fleet.jpg",
     alt: "Build Your Perfect Fleet — hangar customization",
     caption: "Build Your Perfect Fleet",
   },
   {
-    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/05-discover-a-lost-civilization.jpg",
+    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/master/media/screenshots/05-discover-a-lost-civilization.jpg",
     alt: "Discover a Lost Civilization — lore and discovery",
     caption: "Discover a Lost Civilization",
   },
   {
-    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/06-adapt-or-be-destroyed.jpg",
+    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/master/media/screenshots/06-adapt-or-be-destroyed.jpg",
     alt: "Adapt or Be Destroyed — HUD with all gauges",
     caption: "Adapt or Be Destroyed",
   },
   {
-    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/feature/github-media-kit/media/screenshots/07-every-expedition-makes-you-stronger.jpg",
+    src: "https://raw.githubusercontent.com/atulkpal/jump-droid/master/media/screenshots/07-every-expedition-makes-you-stronger.jpg",
     alt: "Every Expedition Makes You Stronger — endgame Ascension",
     caption: "Every Expedition Makes You Stronger",
   },

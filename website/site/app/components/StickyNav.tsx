@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { PLAY_STORE_URL } from "@/lib/constants";
 
 export default function StickyNav() {
   const [crt, setCrt] = useState(false);
@@ -21,13 +22,13 @@ export default function StickyNav() {
 
   return (
     <nav
-      className="fixed left-1/2 top-4 z-50 w-[min(90vw,960px)] -translate-x-1/2 rounded-full border border-white/10 bg-black/70 px-4 py-2.5 shadow-[0_0_60px_rgba(0,229,255,0.1)] backdrop-blur-xl md:top-6 md:px-5 md:py-3"
+      className="fixed left-1/2 top-4 z-50 w-[min(90vw,960px)] -translate-x-1/2 rounded-full border border-white/10 bg-black/70 px-4 py-2.5 shadow-lg backdrop-blur-xl md:top-6 md:px-5 md:py-3"
       aria-label="Main navigation"
     >
       <div className="flex items-center justify-between">
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="flex md:hidden rounded-full p-3 text-cyan-200 hover:bg-cyan-500/10 transition min-h-[44px] min-w-[44px] items-center justify-center"
+          className="flex md:hidden rounded-full p-3 text-slate-400 hover:bg-white/5 transition min-h-[44px] min-w-[44px] items-center justify-center"
           aria-label={menuOpen ? "Close menu" : "Open menu"}
           aria-expanded={menuOpen}
         >
@@ -40,52 +41,43 @@ export default function StickyNav() {
           </svg>
         </button>
 
-        <p className="hidden md:block text-xs font-bold uppercase tracking-[0.25em] text-cyan-300">
+        <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">
           Jump Droid
         </p>
 
-        <div className="hidden md:flex items-center gap-1 text-[11px] uppercase tracking-[0.25em] text-cyan-200/90">
-          {["Platforms", "Threats", "Fleet", "Archive"].map((label) => (
-            <a
-              key={label}
-              href={`#${label.toLowerCase() === "fleet" ? "rockets" : label.toLowerCase()}`}
-              className="rounded-full px-3 py-1.5 transition hover:bg-cyan-500/10 hover:text-cyan-100"
-            >
-              {label}
-            </a>
-          ))}
-        </div>
-
         <div className="flex items-center gap-2">
+          <a
+            href={PLAY_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden md:inline-flex h-9 items-center rounded-full bg-cyan-400 px-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-950 transition hover:bg-cyan-300"
+          >
+            Download
+          </a>
           <button
             onClick={toggleCrt}
-            className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-widest transition cursor-pointer border min-h-[44px] ${
+            className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition cursor-pointer border min-h-[36px] ${
               crt
-                ? "bg-cyan-400 border-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,229,255,0.3)]"
-                : "border-cyan-300/30 text-cyan-300 hover:border-cyan-300/80"
+                ? "bg-cyan-400 border-cyan-400 text-slate-950"
+                : "border-white/10 text-slate-500 hover:border-white/30"
             }`}
             aria-label={`CRT effect: ${crt ? "on" : "off"}`}
           >
-            CRT: {crt ? "ON" : "OFF"}
+            CRT
           </button>
         </div>
       </div>
 
       {menuOpen && (
         <div className="mt-3 md:hidden rounded-2xl border border-white/10 bg-black/90 p-3">
-          <ul className="flex flex-col gap-1 text-sm uppercase tracking-[0.25em] text-cyan-200/90">
-            {["Platforms", "Threats", "Fleet", "Archive"].map((label) => (
-              <li key={label}>
-                <a
-                  href={`#${label.toLowerCase() === "fleet" ? "rockets" : label.toLowerCase()}`}
-                  onClick={() => setMenuOpen(false)}
-                  className="block rounded-full px-4 py-3 transition hover:bg-cyan-500/10 hover:text-cyan-100"
-                >
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
+          <a
+            href={PLAY_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full text-center rounded-full bg-cyan-400 py-3 text-sm font-black uppercase tracking-[0.2em] text-slate-950 transition hover:bg-cyan-300"
+          >
+            Download on Google Play
+          </a>
         </div>
       )}
     </nav>
