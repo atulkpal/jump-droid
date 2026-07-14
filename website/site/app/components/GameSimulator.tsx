@@ -850,14 +850,15 @@ export default function GameSimulator() {
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className="block bg-black rounded-2xl w-full h-[520px] cursor-crosshair touch-none"
+                className="block bg-black rounded-2xl w-full min-h-[300px] sm:h-[520px] cursor-crosshair touch-none"
+                aria-label="Game simulator canvas. Press Space or hold mouse to thrust, move left or right to steer."
               />
             </div>
           </div>
 
           {/* Telemetry dashboard (5 Columns) */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="rounded-3xl border border-cyan-300/10 bg-slate-950/40 p-6 backdrop-blur-md space-y-6">
+            <div className="rounded-3xl border border-cyan-300/10 bg-slate-950/40 p-6 backdrop-blur-md space-y-6" aria-live="polite" aria-label="Simulator telemetry">
               <h3 className="text-xs uppercase tracking-[0.25em] text-cyan-300 font-black border-b border-white/5 pb-3">
                 Telemetry Output
               </h3>

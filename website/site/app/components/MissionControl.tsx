@@ -30,15 +30,17 @@ export default function MissionControl() {
             <p className="mt-4 text-sm leading-7 text-slate-300">
               Receive top-secret updates, event notifications, and launch news directly in your inbox.
             </p>
-            <form className="mt-8 space-y-4">
-              <label className="block text-sm text-slate-300">
+            <form className="mt-8 space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <label htmlFor="newsletter-email" className="block text-sm text-slate-300">
                 Email address
-                <input
-                  type="email"
-                  placeholder="you@signal.network"
-                  className="mt-3 w-full rounded-3xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/15"
-                />
               </label>
+              <input
+                id="newsletter-email"
+                type="email"
+                placeholder="you@signal.network"
+                autoComplete="email"
+                className="mt-3 w-full rounded-3xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/15"
+              />
               <button
                 type="submit"
                 className="w-full rounded-full bg-cyan-400 px-5 py-3 text-sm font-semibold uppercase tracking-[0.2em] text-slate-950 transition hover:bg-cyan-300"
