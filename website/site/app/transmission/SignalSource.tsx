@@ -38,6 +38,7 @@ export default function SignalSource({ progress }: { progress: number }) {
             target="_blank"
             rel="noopener noreferrer"
             className="font-mono text-xs text-cyan-400/70 hover:text-cyan-300 transition-colors underline underline-offset-2"
+            onClick={() => { navigator.clipboard?.writeText("ashwathai.dev@gmail.com"); }}
           >
             Contact transmitter
           </a>

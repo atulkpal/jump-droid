@@ -18,11 +18,11 @@ const baseUrl = "https://jump-droid.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: "Jump Droid — An Incoming Transmission",
+    default: "Jump Droid — The Signal",
     template: "%s — Jump Droid",
   },
   description:
-    "An intercepted signal from the upper atmosphere. Decode fragments of a mysterious expedition. Jump Droid is a free, open-source Android arcade game built by Ashwath AI.",
+    "A mysterious transmission from the upper atmosphere. Jump Droid is a free, open-source Android arcade game built by Ashwath AI.",
   keywords: [
     "Jump Droid",
     "free Android game",
@@ -38,33 +38,37 @@ export const metadata: Metadata = {
   authors: [{ name: "Ashwath AI" }],
   creator: "Ashwath AI",
   publisher: "Ashwath AI",
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: [
+      { url: "/icon.png", sizes: "256x256", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
     siteName: "Jump Droid",
     url: baseUrl,
-    title: "Jump Droid — An Incoming Transmission",
+    title: "Jump Droid — The Signal",
     description:
-      "An intercepted signal from the upper atmosphere. Decode fragments of a mysterious expedition.",
+      "A mysterious transmission from the upper atmosphere. A free, open-source Android arcade game.",
     images: [
       {
-        url: "/icon.png",
-        width: 256,
-        height: 256,
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
         alt: "Jump Droid",
       },
     ],
   },
   twitter: {
-    card: "summary",
-    title: "Jump Droid — An Incoming Transmission",
+    card: "summary_large_image",
+    title: "Jump Droid — The Signal",
     description:
-      "An intercepted signal from the upper atmosphere. Decode fragments of a mysterious expedition.",
-    images: ["/icon.png"],
+      "A mysterious transmission from the upper atmosphere. A free, open-source Android arcade game.",
+    images: ["/twitter-image.png"],
   },
   robots: {
     index: true,
@@ -96,7 +100,7 @@ export default function RootLayout({
               applicationCategory: "GameApplication",
               operatingSystem: "Android",
               description:
-                "An intercepted signal from the upper atmosphere. Decode fragments of a mysterious expedition.",
+                "A mysterious transmission from the upper atmosphere. A free, open-source Android arcade game.",
               url: baseUrl,
               author: {
                 "@type": "Organization",

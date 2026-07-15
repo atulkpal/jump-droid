@@ -1,22 +1,49 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { INTRO_LINES } from "@/app/data/transmission-packets";
 import RocketSVG from "@/app/components/game/RocketSVG";
-
-function useTypedText(text: string, progress: number): string {
-  const totalChars = text.length;
-  const visibleChars = Math.max(0, Math.min(totalChars, Math.floor(totalChars * Math.min(progress, 1))));
-  return text.slice(0, visibleChars);
-}
+import PlatformSVG from "@/app/components/game/PlatformSVG";
 
 export default function SignalPulse({ progress }: { progress: number }) {
-  const typed1 = useTypedText(INTRO_LINES[0], Math.max(0, (progress - 0) / 0.5));
-  const typed2 = useTypedText(INTRO_LINES[1], Math.max(0, (progress - 0.5) / 0.5));
+  const [typedProgress, setTypedProgress] = useState(0);
+  const isActive = progress > 0.05;
+  const wasActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (!isActive) {
+      wasActiveRef.current = false;
+      return;
+    }
+    if (wasActiveRef.current) return;
+    wasActiveRef.current = true;
+
+    const chars = INTRO_LINES[0].length + INTRO_LINES[1].length;
+    const duration = Math.max(3000, chars * 28);
+    const start = Date.now();
+
+    const onFrame = () => {
+      const elapsed = Date.now() - start;
+      const t = Math.min(elapsed / duration, 1);
+      setTypedProgress(t);
+      if (t >= 1) return;
+      raf = requestAnimationFrame(onFrame);
+    };
+    let raf = requestAnimationFrame(onFrame);
+
+    return () => cancelAnimationFrame(raf);
+  }, [isActive]);
+
+  const fullText = INTRO_LINES[0] + INTRO_LINES[1];
+  const totalChars = fullText.length;
+  const visibleChars = Math.floor(typedProgress * totalChars);
+  const visiblePart = fullText.slice(0, visibleChars);
+  const typed1 = visiblePart.slice(0, INTRO_LINES[0].length);
+  const typed2 = visiblePart.slice(INTRO_LINES[0].length);
 
   const pulseScale = 0.8 + progress * 0.4;
   const pulseOpacity = 0.3 + progress * 0.7;
-  const teaserOpacity = 0.03 + progress * 0.04;
+  const teaserOpacity = 0.06 + progress * 0.08;
 
   const dots = useMemo(() =>
     Array.from({ length: 60 }, (_, i) => ({
@@ -28,18 +55,33 @@ export default function SignalPulse({ progress }: { progress: number }) {
   return (
     <section className="relative flex w-full flex-col items-center justify-center px-6">
 
-      {/* Teaser rocket silhouette */}
+      {/* Teaser rocket silhouette — left */}
       <div
-        className="absolute left-4 sm:left-8 bottom-20 sm:bottom-28 pointer-events-none animate-float"
+        className="absolute left-4 sm:left-8 bottom-20 sm:bottom-28 pointer-events-none"
         style={{
           opacity: teaserOpacity,
-          animationDuration: "10s",
+          animation: "entity-float 10s ease-in-out infinite",
           width: "120px",
           height: "auto",
         }}
       >
         <RocketSVG />
       </div>
+
+      {/* Teaser platform silhouette — right */}
+      <div
+        className="absolute right-4 sm:right-8 bottom-24 sm:bottom-32 pointer-events-none"
+        style={{
+          opacity: teaserOpacity * 0.8,
+          animation: "entity-float 13s ease-in-out infinite",
+          animationDelay: "2s",
+          width: "140px",
+          height: "auto",
+        }}
+      >
+        <PlatformSVG type="NORMAL" width={140} height={24} />
+      </div>
+
       <div className="flex flex-col items-center gap-8">
         {/* Orbiting dots */}
         <div
@@ -78,7 +120,7 @@ export default function SignalPulse({ progress }: { progress: number }) {
           </p>
           <p>
             {typed2}
-            {typed2.length < INTRO_LINES[1].length && progress > 0.4 && (
+            {typed2.length < INTRO_LINES[1].length && typed1.length >= INTRO_LINES[0].length && (
               <span className="inline-block w-[2px] h-[1em] bg-cyan-300 ml-[2px] animate-cursor-blink" />
             )}
           </p>
