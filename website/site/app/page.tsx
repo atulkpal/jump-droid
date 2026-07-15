@@ -66,14 +66,14 @@ export default function Home() {
         </div>
 
         {/* 1: Coordinates Decoded */}
-        <div ref={setRef(1)} className="min-h-screen flex items-center px-6 py-24">
-          <div className="mx-auto max-w-lg w-full">
+        <div ref={setRef(1)} className="flex items-center px-6 py-20 sm:py-24">
+          <div className="mx-auto w-full max-w-lg lg:max-w-2xl">
             {COORDINATE_LINES.map((line, i) => {
               const lineProgress = Math.max(0, Math.min(1, (p(1) - i * 0.12) / 0.3));
               return (
                 <p
                   key={i}
-                  className="font-mono text-xs tracking-[0.15em] text-slate-400 leading-8"
+                  className="font-mono text-xs sm:text-sm tracking-[0.15em] text-slate-400 leading-8 sm:leading-10"
                   style={{
                     opacity: lineProgress,
                     transform: `translateY(${(1 - lineProgress) * 12}px)`,
@@ -89,18 +89,18 @@ export default function Home() {
 
         {/* 2-7: Data Packets */}
         {PACKETS.map((packet, i) => (
-          <div key={packet.id} ref={setRef(i + 2)} className="min-h-screen flex items-center">
+          <div key={packet.id} ref={setRef(i + 2)}>
             <DataPacket packet={packet} progress={p(i + 2)} />
           </div>
         ))}
 
         {/* 8: Signal Archive */}
-        <div ref={setRef(8)} className="min-h-screen flex items-center">
+        <div ref={setRef(8)}>
           <SignalArchive progress={p(8)} />
         </div>
 
         {/* 9: Signal Source */}
-        <div ref={setRef(9)} className="min-h-screen flex items-center">
+        <div ref={setRef(9)}>
           <SignalSource progress={p(9)} />
         </div>
 

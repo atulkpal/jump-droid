@@ -105,12 +105,12 @@ export default function DataPacket({
 
   return (
     <motion.section
-      className="relative px-6 py-24 sm:py-32"
+      className="relative px-6 py-16 sm:py-20"
       initial={{ opacity: 0 }}
       animate={{ opacity: isActive ? 1 : 0.3 }}
       transition={{ duration: 0.5 }}
     >
-      <div className={`mx-auto max-w-lg border-t ${headerBorder} pt-8`}>
+      <div className={`mx-auto max-w-lg lg:max-w-2xl border-t ${headerBorder} pt-6`}>
         {/* Packet header */}
         <div
           className="flex items-center gap-3 mb-6"
@@ -127,7 +127,7 @@ export default function DataPacket({
         </div>
 
         <h2
-          className={`font-mono text-sm font-bold tracking-[0.15em] uppercase mb-6 ${
+          className={`font-mono text-sm sm:text-base font-bold tracking-[0.15em] uppercase mb-4 sm:mb-5 ${
             packet.accent === "gold"
               ? "text-amber-200"
               : packet.accent === "red"
@@ -147,7 +147,7 @@ export default function DataPacket({
         {packet.visualType && <PacketVisual type={packet.visualType} progress={progress} />}
 
         {/* Body text (typing effect) */}
-        <div className="font-mono text-xs leading-relaxed text-slate-300 space-y-4">
+        <div className="font-mono text-xs sm:text-sm leading-relaxed sm:leading-relaxed text-slate-300 space-y-3 sm:space-y-4">
           {typedLines.map((line, i) => (
             <p key={i}>{formatBodyLine(line)}</p>
           ))}

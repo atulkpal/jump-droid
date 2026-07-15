@@ -6,87 +6,82 @@ import { PLAY_STORE_URL, BETA_TESTING_URL, SOCIAL_LINKS } from "@/lib/constants"
 export default function SignalArchive({ progress }: { progress: number }) {
   const reveal = Math.max(0, Math.min(1, (progress - 0.1) / 0.9));
 
-  const links = [
-    {
-      href: PLAY_STORE_URL,
-      label: "Google Play",
-      sub: "Primary receiver node",
-    },
-    {
-      href: SOCIAL_LINKS.github,
-      label: "GitHub",
-      sub: "Signal architecture & logs",
-    },
-    {
-      href: SOCIAL_LINKS.itchIo,
-      label: "itch.io",
-      sub: "Alternate distribution channel",
-    },
-    {
-      href: BETA_TESTING_URL,
-      label: "Beta Access",
-      sub: "Early deployment channel",
-    },
-  ];
-
   return (
     <motion.section
-      className="relative px-6 py-24 sm:py-32"
+      className="relative px-6 py-20 sm:py-28"
       initial={{ opacity: 0 }}
       animate={{ opacity: progress > 0 ? 1 : 0 }}
       transition={{ duration: 0.5 }}
     >
       <div
-        className="mx-auto max-w-lg"
+        className="mx-auto max-w-lg lg:max-w-2xl"
         style={{
           opacity: reveal,
           transform: `translateY(${(1 - reveal) * 24}px)`,
           transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
         }}
       >
-        <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/60 uppercase mb-4">
+        <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/60 uppercase mb-3">
           Transmission Complete
         </p>
-        <h2 className="font-mono text-base font-bold tracking-[0.1em] text-white uppercase mb-3">
-          Signal Archive
+        <h2 className="font-mono text-lg sm:text-xl font-bold tracking-[0.05em] text-white uppercase mb-3 leading-snug">
+          Continue the Expedition
         </h2>
-        <p className="font-mono text-xs leading-relaxed text-slate-400 mb-8 max-w-md">
-          The full transmission — source code, assets, and schematics — is available
-          for download. Access the signal through any receiver node below.
+        <p className="font-mono text-xs sm:text-sm leading-relaxed text-slate-400 mb-8 max-w-lg">
+          The signal fragments tell only part of the story. Download the full
+          transmission to your device and experience the complete expedition.
+          Free. Open source. No account required.
         </p>
 
-        <div className="flex flex-col gap-3">
-          {links.map((link, i) => (
+        {/* Primary CTA */}
+        <a
+          href={PLAY_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group block w-full rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-6 py-5 text-center transition-all hover:bg-cyan-400/20 hover:border-cyan-400/50 hover:shadow-[0_0_24px_rgba(0,229,255,0.15)]"
+          style={{
+            opacity: reveal,
+            transition: `opacity 0.5s ease-out 0.1s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s`,
+          }}
+        >
+          <span className="font-mono text-sm sm:text-base font-bold tracking-[0.15em] text-cyan-200 group-hover:text-white transition-colors uppercase">
+            Install from Google Play
+          </span>
+          <span className="block font-mono text-[10px] text-cyan-400/50 group-hover:text-cyan-400/70 mt-1 transition-colors">
+            Free &middot; 8 MB &middot; Android 8+
+          </span>
+        </a>
+
+        {/* Secondary links */}
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {[
+            { href: SOCIAL_LINKS.github, label: "GitHub", sub: "Source code" },
+            { href: SOCIAL_LINKS.itchIo, label: "itch.io", sub: "Alternative" },
+            { href: BETA_TESTING_URL, label: "Beta", sub: "Early access" },
+          ].map((link, i) => (
             <a
               key={link.label}
               href={link.href}
-              target={link.href.startsWith("http") ? "_blank" : undefined}
-              rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
-              className="group flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-5 py-4 transition-all hover:border-cyan-400/20 hover:bg-cyan-400/5"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 text-center transition-all hover:border-cyan-400/15 hover:bg-cyan-400/[0.04]"
               style={{
                 opacity: reveal,
-                transform: `translateY(${(1 - reveal) * 16 * (i + 1)}px)`,
-                transition: `opacity 0.5s ease-out ${i * 0.08}s, transform 0.5s ease-out ${i * 0.08}s, border-color 0.2s, background-color 0.2s`,
+                transition: `opacity 0.5s ease-out ${0.2 + i * 0.08}s, border-color 0.2s, background-color 0.2s`,
               }}
             >
-              <div className="flex flex-col">
-                <span className="font-mono text-sm font-semibold text-white group-hover:text-cyan-200 transition-colors">
-                  {link.label}
-                </span>
-                <span className="font-mono text-[10px] text-slate-600 group-hover:text-slate-500 transition-colors">
-                  {link.sub}
-                </span>
-              </div>
-              <span className="font-mono text-xs text-slate-600 group-hover:text-cyan-400 transition-colors">
-                →
+              <span className="font-mono text-xs font-semibold text-white/80 group-hover:text-cyan-200 transition-colors block">
+                {link.label}
+              </span>
+              <span className="font-mono text-[9px] text-slate-600 block mt-0.5">
+                {link.sub}
               </span>
             </a>
           ))}
         </div>
 
-        <p className="font-mono text-[10px] text-slate-700 mt-6 leading-relaxed">
-          All transmissions are free. No account or registration required.
-          Signal operates under the MIT open protocol.
+        <p className="font-mono text-[10px] text-slate-700 mt-6 text-center leading-relaxed">
+          Open source (MIT). No data collection. No account needed.
         </p>
       </div>
     </motion.section>

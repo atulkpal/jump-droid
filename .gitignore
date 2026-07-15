@@ -14,5 +14,9 @@
 .cxx
 local.properties
 website/
+*.keystore
+keystore.properties
+app/release/
+Jump_Droid_GitHub_Media_Kit/
 BACKUP_*.kt
 BACKUP_afr_git_issue_gameScreen.kt
