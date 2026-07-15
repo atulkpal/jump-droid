@@ -18,14 +18,16 @@ const baseUrl = "https://jump-droid.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: "Jump Droid — The Signal From the Void",
+    default: "Jump Droid — The Signal",
     template: "%s — Jump Droid",
   },
   description:
-    "Jump Droid is a tactical vertical expedition mobile game. Pilot a droid-powered rocket through 8 hostile atmospheric zones. Face colossal bosses, build your fleet, and uncover the mystery of The Signal.",
+    "A mysterious transmission from the upper atmosphere. Jump Droid is a free, open-source Android arcade game built by Ashwath AI.",
   keywords: [
     "Jump Droid",
-    "vertical explorer game",
+    "free Android game",
+    "open source game",
+    "arcade game",
     "Android game",
     "rocket game",
     "mobile game",
@@ -36,33 +38,37 @@ export const metadata: Metadata = {
   authors: [{ name: "Ashwath AI" }],
   creator: "Ashwath AI",
   publisher: "Ashwath AI",
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: [
+      { url: "/icon.png", sizes: "256x256", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
     siteName: "Jump Droid",
     url: baseUrl,
-    title: "Jump Droid — The Signal From the Void",
+    title: "Jump Droid — The Signal",
     description:
-      "A tactical vertical expedition mobile game. Pilot, survive, and discover.",
+      "A mysterious transmission from the upper atmosphere. A free, open-source Android arcade game.",
     images: [
       {
-        url: "/icon.png",
-        width: 256,
-        height: 256,
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
         alt: "Jump Droid",
       },
     ],
   },
   twitter: {
-    card: "summary",
-    title: "Jump Droid — The Signal From the Void",
+    card: "summary_large_image",
+    title: "Jump Droid — The Signal",
     description:
-      "A tactical vertical expedition mobile game. Pilot, survive, and discover.",
-    images: ["/icon.png"],
+      "A mysterious transmission from the upper atmosphere. A free, open-source Android arcade game.",
+    images: ["/twitter-image.png"],
   },
   robots: {
     index: true,
@@ -94,7 +100,7 @@ export default function RootLayout({
               applicationCategory: "GameApplication",
               operatingSystem: "Android",
               description:
-                "A tactical vertical expedition mobile game. Pilot a droid-powered rocket through 8 hostile atmospheric zones.",
+                "A mysterious transmission from the upper atmosphere. A free, open-source Android arcade game.",
               url: baseUrl,
               author: {
                 "@type": "Organization",

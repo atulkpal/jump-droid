@@ -18,7 +18,7 @@
   --brand-muted: #94a3b8;
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
-  
+
   /* Game colors */
   --sci-cyan: #00E5FF;
   --sci-gold: #FFD700;
@@ -76,6 +76,30 @@ select {
 }
 
 /* =============================================
+   Typewriter & Reveal Animations
+   ============================================= */
+
+@keyframes typewriter {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink-caret {
+  50% { border-color: transparent; }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =============================================
    SVG Game Entity Animations
    ============================================= */
 
@@ -107,11 +131,6 @@ select {
   50% { transform: rotate(2deg); }
 }
 
-@keyframes scan-line {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(20px); }
-}
-
 @keyframes shield-rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -126,11 +145,6 @@ select {
   0%, 40% { opacity: 1; }
   50%, 90% { opacity: 0.1; }
   100% { opacity: 1; }
-}
-
-@keyframes ring-expand {
-  0% { transform: scale(0.5); opacity: 0.6; }
-  100% { transform: scale(2.5); opacity: 0; }
 }
 
 @keyframes twinkle {
@@ -171,46 +185,13 @@ select {
 .animate-boost { animation: boost-glow 1s ease-in-out infinite; }
 .animate-drift { animation: drift 6s ease-in-out infinite; }
 .animate-phase { animation: phase-cycle 4s ease-in-out infinite; }
-.animate-float { animation: float-up 3s ease-in-out infinite; }
+.animate-entity-float { animation: float-up 3s ease-in-out infinite; }
 
-/* CRT Scanline Retro Mode */
-.crt-active {
-  position: relative;
-  overflow-x: hidden;
+/* Hide scrollbar for horizontal scroll containers */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-
-.crt-active body::after {
-  content: " ";
-  display: block;
-  position: fixed;
-  top: 0; left: 0; bottom: 0; right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  z-index: 99999;
-  background-size: 100% 4px, 6px 100%;
-  pointer-events: none;
-  animation: crt-flicker 0.15s infinite;
-}
-
-.crt-active body::before {
-  content: " ";
-  display: block;
-  position: fixed;
-  top: 0; left: 0; bottom: 0; right: 0;
-  background: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.35) 100%);
-  z-index: 99998;
-  pointer-events: none;
-}
-
-@keyframes crt-flicker {
-  0% { opacity: 0.96; }
-  50% { opacity: 1.0; }
-  100% { opacity: 0.97; }
-}
-
-.crt-text-glow {
-  text-shadow: 0 0 4px rgba(0, 229, 255, 0.5), 0 0 10px rgba(0, 229, 255, 0.3);
-}
-
-.crt-red-glow {
-  text-shadow: 0 0 4px rgba(255, 23, 68, 0.6), 0 0 10px rgba(255, 23, 68, 0.4);
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
