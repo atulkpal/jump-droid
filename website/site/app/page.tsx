@@ -1,199 +1,119 @@
 "use client";
 
-import Link from "next/link";
-import { useState, useEffect, useMemo } from "react";
-import ZoneBackgrounds from "./components/zone-backgrounds/ZoneBackgrounds";
-import FlyingRocket from "./components/FlyingRocket";
-import AltitudeHUD from "./components/AltitudeHUD";
-import EncounterSystem, { ENCOUNTERS, BOSS_ENCOUNTERS } from "./components/EncounterSystem";
-import BossEncounter from "./components/BossEncounter";
-import dynamic from "next/dynamic";
-import StickyNav from "./components/StickyNav";
-import HeroSection from "./components/HeroSection";
-import GameplayExplained from "./components/GameplayExplained";
-import PlatformShowcase from "./components/PlatformShowcase";
-import BossShowcase from "./components/BossShowcase";
-import RocketShowcase from "./components/RocketShowcase";
-import DiscoveryArchive from "./components/DiscoveryArchive";
-import ProgressionSystems from "./components/ProgressionSystems";
-import MissionControl from "./components/MissionControl";
-import Footer from "./components/Footer";
+import { useState, useEffect, useRef, useCallback } from "react";
+import ParticleCanvas from "@/app/transmission/ParticleCanvas";
+import SignalStrength from "@/app/transmission/SignalStrength";
+import SignalPulse from "@/app/transmission/SignalPulse";
+import DataPacket from "@/app/transmission/DataPacket";
+import SignalArchive from "@/app/transmission/SignalArchive";
+import SignalSource from "@/app/transmission/SignalSource";
+import SignalTerminated from "@/app/transmission/SignalTerminated";
+import { PACKETS, COORDINATE_LINES } from "@/app/data/transmission-packets";
 
-const FeaturesSection = dynamic(() => import("./components/FeaturesSection"), {
-  loading: () => null,
-});
-
-const ScreenshotsGallery = dynamic(() => import("./components/ScreenshotsGallery"), {
-  loading: () => null,
-});
-
-const GameSimulator = dynamic(() => import("./components/GameSimulator"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex min-h-[300px] items-center justify-center">
-      <p className="text-xs uppercase tracking-widest text-cyan-400 animate-pulse">
-        Loading simulation bay...
-      </p>
-    </div>
-  ),
-});
-
-const DownloadSection = dynamic(() => import("./components/DownloadSection"), {
-  loading: () => null,
-});
-
-const ZONES = [
-  { name: "Earth", threshold: 0 },
-  { name: "Cloud Layer", threshold: 500 },
-  { name: "Upper Atmosphere", threshold: 1500 },
-  { name: "Orbit", threshold: 4000 },
-  { name: "The Foundry", threshold: 5000 },
-  { name: "Deep Space", threshold: 8000 },
-  { name: "Chrono-Rift", threshold: 13000 },
-  { name: "The Void", threshold: 15000 },
-];
-
-const TOTAL_ALT = 22000;
-
-type BossPhase = "ENTER" | "FIGHT" | "EXIT";
-
-function getCurrentEncounter(progress: number) {
-  const all = [...BOSS_ENCOUNTERS, ...ENCOUNTERS];
-  const active = all.find((e) => {
-    const [enter, , exit] = e.progress;
-    return progress >= enter && progress <= exit;
-  });
-  return active || null;
-}
-
-function getBossPhase(progress: number, encounter: any | null): { phase: BossPhase; phaseProgress: number } | null {
-  if (!encounter || encounter.type !== "boss") return null;
-  const [enter, peak, exit] = encounter.progress;
-  if (progress < enter) return { phase: "ENTER", phaseProgress: 0 };
-  if (progress < peak) {
-    return { phase: "ENTER", phaseProgress: (progress - enter) / (peak - enter) };
-  }
-  if (progress < exit) {
-    return { phase: "FIGHT", phaseProgress: (progress - peak) / (exit - peak) };
-  }
-  return { phase: "EXIT", phaseProgress: 1 };
-}
-
-function calculateRocketX(progress: number): number {
-  const baseX = 30 + progress * 20;
-  const sway = Math.sin(progress * 18) * 3 + Math.sin(progress * 7) * 1.5;
-  return baseX + sway;
+function computeSectionProgress(el: HTMLElement, windowHeight: number): number {
+  const rect = el.getBoundingClientRect();
+  const total = rect.height + windowHeight;
+  const scrolled = windowHeight - rect.top;
+  return Math.max(0, Math.min(1, scrolled / total));
 }
 
 export default function Home() {
-  const [scrollTop, setScrollTop] = useState(0);
-  const [scrollHeight, setScrollHeight] = useState(0);
-  const [clientHeight, setClientHeight] = useState(0);
+  const [signalStrength, setSignalStrength] = useState(0);
+  const [progs, setProgs] = useState<number[]>([]);
+  const refs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const setRef = useCallback((i: number) => (el: HTMLDivElement | null) => {
+    refs.current[i] = el;
+    if (el) {
+      setProgs((prev) => {
+        const next = [...prev];
+        next[i] = computeSectionProgress(el, window.innerHeight);
+        return next;
+      });
+    }
+  }, []);
 
   useEffect(() => {
+    let rafId: number;
+
     const handleScroll = () => {
-      setScrollTop(window.scrollY);
-      setScrollHeight(document.documentElement.scrollHeight || document.body.scrollHeight);
-      setClientHeight(window.innerHeight);
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const sh = document.documentElement.scrollHeight - window.innerHeight;
+        const global = sh > 0 ? window.scrollY / sh : 0;
+        setSignalStrength(global);
+
+        const wh = window.innerHeight;
+        const updated = refs.current.map((el) =>
+          el ? computeSectionProgress(el, wh) : 0
+        );
+        setProgs(updated);
+      });
     };
 
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll);
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
 
-  const maxScroll = Math.max(scrollHeight - clientHeight, 1);
-  const progress = Math.min(scrollTop / maxScroll, 1);
-  const altitude = Math.round(progress * TOTAL_ALT);
-
-  let zone = ZONES[0];
-  for (const z of ZONES) { if (altitude >= z.threshold) zone = z; }
-
-  const activeEncounter = useMemo(() => getCurrentEncounter(progress), [progress]);
-  const bossState = useMemo(() => getBossPhase(progress, activeEncounter), [progress, activeEncounter]);
-  const rocketX = calculateRocketX(progress);
-
-  const isBossActive = activeEncounter?.type === "boss" && bossState?.phase === "FIGHT";
+  const p = (i: number) => progs[i] ?? 0;
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
-      <StickyNav />
+    <>
+      <ParticleCanvas strength={signalStrength} />
+      <SignalStrength percent={signalStrength * 100} />
 
-      {/* FIXED BACKGROUND LAYERS (z-0 to z-15) */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <ZoneBackgrounds altitude={altitude} />
-      </div>
+      <main className="relative z-20" id="main-content">
+        {/* 0: Signal Pulse */}
+        <div ref={setRef(0)} className="min-h-screen flex items-center">
+          <SignalPulse progress={p(0)} />
+        </div>
 
-      <div className="fixed inset-0 z-[5] pointer-events-none">
-        <EncounterSystem progress={progress} rocketX={rocketX} viewWidth={1200} />
-      </div>
-
-      <div className="fixed inset-0 z-[25] pointer-events-none">
-        <FlyingRocket progress={progress} rocketX={rocketX} />
-      </div>
-
-      {/* Boss warning/takeover overlay effect (z-30) */}
-      {isBossActive && (
-        <BossEncounter
-          entity={activeEncounter.entity as any}
-          phase={bossState.phase}
-          progress={bossState.phaseProgress}
-          message={activeEncounter.message}
-        />
-      )}
-
-      {/* HUD (z-30) */}
-      <AltitudeHUD altitude={altitude} zoneName={zone.name} progress={progress} />
-
-      {/* SCROLLABLE FOREGROUND CONTENT (z-20) */}
-      <main id="main-content" className="relative z-20 pointer-events-auto">
-        <HeroSection />
-
-        <FeaturesSection />
-
-        <GameplayExplained />
-
-        <ScreenshotsGallery />
-
-        {/* Platform Showcase Section */}
-        <section id="ascent" className="relative overflow-hidden py-24 sm:py-32">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.08),transparent_20%)]" />
-          <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
-            <div className="mb-12 max-w-2xl space-y-4">
-              <p className="text-sm uppercase tracking-[0.35em] text-cyan-300 font-extrabold bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 inline-block">
-                Atmospheres & Platforms
-              </p>
-              <h2 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl uppercase">
-                Twelve platform types. Adapt or fall.
-              </h2>
-              <p className="max-w-2xl text-slate-300 text-sm leading-relaxed">
-                Platforms behave differently in each zone. From simple solid ground to shifting, icy, breaking, or magnetic fields—timing your thrusters is key.
-              </p>
-            </div>
-            <PlatformShowcase />
+        {/* 1: Coordinates Decoded */}
+        <div ref={setRef(1)} className="min-h-screen flex items-center px-6 py-24">
+          <div className="mx-auto max-w-lg w-full">
+            {COORDINATE_LINES.map((line, i) => {
+              const lineProgress = Math.max(0, Math.min(1, (p(1) - i * 0.12) / 0.3));
+              return (
+                <p
+                  key={i}
+                  className="font-mono text-xs tracking-[0.15em] text-slate-400 leading-8"
+                  style={{
+                    opacity: lineProgress,
+                    transform: `translateY(${(1 - lineProgress) * 12}px)`,
+                    transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
+                  }}
+                >
+                  {">"} {line}
+                </p>
+              );
+            })}
           </div>
-        </section>
+        </div>
 
-        <BossShowcase />
+        {/* 2-7: Data Packets */}
+        {PACKETS.map((packet, i) => (
+          <div key={packet.id} ref={setRef(i + 2)} className="min-h-screen flex items-center">
+            <DataPacket packet={packet} progress={p(i + 2)} />
+          </div>
+        ))}
 
-        <RocketShowcase />
+        {/* 8: Signal Archive */}
+        <div ref={setRef(8)} className="min-h-screen flex items-center">
+          <SignalArchive progress={p(8)} />
+        </div>
 
-        <GameSimulator />
+        {/* 9: Signal Source */}
+        <div ref={setRef(9)} className="min-h-screen flex items-center">
+          <SignalSource progress={p(9)} />
+        </div>
 
-        <DiscoveryArchive />
-
-        <ProgressionSystems />
-
-        <DownloadSection />
-
-        <MissionControl />
-
-        <Footer />
+        {/* 10: Signal Terminated */}
+        <SignalTerminated />
       </main>
-    </div>
+    </>
   );
 }

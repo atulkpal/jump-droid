@@ -18,11 +18,11 @@ const baseUrl = "https://jump-droid.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: "Jump Droid — An Incoming Transmission",
+    default: "Jump Droid — Free Android Arcade Game",
     template: "%s — Jump Droid",
   },
   description:
-    "An intercepted signal from the upper atmosphere. Decode fragments of a mysterious expedition. Jump Droid is a free, open-source Android arcade game built by Ashwath AI.",
+    "Jump Droid is a free, open-source Android arcade game. Pilot a droid-powered rocket through 8 hostile atmospheric zones. Face colossal bosses, build your fleet, and uncover the mystery of The Signal.",
   keywords: [
     "Jump Droid",
     "free Android game",
@@ -34,6 +34,8 @@ export const metadata: Metadata = {
     "indie game",
     "Ashwath AI",
     "vertical ascent",
+    "Kotlin",
+    "Jetpack Compose",
   ],
   authors: [{ name: "Ashwath AI" }],
   creator: "Ashwath AI",
@@ -47,9 +49,9 @@ export const metadata: Metadata = {
     locale: "en_US",
     siteName: "Jump Droid",
     url: baseUrl,
-    title: "Jump Droid — An Incoming Transmission",
+    title: "Jump Droid — Free Android Arcade Game",
     description:
-      "An intercepted signal from the upper atmosphere. Decode fragments of a mysterious expedition.",
+      "Jump Droid is a free, open-source Android arcade game. Pilot, survive, and discover.",
     images: [
       {
         url: "/icon.png",
@@ -61,9 +63,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Jump Droid — An Incoming Transmission",
+    title: "Jump Droid — Free Android Arcade Game",
     description:
-      "An intercepted signal from the upper atmosphere. Decode fragments of a mysterious expedition.",
+      "Jump Droid is a free, open-source Android arcade game. Pilot, survive, and discover.",
     images: ["/icon.png"],
   },
   robots: {
@@ -96,7 +98,7 @@ export default function RootLayout({
               applicationCategory: "GameApplication",
               operatingSystem: "Android",
               description:
-                "An intercepted signal from the upper atmosphere. Decode fragments of a mysterious expedition.",
+                "Jump Droid is a free, open-source Android arcade game. Pilot a droid-powered rocket through 8 hostile atmospheric zones.",
               url: baseUrl,
               author: {
                 "@type": "Organization",

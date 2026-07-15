@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Jump Droid",
+  title: "Data Handling Protocol — Jump Droid",
   description:
-    "Jump Droid privacy policy. Learn how we collect, use, and protect your data in this free, open-source Android arcade game.",
+    "Jump Droid data handling protocol. Learn how we collect, use, and protect your data in this free, open-source Android arcade game.",
   openGraph: {
-    title: "Privacy Policy — Jump Droid",
+    title: "Data Handling Protocol — Jump Droid",
     description:
-      "Jump Droid privacy policy. Learn how we collect, use, and protect your data in this free, open-source Android arcade game.",
+      "Jump Droid data handling protocol. Learn how we collect, use, and protect your data in this free, open-source Android arcade game.",
     type: "website",
     url: "https://jump-droid.vercel.app/privacy",
     siteName: "Jump Droid",
@@ -21,9 +21,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Privacy Policy — Jump Droid",
+    title: "Data Handling Protocol — Jump Droid",
     description:
-      "Jump Droid privacy policy. Learn how we collect, use, and protect your data in this free, open-source Android arcade game.",
+      "Jump Droid data handling protocol. Learn how we collect, use, and protect your data in this free, open-source Android arcade game.",
   },
   robots: {
     index: true,
@@ -36,23 +36,25 @@ const sections = [
     id: "effective-date",
     title: "Effective Date",
     content: (
-      <p className="text-slate-300 text-sm leading-relaxed">
-        This Privacy Policy is effective as of <strong className="text-white">July 14, 2026</strong>.
-        We may update this policy from time to time. Changes will be posted on this page with an updated effective date.
-      </p>
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
+        <p>
+          This protocol is effective as of <strong className="text-slate-200">July 14, 2026</strong>.
+          Updates will be posted with a revised effective date.
+        </p>
+      </div>
     ),
   },
   {
     id: "information-collected",
-    title: "Information We Collect",
+    title: "Information Collected",
     content: (
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
-          Jump Droid collects minimal data necessary to improve the game experience, fix crashes,
-          and serve advertisements. We do <strong className="text-white">not</strong> collect your name, email address,
+          Jump Droid collects minimal data necessary to improve the experience, fix anomalies,
+          and serve advertisements. We do <strong className="text-slate-200">not</strong> collect your name, email address,
           or any personally identifiable information unless you voluntarily contact us.
         </p>
-        <p>The following types of data may be collected automatically:</p>
+        <p>The following data may be collected automatically:</p>
       </div>
     ),
   },
@@ -60,21 +62,20 @@ const sections = [
     id: "firebase-analytics",
     title: "Firebase Analytics",
     content: (
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
-          Jump Droid uses <strong className="text-white">Firebase Analytics</strong>, a service provided by Google LLC.
-          Firebase Analytics collects anonymised usage data such as:
+          Jump Droid uses <strong className="text-slate-200">Firebase Analytics</strong>, a service provided by Google LLC.
+          It collects anonymised usage data such as:
         </p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Session duration and engagement metrics</li>
-          <li>Screen views and feature interactions</li>
-          <li>In-app events (e.g., level reached, boss defeated, module unlocked)</li>
-          <li>Device language and region settings</li>
+        <ul className="space-y-1 pl-4">
+          <li className="before:content-['>_'] before:text-cyan-400/40">Session duration and engagement metrics</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Screen views and feature interactions</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">In-app events (level reached, boss defeated, module unlocked)</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Device language and region settings</li>
         </ul>
         <p>
-          This data is aggregated and used solely to understand how players interact with the game
-          so we can prioritise improvements. Firebase Analytics does <strong className="text-white">not</strong> transmit
-          your identity to us.
+          This data is aggregated and used solely to understand how players interact with the game.
+          Firebase Analytics does <strong className="text-slate-200">not</strong> transmit your identity.
         </p>
       </div>
     ),
@@ -83,20 +84,20 @@ const sections = [
     id: "firebase-crashlytics",
     title: "Firebase Crashlytics",
     content: (
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
-          Jump Droid uses <strong className="text-white">Firebase Crashlytics</strong> to monitor and diagnose crashes
-          and performance issues. When the app crashes, Crashlytics collects:
+          Jump Droid uses <strong className="text-slate-200">Firebase Crashlytics</strong> to monitor and diagnose crashes
+          and performance issues. When an anomaly occurs, Crashlytics collects:
         </p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Crash stack traces and error logs</li>
-          <li>Device model, OS version, and available memory</li>
-          <li>Timestamp of the crash event</li>
-          <li>App version and build number</li>
+        <ul className="space-y-1 pl-4">
+          <li className="before:content-['>_'] before:text-cyan-400/40">Crash stack traces and error logs</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Device model, OS version, and available memory</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Timestamp of the crash event</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">App version and build number</li>
         </ul>
         <p>
-          This data helps us identify and fix stability issues quickly. It is <strong className="text-white">not</strong> linked
-          to any personal identifier and is retained only as long as necessary for debugging.
+          This data helps identify and fix stability issues. It is <strong className="text-slate-200">not</strong> linked
+          to any personal identifier.
         </p>
       </div>
     ),
@@ -105,61 +106,39 @@ const sections = [
     id: "google-admob",
     title: "Google AdMob",
     content: (
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
-          Jump Droid displays advertisements via <strong className="text-white">Google AdMob</strong>. AdMob may
-          collect and process data to serve relevant ads. This includes:
+          Jump Droid displays advertisements via <strong className="text-slate-200">Google AdMob</strong>. AdMob may
+          collect and process data to serve relevant ads, including:
         </p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Device advertising ID (resettable at any time in your device settings)</li>
-          <li>IP address (used for coarse location targeting)</li>
-          <li>App installs and interaction with ads</li>
-          <li>Device type and connectivity status</li>
+        <ul className="space-y-1 pl-4">
+          <li className="before:content-['>_'] before:text-cyan-400/40">Device advertising ID (resettable in device settings)</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">IP address (coarse location targeting)</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">App installs and ad interactions</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Device type and connectivity status</li>
         </ul>
         <p>
-          AdMob operates under Google&apos;s Privacy Policy. You can learn more about how Google uses data
-          at{" "}
+          AdMob operates under Google&apos;s Privacy Policy. Learn more at{" "}
           <a
             href="https://policies.google.com/privacy"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-cyan-300 underline underline-offset-2 hover:text-cyan-100 transition"
+            className="text-cyan-400/70 hover:text-cyan-300 underline underline-offset-2 transition-colors"
           >
             policies.google.com/privacy
-          </a>
-          .
-        </p>
-      </div>
-    ),
-  },
-  {
-    id: "device-information",
-    title: "Device Information",
-    content: (
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
-        <p>The following device-level information may be collected by our third-party services:</p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Operating system version (e.g., Android 14, 15)</li>
-          <li>Device make and model</li>
-          <li>Screen resolution and density</li>
-          <li>Available storage and memory (aggregated, anonymised)</li>
-          <li>Network type (Wi-Fi, cellular)</li>
-        </ul>
-        <p>
-          This information is used for crash analysis, performance optimisation, and ad targeting
-          as described above. We do <strong className="text-white">not</strong> combine this data with any personal identifier.
+          </a>.
         </p>
       </div>
     ),
   },
   {
     id: "no-account",
-    title: "No Account Creation",
+    title: "No Account Required",
     content: (
-      <p className="text-slate-300 text-sm leading-relaxed">
-        Jump Droid does <strong className="text-white">not</strong> require you to create an account, register an email address,
-        or provide any personal information to play the game. All game progress is stored locally on your device.
-        There is no login system, no profile system, and no multiplayer or social features that would require account creation.
+      <p className="font-mono text-xs leading-relaxed text-slate-400">
+        Jump Droid does <strong className="text-slate-200">not</strong> require an account, email registration,
+        or personal information to operate. All game progress is stored locally.
+        There is no login system, no profile system, and no social features.
       </p>
     ),
   },
@@ -167,16 +146,14 @@ const sections = [
     id: "childrens-privacy",
     title: "Children&apos;s Privacy",
     content: (
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
-          Jump Droid is not directed at children under the age of 13. We do <strong className="text-white">not</strong> knowingly
-          collect personal information from children. If you are a parent or guardian and believe your child
-          has provided us with personal data, please contact us so we can delete it.
+          Jump Droid is not directed at children under 13. We do <strong className="text-slate-200">not</strong> knowingly
+          collect personal information from children. If you believe your child has provided data,
+          contact us for deletion.
         </p>
         <p>
-          In compliance with the Children&apos;s Online Privacy Protection Act (COPPA), we do not serve
-          interest-based advertising to users identified as children. AdMob may serve contextual
-          (non-personalised) ads in such cases.
+          In compliance with COPPA, we do not serve interest-based advertising to users identified as children.
         </p>
       </div>
     ),
@@ -185,47 +162,31 @@ const sections = [
     id: "third-party",
     title: "Third-Party Services",
     content: (
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
-        <p>Jump Droid integrates the following third-party services, each governed by its own privacy policy:</p>
-        <ul className="list-disc pl-5 space-y-2">
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
+        <p>Jump Droid integrates the following third-party services:</p>
+        <ul className="space-y-2 pl-4">
           <li>
-            <strong className="text-white">Google Firebase</strong> (Analytics & Crashlytics) —{" "}
-            <a
-              href="https://firebase.google.com/support/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-cyan-300 underline underline-offset-2 hover:text-cyan-100 transition"
-            >
+            <strong className="text-slate-200">Google Firebase</strong> (Analytics & Crashlytics) —{" "}
+            <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer"
+              className="text-cyan-400/70 hover:text-cyan-300 underline underline-offset-2 transition-colors">
               firebase.google.com/support/privacy
             </a>
           </li>
           <li>
-            <strong className="text-white">Google AdMob</strong> —{" "}
-            <a
-              href="https://support.google.com/admob/answer/6128543"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-cyan-300 underline underline-offset-2 hover:text-cyan-100 transition"
-            >
+            <strong className="text-slate-200">Google AdMob</strong> —{" "}
+            <a href="https://support.google.com/admob/answer/6128543" target="_blank" rel="noopener noreferrer"
+              className="text-cyan-400/70 hover:text-cyan-300 underline underline-offset-2 transition-colors">
               support.google.com/admob/answer/6128543
             </a>
           </li>
           <li>
-            <strong className="text-white">Google Play Services</strong> —{" "}
-            <a
-              href="https://policies.google.com/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-cyan-300 underline underline-offset-2 hover:text-cyan-100 transition"
-            >
+            <strong className="text-slate-200">Google Play Services</strong> —{" "}
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer"
+              className="text-cyan-400/70 hover:text-cyan-300 underline underline-offset-2 transition-colors">
               policies.google.com/privacy
             </a>
           </li>
         </ul>
-        <p>
-          We encourage you to review the privacy policies of these third-party providers for detailed
-          information about their data handling practices.
-        </p>
       </div>
     ),
   },
@@ -233,12 +194,11 @@ const sections = [
     id: "data-security",
     title: "Data Security",
     content: (
-      <p className="text-slate-300 text-sm leading-relaxed">
-        We implement industry-standard security measures to protect your data. All data transmitted
-        to Firebase and AdMob is encrypted using TLS/SSL protocols. Data stored on our servers
-        (limited to aggregated analytics and crash reports) is access-controlled and retained only
-        as long as necessary for the purposes described in this policy. Despite these measures,
-        no method of electronic storage or transmission is 100% secure.
+      <p className="font-mono text-xs leading-relaxed text-slate-400">
+        Industry-standard security measures are implemented. All data transmitted to Firebase and
+        AdMob is encrypted using TLS/SSL. Aggregated analytics and crash data is access-controlled
+        and retained only as long as necessary. No method of electronic storage or transmission is
+        100% secure.
       </p>
     ),
   },
@@ -246,47 +206,31 @@ const sections = [
     id: "user-rights",
     title: "Your Rights",
     content: (
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
-        <p>Depending on your jurisdiction, you may have the following rights regarding your data:</p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li><strong className="text-white">Access</strong> — Request a copy of data associated with your device</li>
-          <li><strong className="text-white">Deletion</strong> — Request deletion of analytics and crash data linked to your device</li>
-          <li><strong className="text-white">Opt-out of Ads Personalisation</strong> — Disable advertising ID in your device settings (Android: Settings → Privacy → Ads)</li>
-          <li><strong className="text-white">Withdraw Consent</strong> — Uninstall the app to stop all data collection</li>
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
+        <p>Depending on your jurisdiction, you may have the following rights:</p>
+        <ul className="space-y-1 pl-4">
+          <li className="before:content-['>_'] before:text-cyan-400/40"><strong className="text-slate-200">Access</strong> — Request a copy of associated data</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40"><strong className="text-slate-200">Deletion</strong> — Request deletion of analytics and crash data</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40"><strong className="text-slate-200">Opt-out</strong> — Disable advertising ID in device settings</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40"><strong className="text-slate-200">Withdraw</strong> — Uninstall the app to stop all data collection</li>
         </ul>
         <p>
-          To exercise these rights, contact us at{" "}
-          <strong className="text-white">ashwathai.dev@gmail.com</strong>. We will respond within 30 days.
+          To exercise these rights: <strong className="text-slate-200">ashwathai.dev@gmail.com</strong>.
         </p>
       </div>
     ),
   },
   {
-    id: "policy-updates",
-    title: "Policy Updates",
-    content: (
-      <p className="text-slate-300 text-sm leading-relaxed">
-        We may update this Privacy Policy from time to time. Changes will be posted on this page with an
-        updated effective date. We encourage you to review this policy periodically. Continued use of
-        Jump Droid after changes constitutes acceptance of the updated policy. Material changes will be
-        communicated via an in-app notice or a prominent note on our website.
-      </p>
-    ),
-  },
-  {
     id: "contact",
-    title: "Contact Us",
+    title: "Contact Transmitter",
     content: (
-      <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
-        <p>
-          If you have questions, concerns, or requests regarding this Privacy Policy or how we handle your data,
-          please contact us:
-        </p>
-        <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 px-6 py-4">
-          <p className="text-sm font-bold text-cyan-200 uppercase tracking-wider">Email</p>
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
+        <p>For questions regarding this protocol:</p>
+        <div className="rounded-lg border border-cyan-400/10 bg-cyan-400/[0.02] px-5 py-3">
+          <p className="text-[10px] tracking-[0.15em] text-cyan-400/60 uppercase mb-1">Email</p>
           <a
             href="mailto:ashwathai.dev@gmail.com"
-            className="text-base text-white hover:text-cyan-300 transition underline underline-offset-2"
+            className="text-slate-200 hover:text-cyan-300 transition-colors underline underline-offset-2"
           >
             ashwathai.dev@gmail.com
           </a>
@@ -296,52 +240,41 @@ const sections = [
   },
 ];
 
-function SectionCard({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
-  return (
-    <section id={id} className="scroll-mt-24 rounded-3xl border border-cyan-300/10 bg-slate-950/60 p-8 backdrop-blur-md transition hover:border-cyan-400/20">
-      <h2 className="mb-4 text-lg font-bold tracking-wide text-white uppercase">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
 export default function PrivacyPage() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
-      {/* Background gradient */}
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.08),transparent_32%)]" />
+      <div className="fixed inset-0 z-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.06),transparent_32%)]" />
 
-      {/* Content */}
-      <main className="relative z-10 mx-auto max-w-4xl px-6 py-24 sm:px-8 sm:py-32 lg:px-12">
-        {/* Header */}
+      <main className="relative z-10 mx-auto max-w-2xl px-6 py-24 sm:px-8 sm:py-32">
         <div className="mb-16 space-y-4">
-          <p className="inline-block rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-sm font-extrabold uppercase tracking-[0.35em] text-cyan-300">
-            Legal
+          <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/60 uppercase">
+            Receiver Protocol
           </p>
-          <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl uppercase">
-            Privacy <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-purple-400">Policy</span>
+          <h1 className="font-mono text-xl font-bold tracking-[0.1em] text-white uppercase leading-snug">
+            Data Handling
+            <br />
+            <span className="text-cyan-300">Protocol</span>
           </h1>
-          <p className="max-w-2xl text-base leading-8 text-slate-300">
-            Last updated: July 14, 2026. Your privacy matters. This document explains what data Jump Droid
+          <p className="font-mono text-xs leading-relaxed text-slate-400 max-w-lg">
+            Last updated: July 14, 2026. This document explains what data Jump Droid
             collects, why, and how you stay in control.
           </p>
         </div>
 
-        {/* Policy sections */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {sections.map((s) => (
-            <SectionCard key={s.id} id={s.id} title={s.title}>
+            <section
+              key={s.id}
+              id={s.id}
+              className="scroll-mt-24 rounded-lg border border-white/5 bg-white/[0.02] p-6 transition hover:border-cyan-400/10"
+            >
+              <h2 className="font-mono text-xs font-bold tracking-[0.15em] text-cyan-200 uppercase mb-4">
+                {s.title}
+              </h2>
               {s.content}
-            </SectionCard>
+            </section>
           ))}
         </div>
-
-        {/* Footer note */}
-        <p className="mt-16 text-center text-xs text-slate-500">
-          Jump Droid is a free, open-source Android arcade game built by Ashwath AI.
-        </p>
       </main>
     </div>
   );

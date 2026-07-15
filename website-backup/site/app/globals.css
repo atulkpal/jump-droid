@@ -75,22 +75,6 @@ select {
   background: rgba(0, 229, 255, 0.28);
 }
 
-/* Transmission cursor */
-@keyframes cursor-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-.animate-cursor-blink {
-  animation: cursor-blink 1s step-end infinite;
-}
-
-/* Orbiting particles for SignalPulse */
-@keyframes orbit-pulse {
-  0%, 100% { opacity: 0.2; }
-  50% { opacity: 0.8; }
-}
-
 /* =============================================
    SVG Game Entity Animations
    ============================================= */
