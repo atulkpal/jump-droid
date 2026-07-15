@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy — Jump Droid",
   description:
-    "Jump Droid privacy policy. Learn how we collect, use, and protect your data when you play our mobile game.",
+    "Jump Droid privacy policy. Learn how we collect, use, and protect your data in this free, open-source Android arcade game.",
   openGraph: {
     title: "Privacy Policy — Jump Droid",
     description:
-      "Jump Droid privacy policy. Learn how we collect, use, and protect your data when you play our mobile game.",
+      "Jump Droid privacy policy. Learn how we collect, use, and protect your data in this free, open-source Android arcade game.",
     type: "website",
     url: "https://jump-droid.vercel.app/privacy",
     siteName: "Jump Droid",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Privacy Policy — Jump Droid",
     description:
-      "Jump Droid privacy policy. Learn how we collect, use, and protect your data when you play our mobile game.",
+      "Jump Droid privacy policy. Learn how we collect, use, and protect your data in this free, open-source Android arcade game.",
   },
   robots: {
     index: true,
@@ -340,7 +340,7 @@ export default function PrivacyPage() {
 
         {/* Footer note */}
         <p className="mt-16 text-center text-xs text-slate-500">
-          Jump Droid — The Signal From the Void.
+          Jump Droid is a free, open-source Android arcade game built by Ashwath AI.
         </p>
       </main>
     </div>

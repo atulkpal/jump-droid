@@ -18,20 +18,24 @@ const baseUrl = "https://jump-droid.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: "Jump Droid — The Signal From the Void",
+    default: "Jump Droid — Free Android Arcade Game",
     template: "%s — Jump Droid",
   },
   description:
-    "Jump Droid is a tactical vertical expedition mobile game. Pilot a droid-powered rocket through 8 hostile atmospheric zones. Face colossal bosses, build your fleet, and uncover the mystery of The Signal.",
+    "Jump Droid is a free, open-source Android arcade game. Pilot a droid-powered rocket through 8 hostile atmospheric zones. Face colossal bosses, build your fleet, and uncover the mystery of The Signal.",
   keywords: [
     "Jump Droid",
-    "vertical explorer game",
+    "free Android game",
+    "open source game",
+    "arcade game",
     "Android game",
     "rocket game",
     "mobile game",
     "indie game",
     "Ashwath AI",
     "vertical ascent",
+    "Kotlin",
+    "Jetpack Compose",
   ],
   authors: [{ name: "Ashwath AI" }],
   creator: "Ashwath AI",
@@ -45,9 +49,9 @@ export const metadata: Metadata = {
     locale: "en_US",
     siteName: "Jump Droid",
     url: baseUrl,
-    title: "Jump Droid — The Signal From the Void",
+    title: "Jump Droid — Free Android Arcade Game",
     description:
-      "A tactical vertical expedition mobile game. Pilot, survive, and discover.",
+      "Jump Droid is a free, open-source Android arcade game. Pilot, survive, and discover.",
     images: [
       {
         url: "/icon.png",
@@ -59,9 +63,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Jump Droid — The Signal From the Void",
+    title: "Jump Droid — Free Android Arcade Game",
     description:
-      "A tactical vertical expedition mobile game. Pilot, survive, and discover.",
+      "Jump Droid is a free, open-source Android arcade game. Pilot, survive, and discover.",
     images: ["/icon.png"],
   },
   robots: {
@@ -94,7 +98,7 @@ export default function RootLayout({
               applicationCategory: "GameApplication",
               operatingSystem: "Android",
               description:
-                "A tactical vertical expedition mobile game. Pilot a droid-powered rocket through 8 hostile atmospheric zones.",
+                "Jump Droid is a free, open-source Android arcade game. Pilot a droid-powered rocket through 8 hostile atmospheric zones.",
               url: baseUrl,
               author: {
                 "@type": "Organization",

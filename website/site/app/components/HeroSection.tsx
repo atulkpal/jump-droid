@@ -23,7 +23,7 @@ export default function HeroSection() {
             Pilot the ultimate <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-300 to-purple-400">droid explorer</span>.
           </h1>
           <p className="mx-auto max-w-3xl text-base leading-8 text-slate-300 sm:text-lg">
-            Touch to thrust. Manage fuel, heat, and shield as you climb through 8 atmospheric zones. Land on platforms, build combos, face bosses, unlock new rockets, and discover the truth hidden in the void.
+            Jump Droid is a free, open-source Android arcade game. Touch to thrust. Manage fuel, heat, and shield as you climb through 8 atmospheric zones. Land on platforms, build combos, face bosses, unlock new rockets, and discover the truth hidden in the void.
           </p>
         </motion.div>
 

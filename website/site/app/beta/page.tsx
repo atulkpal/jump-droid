@@ -114,7 +114,7 @@ export default function BetaPage() {
         </div>
 
         <p className="mt-16 text-center text-xs text-slate-500">
-          Jump Droid — The Signal From the Void.
+          Jump Droid is a free, open-source Android arcade game built by Ashwath AI.
         </p>
       </main>
     </div>

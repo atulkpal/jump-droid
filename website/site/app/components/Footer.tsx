@@ -85,12 +85,15 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/5 pt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-slate-600">
-            &copy; {year} Ashwath AI. All rights reserved.
+        <div className="border-t border-white/5 pt-6 flex flex-col items-center gap-2 text-center">
+          <p className="text-xs text-slate-500">
+            Built with ❤️ by Ashwath AI
           </p>
-          <p className="text-xs text-slate-600">
-            Built with Kotlin &amp; Jetpack Compose
+          <p className="text-[11px] text-slate-600">
+            Building free, open-source software, AI, and games for everyone.
+          </p>
+          <p className="text-xs text-slate-700 mt-1">
+            &copy; {year} Ashwath AI
           </p>
         </div>
       </div>
