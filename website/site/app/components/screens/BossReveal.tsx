@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import ThreatSVG from "@/app/components/game/ThreatSVG";
 
 const BOSSES = [
-  { type: "COMMAND_CRUISER" as const, size: 50 },
-  { type: "THE_GATEKEEPER" as const, size: 80 },
-  { type: "VOID_ENGINE" as const, size: 55 },
-  { type: "THE_LEVIATHAN" as const, size: 50 },
-  { type: "THE_SIGNAL" as const, size: 45 },
+  { type: "COMMAND_CRUISER" as const, size: 42 },
+  { type: "THE_GATEKEEPER" as const, size: 56 },
+  { type: "VOID_ENGINE" as const, size: 44 },
+  { type: "THE_LEVIATHAN" as const, size: 42 },
+  { type: "THE_SIGNAL" as const, size: 38 },
 ];
 
 export default function BossReveal() {
@@ -34,7 +34,7 @@ export default function BossReveal() {
   return (
     <section
       id="boss-reveal"
-      className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden px-6"
+      className="relative flex w-full flex-col items-center justify-center overflow-hidden px-6 py-20 sm:py-28"
     >
       {/* Purple glow */}
       <div

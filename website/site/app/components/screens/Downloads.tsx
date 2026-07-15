@@ -4,7 +4,7 @@ import { GooglePlayIcon, GitHubIcon, ItchIoIcon } from "@/app/components/Platfor
 
 export default function Downloads() {
   return (
-    <section className="flex min-h-dvh w-full items-center justify-center px-6">
+    <section className="flex w-full items-center justify-center px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-lg w-full">
         <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/40 uppercase mb-2 text-center">
           Final Transmission

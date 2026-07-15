@@ -174,6 +174,7 @@ select {
 }
 
 /* Animation utility classes */
+.animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
 .animate-flicker { animation: flicker 0.15s ease-in-out infinite; }
 .animate-flicker-inner { animation: flicker-inner 0.12s ease-in-out infinite; }
 .animate-pulse { animation: pulse 2s ease-in-out infinite; }
@@ -186,6 +187,33 @@ select {
 .animate-drift { animation: drift 6s ease-in-out infinite; }
 .animate-phase { animation: phase-cycle 4s ease-in-out infinite; }
 .animate-entity-float { animation: float-up 3s ease-in-out infinite; }
+
+/* Hero moon & rocket animations */
+@keyframes moon-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes moon-pulse {
+  0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+}
+@keyframes moon-ray {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50% { opacity: 0.9; transform: scale(1.4); }
+}
+@keyframes rocket-float {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-12px) rotate(3deg); }
+}
+.animate-moon-float { animation: moon-float 6s ease-in-out infinite; }
+.animate-moon-pulse { animation: moon-pulse 4s ease-in-out infinite; }
+.animate-moon-ray { animation: moon-ray 3s ease-in-out infinite; }
+.animate-star-twinkle { animation: star-twinkle 3s ease-in-out infinite; }
+.animate-rocket-float { animation: rocket-float 4s ease-in-out infinite; }
 
 /* Hide scrollbar for horizontal scroll containers */
 .scrollbar-none {
