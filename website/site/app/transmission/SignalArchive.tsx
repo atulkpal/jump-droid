@@ -8,7 +8,7 @@ export default function SignalArchive({ progress }: { progress: number }) {
 
   return (
     <motion.section
-      className="relative px-6 py-20 sm:py-28"
+      className="relative w-full px-6 py-8 sm:py-12"
       initial={{ opacity: 0 }}
       animate={{ opacity: progress > 0 ? 1 : 0 }}
       transition={{ duration: 0.5 }}

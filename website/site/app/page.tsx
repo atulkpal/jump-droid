@@ -62,12 +62,12 @@ export default function Home() {
 
       <main className="relative z-20" id="main-content">
         {/* 0: Signal Pulse */}
-        <div ref={setRef(0)} className="min-h-screen flex items-center">
+        <div ref={setRef(0)} className="min-h-screen flex items-center justify-center">
           <SignalPulse progress={p(0)} />
         </div>
 
         {/* 1: Coordinates Decoded */}
-        <div ref={setRef(1)} className="flex items-center px-6 py-20 sm:py-24">
+        <div ref={setRef(1)} className="min-h-screen flex items-center justify-center px-6">
           <div className="mx-auto w-full max-w-lg lg:max-w-2xl">
             {COORDINATE_LINES.map((line, i) => {
               const lineProgress = Math.max(0, Math.min(1, (p(1) - i * 0.12) / 0.3));
@@ -90,18 +90,18 @@ export default function Home() {
 
         {/* 2-7: Data Packets */}
         {PACKETS.map((packet, i) => (
-          <div key={packet.id} ref={setRef(i + 2)}>
+          <div key={packet.id} ref={setRef(i + 2)} className="min-h-screen flex items-center justify-center">
             <DataPacket packet={packet} progress={p(i + 2)} />
           </div>
         ))}
 
         {/* 8: Signal Archive */}
-        <div ref={setRef(8)}>
+        <div ref={setRef(8)} className="min-h-screen flex items-center justify-center">
           <SignalArchive progress={p(8)} />
         </div>
 
         {/* 9: Signal Source */}
-        <div ref={setRef(9)}>
+        <div ref={setRef(9)} className="min-h-screen flex items-center justify-center">
           <SignalSource progress={p(9)} />
         </div>
 

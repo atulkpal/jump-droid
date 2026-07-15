@@ -26,7 +26,7 @@ export default function SignalPulse({ progress }: { progress: number }) {
     })), []);
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
+    <section className="relative flex w-full flex-col items-center justify-center px-6">
 
       {/* Teaser rocket silhouette */}
       <div

@@ -8,7 +8,7 @@ export default function SignalSource({ progress }: { progress: number }) {
 
   return (
     <motion.section
-      className="relative px-6 py-16 sm:py-20"
+      className="relative w-full px-6 py-8 sm:py-12"
       initial={{ opacity: 0 }}
       animate={{ opacity: progress > 0 ? 1 : 0 }}
       transition={{ duration: 0.5 }}
@@ -35,6 +35,8 @@ export default function SignalSource({ progress }: { progress: number }) {
         <div className="mt-6 flex flex-wrap gap-4">
           <a
             href={SOCIAL_LINKS.email}
+            target="_blank"
+            rel="noopener noreferrer"
             className="font-mono text-xs text-cyan-400/70 hover:text-cyan-300 transition-colors underline underline-offset-2"
           >
             Contact transmitter

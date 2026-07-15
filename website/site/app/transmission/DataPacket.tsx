@@ -107,7 +107,7 @@ export default function DataPacket({
 
   return (
     <motion.section
-      className="relative px-6 py-16 sm:py-20"
+      className="relative w-full px-6 py-8 sm:py-12"
       initial={{ opacity: 0 }}
       animate={{ opacity: isActive ? 1 : 0.3 }}
       transition={{ duration: 0.5 }}
