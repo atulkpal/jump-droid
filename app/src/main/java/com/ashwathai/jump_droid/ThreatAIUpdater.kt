@@ -232,12 +232,53 @@ fun ActiveThreat.updateAI(
                     val dy = targetY - y
                     val dist = sqrt(dx*dx + dy*dy)
                     
-                    val isDiving = targetHeat >= 70f || targetOverheated
-                    val speed = if (isDiving) 350f else 120f
+                    val heatThreshold = targetHeat >= 50f || targetOverheated
+                    val closeDist = dist < 250f
                     
-                    if (dist > 5f) {
-                        x += (dx / dist) * speed * dt
-                        y += (dy / dist) * speed * dt
+                    localTimer += dt
+                    
+                    val aiState = when {
+                        targetHeat >= 80f || targetOverheated -> 4 // FLEEING
+                        heatThreshold && closeDist -> 3 // ORBITING
+                        heatThreshold -> 2 // ATTACKING
+                        else -> 1 // SEARCHING
+                    }
+                    phase = aiState
+                    
+                    when (aiState) {
+                        1 -> { // SEARCHING — patrol near center
+                            scanPulse = (sin(lifetime * 0.8f) * 0.5f + 0.5f) * 0.3f
+                            x += (screenWidth / 2f - x) * 0.3f * dt
+                            y += 80f * dt
+                            if (y > targetY + 1200f) state = ThreatState.DESTROYED
+                        }
+                        2 -> { // ATTACKING — dive toward heat source
+                            scanPulse = (scanPulse + dt * 4f) % 1.0f
+                            val speed = 280f
+                            if (dist > 5f) {
+                                x += (dx / dist) * speed * dt
+                                y += (dy / dist) * speed * dt
+                            }
+                            rotation += 180f * dt
+                        }
+                        3 -> { // ORBITING — circle around player
+                            scanPulse = (scanPulse + dt * 2f) % 1.0f
+                            val orbitRadius = 200f
+                            val angle = atan2(dy, dx) + 2f * dt
+                            val targetOrbitX = targetX + cos(angle) * orbitRadius
+                            val targetOrbitY = targetY + sin(angle) * orbitRadius
+                            x += (targetOrbitX - x) * 2f * dt
+                            y += (targetOrbitY - y) * 2f * dt
+                            rotation += 60f * dt
+                        }
+                        4 -> { // FLEEING — retreat upward
+                            scanPulse = (scanPulse + dt * 8f) % 1.0f
+                            val fleeSpeed = 400f
+                            x += (x - targetX) * 2f * dt
+                            vy = -fleeSpeed
+                            y += vy * dt
+                            if (y < targetY - 800f) state = ThreatState.DESTROYED
+                        }
                     }
                 }
 

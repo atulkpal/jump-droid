@@ -70,7 +70,7 @@ fun AboutScreen(onDismiss: () -> Unit) {
                 Text("CORE ENGINE: ASHWATH.AI PROTOTYPE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 12.sp, letterSpacing = 1.sp)
                 Spacer(Modifier.height(32.dp))
                 Text("PROTOCOL VERSION", style = MaterialTheme.typography.titleLarge, color = SciFiGold, fontWeight = FontWeight.Bold)
-                Text("V1.5.0 // RELEASE BUILD", color = SciFiWhite.copy(alpha = 0.6f), letterSpacing = 1.sp)
+                Text("${BuildConfig.VERSION_NAME} // RELEASE BUILD", color = SciFiWhite.copy(alpha = 0.6f), letterSpacing = 1.sp)
                 Spacer(Modifier.height(32.dp))
 
                 Text("COMPLETED SYSTEMS", style = MaterialTheme.typography.titleLarge, color = SciFiGold, fontWeight = FontWeight.Bold)
@@ -127,7 +127,7 @@ fun AboutScreen(onDismiss: () -> Unit) {
                     Text("DISMISS", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 }
                 Spacer(Modifier.height(16.dp))
-                Text("POWERED BY ASHWATH.AI // V1.5.0", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                Text("POWERED BY ASHWATH.AI // ${BuildConfig.VERSION_NAME}", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
                 Spacer(Modifier.height(8.dp))
                 GlobalAdBanner()
             }

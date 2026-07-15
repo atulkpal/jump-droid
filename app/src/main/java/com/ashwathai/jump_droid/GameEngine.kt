@@ -1161,7 +1161,7 @@ class GameEngine(
         soundManager.setBossActive(false)
         soundManager.playZoneMusic(altitudeManager.currentZone)
         continuesUsed++
-        gameState = GameState.PLAYING
+        gameState = GameState.CONTINUE_READY
     }
 
     fun runGameLoop(currentTime: Long, isThrusting: Boolean, thrustTarget: Offset, inputProcessor: PlayerInputProcessor) {
