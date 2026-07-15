@@ -98,7 +98,7 @@ export default function SignalArchive({ progress }: { progress: number }) {
             href={PLAY_STORE_URL}
             icon={<GooglePlayIcon className="w-full h-full" />}
             label="Install from Google Play"
-            sublabel="Free &middot; 8 MB &middot; Android 8+"
+            sublabel="Free &middot; Android 8+"
             color="#3DDC84"
             large
           />
