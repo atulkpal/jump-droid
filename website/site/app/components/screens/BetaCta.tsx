@@ -3,7 +3,7 @@ import { BETA } from "@/app/data/site-content";
 
 export default function BetaCta() {
   return (
-    <section className="flex min-h-dvh w-full items-center justify-center px-6">
+    <section className="flex w-full items-center justify-center px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-lg w-full text-center">
         <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/40 uppercase mb-4">
           Join the Mission
