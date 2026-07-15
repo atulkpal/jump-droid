@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-14
-**Current Version:** v1.5.1 — Release Polish Update (Hotfix)
+**Last Updated:** 2026-07-15
+**Current Version:** v1.5.2 — Closed Beta Release
 **Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Published to GitHub — Open Source (MIT)
-**Current Stable Tag:** `v1.5.1`
+**Current Stable Tag:** `v1.5.2`
 **Branch:** `master` (protected — no direct commits)
 **Base Commit:** `HEAD`
 
@@ -37,7 +37,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Current Stable Tag**: `v1.5.1`
 *   **Current Version**: v1.5.1 — Release Polish Update
 *   **Current EPIC**: EPIC 11 — Ascension (The End) — **COMPLETE ✅**
-*   **Current Status**: **v1.5.1 PUBLISHED**. Release Polish Update: portrait lock, keep-screen-on during gameplay. All EPIC 11 content preserved. See `docs/releases/v1.5.1_PUBLICATION_REPORT.md`.
+*   **Current Status**: **v1.5.2 PUBLISHED**. Closed Beta Release: continue-ready overlay, sharing system, main menu responsiveness, Heat Bat AI overhaul, boss cooldowns, and "NEW" archive badge system. See `docs/releases/v1.5.2_PUBLICATION_REPORT.md`.
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
     *   GameScreen.kt at ~2,080 lines — extraction continued via GameEngine refactoring into `refactor/cleanup` branch.

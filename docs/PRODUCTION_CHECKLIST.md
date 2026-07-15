@@ -2,7 +2,7 @@
 
 ## Pre-Build
 
-- [x] `versionCode` bumped (4)
+- [x] `versionCode` bumped (5)
 - [x] `versionName` set ("1.5.2")
 - [x] All 10 bugs fixed (see CHANGELOG)
 - [x] `release` signing config active

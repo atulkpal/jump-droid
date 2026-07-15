@@ -21,7 +21,7 @@ All notable changes to this project are recorded as dated engineering events.
 - **Production checklist**: `docs/PRODUCTION_CHECKLIST.md` — pre/post release tasks.
 
 ### Changed
-- **Version bump**: `versionCode 2 → 4`, `versionName "1.5.1" → "1.5.2"`.
+- **Version bump**: `versionCode 2 → 5`, `versionName "1.5.1" → "1.5.2"`.
 - **Website version**: Updated to v1.5.2.
 - **GameOver continue UX**: Ad failure now shows progressive messages ("LINK WEAK" → "ONE ATTEMPT REMAINING" → "FORCED RELINK"). 3rd failed attempt grants free continue.
 
