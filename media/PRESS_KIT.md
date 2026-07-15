@@ -18,7 +18,7 @@
 | **Engine** | Custom (Kotlin + Jetpack Compose Canvas) |
 | **Language** | Kotlin |
 | **File Size** | ~106 MB |
-| **Store URL** | [GitHub Releases](https://github.com/atulkpal/jump-droid/releases/latest) |
+| **Store URLs** | [Google Play](https://play.google.com/store/apps/details?id=com.ashwathai.jump_droid) · [GitHub Releases](https://github.com/atulkpal/jump-droid/releases/latest) · [itch.io](https://ashwathai.itch.io/jump-droid) |
 | **Repository** | [github.com/atulkpal/jump-droid](https://github.com/atulkpal/jump-droid) |
 | **Contact** | Open a GitHub issue |
 
@@ -74,13 +74,15 @@ Jump Droid began as a hands-on project to explore the limits of Jetpack Compose 
 
 ## Developer
 
-**Ashwath AI** is an independent development studio focused on building polished mobile experiences with cutting-edge Android technology. Jump Droid is our flagship open-source title, built entirely with Kotlin and Jetpack Compose.
+**Ashwath AI** is an independent development studio building free, open-source software, AI, and games for everyone. Jump Droid is our flagship open-source title, built entirely with Kotlin and Jetpack Compose.
 
 ---
 
 ## Additional Links
 
+- **Google Play**: [Install the game](https://play.google.com/store/apps/details?id=com.ashwathai.jump_droid)
 - **GitHub Repository**: [github.com/atulkpal/jump-droid](https://github.com/atulkpal/jump-droid)
+- **itch.io**: [Download DRM-free](https://ashwathai.itch.io/jump-droid)
 - **Latest Release**: [github.com/atulkpal/jump-droid/releases/latest](https://github.com/atulkpal/jump-droid/releases/latest)
 - **Issue Tracker**: [github.com/atulkpal/jump-droid/issues](https://github.com/atulkpal/jump-droid/issues)
 - **Changelog**: [docs/CHANGELOG.md](../docs/CHANGELOG.md)

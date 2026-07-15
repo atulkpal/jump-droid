@@ -2,7 +2,7 @@
 
 **Reach what keeps calling from above.**
 
-Jump Droid is a vertical survival platformer for Android. You pilot an experimental rocket through six increasingly hostile atmospheric zones — from Earth's blue skies to the reality-distorting Void — managing fuel, heat, shield, and hull while chaining platform landings, surviving boss encounters, and uncovering a mystery that has been calling from above.
+Jump Droid is a free, open-source Android arcade game built by Ashwath AI. Pilot an experimental rocket through 12 hostile atmospheric zones — from Earth's blue skies to the reality-distorting Void — managing fuel, heat, shield, and hull while chaining platform landings, surviving boss encounters, and uncovering a mystery that has been calling from above.
 
 Built entirely with Kotlin and Jetpack Compose Canvas rendering. No game engine — just raw `DrawScope` and physics.
 
@@ -212,4 +212,7 @@ Comprehensive website design and content strategy documentation lives in `websit
 
 ## License
 
-[License information TBD]
+Jump Droid is open source under the [MIT License](../LICENSE).
+
+Built with ❤️ by Ashwath AI.
+Building free, open-source software, AI, and games for everyone.

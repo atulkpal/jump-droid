@@ -3,21 +3,23 @@
 </p>
 
 <p align="center">
-  <b>A vertical rocket exploration game built with Kotlin and Jetpack Compose Canvas.</b><br>
-  Precision propulsion, modular ship builds, and high-intensity atmospheric discovery.
+  <b>Jump Droid is a free, open-source Android arcade game built by Ashwath AI.</b><br>
+  A vertical rocket exploration game. Precision propulsion, modular ship builds,<br>
+  and high-intensity atmospheric discovery. <a href="https://play.google.com/store/apps/details?id=com.ashwathai.jump_droid">Available on Google Play</a>.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT"></a>
+  <a href="https://play.google.com/store/apps/details?id=com.ashwathai.jump_droid"><img src="https://img.shields.io/badge/Google_Play-414141?logo=google-play&logoColor=white" alt="Google Play"></a>
   <a href="https://github.com/atulkpal/jump-droid/releases/latest"><img src="https://img.shields.io/github/v/release/atulkpal/jump-droid?include_prereleases&label=release" alt="Release"></a>
-  <a href="https://github.com/atulkpal/jump-droid"><img src="https://img.shields.io/badge/platform-android-3DDC84?logo=android" alt="Android"></a>
+  <a href="https://github.com/atulkpal/jump-droid"><img src="https://img.shields.io/badge/source-github-181717?logo=github" alt="GitHub"></a>
+  <a href="https://ashwathai.itch.io/jump-droid"><img src="https://img.shields.io/badge/itch.io-fa5c5c?logo=itch.io&logoColor=white" alt="itch.io"></a>
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/kotlin-2.0+-7F52FF?logo=kotlin" alt="Kotlin"></a>
-  <a href="https://github.com/atulkpal/jump-droid/issues"><img src="https://img.shields.io/github/issues/atulkpal/jump-droid" alt="Issues"></a>
 </p>
 
 <br>
 
-> **📥 Download Latest Release (v1.5.1)** — [Get the APK](https://github.com/atulkpal/jump-droid/releases/tag/v1.5.1)
+> **📥 Download Jump Droid (v1.5.1)** — [Google Play](https://play.google.com/store/apps/details?id=com.ashwathai.jump_droid) · [GitHub APK](https://github.com/atulkpal/jump-droid/releases/tag/v1.5.1) · [itch.io](https://ashwathai.itch.io/jump-droid)
 
 <br>
 
@@ -25,7 +27,7 @@
 
 ## What is Jump Droid?
 
-Jump Droid is a precision vertical exploration game. You pilot a droid-controlled rocket through 12 hostile atmospheric zones, managing fuel, heat, shields, and hull integrity while dodging hazards, fighting enemies, and defeating colossal bosses.
+Jump Droid is a free, open-source Android arcade game built by Ashwath AI. Pilot a droid-controlled rocket through 12 hostile atmospheric zones, managing fuel, heat, shields, and hull integrity while dodging hazards, fighting enemies, and defeating colossal bosses.
 
 The core loop: **ascend → survive → discover → upgrade → ascend further.**
 
@@ -164,6 +166,8 @@ Open in Android Studio, sync Gradle, and run on a device or emulator (API 34+).
 
 ## Community & Feedback
 
+- **Google Play**: [Install the game](https://play.google.com/store/apps/details?id=com.ashwathai.jump_droid)
+- **itch.io**: [Download DRM-free](https://ashwathai.itch.io/jump-droid)
 - **Bug Reports**: [Open a bug report](https://github.com/atulkpal/jump-droid/issues/new?labels=bug)
 - **Feature Requests**: [Open a feature request](https://github.com/atulkpal/jump-droid/issues/new?labels=enhancement)
 - **Discussions**: [GitHub Discussions](https://github.com/atulkpal/jump-droid/discussions)
@@ -190,7 +194,9 @@ Open in Android Studio, sync Gradle, and run on a device or emulator (API 34+).
     <img src="media/logos/extra-01-logo.jpg" alt="Jump Droid" width="64">
   </a>
   <br><br>
-  <b>Built with ❤️ using Kotlin & Jetpack Compose</b>
+  <b>Built with ❤️ by Ashwath AI</b>
+  <br>
+  <small>Building free, open-source software, AI, and games for everyone.</small>
   <br><br>
-  <a href="https://github.com/atulkpal/jump-droid/issues">Report a Bug</a> · <a href="https://github.com/atulkpal/jump-droid/releases/latest">Latest Release</a>
+  <a href="https://github.com/atulkpal/jump-droid/issues">Report a Bug</a> · <a href="https://github.com/atulkpal/jump-droid/releases/latest">Latest Release</a> · <a href="https://play.google.com/store/apps/details?id=com.ashwathai.jump_droid">Google Play</a> · <a href="https://ashwathai.itch.io/jump-droid">itch.io</a>
 </p>
