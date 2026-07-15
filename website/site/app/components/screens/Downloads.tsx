@@ -43,7 +43,7 @@ export default function Downloads() {
                 Google Play
               </div>
               <div className="font-mono text-[10px] sm:text-[11px] text-slate-400 mt-0.5">
-                Free &middot; 8 MB &middot; Android 8+
+                Free &middot; Android 8+
               </div>
             </div>
           </a>
