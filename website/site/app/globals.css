@@ -189,6 +189,13 @@ select {
 .animate-phase { animation: phase-cycle 4s ease-in-out infinite; }
 .animate-float { animation: float-up 3s ease-in-out infinite; }
 
+/* Entity float for PacketVisual — slower, more subtle */
+@keyframes entity-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.animate-entity-float { animation: entity-float 5s ease-in-out infinite; }
+
 /* CRT Scanline Retro Mode */
 .crt-active {
   position: relative;

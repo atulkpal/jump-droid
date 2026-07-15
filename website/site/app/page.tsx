@@ -8,6 +8,7 @@ import DataPacket from "@/app/transmission/DataPacket";
 import SignalArchive from "@/app/transmission/SignalArchive";
 import SignalSource from "@/app/transmission/SignalSource";
 import SignalTerminated from "@/app/transmission/SignalTerminated";
+import StickyDownloadBar from "@/app/transmission/StickyDownloadBar";
 import { PACKETS, COORDINATE_LINES } from "@/app/data/transmission-packets";
 
 function computeSectionProgress(el: HTMLElement, windowHeight: number): number {
@@ -73,7 +74,7 @@ export default function Home() {
               return (
                 <p
                   key={i}
-                  className="font-mono text-xs sm:text-sm tracking-[0.15em] text-slate-400 leading-8 sm:leading-10"
+                  className="font-mono text-sm lg:text-base tracking-[0.15em] text-slate-400 leading-8 sm:leading-10"
                   style={{
                     opacity: lineProgress,
                     transform: `translateY(${(1 - lineProgress) * 12}px)`,
@@ -107,6 +108,8 @@ export default function Home() {
         {/* 10: Signal Terminated */}
         <SignalTerminated />
       </main>
+
+      <StickyDownloadBar />
     </>
   );
 }

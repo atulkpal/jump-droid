@@ -30,16 +30,18 @@ const visualMap: Record<string, FC> = {
 
 function PacketVisual({ type, progress }: { type: "rocket" | "platform" | "threat"; progress: number }) {
   const Component = visualMap[type];
+  const reveal = Math.min(1, progress * 2);
   return (
     <div
-      className="flex justify-center py-4"
+      className="relative flex justify-center py-6"
       style={{
-        opacity: Math.min(1, progress * 2),
-        transform: `translateY(${(1 - Math.min(1, progress * 2)) * 16}px)`,
-        transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
+        opacity: reveal,
+        transform: `translateY(${(1 - reveal) * 12}px)`,
+        transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
       }}
     >
-      <div className="scale-[0.6] origin-center">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,229,255,0.08),transparent_60%)] pointer-events-none" />
+      <div className="relative scale-[0.85] sm:scale-100 origin-center animate-entity-float">
         <Component />
       </div>
     </div>
@@ -147,7 +149,7 @@ export default function DataPacket({
         {packet.visualType && <PacketVisual type={packet.visualType} progress={progress} />}
 
         {/* Body text (typing effect) */}
-        <div className="font-mono text-xs sm:text-sm leading-relaxed sm:leading-relaxed text-slate-300 space-y-3 sm:space-y-4">
+        <div className="font-mono text-sm lg:text-base leading-relaxed text-slate-300 space-y-3 sm:space-y-4">
           {typedLines.map((line, i) => (
             <p key={i}>{formatBodyLine(line)}</p>
           ))}

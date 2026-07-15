@@ -79,6 +79,7 @@ export const PACKETS: PacketData[] = [
       "Signal architecture uses open standards. The full transmission — source code, assets, schematics — is publicly available.",
       "Licensed under MIT. Replication and modification are not only permitted but encouraged.",
       "Signal logs maintained at: github.com/atulkpal/jump-droid",
+      "Early deployment channel open at play.google.com/apps/testing/com.ashwathai.jump_droid",
     ],
     accent: "gold",
   },

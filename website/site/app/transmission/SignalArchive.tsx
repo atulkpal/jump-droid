@@ -21,68 +21,95 @@ export default function SignalArchive({ progress }: { progress: number }) {
           transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
         }}
       >
-        <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/60 uppercase mb-3">
+        <p className="font-mono text-[11px] tracking-[0.25em] text-cyan-400/60 uppercase mb-3">
           Transmission Complete
         </p>
         <h2 className="font-mono text-lg sm:text-xl font-bold tracking-[0.05em] text-white uppercase mb-3 leading-snug">
-          Continue the Expedition
+          The Expedition Awaits
         </h2>
-        <p className="font-mono text-xs sm:text-sm leading-relaxed text-slate-400 mb-8 max-w-lg">
+        <p className="font-mono text-sm lg:text-base leading-relaxed text-slate-400 mb-8 max-w-lg">
           The signal fragments tell only part of the story. Download the full
-          transmission to your device and experience the complete expedition.
-          Free. Open source. No account required.
+          transmission and experience the complete ascent. Free. Open source.
+          No account. No excuses.
         </p>
 
-        {/* Primary CTA */}
+        {/* Primary CTA — Google Play */}
         <a
           href={PLAY_STORE_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="group block w-full rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-6 py-5 text-center transition-all hover:bg-cyan-400/20 hover:border-cyan-400/50 hover:shadow-[0_0_24px_rgba(0,229,255,0.15)]"
+          className="group block w-full rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-6 py-5 text-center transition-all hover:bg-cyan-400/20 hover:border-cyan-400/50 hover:shadow-[0_0_32px_rgba(0,229,255,0.2)]"
           style={{
             opacity: reveal,
             transition: `opacity 0.5s ease-out 0.1s, background-color 0.2s, border-color 0.2s, box-shadow 0.2s`,
           }}
         >
-          <span className="font-mono text-sm sm:text-base font-bold tracking-[0.15em] text-cyan-200 group-hover:text-white transition-colors uppercase">
-            Install from Google Play
+          <span className="font-mono text-base sm:text-lg font-bold tracking-[0.15em] text-white group-hover:text-cyan-100 transition-colors uppercase">
+            Install on Google Play
           </span>
-          <span className="block font-mono text-[10px] text-cyan-400/50 group-hover:text-cyan-400/70 mt-1 transition-colors">
+          <span className="block font-mono text-[11px] text-cyan-400/50 group-hover:text-cyan-400/70 mt-1 transition-colors">
             Free &middot; 8 MB &middot; Android 8+
           </span>
         </a>
 
-        {/* Secondary links */}
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {[
-            { href: SOCIAL_LINKS.github, label: "GitHub", sub: "Source code" },
-            { href: SOCIAL_LINKS.itchIo, label: "itch.io", sub: "Alternative" },
-            { href: BETA_TESTING_URL, label: "Beta", sub: "Early access" },
-          ].map((link, i) => (
-            <a
-              key={link.label}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3 text-center transition-all hover:border-cyan-400/15 hover:bg-cyan-400/[0.04]"
-              style={{
-                opacity: reveal,
-                transition: `opacity 0.5s ease-out ${0.2 + i * 0.08}s, border-color 0.2s, background-color 0.2s`,
-              }}
-            >
-              <span className="font-mono text-xs font-semibold text-white/80 group-hover:text-cyan-200 transition-colors block">
-                {link.label}
-              </span>
-              <span className="font-mono text-[9px] text-slate-600 block mt-0.5">
-                {link.sub}
-              </span>
-            </a>
-          ))}
+        {/* Secondary row — Beta + links */}
+        <div
+          className="mt-4 grid grid-cols-2 gap-2"
+          style={{
+            opacity: reveal,
+            transition: `opacity 0.5s ease-out 0.2s`,
+          }}
+        >
+          <a
+            href={BETA_TESTING_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block rounded-lg border border-amber-400/15 bg-amber-400/[0.04] px-4 py-4 text-center transition-all hover:bg-amber-400/10 hover:border-amber-400/30 hover:shadow-[0_0_20px_rgba(255,192,0,0.1)]"
+          >
+            <span className="font-mono text-sm font-bold tracking-[0.1em] text-amber-200/80 group-hover:text-amber-100 transition-colors uppercase">
+              Join the Beta
+            </span>
+            <span className="block font-mono text-[10px] text-amber-400/40 mt-0.5 transition-colors">
+              Early access deployment
+            </span>
+          </a>
+          <a
+            href={SOCIAL_LINKS.github}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block rounded-lg border border-white/5 bg-white/[0.015] px-4 py-4 text-center transition-all hover:border-white/10"
+          >
+            <span className="font-mono text-sm font-semibold text-white/60 group-hover:text-white/80 transition-colors">
+              GitHub
+            </span>
+            <span className="block font-mono text-[10px] text-slate-700 mt-0.5">
+              Source code
+            </span>
+          </a>
         </div>
 
-        <p className="font-mono text-[10px] text-slate-700 mt-6 text-center leading-relaxed">
-          Open source (MIT). No data collection. No account needed.
-        </p>
+        <div
+          className="flex flex-wrap justify-center gap-4 mt-5"
+          style={{
+            opacity: reveal,
+            transition: `opacity 0.5s ease-out 0.3s`,
+          }}
+        >
+          <a
+            href={SOCIAL_LINKS.itchIo}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-[11px] text-slate-600 hover:text-slate-400 transition-colors underline underline-offset-2"
+          >
+            itch.io
+          </a>
+          <a
+            href={SOCIAL_LINKS.privacy}
+            className="font-mono text-[11px] text-slate-600 hover:text-slate-400 transition-colors underline underline-offset-2"
+          >
+            Privacy
+          </a>
+        </div>
       </div>
     </motion.section>
   );

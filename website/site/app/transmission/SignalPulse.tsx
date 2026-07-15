@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { INTRO_LINES } from "@/app/data/transmission-packets";
+import RocketSVG from "@/app/components/game/RocketSVG";
 
 function useTypedText(text: string, progress: number): string {
   const totalChars = text.length;
@@ -15,6 +16,7 @@ export default function SignalPulse({ progress }: { progress: number }) {
 
   const pulseScale = 0.8 + progress * 0.4;
   const pulseOpacity = 0.3 + progress * 0.7;
+  const teaserOpacity = 0.03 + progress * 0.04;
 
   const dots = useMemo(() =>
     Array.from({ length: 60 }, (_, i) => ({
@@ -24,7 +26,20 @@ export default function SignalPulse({ progress }: { progress: number }) {
     })), []);
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center justify-center px-6 py-32">
+    <section className="relative flex min-h-screen flex-col items-center justify-center px-6">
+
+      {/* Teaser rocket silhouette */}
+      <div
+        className="absolute left-4 sm:left-8 bottom-20 sm:bottom-28 pointer-events-none animate-float"
+        style={{
+          opacity: teaserOpacity,
+          animationDuration: "10s",
+          width: "120px",
+          height: "auto",
+        }}
+      >
+        <RocketSVG />
+      </div>
       <div className="flex flex-col items-center gap-8">
         {/* Orbiting dots */}
         <div
@@ -54,7 +69,7 @@ export default function SignalPulse({ progress }: { progress: number }) {
         </div>
 
         {/* Typed text */}
-        <div className="flex flex-col items-center gap-1 font-mono text-xs tracking-[0.2em] text-cyan-300/80">
+        <div className="flex flex-col items-center gap-1 font-mono text-sm tracking-[0.2em] text-cyan-300/80">
           <p>
             {typed1}
             {typed1.length < INTRO_LINES[0].length && (
