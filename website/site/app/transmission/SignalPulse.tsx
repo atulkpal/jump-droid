@@ -19,8 +19,8 @@ export default function SignalPulse({ progress }: { progress: number }) {
   const dots = useMemo(() =>
     Array.from({ length: 60 }, (_, i) => ({
       angle: (i / 60) * Math.PI * 2,
-      radius: 24 + Math.random() * 12,
-      delay: Math.random() * 2,
+      radius: 24 + ((i * 7 + 13) % 100) / 100 * 12,
+      delay: ((i * 17 + 11) % 100) / 100 * 2,
     })), []);
 
   return (

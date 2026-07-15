@@ -24,13 +24,6 @@ export default function Home() {
 
   const setRef = useCallback((i: number) => (el: HTMLDivElement | null) => {
     refs.current[i] = el;
-    if (el) {
-      setProgs((prev) => {
-        const next = [...prev];
-        next[i] = computeSectionProgress(el, window.innerHeight);
-        return next;
-      });
-    }
   }, []);
 
   useEffect(() => {
