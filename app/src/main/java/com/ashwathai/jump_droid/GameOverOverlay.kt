@@ -1,6 +1,7 @@
 package com.ashwathai.jump_droid
 
 import android.app.Activity
+import android.content.Intent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -20,10 +21,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -187,6 +192,13 @@ fun GameOverOverlay(
                     LaunchedEffect(retryCount, continuesUsed) { RewardedAdHelper.load(context) }
                 }
 
+                val failureMessage = when (retryCount) {
+                    0 -> null
+                    1 -> "AD UNAVAILABLE — LINK WEAK"
+                    2 -> "ONE ATTEMPT REMAINING"
+                    else -> null
+                }
+
                 Button(
                     onClick = {
                         if (isFreeContinue) {
@@ -220,7 +232,7 @@ fun GameOverOverlay(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("[AD]", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp)
                             Spacer(Modifier.padding(start = 8.dp))
-                            Text("RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            Text(if (retryCount >= 2) "FORCED RELINK" else "RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         }
                     }
                 }
@@ -230,6 +242,17 @@ fun GameOverOverlay(
                         text = "Continue ${continuesUsed + 1} of $maxContinues",
                         color = SciFiWhite.copy(alpha = 0.4f),
                         fontSize = 11.sp,
+                        letterSpacing = 1.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
+                if (failureMessage != null) {
+                    Text(
+                        text = failureMessage,
+                        color = SciFiRed.copy(alpha = 0.7f),
+                        fontSize = 10.sp,
                         letterSpacing = 1.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 4.dp)
@@ -261,13 +284,28 @@ fun GameOverOverlay(
 
             Spacer(Modifier.height(12.dp))
 
-            Button(
-                onClick = onMainMenu,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = SciFiWhite.copy(alpha = 0.5f))
-            ) {
-                Text("RETURN TO BASE", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onMainMenu,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = SciFiWhite.copy(alpha = 0.5f))
+                ) {
+                    Text("RETURN TO BASE", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
+                }
+                val shareContext = LocalContext.current
+                IconButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, "I reached altitude $score in Jump Droid! 🚀 Can you beat me?\nhttps://jump-droid.vercel.app")
+                        }
+                        shareContext.startActivity(Intent.createChooser(intent, "Share Jump Droid"))
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Text("⇧", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                }
             }
             Spacer(Modifier.height(8.dp))
             GlobalAdBanner()

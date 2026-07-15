@@ -1,6 +1,7 @@
 package com.ashwathai.jump_droid
 
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -78,8 +79,15 @@ fun ArchiveScreen(
             Column(Modifier.padding(16.dp).safeDrawingPadding()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("DATA ARCHIVE", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                val discovered = DiscoveryType.entries.count { sharedPrefs.getBoolean("discovery_$it", false) }
-                Text("$discovered RECORDS", color = SciFiWhite.copy(alpha = 0.4f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val unread = discoveryManager.getUnreadCount()
+                    if (unread > 0) {
+                        Box(Modifier.size(8.dp).background(SciFiPurple, CircleShape))
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    val discovered = DiscoveryType.entries.count { sharedPrefs.getBoolean("discovery_$it", false) }
+                    Text("$discovered RECORDS", color = SciFiWhite.copy(alpha = 0.4f), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                }
             }
             Spacer(Modifier.height(8.dp))
             val totalDiscovery = DiscoveryType.entries.size
@@ -130,29 +138,34 @@ fun ArchiveScreen(
                 when (selectedCat.label) {
                     "LOGS" -> LoreLog.ALL_LOGS.forEach { log ->
                         val unlocked = sharedPrefs.getBoolean("log_${log.id}", false)
+                        val viewed = sharedPrefs.getBoolean("viewed_log_${log.id}", false)
                         val title = if (unlocked) log.title else "SIGNAL LOST"
                         val desc = if (unlocked) log.text else "ENCRYPTED SIGNAL DETECTED AT ${log.unlockAltitude}m."
-                        ArchiveCard(title, desc, if (unlocked) "CATEGORY: ${log.category.name}" else "", unlocked, selectedCat.accent, onClick = {
+                        ArchiveCard(title, desc, if (unlocked) "CATEGORY: ${log.category.name}" else "", unlocked, selectedCat.accent, isNew = unlocked && !viewed, onClick = {
                             selectedDetail = EntityDetailRegistry.byDiscovery(DiscoveryType.LOG_GENERIC).copy(
                                 id = log.id,
                                 archiveRecord = if (unlocked) log.text else "█ SIGNAL LOST",
                                 status = "RECORD // ${log.category.name}"
                             )
+                            if (unlocked && !viewed) sharedPrefs.edit { putBoolean("viewed_log_${log.id}", true) }
                         })
                     }
                     "ACHIEVEMENTS" -> AchievementsList.forEach { ach ->
                         val unlocked = sharedPrefs.getBoolean("achievement_${ach.id}", false)
+                        val viewed = sharedPrefs.getBoolean("viewed_ach_${ach.id}", false)
                         ArchiveCard(
                             ach.title,
                             if (unlocked) ach.description else "DATA ENCRYPTED: REACH OBJECTIVE TO UNLOCK.",
                             "",
                             unlocked,
                             selectedCat.accent,
+                            isNew = unlocked && !viewed,
                             onClick = {
                                 selectedDetail = EntityDetailRegistry.byDiscovery(DiscoveryType.ACHIEVEMENT_GENERIC).copy(
                                     id = ach.id,
                                     archiveRecord = if (unlocked) ach.description else "█ SIGNAL LOST"
                                 )
+                                if (unlocked && !viewed) sharedPrefs.edit { putBoolean("viewed_ach_${ach.id}", true) }
                             }
                         )
                     }
@@ -165,6 +178,7 @@ fun ArchiveScreen(
                         val entries = filterEntries(selectedCat.label, progressionManager)
                         entries.forEach { entry ->
                             val unlocked = discoveryManager.isDiscovered(entry)
+                            val viewed = discoveryManager.isViewed(entry)
                             val title = if (unlocked) entry.title else "UNKNOWN SIGNAL"
                             val desc = if (unlocked) entry.description else "DATA CORRUPTED — RECOVER DURING NEXT EXPEDITION."
                             val lore = if (unlocked) entry.lore else ""
@@ -172,7 +186,10 @@ fun ArchiveScreen(
                                 val record = progressionManager.artifactsCollected[entry.name]
                                 if (record != null) "\n\nFIRST: ${record.firstDiscoveryDate}\nFOUND: ${record.timesFound}x\nMAX ALT: ${record.highestAltitude}m\nZONE: ${record.zoneFound}" else ""
                             } else ""
-                            ArchiveCard(title, desc, lore + extraInfo, unlocked, selectedCat.accent, onClick = { selectedDetail = EntityDetailRegistry.byDiscovery(entry) })
+                            ArchiveCard(title, desc, lore + extraInfo, unlocked, selectedCat.accent, isNew = unlocked && !viewed, onClick = {
+                                selectedDetail = EntityDetailRegistry.byDiscovery(entry)
+                                if (unlocked && !viewed) discoveryManager.markViewed(entry)
+                            })
                         }
                     }
                 }
@@ -251,6 +268,7 @@ private fun ArchiveCard(
     meta: String,
     unlocked: Boolean,
     accent: Color = SciFiCyan,
+    isNew: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
     val bg = if (unlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.4f)
@@ -274,6 +292,12 @@ private fun ArchiveCard(
                     fontSize = 11.sp,
                     letterSpacing = 1.sp
                 )
+                if (isNew) {
+                    Spacer(Modifier.width(8.dp))
+                    Surface(color = SciFiPurple, shape = RoundedCornerShape(3.dp)) {
+                        Text("NEW", color = Color.Black, fontSize = 7.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                    }
+                }
             }
             if (!unlocked) {
                 Spacer(Modifier.height(8.dp))

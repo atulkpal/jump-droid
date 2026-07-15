@@ -1,6 +1,7 @@
 package com.ashwathai.jump_droid
 
 import android.app.Activity
+import android.content.Intent
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -8,6 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,12 +17,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -88,7 +93,7 @@ fun MainMenuScreen(
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.safeDrawingPadding().width(280.dp)
+            modifier = Modifier.safeDrawingPadding().fillMaxWidth(0.85f)
         ) {
             Spacer(Modifier.height(40.dp))
 
@@ -189,12 +194,28 @@ fun MainMenuScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-            Text(
-                text = "ALL SYSTEMS NOMINAL",
-                color = SciFiCyan.copy(alpha = 0.3f),
-                fontSize = 9.sp,
-                letterSpacing = 2.sp
-            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "ALL SYSTEMS NOMINAL",
+                    color = SciFiCyan.copy(alpha = 0.3f),
+                    fontSize = 9.sp,
+                    letterSpacing = 2.sp
+                )
+                Spacer(Modifier.width(8.dp))
+                val shareContext = LocalContext.current
+                IconButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, "Explore the skies in Jump Droid! 🚀\nhttps://jump-droid.vercel.app")
+                        }
+                        shareContext.startActivity(Intent.createChooser(intent, "Share Jump Droid"))
+                    },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Text("⇧", fontWeight = FontWeight.Black, fontSize = 12.sp)
+                }
+            }
             Spacer(Modifier.height(8.dp))
             GlobalAdBanner()
         }

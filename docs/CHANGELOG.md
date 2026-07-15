@@ -4,20 +4,32 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
-## 2026-07-14
+## 2026-07-15
 
-**Version:** v1.5.1 — Release Polish Update (Hotfix)
+**Version:** v1.5.2 — Closed Beta
 
-**Status:** Hotfix ✅
+**Status:** Closed Beta ✅
 
-### Fixed
-- **Crash on game over (fadeOutAndPlayGameOver)**: `MediaPlayer.setVolume()` called after player release threw `IllegalStateException`. Wrapped in try-catch to safely handle race conditions with concurrent music operations.
-- **Crash during crossfade (playMusic)**: Same root cause — `MediaPlayer.setVolume()` in crossfade coroutine threw `IllegalStateException` when zone changes triggered rapid music swaps. Wrapped entire crossfade body in try-catch for defensive safety.
+### Added
+- **ContinueReadyOverlay**: New dark overlay with "Tap anywhere to resume" after continue. Game state `CONTINUE_READY` replaces direct `PLAYING` transition — player must tap to resume.
+- **Share Jump Droid**: Share button in Game Over overlay (top arrow icon) and Main Menu footer. Shares altitude score or generic invite text via Android share intent.
+- **Main Menu responsiveness**: Replaced hardcoded `width(280.dp)` with `fillMaxWidth(0.85f)` for proper display across screen sizes.
+- **Heat Bat 4-state AI**: `ENT_HEAT_BAT` now has SEARCHING (patrol), ATTACKING (dive to heat), ORBITING (circle near heat), FLEEING (retreat at high heat) behavioral states via `ThreatAIUpdater.kt`.
+- **Boss cooldown map**: `EncounterDirector.bossCooldowns` prevents re-spawning a boss within 60s of defeat. Cooldown ticks down with dt.
+- **Archive NEW system**: `DiscoveryManager.markViewed()`/`isViewed()`/`getUnreadCount()` tracks unread discoveries. ArchiveScreen shows purple dot in header and "NEW" badge on unread entries. CodexCard supports optional `isNew` badge.
+- **ADR documentation**: `docs/ADR_DISTRIBUTION_STRATEGY.md` — distribution strategy for closed beta.
+- **Production checklist**: `docs/PRODUCTION_CHECKLIST.md` — pre/post release tasks.
+
+### Changed
+- **Version bump**: `versionCode 2 → 4`, `versionName "1.5.1" → "1.5.2"`.
+- **Website version**: Updated to v1.5.2.
+- **GameOver continue UX**: Ad failure now shows progressive messages ("LINK WEAK" → "ONE ATTEMPT REMAINING" → "FORCED RELINK"). 3rd failed attempt grants free continue.
 
 ### Build
-- `./gradlew assembleDebug` — BUILD SUCCESSFUL
 - `./gradlew assembleRelease` — BUILD SUCCESSFUL
-- `./gradlew bundleRelease` — BUILD SUCCESSFUL
+- `./gradlew assembleDebug` — BUILD SUCCESSFUL
+
+---
 
 ---
 

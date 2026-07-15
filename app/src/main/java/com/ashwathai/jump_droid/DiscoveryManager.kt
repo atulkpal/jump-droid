@@ -81,4 +81,16 @@ class DiscoveryManager(private val sharedPrefs: SharedPreferences) {
     fun isDiscovered(type: DiscoveryType): Boolean {
         return sharedPrefs.getBoolean("discovery_$type", false)
     }
+
+    fun markViewed(type: DiscoveryType) {
+        sharedPrefs.edit { putBoolean("viewed_${type.name}", true) }
+    }
+
+    fun isViewed(type: DiscoveryType): Boolean {
+        return sharedPrefs.getBoolean("viewed_${type.name}", false)
+    }
+
+    fun getUnreadCount(): Int {
+        return DiscoveryType.entries.count { isDiscovered(it) && !isViewed(it) }
+    }
 }

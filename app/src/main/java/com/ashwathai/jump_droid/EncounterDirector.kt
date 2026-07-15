@@ -11,6 +11,7 @@ import kotlin.random.Random
 class EncounterDirector {
     var threatSpawnTimer = 0f
     private var bossRecurrenceTimer = 0f
+    private val bossCooldowns = mutableMapOf<String, Float>()
 
     private val zoneConfigs = mapOf(
         AltitudeZone.EARTH to ZoneConfig(
@@ -177,6 +178,14 @@ class EncounterDirector {
         onVisualFeedback: (shake: Float, flash: Float) -> Unit,
         onBossSpawned: (ThreatDefinition) -> Unit = {}
     ) {
+        // Tick boss cooldowns
+        val iter = bossCooldowns.entries.iterator()
+        while (iter.hasNext()) {
+            val entry = iter.next()
+            entry.setValue(entry.value - dt)
+            if (entry.value <= 0f) iter.remove()
+        }
+
         val config = zoneConfigs[currentZone] ?: return
         val intensityFactor = config.intensity
         val zoneMultiplier = 0.8f + intensityFactor * 0.4f
@@ -203,11 +212,12 @@ class EncounterDirector {
         } else {
             var spawnedThisFrame = false
             bossMilestones.forEach { (id, threshold) ->
-                if (!spawnedThisFrame && score >= threshold && !bossesSpawned.contains(id)) {
+                if (!spawnedThisFrame && score >= threshold && !bossesSpawned.contains(id) && !bossCooldowns.containsKey(id)) {
                     ThreatRegistry.getById(id)?.let { def ->
                         if (currentZone in def.spawnRules.allowedZones || def.spawnRules.allowedZones.isEmpty()) {
                             spawnedThisFrame = true
                             bossesSpawned.add(id)
+                            bossCooldowns[id] = 60f
                             spawnAtConfigPosition(
                                 def, screenWidth, screenHeight, cameraY,
                                 threatManager, notificationManager, score,

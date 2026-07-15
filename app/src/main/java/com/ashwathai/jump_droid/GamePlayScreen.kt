@@ -107,6 +107,12 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
         HUDLayer(engine)
 
         // --- Overlays ---
+        if (gameState == GameState.CONTINUE_READY) {
+            ContinueReadyOverlay(
+                onTap = { engine.gameState = GameState.PLAYING }
+            )
+        }
+
         if (gameState == GameState.PAUSED) {
             PauseOverlay(
                 showDevMenu = engine.showDevMenu,
