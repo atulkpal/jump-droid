@@ -155,7 +155,7 @@ export const MISSION_LOG = {
 
 export const DOWNLOADS = {
   title: "INSTALL JUMP DROID",
-  version: "v1.5.1",
+  version: "v1.5.2",
   description: "Free. Open source. Available on all major platforms.",
 } as const;
 

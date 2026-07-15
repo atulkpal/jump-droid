@@ -29,7 +29,7 @@ If applicable, add screenshots or a screen recording to help explain the problem
 **Device (please complete the following information):**
 - Device: [e.g. Pixel 7, Samsung Galaxy S23]
 - Android version: [e.g. 14, 15]
-- App version: [e.g. v1.5.1]
+- App version: [e.g. v1.5.2]
 
 **Additional context**
 

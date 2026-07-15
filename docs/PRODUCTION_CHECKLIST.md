@@ -12,22 +12,22 @@
 ## Build
 
 - [x] `./gradlew clean`
-- [ ] `./gradlew assembleRelease` — generates AAB + APK
-- [ ] `./gradlew assembleDebug` — generates debug APK
+- [x] `./gradlew assembleRelease` — generates AAB + APK
+- [x] `./gradlew assembleDebug` — generates debug APK
 
 ## Verification
 
-- [ ] AAB uploads to Google Play Internal Testing
-- [ ] Release APK installs on clean device (sideload)
-- [ ] Debug APK installs on dev device
-- [ ] Existing save data migrates (SharedPreferences unchanged)
-- [ ] Portrait lock active
-- [ ] Keep-screen-on during gameplay
+- [x] AAB uploads to Google Play Internal Testing
+- [x] Release APK installs on clean device (sideload)
+- [x] Debug APK installs on dev device
+- [x] Existing save data migrates (SharedPreferences unchanged)
+- [x] Portrait lock active
+- [x] Keep-screen-on during gameplay
 
 ## Post-Release
 
-- [ ] Tag commit: `git tag -a v1.5.2 -m "v1.5.2 Closed Beta"`
-- [ ] GitHub Release created with APK attachments
-- [ ] Website version updated (v1.5.1 → v1.5.2)
-- [ ] `docs/CHANGELOG.md` updated
-- [ ] Testers notified via email/Discord
+- [x] Tag commit: `git tag -a v1.5.2 -m "v1.5.2 Closed Beta"`
+- [x] GitHub Release created with APK attachments
+- [x] Website version updated (v1.5.1 → v1.5.2)
+- [x] `docs/CHANGELOG.md` updated
+- [x] Testers notified via email/Discord

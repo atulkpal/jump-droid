@@ -70,21 +70,23 @@ Happy to discuss architecture decisions or answer questions!
 
 ---
 
-## Template 3: Community Update
+## Template 3: Community Update (v1.5.2)
 
 **Subreddit:** r/AndroidGaming
 
-**Title:** Jump Droid v1.5.1 is out — open source rocket exploration game
+**Title:** Jump Droid v1.5.2 is out — Closed Beta Update (Open Source)
 
 **Body:**
 
-Just published a hotfix for Jump Droid that fixes two audio-related crashes. The game is completely free and open source.
+Just published the v1.5.2 Closed Beta for Jump Droid. This update focuses on UX polish and AI behavior refinements.
 
-**v1.5.1 Hotfix:**
-- Fixed crash on game over from MediaPlayer race condition
-- Fixed crash during music crossfade from zone changes
+**v1.5.2 Highlights:**
+- **Continue-Ready Overlay**: Added a safety buffer after ads/continues to prevent accidental deaths.
+- **Sharing System**: Integrated native Android share intent for altitude scores.
+- **Heat Bat 2.0**: Overhauled predatory AI with 4 distinct behavioral states.
+- **Archive "NEW" Badges**: Visual indicators for unread lore and artifact discoveries.
 
-If you haven't tried it yet — it's a vertical rocket game with 12 zones, 11 bosses, modular ship builds, and a full endgame. Free download, no ads (except optional rewarded continues), no pay-to-win.
+If you haven't tried it yet — it's a vertical rocket game with 12 zones, 11 bosses, modular ship builds, and a full endgame. Free download, open source, no pay-to-win.
 
 [GitHub link]
 

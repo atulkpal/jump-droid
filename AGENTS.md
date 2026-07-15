@@ -34,8 +34,8 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 ## 2. Current Project State
 
 *   **Current Branch**: `master`
-*   **Current Stable Tag**: `v1.5.1`
-*   **Current Version**: v1.5.1 — Release Polish Update
+*   **Current Stable Tag**: `v1.5.2`
+*   **Current Version**: v1.5.2 — Closed Beta Release
 *   **Current EPIC**: EPIC 11 — Ascension (The End) — **COMPLETE ✅**
 *   **Current Status**: **v1.5.2 PUBLISHED**. Closed Beta Release: continue-ready overlay, sharing system, main menu responsiveness, Heat Bat AI overhaul, boss cooldowns, and "NEW" archive badge system. See `docs/releases/v1.5.2_PUBLICATION_REPORT.md`.
 *   **Known Issues**: 

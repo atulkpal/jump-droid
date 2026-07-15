@@ -11,7 +11,7 @@
 | **Game Title** | Jump Droid |
 | **Tagline** | Ascend Beyond the Atmosphere |
 | **Developer** | Ashwath AI |
-| **Release Date** | v1.5.1 — July 2026 |
+| **Release Date** | v1.5.2 — July 2026 |
 | **Platform** | Android (minimum SDK 34) |
 | **Price** | Free |
 | **Monetization** | Optional rewarded ads, cosmetic purchases (planned) |

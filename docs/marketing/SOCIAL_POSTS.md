@@ -116,15 +116,17 @@ The ascent never truly ends.
 
 ## Community / Milestone Posts
 
-### Post 5: v1.5.1 Hotfix
+### Post 5: v1.5.2 Closed Beta Update
 
-🛠️ Jump Droid v1.5.1 hotfix is out.
+🛠️ Jump Droid v1.5.2 Closed Beta is out.
 
-Fixed two audio crashes:
-• Crash on game over (fadeOutAndPlayGameOver)
-• Crash during music crossfade (zone changes)
+What's New:
+• Continue-Ready overlay (safety buffer after ads)
+• Native Android sharing system
+• Heat Bat 4-state AI overhaul
+• Boss cooldowns & Archive "NEW" badges
 
-The fix is live now on GitHub. Free & open source as always.
+The update is live now on GitHub. Free & open source as always.
 
 🐙 [link]
 

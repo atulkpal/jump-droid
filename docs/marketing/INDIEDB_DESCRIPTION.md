@@ -50,4 +50,4 @@ Jump Droid is fully open source under the MIT License. The complete codebase is 
 
 ### Status
 
-v1.5.1 — Release Polish Update (Hotfix). Actively maintained. Open source.
+v1.5.2 — Closed Beta Update. Actively maintained. Open source.
