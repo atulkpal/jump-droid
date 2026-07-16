@@ -98,7 +98,6 @@
 ---
 
 # EPIC 7 - Rocket Evolution (COMPLETE)
-*Detailed Tracker: [docs/roadmap/EPIC_7_TRACKER.md](roadmap/EPIC_7_TRACKER.md)*
 
 - [x] Rocket Classes (Base 4 classes: Explorer, Striker, Heavy, Prototype)
 - [x] Module Framework (Registry, Hooks, LoadoutManager)
@@ -115,9 +114,7 @@
 
 # EPIC 8 - Missions & Progression
 
-Status: Functionally Complete — Awaiting Runtime Signoff
-Migration Branch: `epic8-mission-migration`
-Detailed Tracker: [docs/roadmap/EPIC_8_TRACKER.md](roadmap/EPIC_8_TRACKER.md)
+**Status: COMPLETE ✅**
 
 # EPIC 8.5 - Architecture Decomposition & Mission Alignment
 
@@ -220,7 +217,6 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 **Status: COMPLETE ✅**
 *Execution Plan: [docs/roadmap/EPIC_9_EXECUTION_PLAN.md](roadmap/EPIC_9_EXECUTION_PLAN.md)*
-*Detailed Tracker: [docs/roadmap/EPIC_9_TRACKER.md](roadmap/EPIC_9_TRACKER.md)*
 
 - [x] Sprint 9.1: Glitch UI + Cryptic Hints + Reveal Ceremony
 - [x] Sprint 9.2: Dynamic Unlock Engine (AND/OR, 17 modules)
@@ -375,9 +371,54 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 ---
 
+# Analytics V0 — Beta Tester Analytics (IMPLEMENTED)
+
+**Version:** v1.5.2 (versionCode 6)
+**Primary Doc:** `docs/ANALYTICS.md` (Beta Analytics V0 section)
+**Migration Guide:** See `docs/ANALYTICS.md` → Migration Guide
+
+## Beta Tester Tracking (v1.5.2)
+- [x] Firestore `testers/{sanitizedEmail}` collection with 15 fields
+- [x] Firestore `testers/{sanitizedEmail}/sessions/{id}` per-session history
+- [x] First-launch registration dialog (email required, name/phone optional)
+- [x] Email validation via `Patterns.EMAIL_ADDRESS`
+- [x] SharedPreferences persistence (never ask again)
+- [x] `PlayerAnalyticsManager` decorator on `GameAnalytics`
+
+## Gameplay Telemetry
+- [x] Session gameplay time via game start/stop timers
+- [x] Today gameplay time (daily reset)
+- [x] Session count tracking
+- [x] App open time (foreground/background lifecycle)
+
+## Data Reuse
+- [x] `totalGameplayTime` from Intelligence Network (`stat_lifetime_flight_time`)
+- [x] `highestScore` from Intelligence Network (`highScore`)
+- [x] Ad counters via `logAdImpression`/`logAdClicked` interception
+
+## Future (Analytics V2)
+- [ ] Parameter symmetry fix (`mission_category` in `mission_completed`, `boss_name` in `boss_defeated`)
+- [ ] Rewarded ad impression timing (move to real impression callback)
+- [ ] Overlay screen tracking (Pause, Help, Tutorial, GameOver, etc.)
+- [ ] GDPR privacy consent dialog
+- [ ] Firebase user properties (`player_id`, `tester_cohort`)
+
+---
+
+# Analytics & Ads Governance
+
+| System | Primary Document |
+|--------|-----------------|
+| **Event Catalog** | `docs/ANALYTICS.md` |
+| **Full Audit** | `docs/analysis/ANALYTICS_AUDIT.md` |
+| **AdMob Config** | `AdConfig.kt` |
+| **Analytics Interface** | `GameAnalytics.kt` |
+
+---
+
 # EPIC 12 - Fleet Expansion
 
-Status: Planned
+**Status:** Planned
 
 ## Fleet Framework
 

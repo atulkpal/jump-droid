@@ -185,6 +185,52 @@ runGameLoop(currentTime, isThrusting, thrustTarget, inputProcessor)
 | `ThreatRendererRegistry.kt` | Maps threat IDs to their renderers for dispatcher dispatch. |
 | `*Renderer.kt` (26 files) | Per-threat canvas rendering (hazards, enemies, bosses). |
 
+### Analytics & Ads
+
+| File | Responsibility |
+|------|---------------|
+| `GameAnalytics.kt` | `GameAnalytics` interface (12 domain methods) + `FirebaseGameAnalytics` (Firebase implementation) |
+| `AdConfig.kt` | Centralized AdMob unit IDs with automatic debug/release switching |
+| `AdComponents.kt` | `GlobalAdBanner` composable + `RewardedAdHelper` for rewarded continues |
+| `MainActivity.kt` | Firebase init, analytics instantiation, screen view tracking via NavHost observer |
+
+**Analytics data flow:**
+
+```
+Game Event (start, death, zone change, mission, boss, unlock, equip)
+    │
+    ▼
+GameEngine / Composable → analytics.logXxx(...)
+    │
+    ▼
+FirebaseGameAnalytics.logXxx(...)
+    │
+    ├── Bundle(params) + firebase.logEvent(name, params)
+    └── Firebase Console
+```
+
+**Ad event flow:**
+
+```
+Banner: AdListener.onAdImpression/onAdClicked → analytics.logAdImpression/logAdClicked
+Rewarded: RewardedAdHelper.show() → analytics.logAdImpression (at call time, not impression callback)
+          GameOverOverlay continue button → analytics.logAdClicked
+```
+
+**Screen tracking flow:**
+
+```
+NavHost.currentBackStackEntryFlow
+    │
+    ▼
+MainActivity.kt:56 → analytics.logScreenView(route, screenClass)
+    │
+    ▼
+FirebaseAnalytics.Event.SCREEN_VIEW
+```
+
+See `docs/ANALYTICS.md` for the full event catalog, AdMob configuration, user properties, and governance rules.
+
 ---
 
 ## Data Flow

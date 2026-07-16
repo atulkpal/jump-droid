@@ -4,6 +4,34 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-16
+
+**Version:** v1.5.2 — Beta Analytics V0 / Stabilization
+
+**Status:** Release-ready ✅
+
+### Added
+- **PlayerAnalyticsManager**: Firestore-backed tester analytics using decorator pattern on `GameAnalytics`. Tracks 15 fields per tester in `testers/{email}` collection plus per-session history in `testers/{email}/sessions/{id}` subcollection.
+- **BetaRegistrationDialog**: First-launch dialog asking for email (required), name (optional), phone (optional). Validates email via `Patterns.EMAIL_ADDRESS`. Never shows again after submission or skip.
+- **Firestore integration**: Added `firebase-firestore` dependency. Internet permission already present.
+
+### Changed
+- **Documentation restructure**: Archived ~59 historical backlog files to `docs/archive/`. Removed empty `architecture/`, `REPORTS/`, `releases/` directories.
+- **New docs**: `docs/ANALYTICS.md` — dedicated analytics & ads reference with event catalog, screen tracking, AdMob config, governance, Beta V0 docs, Migration Guide, Production Cleanup section. `docs/RELEASES.md` — single-file release history replacing per-version publication reports.
+- **Updates**: `INVENTORY.md` fixed analytics/ad file paths. `ARCHITECTURE.md` gained Analytics & Ads section. `AGENTS.md` updated Master Index.
+- **Version code**: 5 → 6 (versionName remains 1.5.2).
+
+### Stabilization
+- **Removed 5 temporary debug Log.d lines** (verbose lifecycle traces: onAppForeground, onAppBackground, bg timeout, crash recovery, session resume).
+- **Wrapped 10 remaining Log calls in `if (BuildConfig.DEBUG)`** — silent in release builds; debug builds retain full `adb logcat -s BetaAnalytics` tracing.
+- **Documented session lifecycle**: One completed game = one analytics session. Added `docs/ANALYTICS.md` "Session Lifecycle" and "Production Cleanup Opportunity" sections.
+- **Updated KDoc** in `PlayerAnalyticsManager.kt` to reflect Beta V0 session model.
+
+### Cleanup Opportunity (~190 lines)
+Documented in `docs/ANALYTICS.md` — app-lifecycle infrastructure (`onAppForeground`, `onAppBackground`, crash resilience, timers, incremental tracking) can be removed in a future production pass with zero impact on one-game=one-session metrics.
+
+---
+
 ## 2026-07-15
 
 **Version:** v1.5.2 — Closed Beta

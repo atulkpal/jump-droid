@@ -37,7 +37,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Current Stable Tag**: `v1.5.2`
 *   **Current Version**: v1.5.2 — Closed Beta Release
 *   **Current EPIC**: EPIC 11 — Ascension (The End) — **COMPLETE ✅**
-*   **Current Status**: **v1.5.2 PUBLISHED**. Closed Beta Release: continue-ready overlay, sharing system, main menu responsiveness, Heat Bat AI overhaul, boss cooldowns, and "NEW" archive badge system. See `docs/releases/v1.5.2_PUBLICATION_REPORT.md`.
+*   **Current Status**: **v1.5.2 PUBLISHED**. Closed Beta Release: continue-ready overlay, sharing system, main menu responsiveness, Heat Bat AI overhaul, boss cooldowns, and "NEW" archive badge system. See `docs/RELEASES.md`.
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
     *   GameScreen.kt at ~2,080 lines — extraction continued via GameEngine refactoring into `refactor/cleanup` branch.
@@ -96,24 +96,18 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 | System | Primary Document | Supporting Documents |
 | :--- | :--- | :--- |
-| **Governance** | `AGENTS.md` | `docs/REPORTS/Doc_Migration.md` |
-| **History** | `docs/CHANGELOG.md` | `docs/analysis/MISSION_RECOVERY_AUDIT.md` |
-| **Architecture** | `docs/ARCHITECTURE.md` | `docs/architecture/Refactor_T4_Report.md` |
-| **Mission System** | `docs/analysis/MISSION_ARCHITECTURE_AUDIT.md` | `docs/roadmap/EPIC_8_MIGRATION_PLAN.md` |
-| **Progression** | `docs/analysis/Progression_Architecture_Audit.md` | `ProgressionManager.kt` |
+| **Governance** | `AGENTS.md` | `docs/analysis/ANALYTICS_AUDIT.md` |
+| **History** | `docs/CHANGELOG.md` | `docs/RELEASES.md` |
+| **Architecture** | `docs/ARCHITECTURE.md` | `docs/analysis/EPIC8_5_MASTER_BLUEPRINT.md` |
+| **Analytics & Ads** | `docs/ANALYTICS.md` | `PlayerAnalyticsManager.kt`, `GameAnalytics.kt` |
+| **Beta Analytics** | `PlayerAnalyticsManager.kt` | `docs/ANALYTICS.md` (Beta V0 section) |
 | **Threat System** | `docs/gameplay/THREATS.md` | `docs/THREAT_MASTER_TABLE.md` |
-| **Rocket System** | `docs/design/ROCKET_LIBRARY.md` | `docs/analysis/Rocket_Class_Audit.md` |
-| **UI / UX** | `docs/analysis/EPIC7_VISUAL_REGRESSION_AUDIT.md` | `docs/analysis/Phase_8_5_Report.md` |
+| **Rocket System** | `docs/design/ROCKET_LIBRARY.md` | (Content Only) |
 | **Monetization** | `docs/roadmap/MONETIZATION_VISION.md` | (Strategy Only) |
-| **Assets** | `docs/analysis/Asset_Integration_Audit.md` | `docs/analysis/Asset_Readiness_Report.md` |
-| **Roadmaps** | `docs/JumpDroid_EPIC_Tracker.md` | `docs/roadmap/EPIC_8_TRACKER.md` |
-| **EPIC 8 Stabilization** | `docs/REPORTS/EPIC8_STABILIZATION_REPORT.md` | `docs/REPORTS/EPIC8_TECHNICAL_QA_REPORT.md` |
-| **EPIC 8 Polish** | `docs/REPORTS/EPIC8_POLISH_SPRINT_REPORT.md` | `docs/screenshots/EPIC8_POLISH/` |
-| **EPIC 8 Validation** | `docs/REPORTS/EPIC8_VALIDATION_REPORT.md` | `docs/analysis/EPIC8_MISSION_EVENT_AUDIT.md` |
-| **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
-| **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` |
-| **EPIC 8.5 Planning** | `docs/REPORTS/EPIC8_5_PLANNING_REPORT.md` | (Sprint Planning) |
-| **EPIC 8.5 Decomposition** | `docs/roadmap/EPIC_8_5_DECOMPOSITION_PLAN.md` | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` |
+| **Roadmaps** | `docs/JumpDroid_EPIC_Tracker.md` | `docs/roadmap/` |
+| **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | (Reference Only) |
+| **Inventory** | `docs/INVENTORY.md` | (Cross-Reference) |
+| **Production Checklist** | `docs/PRODUCTION_CHECKLIST.md` | Mandatory gate before any release |
 
 ---
 
@@ -122,9 +116,15 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 ↓
 `docs/JumpDroid_EPIC_Tracker.md` (High-level Status)
 ↓
-`docs/analysis/` (Technical Context & Rationale)
+`docs/INVENTORY.md` (Complete Index)
 ↓
+`docs/ARCHITECTURE.md` (System Architecture)
+`docs/ANALYTICS.md` (Analytics & Ads Reference)
 `docs/design/` (Gameplay Content Specs)
+↓
+`docs/analysis/` (Technical Context & Audits)
+↓
+`docs/PRODUCTION_CHECKLIST.md` (Release Gate — mandatory before any production release)
 
 ---
 
@@ -205,6 +205,9 @@ All changes MUST go through an appropriate branch and be merged via pull request
 2. Make changes on that branch.
 3. Push the branch and open a Pull Request to the merge target.
 4. After PR approval, merge and tag if releasing.
+
+### Release Gate
+**No production release may be created until every item in `docs/PRODUCTION_CHECKLIST.md` is checked.** The checklist is mandatory for hotfix, feature, and release branches alike.
 
 ### Tags
 - All releases MUST be tagged on the merge commit on `master`.
