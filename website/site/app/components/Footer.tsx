@@ -77,7 +77,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/beta" className="transition hover:text-cyan-200">
+                <Link href="/beta-info" className="transition hover:text-cyan-200">
                   Beta Testing
                 </Link>
               </li>
