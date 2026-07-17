@@ -39,7 +39,9 @@ export default function Home() {
         <MysteryTransmission />
         <GameplayCards />
         <ScreenshotGallery />
-        <MissionLog />
+        <div id="download">
+          <MissionLog />
+        </div>
         <FooterSection />
       </main>
     </>
