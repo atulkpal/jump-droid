@@ -13,7 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
-website/
+website/node_modules/
+website/site/.next/
+website/site/node_modules/
 *BACKUP*
 
 BACKUP_*.kt
