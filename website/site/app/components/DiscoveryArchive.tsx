@@ -73,7 +73,7 @@ export default function DiscoveryArchive() {
 
   return (
     <section id="archive" className="relative overflow-hidden py-24 sm:py-32">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,229,255,0.06),transparent_32%)]" />
+      <div className="absolute inset-0 bg-glow-center-cyan" />
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-6">

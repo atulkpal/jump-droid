@@ -794,7 +794,7 @@ export default function GameSimulator() {
 
   return (
     <section id="simulation" className="relative py-24 border-t border-white/10 bg-black/90">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.06),transparent_35%)]" />
+      <div className="absolute inset-0 bg-glow-top-cyan-lg" />
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="mb-12 max-w-2xl space-y-4">
           <p className="text-sm uppercase tracking-[0.35em] text-cyan-300 font-extrabold bg-cyan-400/10 px-3 py-1 rounded-full border border-cyan-400/20 inline-block">

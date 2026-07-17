@@ -6,7 +6,7 @@ import { PLAY_STORE_URL } from "@/lib/constants";
 export default function HeroSection() {
   return (
     <section id="hero" className="relative overflow-hidden py-32 sm:py-40 flex items-center justify-center">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.16),_transparent_32%)]" />
+      <div className="absolute inset-0 bg-glow-top-cyan-xl" />
       <div className="absolute left-0 top-0 h-full w-full bg-[linear-gradient(180deg,rgba(0,0,0,0.12),transparent_40%,rgba(0,0,0,0.85))]" />
       
       <div className="relative mx-auto flex max-w-6xl flex-col gap-16 px-6 text-center text-slate-100 sm:px-8 lg:px-12">

@@ -7,7 +7,7 @@ import SectionHeader from "./SectionHeader";
 export default function DownloadSection() {
   return (
     <SectionWrapper id="download">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(0,229,255,0.08),transparent_28%)]" />
+      <div className="absolute inset-0 bg-glow-bottom-cyan" />
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="grid gap-12 lg:grid-cols-2 items-center">
           <div>

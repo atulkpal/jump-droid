@@ -28,7 +28,7 @@ export default function GameplayExplained() {
 
   return (
     <section id="gameplay" className="relative overflow-hidden py-24 sm:py-32">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,229,255,0.08),transparent_28%)]" />
+      <div className="absolute inset-0 bg-glow-center-cyan-sm" />
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="space-y-12">
           <div className="max-w-2xl space-y-4">

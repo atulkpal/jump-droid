@@ -38,7 +38,7 @@ export default function BossReveal() {
     >
       {/* Purple glow */}
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(213,0,249,0.08),transparent_60%)] pointer-events-none transition-opacity duration-1000"
+        className="absolute inset-0 bg-glow-ellipse-purple pointer-events-none transition-opacity duration-1000"
         style={{ opacity: visible ? 1 : 0 }}
       />
 

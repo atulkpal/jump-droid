@@ -40,7 +40,7 @@ function GhostEntity({ type, visible }: { type: "rocket" | "platform" | "threat"
       >
         <Component />
       </div>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,229,255,0.06),transparent_60%)]" />
+      <div className="absolute inset-0 bg-glow-ellipse-cyan" />
     </div>
   );
 }

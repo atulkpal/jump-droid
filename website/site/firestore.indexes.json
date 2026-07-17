@@ -1,0 +1,28 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "recruitmentContacts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "inviteCount", "order": "ASCENDING" },
+        { "fieldPath": "nextEligibleAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "activityLog",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "applicantEmail", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "emailLog",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "recipient", "order": "ASCENDING" },
+        { "fieldPath": "sentAt", "order": "DESCENDING" }
+      ]
+    }
+  ]
+}

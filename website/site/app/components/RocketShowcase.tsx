@@ -103,7 +103,7 @@ export default function RocketShowcase() {
 
   return (
     <section id="hangar" className="relative overflow-hidden py-24 sm:py-32">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,_rgba(0,229,255,0.14),transparent_28%)]" />
+      <div className="absolute inset-0 bg-glow-bottom-cyan-lg" />
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         
         <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-6">

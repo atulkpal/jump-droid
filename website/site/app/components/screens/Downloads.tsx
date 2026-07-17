@@ -98,7 +98,7 @@ export default function Downloads() {
           </div>
         </div>
 
-        <p className="text-center font-mono text-[10px] tracking-[0.1em] text-slate-600 mt-6">
+        <p className="text-center font-mono text-[10px] tracking-[0.1em] text-slate-500 mt-6">
           {DOWNLOADS.version} &middot; Open Source (MIT)
         </p>
       </div>

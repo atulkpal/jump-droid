@@ -36,7 +36,7 @@ export default function MissionLog() {
             View on GitHub
           </a>
 
-          <p className="text-center font-mono text-[10px] tracking-[0.1em] text-slate-600 mt-3">
+          <p className="text-center font-mono text-[10px] tracking-[0.1em] text-slate-500 mt-3">
             {MISSION_LOG.license} &middot; Free to use, modify, and distribute
           </p>
         </div>
