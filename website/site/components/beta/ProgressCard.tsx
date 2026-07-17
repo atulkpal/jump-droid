@@ -1,16 +1,18 @@
 "use client";
 
 import type { Tester } from "@/types/tester";
-import { DAILY_GOAL_SECONDS } from "@/types/stats";
+import type { DashboardConfig } from "@/types/config";
 
 interface Props {
   tester: Tester;
+  config: DashboardConfig;
 }
 
-export default function ProgressCard({ tester }: Props) {
+export default function ProgressCard({ tester, config }: Props) {
+  const dailyGoalSeconds = config.beta.requiredMinutes * 60;
   const todayPlay = tester.todayGameplayTime ?? 0;
-  const remaining = Math.max(0, DAILY_GOAL_SECONDS - todayPlay);
-  const percent = Math.min(100, Math.round((todayPlay / DAILY_GOAL_SECONDS) * 100));
+  const remaining = Math.max(0, dailyGoalSeconds - todayPlay);
+  const percent = Math.min(100, Math.round((todayPlay / dailyGoalSeconds) * 100));
 
   return (
     <div className="rounded-lg border border-white/5 bg-white/[0.02] p-6">
@@ -19,7 +21,7 @@ export default function ProgressCard({ tester }: Props) {
       </h2>
       <div className="space-y-4">
         <p className="font-mono text-xl text-white tracking-tight">
-          {Math.floor(todayPlay / 60)} / {Math.floor(DAILY_GOAL_SECONDS / 60)}
+          {Math.floor(todayPlay / 60)} / {Math.floor(dailyGoalSeconds / 60)}
           <span className="text-sm text-slate-500 ml-1">min</span>
         </p>
 

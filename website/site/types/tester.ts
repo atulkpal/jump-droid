@@ -19,6 +19,7 @@ export interface Tester {
 
 export interface TesterSession {
   id: string;
+  testerDocId?: string;
   testerEmail: string;
   testerName?: string;
   sessionStart?: TimestampData;

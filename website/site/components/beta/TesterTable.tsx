@@ -1,27 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import type { Tester } from "@/types/tester";
-import { fetchAllTesters } from "@/lib/firebase/testers";
+import type { DashboardConfig } from "@/types/config";
 import { formatDuration } from "@/lib/firebase/analytics";
+import { computeRevenue, formatCurrency } from "@/lib/firebase/revenue";
 
-export default function TesterTable() {
-  const [testers, setTesters] = useState<Tester[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface Props {
+  testers: Tester[];
+  config: DashboardConfig;
+}
 
-  useEffect(() => {
-    fetchAllTesters()
-      .then((data) => {
-        setTesters(data);
-        setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? "Failed to load testers");
-        setLoading(false);
-      });
-  }, []);
-
+export default function TesterTable({ testers, config }: Props) {
   const sorted = [...testers].sort((a, b) => {
     const at = a.lastSeen?.seconds ?? 0;
     const bt = b.lastSeen?.seconds ?? 0;
@@ -51,58 +40,59 @@ export default function TesterTable() {
             <th className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase px-4 py-3">
               Best Score
             </th>
+            <th className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase px-4 py-3">
+              Est. Revenue
+            </th>
           </tr>
         </thead>
         <tbody>
-          {loading ? (
+          {sorted.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
-                Loading testers...
-              </td>
-            </tr>
-          ) : error ? (
-            <tr>
-              <td colSpan={6} className="px-4 py-8 text-center font-mono text-xs text-red-400">
-                {error}
-              </td>
-            </tr>
-          ) : sorted.length === 0 ? (
-            <tr>
-              <td colSpan={6} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
+              <td colSpan={7} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
                 No testers found.
               </td>
             </tr>
           ) : (
-            sorted.map((t) => (
-              <tr key={t.email} className="border-b border-white/5 hover:bg-white/[0.01]">
-                <td className="px-4 py-3">
-                  <button
-                    className="font-mono text-xs text-white text-left cursor-pointer transition hover:text-cyan-300"
-                    onClick={() => {}}
-                  >
-                    {t.name}
-                  </button>
-                  <p className="font-mono text-[10px] text-slate-600">{t.email}</p>
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-400">
-                  {t.lastSeen
-                    ? new Date(t.lastSeen.seconds * 1000).toLocaleDateString()
-                    : "—"}
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-300">
-                  {formatDuration(t.todayGameplayTime ?? 0)}
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-300">
-                  {formatDuration(t.totalGameplayTime ?? 0)}
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-300">
-                  {t.totalSessions ?? 0}
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-cyan-300">
-                  {t.highestScore?.toLocaleString() ?? "—"}
-                </td>
-              </tr>
-            ))
+            sorted.map((t) => {
+              const revenue = computeRevenue(
+                t.bannerImpressions ?? 0,
+                t.rewardAdsWatched ?? 0,
+                config.revenue
+              );
+              return (
+                <tr key={t.email} className="border-b border-white/5 hover:bg-white/[0.01]">
+                  <td className="px-4 py-3">
+                    <button
+                      className="font-mono text-xs text-white text-left cursor-pointer transition hover:text-cyan-300"
+                      onClick={() => {}}
+                    >
+                      {t.name}
+                    </button>
+                    <p className="font-mono text-[10px] text-slate-600">{t.email}</p>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-400">
+                    {t.lastSeen
+                      ? new Date(t.lastSeen.seconds * 1000).toLocaleDateString()
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                    {formatDuration(t.todayGameplayTime ?? 0)}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                    {formatDuration(t.totalGameplayTime ?? 0)}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                    {t.totalSessions ?? 0}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-cyan-300">
+                    {t.highestScore?.toLocaleString() ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs text-cyan-100">
+                    {formatCurrency(revenue.totalRevenue)}
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

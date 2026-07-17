@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Tester } from "@/types/tester";
+import type { DashboardConfig } from "@/types/config";
+import { fetchConfig, getDefaultConfig } from "@/lib/firebase/configService";
 import TesterSelector from "@/components/beta/TesterSelector";
 import ProgressCard from "@/components/beta/ProgressCard";
 import EligibilityCard from "@/components/beta/EligibilityCard";
@@ -13,6 +15,15 @@ import BetaRulesCard from "@/components/beta/BetaRulesCard";
 
 export default function BetaPortalPage() {
   const [selectedTester, setSelectedTester] = useState<Tester | null>(null);
+  const [config, setConfig] = useState<DashboardConfig | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+
+  useEffect(() => {
+    fetchConfig()
+      .then((c) => setConfig(c ?? getDefaultConfig()))
+      .catch(() => setConfig(getDefaultConfig()))
+      .finally(() => setConfigLoading(false));
+  }, []);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
@@ -39,7 +50,7 @@ export default function BetaPortalPage() {
             selectedEmail={selectedTester?.email ?? null}
           />
 
-          {selectedTester && (
+          {selectedTester && config && !configLoading && (
             <>
               <div className="rounded-lg border border-cyan-400/10 bg-cyan-400/[0.03] p-5">
                 <p className="font-mono text-sm text-cyan-200">
@@ -51,14 +62,20 @@ export default function BetaPortalPage() {
                 </p>
               </div>
 
-              <ProgressCard tester={selectedTester} />
-              <EligibilityCard tester={selectedTester} />
+              <ProgressCard tester={selectedTester} config={config} />
+              <EligibilityCard tester={selectedTester} config={config} />
               <StatisticsCard tester={selectedTester} />
               <Leaderboard />
               <CommunityProgress />
               <FeedbackSection tester={selectedTester} />
               <BetaRulesCard />
             </>
+          )}
+
+          {selectedTester && !config && !configLoading && (
+            <p className="text-center font-mono text-xs text-slate-500 py-12">
+              Using default configuration.
+            </p>
           )}
 
           {!selectedTester && (

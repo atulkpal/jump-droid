@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from "react";
 import type { Tester } from "@/types/tester";
+import type { DashboardConfig } from "@/types/config";
 import type { EligibilityInfo } from "@/types/stats";
 import { computeEligibility } from "@/lib/firebase/analytics";
 import { fetchSessions } from "@/lib/firebase/sessions";
 
 interface Props {
   tester: Tester;
+  config: DashboardConfig;
 }
 
-export default function EligibilityCard({ tester }: Props) {
+export default function EligibilityCard({ tester, config }: Props) {
   const [eligibility, setEligibility] = useState<EligibilityInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,14 +22,19 @@ export default function EligibilityCard({ tester }: Props) {
     setError(null);
     fetchSessions(tester.docId)
       .then((sessions) => {
-        setEligibility(computeEligibility(sessions));
+        setEligibility(computeEligibility(sessions, config));
         setLoading(false);
       })
       .catch((e) => {
         setError(e?.message ?? "Failed to load session data");
         setLoading(false);
       });
-  }, [tester.docId]);
+  }, [tester.docId, config]);
+
+  const endDateDisplay = new Date(config.beta.endDate).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "long",
+  });
 
   return (
     <div className="rounded-lg border border-white/5 bg-white/[0.02] p-6">
@@ -45,11 +52,11 @@ export default function EligibilityCard({ tester }: Props) {
           <div className="rounded-lg border border-cyan-400/10 bg-cyan-400/[0.03] px-4 py-3">
             <p className="font-mono text-xs text-cyan-200 leading-relaxed">
               {eligibility.totalRequiredDays > 0
-                ? `${eligibility.totalRequiredDays} days remaining to qualify.`
+                ? `${eligibility.totalRequiredDays} days required to qualify.`
                 : "Qualification period has ended."}
             </p>
             <p className="font-mono text-[11px] text-cyan-400/60 mt-1">
-              Keep playing every day until 5 August.
+              Keep playing every day until {endDateDisplay}.
             </p>
           </div>
 

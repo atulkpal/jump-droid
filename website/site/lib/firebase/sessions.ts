@@ -25,5 +25,9 @@ export async function fetchRecentSessions(limitCount = 50): Promise<TesterSessio
     limit(limitCount)
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }) as TesterSession);
+  return snapshot.docs.map((doc: any) => {
+    const pathParts = doc.ref.path.split("/");
+    const testerDocId = pathParts[1];
+    return { id: doc.id, ...doc.data(), testerDocId } as TesterSession;
+  });
 }

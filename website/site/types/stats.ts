@@ -23,7 +23,4 @@ export interface EligibilityInfo {
   isEligible: boolean;
 }
 
-export const DAILY_GOAL_SECONDS = 1800;
-export const BETA_END_DATE = "2026-08-05";
-export const REVENUE_PER_REWARD_AD = 0.02;
-export const REVENUE_PER_BANNER_IMPRESSION = 0.001;
+

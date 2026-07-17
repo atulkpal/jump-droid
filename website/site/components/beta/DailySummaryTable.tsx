@@ -1,26 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { DailySummary } from "@/types/stats";
+import type { TesterSession } from "@/types/tester";
+import type { DashboardConfig } from "@/types/config";
 import { computeDailySummaries, formatDuration } from "@/lib/firebase/analytics";
-import { fetchRecentSessions } from "@/lib/firebase/sessions";
+import { formatCurrency } from "@/lib/firebase/revenue";
 
-export default function DailySummaryTable() {
-  const [summaries, setSummaries] = useState<DailySummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface Props {
+  sessions: TesterSession[];
+  config: DashboardConfig;
+}
 
-  useEffect(() => {
-    fetchRecentSessions(500)
-      .then((sessions) => {
-        setSummaries(computeDailySummaries(sessions));
-        setLoading(false);
-      })
-      .catch((e) => {
-        setError(e?.message ?? "Failed to load daily summary");
-        setLoading(false);
-      });
-  }, []);
+export default function DailySummaryTable({ sessions, config }: Props) {
+  const summaries = computeDailySummaries(sessions, config);
 
   return (
     <div className="rounded-lg border border-white/5 bg-white/[0.02] overflow-x-auto">
@@ -48,19 +39,7 @@ export default function DailySummaryTable() {
           </tr>
         </thead>
         <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan={6} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
-                Loading daily summary...
-              </td>
-            </tr>
-          ) : error ? (
-            <tr>
-              <td colSpan={6} className="px-4 py-8 text-center font-mono text-xs text-red-400">
-                {error}
-              </td>
-            </tr>
-          ) : summaries.length === 0 ? (
+          {summaries.length === 0 ? (
             <tr>
               <td colSpan={6} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
                 No session data available.
@@ -76,7 +55,9 @@ export default function DailySummaryTable() {
                 <td className="px-4 py-3 font-mono text-xs text-slate-300">
                   {formatDuration(row.totalPlayTime)}
                 </td>
-                <td className="px-4 py-3 font-mono text-xs text-slate-500">Configurable</td>
+                <td className="px-4 py-3 font-mono text-xs text-cyan-100">
+                  {formatCurrency(row.estimatedRevenue)}
+                </td>
               </tr>
             ))
           )}
