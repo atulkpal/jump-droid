@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { PLAY_STORE_URL } from "@/lib/constants";
 import { HERO } from "@/app/data/site-content";
 
 export default function PlayStoreModal({ onClose }: { onClose: () => void }) {
@@ -20,7 +19,7 @@ export default function PlayStoreModal({ onClose }: { onClose: () => void }) {
         </h2>
 
         <p className="font-mono text-xs text-slate-400 mb-4">
-          Become a Beta Tester and enjoy:
+          Become a Beta Tester to receive:
         </p>
 
         <ul className="space-y-3 mb-8">
@@ -45,17 +44,6 @@ export default function PlayStoreModal({ onClose }: { onClose: () => void }) {
           >
             Maybe Later
           </button>
-        </div>
-
-        <div className="mt-6 text-center">
-          <a
-            href={PLAY_STORE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-mono text-[10px] tracking-[0.15em] text-slate-600 underline underline-offset-2 hover:text-slate-400 transition-colors"
-          >
-            Continue to Google Play &rarr;
-          </a>
         </div>
       </div>
     </div>

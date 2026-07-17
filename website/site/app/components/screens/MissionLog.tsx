@@ -1,8 +1,16 @@
-import { PLAY_STORE_URL, SOCIAL_LINKS, BETA_TESTING_URL } from "@/lib/constants";
-import { MISSION_LOG, DOWNLOADS, BETA } from "@/app/data/site-content";
+"use client";
+
+import Link from "next/link";
+import { PLAY_STORE_URL, SOCIAL_LINKS } from "@/lib/constants";
+import { MISSION_LOG, DOWNLOADS, HERO } from "@/app/data/site-content";
 import { GooglePlayIcon, GitHubIcon, ItchIoIcon } from "@/app/components/PlatformIcons";
 
-export default function MissionLog() {
+interface Props {
+  onPlayStoreClick: () => void;
+  showBetaLanded: boolean;
+}
+
+export default function MissionLog({ onPlayStoreClick, showBetaLanded }: Props) {
   return (
     <section className="flex w-full items-center justify-center px-6 py-20 sm:py-28">
       <div className="mx-auto max-w-lg w-full">
@@ -50,11 +58,9 @@ export default function MissionLog() {
         </p>
 
         <div className="space-y-3">
-          <a
-            href={PLAY_STORE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex w-full items-center justify-center gap-3 rounded-xl border px-5 py-4 transition-all"
+          <button
+            onClick={onPlayStoreClick}
+            className="group flex w-full items-center justify-center gap-3 rounded-xl border px-5 py-4 transition-all cursor-pointer"
             style={{
               borderColor: "#3DDC8466",
               backgroundColor: "#3DDC8418",
@@ -79,7 +85,7 @@ export default function MissionLog() {
                 Free &middot; Android 8+
               </div>
             </div>
-          </a>
+          </button>
 
           <div className="grid grid-cols-2 gap-3">
             <a
@@ -131,26 +137,24 @@ export default function MissionLog() {
           </div>
         </div>
 
-        {/* Beta CTA */}
-        <div className="text-center mt-10 pt-8 border-t border-white/5">
-          <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/40 uppercase mb-3">
-            Join the Mission
-          </p>
-          <p className="font-mono text-xs sm:text-sm text-slate-500 mb-5 max-w-sm mx-auto">
-            {BETA.description}
-          </p>
-          <a
-            href={BETA_TESTING_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex items-center gap-2.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-8 py-3.5 font-mono text-xs sm:text-sm tracking-[0.15em] text-amber-300/90 transition-all hover:bg-amber-400/20 hover:border-amber-400/60 hover:shadow-[0_0_24px_rgba(255,160,0,0.2)] uppercase"
-          >
-            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" aria-hidden="true">
-              <path d="M12 3v18M3 12h18" stroke="#FFA000" strokeWidth="2.5" strokeLinecap="round" />
-              <circle cx="12" cy="12" r="9" stroke="#FFA000" strokeWidth="1.5" fill="none" />
-            </svg>
-            Join the Beta
-          </a>
+        {/* Landing zone for sticky Beta CTA */}
+        <div id="beta-landing" className="text-center mt-10 pt-8 border-t border-white/5 min-h-[80px]">
+          {showBetaLanded && (
+            <div className="animate-fade-in-up opacity-0" style={{ animationFillMode: "forwards" }}>
+              <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/40 uppercase mb-3">
+                Join the Mission
+              </p>
+              <p className="font-mono text-xs sm:text-sm text-slate-500 mb-5 max-w-sm mx-auto">
+                Become a Beta Tester and help shape Jump Droid.
+              </p>
+              <Link
+                href="/beta-info"
+                className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-10 py-4 font-mono text-sm tracking-[0.2em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 hover:border-cyan-400/60 hover:shadow-[0_0_28px_rgba(0,229,255,0.2)]"
+              >
+                {HERO.ctaBeta}
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </section>

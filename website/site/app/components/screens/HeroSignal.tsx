@@ -3,47 +3,70 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { HERO } from "@/app/data/site-content";
-import { PLAY_STORE_URL, SOCIAL_LINKS } from "@/lib/constants";
+import { SOCIAL_LINKS } from "@/lib/constants";
 import MoonGlow from "@/app/components/MoonGlow";
 import BetaTagline from "./BetaTagline";
-import PlayStoreModal from "./PlayStoreModal";
 
-export default function HeroSignal() {
-  const [showModal, setShowModal] = useState(false);
+interface Props {
+  onPlayStoreClick: () => void;
+  onBetaLanded?: () => void;
+}
+
+export default function HeroSignal({ onPlayStoreClick, onBetaLanded }: Props) {
   const [sticky, setSticky] = useState(false);
-  const [stickyHidden, setStickyHidden] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const [landing, setLanding] = useState(false);
+  const [landed, setLanded] = useState(false);
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const landingOffset = useRef(0);
 
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setSticky(!entry.isIntersecting);
-      },
-      { threshold: 0, rootMargin: "-80px 0px 0px 0px" }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!sticky) {
-      setStickyHidden(false);
-      return;
-    }
     const handleScroll = () => {
-      const el = document.getElementById("download");
-      if (!el) return;
-      setStickyHidden(el.getBoundingClientRect().top < window.innerHeight * 0.5);
+      const cta = ctaRef.current;
+      if (!cta) return;
+
+      const ctaRect = cta.getBoundingClientRect();
+      const heroPast = ctaRect.top < 80 && ctaRect.bottom < 80;
+
+      const landingEl = document.getElementById("beta-landing");
+      const landingTop = landingEl ? landingEl.getBoundingClientRect().top : Infinity;
+
+      if (landed) return;
+
+      if (sticky && landingTop < window.innerHeight * 0.75 && !landing) {
+        landingOffset.current = landingTop - 72;
+        setLanding(true);
+        return;
+      }
+
+      if (sticky && landingTop > window.innerHeight && landing) {
+        setLanding(false);
+        return;
+      }
+
+      if (landing && landingTop < 100) {
+        setLanded(true);
+        setSticky(false);
+        setLanding(false);
+        return;
+      }
+
+      if (!landing) {
+        setSticky(heroPast);
+      }
     };
-    handleScroll();
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [sticky]);
+  }, [sticky, landing, landed]);
 
-  const showSticky = sticky && !stickyHidden;
+  useEffect(() => {
+    if (!landed) return;
+    const landingEl = document.getElementById("beta-landing");
+    if (!landingEl) return;
+    landingEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    onBetaLanded?.();
+  }, [landed, onBetaLanded]);
 
   const playStoreIcon = (
     <svg viewBox="0 0 24 24" className="w-4 h-4 flex-shrink-0" fill="none" aria-hidden="true">
@@ -58,64 +81,110 @@ export default function HeroSignal() {
     </svg>
   );
 
+  const desktopButtons = (inHero: boolean) => {
+    const sideBtn = "inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs tracking-[0.2em] text-white/60 uppercase transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/80";
+    const betaBtn = "inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-10 py-4 font-mono text-sm tracking-[0.2em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 hover:border-cyan-400/60 hover:shadow-[0_0_28px_rgba(0,229,255,0.2)]";
+
+    return (
+      <>
+        <button onClick={onPlayStoreClick} className={sideBtn}>
+          {playStoreIcon}
+          {HERO.cta}
+        </button>
+        <Link href="/beta-info" className={betaBtn}>
+          {HERO.ctaBeta}
+        </Link>
+        <a href={`${SOCIAL_LINKS.github}/releases`} target="_blank" rel="noopener noreferrer" className={sideBtn}>
+          {githubIcon}
+          {HERO.ctaSecondary}
+        </a>
+      </>
+    );
+  };
+
+  const mobileButtons = (inLanding = false) => {
+    const iconBtn = "flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80 transition-all flex-shrink-0";
+    const alphaBtn = "inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-7 py-3.5 font-mono text-xs tracking-[0.2em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 hover:border-cyan-400/60 hover:shadow-[0_0_28px_rgba(0,229,255,0.2)] flex-shrink-0";
+
+    return (
+      <>
+        <button onClick={onPlayStoreClick} className={iconBtn} aria-label="Download on Play Store">
+          {playStoreIcon}
+        </button>
+        <Link href="/beta-info" className={alphaBtn}>
+          ⭐ Join Beta
+        </Link>
+        <a href={`${SOCIAL_LINKS.github}/releases`} target="_blank" rel="noopener noreferrer" className={iconBtn} aria-label="Download APK from GitHub">
+          {githubIcon}
+        </a>
+      </>
+    );
+  };
+
   return (
     <>
-      {/* Sticky CTA bar — fixed at top when scrolled past hero */}
+      {/* Sticky CTA bar */}
       <div
-        className={`fixed top-[72px] left-0 right-0 z-30 border-b border-white/5 bg-black/80 backdrop-blur-xl px-4 py-3 shadow-lg transition-all duration-500 ease-out ${
-          showSticky
+        ref={stickyRef}
+        className={`fixed left-0 right-0 z-30 border-b border-white/5 bg-black/80 backdrop-blur-xl px-4 py-3 shadow-lg transition-all duration-700 ease-out ${
+          landing
+            ? "opacity-100"
+            : sticky && !landed
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-full pointer-events-none"
         }`}
+        style={{
+          top: landing ? `${landingOffset.current}px` : "72px",
+        }}
       >
         <div className="mx-auto flex max-w-4xl items-center justify-center gap-4">
           <div className="hidden sm:flex items-center justify-center gap-4">
-            <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs tracking-[0.2em] text-white/60 uppercase transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/80"
+            <div
+              className={`transition-all duration-500 ${
+                landing || landed ? "opacity-0 scale-95 pointer-events-none w-0 overflow-hidden" : "opacity-100"
+              }`}
             >
-              {playStoreIcon}
-              {HERO.cta}
-            </button>
+              <button onClick={onPlayStoreClick} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs tracking-[0.2em] text-white/60 uppercase whitespace-nowrap transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/80">
+                {playStoreIcon}
+                {HERO.cta}
+              </button>
+            </div>
+
             <Link
               href="/beta-info"
-              className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-8 py-3 font-mono text-sm tracking-[0.2em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 hover:border-cyan-400/60 hover:shadow-[0_0_28px_rgba(0,229,255,0.2)]"
+              className={`inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 font-mono tracking-[0.2em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 hover:border-cyan-400/60 hover:shadow-[0_0_28px_rgba(0,229,255,0.2)] ${
+                landing || landed ? "px-10 py-4 text-sm" : "px-8 py-3 text-sm"
+              }`}
             >
               {HERO.ctaBeta}
             </Link>
-            <a
-              href={`${SOCIAL_LINKS.github}/releases`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs tracking-[0.2em] text-white/60 uppercase transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/80"
+
+            <div
+              className={`transition-all duration-500 ${
+                landing || landed ? "opacity-0 scale-95 pointer-events-none w-0 overflow-hidden" : "opacity-100"
+              }`}
             >
-              {githubIcon}
-              {HERO.ctaSecondary}
-            </a>
+              <a href={`${SOCIAL_LINKS.github}/releases`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs tracking-[0.2em] text-white/60 uppercase whitespace-nowrap transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/80">
+                {githubIcon}
+                {HERO.ctaSecondary}
+              </a>
+            </div>
           </div>
+
           <div className="flex sm:hidden items-center justify-center gap-4">
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center justify-center w-11 h-11 rounded-full border border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80 transition-all flex-shrink-0"
-              aria-label="Download on Play Store"
-            >
-              {playStoreIcon}
-            </button>
-            <Link
-              href="/beta-info"
-              className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-6 py-3 font-mono text-xs tracking-[0.2em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 hover:border-cyan-400/60 hover:shadow-[0_0_28px_rgba(0,229,255,0.2)] flex-shrink-0"
-            >
+            <div className={`transition-all duration-500 ${landing || landed ? "opacity-0 scale-95 w-0 overflow-hidden" : "opacity-100"}`}>
+              <button onClick={onPlayStoreClick} className="flex items-center justify-center w-11 h-11 rounded-full border border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80 transition-all flex-shrink-0" aria-label="Download on Play Store">
+                {playStoreIcon}
+              </button>
+            </div>
+            <Link href="/beta-info" className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-7 py-3.5 font-mono text-xs tracking-[0.2em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 hover:border-cyan-400/60 hover:shadow-[0_0_28px_rgba(0,229,255,0.2)] flex-shrink-0">
               ⭐ Join Beta
             </Link>
-            <a
-              href={`${SOCIAL_LINKS.github}/releases`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center w-11 h-11 rounded-full border border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80 transition-all flex-shrink-0"
-              aria-label="Download APK from GitHub"
-            >
-              {githubIcon}
-            </a>
+            <div className={`transition-all duration-500 ${landing || landed ? "opacity-0 scale-95 w-0 overflow-hidden" : "opacity-100"}`}>
+              <a href={`${SOCIAL_LINKS.github}/releases`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center w-11 h-11 rounded-full border border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80 transition-all flex-shrink-0" aria-label="Download APK from GitHub">
+                {githubIcon}
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -144,36 +213,21 @@ export default function HeroSignal() {
           {HERO.subtitle}
         </p>
 
-        {/* Desktop CTA row */}
+        {/* Desktop CTA row (in hero) */}
         <div
-          className="hidden sm:flex flex-col items-center justify-center gap-3 opacity-0 animate-fade-in-up mb-10"
-          style={{ animationDelay: "1.4s", animationFillMode: "forwards" }}
+          ref={ctaRef}
+          className={`hidden sm:flex flex-col items-center justify-center gap-3 opacity-0 animate-fade-in-up mb-10 ${
+            sticky ? "opacity-0 pointer-events-none" : ""
+          }`}
+          style={{
+            animationDelay: "1.4s",
+            animationFillMode: "forwards",
+            transition: "opacity 300ms",
+          }}
         >
           <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs tracking-[0.2em] text-white/60 uppercase transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/80"
-            >
-              {playStoreIcon}
-              {HERO.cta}
-            </button>
-            <Link
-              href="/beta-info"
-              className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-10 py-4 font-mono text-sm tracking-[0.2em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 hover:border-cyan-400/60 hover:shadow-[0_0_28px_rgba(0,229,255,0.2)]"
-            >
-              {HERO.ctaBeta}
-            </Link>
-            <a
-              href={`${SOCIAL_LINKS.github}/releases`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2.5 font-mono text-xs tracking-[0.2em] text-white/60 uppercase transition-all hover:border-white/20 hover:bg-white/10 hover:text-white/80"
-            >
-              {githubIcon}
-              {HERO.ctaSecondary}
-            </a>
+            {desktopButtons(true)}
           </div>
-          {/* Rewards integrated below Beta button */}
           <div className="flex flex-col items-center">
             <div className="w-1/2 border-t border-cyan-400/15 opacity-60" />
             <div className="py-1.5">
@@ -183,34 +237,19 @@ export default function HeroSignal() {
           </div>
         </div>
 
-        {/* Mobile CTA row */}
+        {/* Mobile CTA row (in hero) */}
         <div
-          className="flex sm:hidden flex-col items-center justify-center gap-3 opacity-0 animate-fade-in-up mb-10"
-          style={{ animationDelay: "1.4s", animationFillMode: "forwards" }}
+          className={`flex sm:hidden flex-col items-center justify-center gap-3 opacity-0 animate-fade-in-up mb-10 ${
+            sticky ? "opacity-0 pointer-events-none" : ""
+          }`}
+          style={{
+            animationDelay: "1.4s",
+            animationFillMode: "forwards",
+            transition: "opacity 300ms",
+          }}
         >
           <div className="flex items-center justify-center gap-4">
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80 transition-all flex-shrink-0"
-              aria-label="Download on Play Store"
-            >
-              {playStoreIcon}
-            </button>
-            <Link
-              href="/beta-info"
-              className="inline-flex items-center gap-2 rounded-full border border-cyan-400/40 bg-cyan-400/10 px-7 py-3.5 font-mono text-xs tracking-[0.2em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 hover:border-cyan-400/60 hover:shadow-[0_0_28px_rgba(0,229,255,0.2)] flex-shrink-0"
-            >
-              ⭐ Join Beta
-            </Link>
-            <a
-              href={`${SOCIAL_LINKS.github}/releases`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center w-12 h-12 rounded-full border border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:text-white/80 transition-all flex-shrink-0"
-              aria-label="Download APK from GitHub"
-            >
-              {githubIcon}
-            </a>
+            {mobileButtons()}
           </div>
           <BetaTagline />
         </div>
@@ -240,12 +279,7 @@ export default function HeroSignal() {
             ))}
           </div>
         </div>
-
-        {/* Sentinel — signals when hero is scrolled past */}
-        <div ref={sentinelRef} className="h-px" />
       </section>
-
-      {showModal && <PlayStoreModal onClose={() => setShowModal(false)} />}
     </>
   );
 }

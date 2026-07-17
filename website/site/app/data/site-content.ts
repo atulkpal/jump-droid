@@ -26,10 +26,10 @@ export const HERO = {
   ctaBeta: "⭐ Become a Beta Tester",
   modalTitle: "Jump Droid is currently in Beta",
   modalBody: [
-    "🚀 Early access to every release",
-    "🎁 Exclusive beta rewards",
-    "🏆 Prizes for outstanding contributors",
-    "💬 Direct influence on the game's development",
+    "🚀 Early Access",
+    "🎁 Exclusive Beta Rewards",
+    "🏆 Rewards for Outstanding Contributors",
+    "💬 Help Shape Jump Droid",
   ],
   taglines: [
     "🚀 Early Access",
