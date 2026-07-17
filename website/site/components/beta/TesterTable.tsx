@@ -48,7 +48,7 @@ export default function TesterTable({ testers, config }: Props) {
         <tbody>
           {sorted.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
+              <td colSpan={7} className="px-4 py-8 text-center font-mono text-xs text-slate-500">
                 No testers found.
               </td>
             </tr>
@@ -68,7 +68,7 @@ export default function TesterTable({ testers, config }: Props) {
                     >
                       {t.name}
                     </button>
-                    <p className="font-mono text-[10px] text-slate-600">{t.email}</p>
+                    <p className="font-mono text-[10px] text-slate-500">{t.email}</p>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-400">
                     {t.lastSeen

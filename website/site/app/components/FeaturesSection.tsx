@@ -8,7 +8,7 @@ import SectionHeader from "./SectionHeader";
 export default function FeaturesSection() {
   return (
     <SectionWrapper id="features">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(213,0,249,0.06),transparent_28%)]" />
+      <div className="absolute inset-0 bg-glow-top-purple" />
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <SectionHeader
           pill="Features"

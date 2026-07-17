@@ -27,7 +27,7 @@ export default function BetaPortalPage() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.06),transparent_32%)]" />
+      <div className="fixed inset-0 z-0 bg-glow-top-cyan" />
 
       <main className="relative z-10 mx-auto max-w-2xl px-6 py-24 sm:px-8 sm:py-32">
         <div className="mb-12 space-y-4">
@@ -79,7 +79,7 @@ export default function BetaPortalPage() {
           )}
 
           {!selectedTester && (
-            <p className="text-center font-mono text-xs text-slate-600 py-12">
+            <p className="text-center font-mono text-xs text-slate-500 py-12">
               Select a tester profile above to view your beta dashboard.
             </p>
           )}

@@ -42,6 +42,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -73,6 +74,50 @@ select {
 
 ::selection {
   background: rgba(0, 229, 255, 0.28);
+}
+
+/* =============================================
+   Radial Glow Utility Classes
+   (avoid Turbopack arbitrary-value parsing bug)
+   ============================================= */
+.bg-glow-top-cyan {
+  background: radial-gradient(circle at top, rgba(0,229,255,0.06), transparent 32%);
+}
+.bg-glow-top-cyan-lg {
+  background: radial-gradient(circle at top, rgba(0,229,255,0.06), transparent 35%);
+}
+.bg-glow-top-cyan-xl {
+  background: radial-gradient(circle at top, rgba(0,229,255,0.16), transparent 32%);
+}
+.bg-glow-top-purple {
+  background: radial-gradient(circle at top, rgba(213,0,249,0.06), transparent 28%);
+}
+.bg-glow-top-purple-lg {
+  background: radial-gradient(circle at top, rgba(213,0,249,0.12), transparent 30%);
+}
+.bg-glow-center-cyan {
+  background: radial-gradient(circle at center, rgba(0,229,255,0.06), transparent 32%);
+}
+.bg-glow-center-cyan-sm {
+  background: radial-gradient(circle at center, rgba(0,229,255,0.08), transparent 28%);
+}
+.bg-glow-center-gold {
+  background: radial-gradient(circle at center, rgba(255,215,0,0.06), transparent 28%);
+}
+.bg-glow-center-gold-xl {
+  background: radial-gradient(circle at center, rgba(255,234,0,0.14), transparent 30%);
+}
+.bg-glow-bottom-cyan {
+  background: radial-gradient(circle at bottom, rgba(0,229,255,0.08), transparent 28%);
+}
+.bg-glow-bottom-cyan-lg {
+  background: radial-gradient(circle at bottom, rgba(0,229,255,0.14), transparent 28%);
+}
+.bg-glow-ellipse-cyan {
+  background: radial-gradient(ellipse at center, rgba(0,229,255,0.06), transparent 60%);
+}
+.bg-glow-ellipse-purple {
+  background: radial-gradient(ellipse at center, rgba(213,0,249,0.08), transparent 60%);
 }
 
 /* =============================================

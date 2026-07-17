@@ -152,7 +152,7 @@ export default function FeedbackSection({ tester }: Props) {
         ) : error ? (
           <p className="font-mono text-xs text-red-400">{error}</p>
         ) : feedbackList.length === 0 ? (
-          <p className="font-mono text-xs text-slate-600">No feedback submitted yet.</p>
+          <p className="font-mono text-xs text-slate-500">No feedback submitted yet.</p>
         ) : (
           <div className="space-y-3">
             {feedbackList.map((fb) => (
@@ -168,7 +168,7 @@ export default function FeedbackSection({ tester }: Props) {
                     {fb.category}
                   </span>
                   {fb.createdAt && (
-                    <span className="font-mono text-[10px] text-slate-600 ml-auto">
+                    <span className="font-mono text-[10px] text-slate-500 ml-auto">
                       {new Date(fb.createdAt.seconds * 1000).toLocaleDateString()}
                     </span>
                   )}

@@ -1,7 +1,7 @@
 export default function MissionControl() {
   return (
     <section id="mission-control" className="relative overflow-hidden py-24 sm:py-32">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,234,0,0.14),transparent_30%)]" />
+      <div className="absolute inset-0 bg-glow-center-gold-xl" />
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr]">
           <div className="space-y-6">

@@ -41,7 +41,7 @@ export default function DailySummaryTable({ sessions, config }: Props) {
         <tbody>
           {summaries.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
+              <td colSpan={6} className="px-4 py-8 text-center font-mono text-xs text-slate-500">
                 No session data available.
               </td>
             </tr>

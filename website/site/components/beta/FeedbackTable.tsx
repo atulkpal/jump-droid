@@ -46,7 +46,7 @@ export default function FeedbackTable() {
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={5} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
+              <td colSpan={5} className="px-4 py-8 text-center font-mono text-xs text-slate-500">
                 Loading feedback...
               </td>
             </tr>
@@ -58,7 +58,7 @@ export default function FeedbackTable() {
             </tr>
           ) : feedback.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
+              <td colSpan={5} className="px-4 py-8 text-center font-mono text-xs text-slate-500">
                 No feedback submitted yet.
               </td>
             </tr>

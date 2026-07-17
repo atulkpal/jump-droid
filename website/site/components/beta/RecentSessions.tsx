@@ -45,7 +45,7 @@ export default function RecentSessions({ sessions, testers, config }: Props) {
         <tbody>
           {sessions.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-4 py-8 text-center font-mono text-xs text-slate-600">
+              <td colSpan={7} className="px-4 py-8 text-center font-mono text-xs text-slate-500">
                 No recent sessions.
               </td>
             </tr>

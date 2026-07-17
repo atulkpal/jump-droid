@@ -14,7 +14,7 @@ export default function ScreenshotsGallery() {
 
   return (
     <SectionWrapper id="screenshots">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,229,255,0.06),transparent_32%)]" />
+      <div className="absolute inset-0 bg-glow-center-cyan" />
       <div className="relative mx-auto max-w-6xl px-6 sm:px-8 lg:px-12">
         <SectionHeader
           pill="Gallery"

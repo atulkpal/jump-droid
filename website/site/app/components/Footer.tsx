@@ -89,7 +89,7 @@ export default function Footer() {
           <p className="text-xs text-slate-500">
             Built with ❤️ by Ashwath AI
           </p>
-          <p className="text-[11px] text-slate-600">
+          <p className="text-[11px] text-slate-500">
             Building free, open-source software, AI, and games for everyone.
           </p>
           <p className="text-xs text-slate-700 mt-1">

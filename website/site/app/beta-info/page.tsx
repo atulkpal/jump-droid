@@ -1,23 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BETA_TESTING_URL } from "@/lib/constants";
+import BetaRegistrationForm from "@/components/beta/BetaRegistrationForm";
+import BetaAccordion from "@/components/beta/BetaAccordion";
 
 export const metadata: Metadata = {
-  title: "Classified Signal Log — Jump Droid",
+  title: "Jump Droid Beta Program — Early Access",
   description:
-    "Early access deployment channel for Jump Droid. Request access to pre-release builds, test unreleased features, and help decode the final transmission.",
+    "Join the Jump Droid beta program. Help shape the game before public release. Sign up for early access and influence development.",
   openGraph: {
-    title: "Classified Signal Log — Jump Droid",
+    title: "Jump Droid Beta Program — Early Access",
     description:
-      "Early access deployment channel for Jump Droid. Request access to pre-release builds and help decode the final transmission.",
+      "Join the Jump Droid beta program. Sign up for early access and help shape the game before public release.",
     type: "website",
     url: "https://jump-droid.vercel.app/beta-info",
     siteName: "Jump Droid",
   },
   twitter: {
     card: "summary",
-    title: "Classified Signal Log — Jump Droid",
-    description: "Early access deployment channel for Jump Droid Beta.",
+    title: "Jump Droid Beta Program — Early Access",
+    description: "Join the Jump Droid beta program and help shape the game.",
   },
   robots: {
     index: true,
@@ -28,82 +29,53 @@ export const metadata: Metadata = {
 export default function BetaInfoPage() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(circle_at_top,_rgba(0,229,255,0.06),transparent_32%)]" />
+      <div className="fixed inset-0 z-0 bg-glow-top-cyan" />
 
-      <main className="relative z-10 mx-auto max-w-2xl px-6 py-24 sm:px-8 sm:py-32">
-        <div className="mb-16 space-y-4">
+      <main className="relative z-10 mx-auto max-w-2xl px-6 py-16 sm:px-8 sm:py-20">
+        <div className="mb-6 space-y-4">
           <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/60 uppercase">
-            Classified Signal Log
+            Beta Program
           </p>
           <h1 className="font-mono text-xl font-bold tracking-[0.1em] text-white uppercase leading-snug">
-            Early Access
+            Jump Droid
             <br />
-            <span className="text-cyan-300">Deployment</span>
+            <span className="text-cyan-300">Beta Program</span>
           </h1>
           <p className="font-mono text-xs leading-relaxed text-slate-400 max-w-lg">
-            This channel provides access to pre-release builds of the transmission.
-            Test unreleased features before public deployment and help decode the
-            final signal.
+            Help shape Jump Droid before everyone else gets to play it.
           </p>
         </div>
 
-        <section className="mb-8 rounded-lg border border-white/5 bg-white/[0.02] p-6">
-          <h2 className="font-mono text-xs font-bold tracking-[0.15em] text-cyan-200 uppercase mb-4">
-            Program Overview
-          </h2>
-          <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
-            <p>
-              Beta testers receive early access to experimental builds before they
-              reach the public release channel. Responsibilities include:
-            </p>
-            <ul className="space-y-2 pl-4">
-              <li className="before:content-['>_'] before:text-cyan-400/60">
-                Testing new features, rocket classes, and zones before public release
-              </li>
-              <li className="before:content-['>_'] before:text-cyan-400/60">
-                Reporting anomalies and providing feedback that shapes development
-              </li>
-              <li className="before:content-['>_'] before:text-cyan-400/60">
-                Stress-testing balance changes and new mechanics
-              </li>
-              <li className="before:content-['>_'] before:text-cyan-400/60">
-                Recognition in the Codex as an early supporter
-              </li>
-            </ul>
+        <div className="mb-6 rounded-lg border border-cyan-400/10 bg-cyan-400/[0.02] p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-cyan-400 text-sm">&#9889;</span>
+            <span className="font-mono text-[10px] tracking-[0.15em] text-cyan-200 uppercase font-bold">
+              Beta Challenge
+            </span>
           </div>
-        </section>
-
-        <section className="mb-8 rounded-lg border border-white/5 bg-white/[0.02] p-6">
-          <h2 className="font-mono text-xs font-bold tracking-[0.15em] text-cyan-200 uppercase mb-4">
-            Access Protocol
-          </h2>
-          <ol className="font-mono text-xs leading-relaxed text-slate-400 space-y-2 pl-4 list-decimal">
-            <li>Open the Google Play Beta page via the link below</li>
-            <li>Select &quot;Become a Tester&quot; and confirm participation</li>
-            <li>Wait a few minutes for propagation</li>
-            <li>Update Jump Droid to the latest beta build from Google Play</li>
-          </ol>
-          <p className="font-mono text-[10px] text-slate-600 mt-3">
-            Beta builds are updated frequently. You may leave the program at any time.
-          </p>
-        </section>
-
-        <div className="flex flex-col items-center gap-4 rounded-lg border border-cyan-400/10 bg-cyan-400/[0.02] p-8 text-center">
-          <p className="font-mono text-xs font-bold tracking-[0.1em] text-white uppercase">
-            Request Access Token
-          </p>
-          <a
-            href={BETA_TESTING_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded border border-cyan-400/30 px-6 py-3 font-mono text-xs tracking-[0.15em] text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:border-cyan-400/50"
-            aria-label="Become a Jump Droid beta tester on Google Play"
-          >
-            Access Deployment Channel →
-          </a>
+          <ul className="space-y-1">
+            <li className="font-mono text-[11px] text-slate-400 before:content-['>_'] before:text-cyan-400/60 before:font-mono">
+              Play 30 min/day &mdash; Earn rewards
+            </li>
+            <li className="font-mono text-[11px] text-slate-400 before:content-['>_'] before:text-cyan-400/60 before:font-mono">
+              Get your name in the game credits
+            </li>
+            <li className="font-mono text-[11px] text-slate-400 before:content-['>_'] before:text-cyan-400/60 before:font-mono">
+              Join the Code Jam &mdash; contribute code (optional)
+            </li>
+          </ul>
         </div>
 
-        <div className="mt-12 text-center">
+        <section className="mb-6 rounded-lg border border-white/5 bg-white/[0.02] p-6">
+          <h2 className="font-mono text-xs font-bold tracking-[0.15em] text-cyan-200 uppercase mb-4">
+            Registration
+          </h2>
+          <BetaRegistrationForm />
+        </section>
+
+        <BetaAccordion />
+
+        <div className="mt-8 text-center">
           <Link
             href="/"
             className="font-mono text-xs text-cyan-400/60 hover:text-cyan-300 transition-colors underline underline-offset-2"
