@@ -4,6 +4,7 @@ export interface CampaignConfig {
   delayBetweenEmailsMs: number;
   batchSize: number;
   maxEmailsPerHour: number;
+  senderAccountId: string | null;
 }
 
 export interface CampaignContactFields {

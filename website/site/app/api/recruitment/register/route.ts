@@ -39,9 +39,9 @@ export async function POST(req: Request) {
     });
 
     const outreachService = await import("@/lib/firebase/outreachService");
-    await outreachService.matchRegistration(cleanEmail);
+    try { await outreachService.matchRegistration(cleanEmail); } catch { /* non-critical */ }
 
-    await logEvent(cleanEmail, "registered");
+    try { await logEvent(cleanEmail, "registered"); } catch { /* non-critical */ }
 
     let acknowledgementSent = false;
     try {

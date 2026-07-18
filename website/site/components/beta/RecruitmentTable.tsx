@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import type { RecruitmentApplicant } from "@/types/recruitment";
 import StatusBadge from "./StatusBadge";
+import SendEmailDialog from "./SendEmailDialog";
 
 interface Props {
   applicants: RecruitmentApplicant[];
@@ -29,6 +30,7 @@ function SourceBadge({ source }: { source: string }) {
 
 export default function RecruitmentTable({ applicants, onSelect }: Props) {
   const [search, setSearch] = useState("");
+  const [emailDialog, setEmailDialog] = useState<{ email: string; name: string } | null>(null);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return applicants;
@@ -76,13 +78,14 @@ export default function RecruitmentTable({ applicants, onSelect }: Props) {
               <th className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase px-4 py-3">
                 Source
               </th>
+              <th className="px-4 py-3 w-10"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="px-4 py-8 text-center font-mono text-xs text-slate-500"
                 >
                   {search.trim()
@@ -132,12 +135,29 @@ export default function RecruitmentTable({ applicants, onSelect }: Props) {
                   <td className="px-4 py-3">
                     <SourceBadge source={a.source} />
                   </td>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setEmailDialog({ email: a.email, name: a.name || a.email })}
+                      className="text-slate-500 hover:text-cyan-400 transition-colors"
+                      title="Send email"
+                    >
+                      &#x2709;
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {emailDialog && (
+        <SendEmailDialog
+          recipientEmail={emailDialog.email}
+          recipientName={emailDialog.name}
+          onClose={() => setEmailDialog(null)}
+        />
+      )}
     </div>
   );
 }

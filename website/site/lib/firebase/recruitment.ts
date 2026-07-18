@@ -30,7 +30,37 @@ function detectSource(): string {
 
 export async function registerBetaUser(userData: BetaUserRegistration): Promise<void> {
   const source = detectSource();
+  const cleanEmail = userData.email.toLowerCase().trim();
 
+  // Write to Firestore directly from client (same connection beta page uses)
+  const { getFirestore } = await import("@/lib/firebase/config");
+  const firestore = await getFirestore();
+  const { doc, getDoc, setDoc, serverTimestamp } = await import("firebase/firestore");
+
+  const existingSnap = await getDoc(doc(firestore, "betaUsers", cleanEmail));
+  if (existingSnap.exists()) {
+    throw Object.assign(new Error("This email is already registered for the beta program."), { code: "already-exists" });
+  }
+
+  await setDoc(doc(firestore, "betaUsers", cleanEmail), {
+    email: cleanEmail,
+    name: userData.name || "",
+    phone: userData.phone || "",
+    codeJam: userData.codeJam || false,
+    status: "pending",
+    source,
+    version: 1,
+    notes: "",
+    registeredFrom: "website",
+    registeredAt: serverTimestamp(),
+    acknowledgementSent: false,
+  });
+
+  // Non-critical outreach and logging
+  try { await matchRegistration(cleanEmail); } catch {}
+  try { await logEvent(cleanEmail, "registered"); } catch {}
+
+  // Send acknowledgement email via server API
   const res = await fetch("/api/recruitment/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -43,13 +73,14 @@ export async function registerBetaUser(userData: BetaUserRegistration): Promise<
     }),
   });
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `Registration failed (HTTP ${res.status})`);
-  }
-
-  const data = await res.json();
-  if (!data.acknowledgementSent) {
-
+  if (res.ok) {
+    const data = await res.json();
+    if (data.acknowledgementSent) {
+      try {
+        await setDoc(doc(firestore, "betaUsers", cleanEmail), {
+          acknowledgementSent: true,
+        }, { merge: true });
+      } catch {}
+    }
   }
 }

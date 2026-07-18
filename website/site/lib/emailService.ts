@@ -13,19 +13,41 @@ export interface SendEmailResult {
   gmailThreadId?: string;
 }
 
-export async function getSenderProfile(): Promise<SenderProfile> {
+export async function getSenderProfile(accountEmail?: string): Promise<SenderProfile> {
   try {
     const { getFirestore } = await import("@/lib/firebase/config");
     const firestore = await getFirestore();
-    const { doc, getDoc } = await import("firebase/firestore");
+    const { doc, getDoc, collection, getDocs, query, where } = await import("firebase/firestore");
 
-    const snap = await getDoc(doc(firestore, "senderProfiles", "default"));
-    if (snap.exists()) {
-      const d = snap.data();
-      return {
-        name: d.name || DEFAULT_SENDER.name,
-        email: d.email || DEFAULT_SENDER.email,
-      };
+    if (accountEmail) {
+      const snap = await getDoc(doc(firestore, "emailAccounts", accountEmail.toLowerCase().trim()));
+      if (snap.exists()) {
+        const d = snap.data();
+        if (d.status === "connected" || d.status === "expired") {
+          return { name: d.displayName || d.email, email: d.email };
+        }
+      }
+    } else {
+      const q = query(
+        collection(firestore, "emailAccounts"),
+        where("isDefault", "==", true),
+        where("status", "==", "connected")
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const d = snap.docs[0].data();
+        return { name: d.displayName || d.email, email: d.email };
+      }
+
+      const fallback = query(
+        collection(firestore, "emailAccounts"),
+        where("status", "==", "connected")
+      );
+      const fallbackSnap = await getDocs(fallback);
+      if (!fallbackSnap.empty) {
+        const d = fallbackSnap.docs[0].data();
+        return { name: d.displayName || d.email, email: d.email };
+      }
     }
   } catch {
     // Fall through to default
@@ -40,18 +62,26 @@ export async function sendEmail(
   name: string,
   template: EmailTemplate,
   campaign?: string,
-  source?: string
+  source?: string,
+  senderAccountId?: string,
+  customHtml?: string,
+  customSubject?: string
 ): Promise<SendEmailResult> {
   try {
+    const body: any = {
+      emails: [{ email: to, name }],
+      template,
+      campaign: campaign || "",
+      source: source || "recruitment",
+    };
+    if (senderAccountId) body.senderAccountId = senderAccountId;
+    if (customHtml) body.htmlBody = customHtml;
+    if (customSubject) body.subject = customSubject;
+
     const res = await fetch("/api/gmail/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        emails: [{ email: to, name }],
-        template,
-        campaign: campaign || "",
-        source: source || "recruitment",
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -76,18 +106,22 @@ export async function sendBulkEmails(
   recipients: { email: string; name: string }[],
   template: EmailTemplate,
   campaign?: string,
-  source?: string
+  source?: string,
+  senderAccountId?: string
 ): Promise<SendEmailResult[]> {
   try {
+    const body: any = {
+      emails: recipients,
+      template,
+      campaign: campaign || "",
+      source: source || "recruitment",
+    };
+    if (senderAccountId) body.senderAccountId = senderAccountId;
+
     const res = await fetch("/api/gmail/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        emails: recipients,
-        template,
-        campaign: campaign || "",
-        source: source || "recruitment",
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -101,17 +135,37 @@ export async function sendBulkEmails(
   }
 }
 
-// ── Server-side functions (call Gmail API directly) ──
+// ── Server-side functions ──
 
-export async function getAccessToken(): Promise<string> {
+export async function getAccessToken(accountEmail?: string): Promise<string> {
   const { getFirestore } = await import("@/lib/firebase/config");
   const firestore = await getFirestore();
-  const { doc, getDoc, updateDoc } = await import("firebase/firestore");
+  const { doc, getDoc, updateDoc, collection, getDocs, query, where } = await import("firebase/firestore");
 
-  const snap = await getDoc(doc(firestore, "gmailAuth", "tokens"));
-  if (!snap.exists()) throw new Error("Not authenticated with Google");
+  let docSnap: any;
 
-  const data = snap.data();
+  if (accountEmail) {
+    docSnap = await getDoc(doc(firestore, "emailAccounts", accountEmail.toLowerCase().trim()));
+    if (!docSnap.exists()) throw new Error("Email account not found");
+  } else {
+    const q = query(
+      collection(firestore, "emailAccounts"),
+      where("isDefault", "==", true),
+      where("status", "in", ["connected", "expired"])
+    );
+    const results = await getDocs(q);
+    if (!results.empty) {
+      docSnap = results.docs[0];
+    } else {
+      const fallback = query(collection(firestore, "emailAccounts"), where("status", "in", ["connected", "expired"]));
+      const fallbackResults = await getDocs(fallback);
+      if (fallbackResults.empty) throw new Error("Not authenticated with Google");
+      docSnap = fallbackResults.docs[0];
+    }
+  }
+
+  const data = docSnap.data();
+  if (!data) throw new Error("Email account data not found");
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -135,11 +189,30 @@ export async function getAccessToken(): Promise<string> {
   });
 
   const refreshed = await refreshRes.json();
-  if (!refreshed.access_token) throw new Error("Token refresh failed");
+  if (!refreshed.access_token) {
+    const errMsg = refreshed.error_description || refreshed.error || "Token refresh failed";
+    const email = data.email || "unknown";
 
-  await updateDoc(doc(firestore, "gmailAuth", "tokens"), {
+    if (refreshRes.status === 400 || refreshRes.status === 401) {
+      await updateDoc(doc(firestore, "emailAccounts", email.toLowerCase().trim()), {
+        status: "expired",
+        errorMessage: errMsg.slice(0, 500),
+      });
+
+      const { logEmailAudit } = await import("@/lib/firebase/auditService");
+      await logEmailAudit("oauth_error", email, `Token refresh failed: ${errMsg}`);
+    }
+
+    throw new Error(errMsg);
+  }
+
+  const email = data.email || "unknown";
+  await updateDoc(doc(firestore, "emailAccounts", email.toLowerCase().trim()), {
     accessToken: refreshed.access_token,
     expiryDate: Date.now() + (refreshed.expires_in || 3600) * 1000,
+    status: "connected",
+    errorMessage: null,
+    lastUsedAt: (await import("firebase/firestore")).serverTimestamp(),
   });
 
   return refreshed.access_token;
@@ -356,6 +429,168 @@ async function markBouncedInApplicants(recipient: string): Promise<void> {
   }
 }
 
+// ── Server-side (Admin SDK) versions ──
+
+import type { Firestore, DocumentSnapshot } from "firebase-admin/firestore";
+
+export async function getSenderProfileAdmin(
+  adminFirestore: Firestore,
+  accountEmail?: string
+): Promise<SenderProfile> {
+  try {
+    if (accountEmail) {
+      const snap = await adminFirestore.collection("emailAccounts").doc(accountEmail.toLowerCase().trim()).get();
+      if (snap.exists) {
+        const d = snap.data()!;
+        if (d.status === "connected" || d.status === "expired") {
+          return { name: d.displayName || d.email, email: d.email };
+        }
+      }
+    } else {
+      const q = adminFirestore
+        .collection("emailAccounts")
+        .where("isDefault", "==", true)
+        .where("status", "==", "connected")
+        .limit(1);
+      const snap = await q.get();
+      if (!snap.empty) {
+        const d = snap.docs[0].data();
+        return { name: d.displayName || d.email, email: d.email };
+      }
+
+      const fallback = adminFirestore
+        .collection("emailAccounts")
+        .where("status", "==", "connected")
+        .limit(1);
+      const fallbackSnap = await fallback.get();
+      if (!fallbackSnap.empty) {
+        const d = fallbackSnap.docs[0].data();
+        return { name: d.displayName || d.email, email: d.email };
+      }
+    }
+  } catch {
+    // Fall through to default
+  }
+  return { ...DEFAULT_SENDER };
+}
+
+export async function getAccessTokenAdmin(
+  adminFirestore: Firestore,
+  accountEmail?: string
+): Promise<string> {
+  let docSnap: DocumentSnapshot | null = null;
+
+  if (accountEmail) {
+    docSnap = await adminFirestore.collection("emailAccounts").doc(accountEmail.toLowerCase().trim()).get();
+    if (!docSnap.exists) throw new Error("Email account not found");
+  } else {
+    const q = adminFirestore
+      .collection("emailAccounts")
+      .where("isDefault", "==", true)
+      .where("status", "in", ["connected", "expired"])
+      .limit(1);
+    const results = await q.get();
+    if (!results.empty) {
+      docSnap = results.docs[0];
+    } else {
+      const fallback = adminFirestore
+        .collection("emailAccounts")
+        .where("status", "in", ["connected", "expired"])
+        .limit(1);
+      const fallbackResults = await fallback.get();
+      if (fallbackResults.empty) throw new Error("Not authenticated with Google");
+      docSnap = fallbackResults.docs[0];
+    }
+  }
+
+  if (!docSnap) throw new Error("Email account not found");
+  const data = docSnap.data();
+  if (!data) throw new Error("Email account data not found");
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error("Google OAuth not configured");
+  }
+
+  if (data.expiryDate > Date.now() + 60000) {
+    return data.accessToken;
+  }
+
+  const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      refresh_token: data.refreshToken,
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: "refresh_token",
+    }),
+  });
+
+  const refreshed = await refreshRes.json();
+  if (!refreshed.access_token) {
+    const errMsg = refreshed.error_description || refreshed.error || "Token refresh failed";
+    const email = data.email || "unknown";
+
+    if (refreshRes.status === 400 || refreshRes.status === 401) {
+      await adminFirestore.collection("emailAccounts").doc(email.toLowerCase().trim()).update({
+        status: "expired",
+        errorMessage: errMsg.slice(0, 500),
+      });
+
+      const { logEmailAuditAdmin } = await import("@/lib/firebase/auditService");
+      await logEmailAuditAdmin(adminFirestore, "oauth_error", email, `Token refresh failed: ${errMsg}`);
+    }
+
+    throw new Error(errMsg);
+  }
+
+  const email = data.email || "unknown";
+  await adminFirestore.collection("emailAccounts").doc(email.toLowerCase().trim()).update({
+    accessToken: refreshed.access_token,
+    expiryDate: Date.now() + (refreshed.expires_in || 3600) * 1000,
+    status: "connected",
+    errorMessage: null,
+  });
+
+  return refreshed.access_token;
+}
+
+export async function logEmailAdmin(
+  adminFirestore: Firestore,
+  recipient: string,
+  recipientName: string,
+  template: string,
+  campaign: string,
+  source: string,
+  status: string,
+  gmailMessageId: string,
+  gmailThreadId: string,
+  error: string
+): Promise<void> {
+  try {
+    await adminFirestore.collection("emailLog").add({
+      recipient,
+      recipientName,
+      template,
+      campaign: campaign || "",
+      source: source || "",
+      status,
+      queuedAt: null,
+      sentAt: status === "sent" ? new Date() : null,
+      failedAt: status === "failed" ? new Date() : null,
+      retryCount: 0,
+      providerMessageId: gmailMessageId || "",
+      providerThreadId: gmailThreadId || "",
+      failureReason: error ? error.slice(0, 500) : "",
+      error: error || "",
+    });
+  } catch {
+    // Logging failure should not break the send flow
+  }
+}
+
 export async function detectBounces(): Promise<number> {
   let bounced = 0;
   try {
@@ -381,10 +616,6 @@ export async function detectBounces(): Promise<number> {
       await setLastBounceCheck();
       return 0;
     }
-
-    const { doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
-    const { getFirestore } = await import("@/lib/firebase/config");
-    const firestore = await getFirestore();
 
     for (const msg of messages) {
       try {

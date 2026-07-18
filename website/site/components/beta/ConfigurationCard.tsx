@@ -51,6 +51,13 @@ export default function ConfigurationCard({ config, exchangeRateStatus, onConfig
     }));
   }, []);
 
+  const setRequirementMode = useCallback((mode: "daily" | "total" | "both") => {
+    setDraft((prev) => ({
+      ...prev,
+      beta: { ...prev.beta, requirementMode: mode },
+    }));
+  }, []);
+
   const validate = useCallback((): boolean => {
     const errors: Record<string, string> = {};
     const b = draft.beta;
@@ -58,6 +65,7 @@ export default function ConfigurationCard({ config, exchangeRateStatus, onConfig
     if (b.endDate <= b.startDate) errors.endDate = "End date must be after start date";
     if (b.requiredDays < 1) errors.requiredDays = "Must be at least 1";
     if (b.requiredMinutes < 1) errors.requiredMinutes = "Must be at least 1";
+    if (b.requiredTotalHours < 1) errors.requiredTotalHours = "Must be at least 1";
     if (r.bannerEcpmUsd < 0) errors.bannerEcpmUsd = "Cannot be negative";
     if (r.rewardedEcpmUsd < 0) errors.rewardedEcpmUsd = "Cannot be negative";
     if (r.usdToInr <= 0) errors.usdToInr = "Must be greater than 0";
@@ -144,41 +152,85 @@ export default function ConfigurationCard({ config, exchangeRateStatus, onConfig
                   <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.endDate}</p>
                 )}
               </div>
-              <div>
-                <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
-                  Required Days
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={draft.beta.requiredDays}
-                  onChange={(e) => setField("beta", "requiredDays", parseInt(e.target.value) || 0)}
-                  className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20 ${
-                    validationErrors.requiredDays ? "border-red-400" : "border-white/10"
-                  }`}
-                />
-                {validationErrors.requiredDays && (
-                  <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.requiredDays}</p>
-                )}
-              </div>
-              <div>
-                <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
-                  Required Minutes
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={draft.beta.requiredMinutes}
-                  onChange={(e) => setField("beta", "requiredMinutes", parseInt(e.target.value) || 0)}
-                  className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20 ${
-                    validationErrors.requiredMinutes ? "border-red-400" : "border-white/10"
-                  }`}
-                />
-                {validationErrors.requiredMinutes && (
-                  <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.requiredMinutes}</p>
-                )}
+              {draft.beta.requirementMode !== "total" && (
+                <div>
+                  <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
+                    Required Days
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={draft.beta.requiredDays}
+                    onChange={(e) => setField("beta", "requiredDays", parseInt(e.target.value) || 0)}
+                    className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20 ${
+                      validationErrors.requiredDays ? "border-red-400" : "border-white/10"
+                    }`}
+                  />
+                  {validationErrors.requiredDays && (
+                    <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.requiredDays}</p>
+                  )}
+                </div>
+              )}
+              {draft.beta.requirementMode !== "total" && (
+                <div>
+                  <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
+                    Required Minutes
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={draft.beta.requiredMinutes}
+                    onChange={(e) => setField("beta", "requiredMinutes", parseInt(e.target.value) || 0)}
+                    className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20 ${
+                      validationErrors.requiredMinutes ? "border-red-400" : "border-white/10"
+                    }`}
+                  />
+                  {validationErrors.requiredMinutes && (
+                    <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.requiredMinutes}</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="mt-4">
+              <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
+                Requirement Mode
+              </label>
+              <div className="flex gap-3">
+                {(["daily", "total", "both"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setRequirementMode(mode)}
+                    className={`rounded-lg border px-4 py-2 font-mono text-xs tracking-wider transition-colors ${
+                      draft.beta.requirementMode === mode
+                        ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-300"
+                        : "border-white/10 text-slate-400 hover:border-white/20"
+                    }`}
+                  >
+                    {mode === "daily" ? "Daily" : mode === "total" ? "Total" : "Both"}
+                  </button>
+                ))}
               </div>
             </div>
+            {(draft.beta.requirementMode === "total" || draft.beta.requirementMode === "both") && (
+              <div className="mt-4">
+                <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
+                  Required Total Hours
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  step={0.5}
+                  value={draft.beta.requiredTotalHours}
+                  onChange={(e) => setField("beta", "requiredTotalHours", parseFloat(e.target.value) || 0)}
+                  className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20 ${
+                    validationErrors.requiredTotalHours ? "border-red-400" : "border-white/10"
+                  }`}
+                />
+                {validationErrors.requiredTotalHours && (
+                  <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.requiredTotalHours}</p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="border-t border-white/5 pt-6">

@@ -10,6 +10,8 @@ export const DEFAULT_CONFIG: DashboardConfig = {
     endDate: "2026-08-05",
     requiredDays: 14,
     requiredMinutes: 30,
+    requirementMode: "daily",
+    requiredTotalHours: 7,
   },
   revenue: {
     bannerEcpmUsd: 0.23,
@@ -35,6 +37,8 @@ export async function fetchConfig(): Promise<DashboardConfig | null> {
       endDate: data.beta?.endDate ?? DEFAULT_CONFIG.beta.endDate,
       requiredDays: data.beta?.requiredDays ?? DEFAULT_CONFIG.beta.requiredDays,
       requiredMinutes: data.beta?.requiredMinutes ?? DEFAULT_CONFIG.beta.requiredMinutes,
+      requirementMode: data.beta?.requirementMode ?? DEFAULT_CONFIG.beta.requirementMode,
+      requiredTotalHours: data.beta?.requiredTotalHours ?? DEFAULT_CONFIG.beta.requiredTotalHours,
     },
     revenue: {
       bannerEcpmUsd: data.revenue?.bannerEcpmUsd ?? DEFAULT_CONFIG.revenue.bannerEcpmUsd,
@@ -52,7 +56,9 @@ export async function updateConfig(data: DashboardConfig): Promise<void> {
   await setDoc(
     doc(firestore, COLLECTION, DOC),
     {
-      beta: data.beta,
+      beta: {
+        ...data.beta,
+      },
       revenue: {
         ...data.revenue,
       },

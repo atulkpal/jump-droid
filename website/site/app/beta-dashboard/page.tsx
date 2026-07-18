@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Tester, TesterSession } from "@/types/tester";
 import type { DashboardConfig } from "@/types/config";
 import { fetchAllTesters } from "@/lib/firebase/testers";
 import { fetchRecentSessions } from "@/lib/firebase/sessions";
 import { fetchConfig, getDefaultConfig } from "@/lib/firebase/configService";
-import { fetchUsdToInr } from "@/lib/firebase/exchangeRate";
-import ConfigurationCard from "@/components/beta/ConfigurationCard";
+import { signOut as firebaseSignOut } from "@/lib/firebase/authService";
 import OverviewCards from "@/components/beta/OverviewCards";
 import TesterTable from "@/components/beta/TesterTable";
 import RecentSessions from "@/components/beta/RecentSessions";
@@ -15,13 +16,14 @@ import DailySummaryTable from "@/components/beta/DailySummaryTable";
 import FeedbackTable from "@/components/beta/FeedbackTable";
 
 export default function BetaDashboardPage() {
+  const router = useRouter();
   const [config, setConfig] = useState<DashboardConfig>(() => getDefaultConfig());
   const [testers, setTesters] = useState<Tester[]>([]);
+  const [configLoading, setConfigLoading] = useState(true);
   const [sessions, setSessions] = useState<TesterSession[]>([]);
-  const [exchangeRateStatus, setExchangeRateStatus] = useState("");
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -32,24 +34,14 @@ export default function BetaDashboardPage() {
         fetchAllTesters(),
         fetchRecentSessions(500),
       ]);
-
-      const baseConfig = fetchedConfig ?? getDefaultConfig();
-
-      const liveRate = await fetchUsdToInr();
-      if (liveRate !== null) {
-        baseConfig.revenue.usdToInr = liveRate;
-        setExchangeRateStatus("Live rate applied");
-      } else {
-        setExchangeRateStatus(fetchedConfig ? "Using stored exchange rate" : "");
-      }
-
-      setConfig(baseConfig);
+      if (fetchedConfig) setConfig(fetchedConfig);
       setTesters(allTesters);
       setSessions(recentSessions);
     } catch (e: any) {
       setError(e?.message ?? "Failed to load dashboard data");
     } finally {
       setLoading(false);
+      setConfigLoading(false);
     }
   }, []);
 
@@ -57,10 +49,15 @@ export default function BetaDashboardPage() {
     loadData();
   }, [loadData]);
 
-  const handleConfigSaved = useCallback((saved: DashboardConfig) => {
-    setConfig(saved);
-    setExchangeRateStatus("");
-  }, []);
+  const handleSignOut = useCallback(async () => {
+    setSigningOut(true);
+    try {
+      await firebaseSignOut();
+      router.push("/");
+    } catch {
+      setSigningOut(false);
+    }
+  }, [router]);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
@@ -78,30 +75,34 @@ export default function BetaDashboardPage() {
               <span className="text-cyan-300">Dashboard</span>
             </h1>
           </div>
-          <div className="flex items-center gap-3">
-            <a
+          <div className="flex items-center gap-2">
+            <Link
               href="/beta-dashboard/recruitment"
               className="rounded-lg border border-white/10 px-4 py-3 font-mono text-sm text-slate-400 transition-colors hover:border-white/20 hover:text-white"
             >
               Recruitment
-            </a>
-            <button
-              onClick={() => setSettingsOpen(true)}
+            </Link>
+            <Link
+              href="/beta-dashboard/email"
               className="rounded-lg border border-white/10 px-4 py-3 font-mono text-sm text-slate-400 transition-colors hover:border-white/20 hover:text-white"
             >
-              &#x2699; Settings
+              Email
+            </Link>
+            <Link
+              href="/beta-dashboard/settings"
+              className="rounded-lg border border-white/10 px-4 py-3 font-mono text-sm text-slate-400 transition-colors hover:border-white/20 hover:text-white"
+            >
+              Settings
+            </Link>
+            <button
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="rounded-lg border border-red-400/20 px-4 py-3 font-mono text-sm text-red-400/70 transition-colors hover:border-red-400/40 hover:text-red-400 disabled:opacity-50"
+            >
+              {signingOut ? "..." : "Sign Out"}
             </button>
           </div>
         </div>
-
-        {settingsOpen && (
-          <ConfigurationCard
-            config={config}
-            exchangeRateStatus={exchangeRateStatus}
-            onConfigSaved={handleConfigSaved}
-            onClose={() => setSettingsOpen(false)}
-          />
-        )}
 
         {loading ? (
           <p className="font-mono text-xs text-slate-500">Loading dashboard...</p>

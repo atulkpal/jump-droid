@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Auth flow: any authenticated user can read/write their own admin record
+    match /admins/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // App config: any authenticated user can read; owners can write
+    match /appConfig/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == "owner";
+    }
+
+    // Campaign config: any authenticated user (admin) can read/write
+    match /campaignConfig/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Testers + subcollections: public read; admins write
+    match /testers/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+      match /sessions/{sessionId} {
+        allow read: if true;
+        allow write: if request.auth != null;
+      }
+      match /feedback/{feedbackId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null;
+      }
+    }
+
+    // Collection group queries for sessions (used by fetchRecentSessions)
+    match /{path=**}/sessions/{sessionId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Collection group for testerFeedback (used by FeedbackTable → fetchAllFeedback + FeedbackSection)
+    match /{path=**}/testerFeedback/{feedbackId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Dashboard config: public read; admins write (used by fetchConfig)
+    match /dashboardConfig/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Beta users: public read/write by email (doc ID = email, safe); admin list/delete
+    match /betaUsers/{email} {
+      allow read, create, update: if true;
+      allow list, delete: if request.auth != null;
+    }
+
+    // Recruitment contacts: public read/write by email (for matchRegistration); admin list/delete
+    match /recruitmentContacts/{email} {
+      allow read, create, update: if true;
+      allow list, delete: if request.auth != null;
+    }
+
+    // Email accounts: admins can read/write
+    match /emailAccounts/{email} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Email log: admins can read; writes via server-side
+    match /emailLog/{doc} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Email audit: admins can read; writes via client audit service
+    match /emailAuditLog/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Activity log: admin can read; public can create (for logEvent)
+    match /activityLog/{doc} {
+      allow read: if request.auth != null;
+      allow create: if true;
+      allow update, delete: if request.auth != null;
+    }
+
+    // Email template overrides: admins can read/write
+    match /emailTemplateOverrides/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Custom email templates: admins can read/write
+    match /emailTemplatesCustom/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Sender profiles: admins can read; writes via server-side
+    match /senderProfiles/{doc} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Gmail auth tokens: no client access
+    match /gmailAuth/{doc} {
+      allow read, write: if false;
+    }
+
+    // Catch-all deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
