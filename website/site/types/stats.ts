@@ -20,6 +20,8 @@ export interface DailySummary {
 export interface EligibilityInfo {
   eligibleDays: number;
   totalRequiredDays: number;
+  totalHours: number;
+  requiredTotalHours: number;
   isEligible: boolean;
 }
 

@@ -17,7 +17,7 @@ export default function Leaderboard() {
         const sorted = [...testers]
           .filter((t) => (t.highestScore ?? 0) > 0)
           .sort((a, b) => (b.highestScore ?? 0) - (a.highestScore ?? 0))
-          .slice(0, 5);
+          .slice(0, 10);
         setTop(sorted);
         setLoading(false);
       })

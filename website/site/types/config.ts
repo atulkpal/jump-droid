@@ -4,6 +4,8 @@ export interface DashboardConfig {
     endDate: string;
     requiredDays: number;
     requiredMinutes: number;
+    requirementMode: "daily" | "total" | "both";
+    requiredTotalHours: number;
   };
   revenue: {
     bannerEcpmUsd: number;

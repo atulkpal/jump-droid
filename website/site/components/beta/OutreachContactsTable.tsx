@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { OutreachContact } from "@/types/recruitmentContacts";
+import SendEmailDialog from "./SendEmailDialog";
 
 interface Props {
   contacts: OutreachContact[];
@@ -29,6 +30,7 @@ export default function OutreachContactsTable({
   onSelectionChange,
 }: Props) {
   const [search, setSearch] = useState("");
+  const [emailDialog, setEmailDialog] = useState<{ email: string; name: string } | null>(null);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return contacts;
@@ -111,12 +113,13 @@ export default function OutreachContactsTable({
               <th className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase px-4 py-3">
                 Imported
               </th>
+              <th className="px-4 py-3 w-10"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center font-mono text-xs text-slate-500">
+                <td colSpan={10} className="px-4 py-8 text-center font-mono text-xs text-slate-500">
                   {search.trim() ? "No contacts match your search." : "No contacts yet. Import a CSV to get started."}
                 </td>
               </tr>
@@ -165,12 +168,29 @@ export default function OutreachContactsTable({
                       <td className="px-4 py-3 font-mono text-xs text-slate-400">
                         {formatDate(c.importedAt)}
                       </td>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setEmailDialog({ email: c.email, name: c.name || c.email })}
+                      className="text-slate-500 hover:text-cyan-400 transition-colors"
+                      title="Send email"
+                    >
+                      &#x2709;
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {emailDialog && (
+        <SendEmailDialog
+          recipientEmail={emailDialog.email}
+          recipientName={emailDialog.name}
+          onClose={() => setEmailDialog(null)}
+        />
+      )}
     </div>
   );
 }

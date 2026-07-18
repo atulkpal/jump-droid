@@ -79,18 +79,23 @@ export function computeEligibility(
   config: DashboardConfig
 ): EligibilityInfo {
   const goalSeconds = config.beta.requiredMinutes * 60;
-  const start = new Date(config.beta.startDate);
-  const end = new Date(config.beta.endDate);
+  const start = new Date(config.beta.startDate + "T00:00:00Z");
+  const end = new Date(config.beta.endDate + "T23:59:59Z");
   const today = new Date();
 
   const dayPlaytimeMap = new Map<string, number>();
 
   for (const s of sessions) {
     if (!s.sessionStart) continue;
-    const date = new Date(s.sessionStart.seconds * 1000).toISOString().split("T")[0];
+    const sessionDate = new Date(s.sessionStart.seconds * 1000);
+    if (sessionDate < start || sessionDate > end) continue;
+    const date = sessionDate.toISOString().split("T")[0];
     const current = dayPlaytimeMap.get(date) ?? 0;
     dayPlaytimeMap.set(date, current + (s.gameplayTime ?? 0));
   }
+
+  const totalSeconds = Array.from(dayPlaytimeMap.values()).reduce((a, b) => a + b, 0);
+  const totalHours = Math.round((totalSeconds / 3600) * 10) / 10;
 
   let eligibleDays = 0;
   const cursor = new Date(start);
@@ -104,11 +109,38 @@ export function computeEligibility(
     cursor.setDate(cursor.getDate() + 1);
   }
 
+  const { requirementMode, requiredDays, requiredTotalHours } = config.beta;
+  const totalGoalHours = requiredTotalHours;
+  let isEligible = false;
+
+  if (requirementMode === "daily") {
+    isEligible = eligibleDays >= requiredDays || today > end;
+  } else if (requirementMode === "total") {
+    isEligible = totalHours >= totalGoalHours || today > end;
+  } else {
+    isEligible = (eligibleDays >= requiredDays && totalHours >= totalGoalHours) || today > end;
+  }
+
   return {
     eligibleDays,
-    totalRequiredDays: config.beta.requiredDays,
-    isEligible: eligibleDays >= config.beta.requiredDays || today > end,
+    totalRequiredDays: requiredDays,
+    totalHours,
+    requiredTotalHours: totalGoalHours,
+    isEligible,
   };
+}
+
+export function computeDayActivity(
+  sessions: TesterSession[]
+): Map<string, number> {
+  const dayMap = new Map<string, number>();
+  for (const s of sessions) {
+    if (!s.sessionStart) continue;
+    const date = new Date(s.sessionStart.seconds * 1000).toISOString().split("T")[0];
+    const current = dayMap.get(date) ?? 0;
+    dayMap.set(date, current + (s.gameplayTime ?? 0));
+  }
+  return dayMap;
 }
 
 export function countTodayActiveTesters(sessions: TesterSession[]): number {

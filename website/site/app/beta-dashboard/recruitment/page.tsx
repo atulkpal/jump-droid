@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { RecruitmentApplicant, RecruitmentStatus } from "@/types/recruitment";
 import { fetchAllApplicants } from "@/lib/firebase/recruitmentService";
@@ -135,12 +136,12 @@ function RecruitmentPage() {
               <span className="text-cyan-300">Dashboard</span>
             </h1>
           </div>
-          <a
+          <Link
             href="/beta-dashboard"
             className="rounded-lg border border-white/10 px-4 py-3 font-mono text-sm text-slate-400 transition-colors hover:border-white/20 hover:text-white"
           >
             &larr; Dashboard
-          </a>
+          </Link>
         </div>
 
         <div className="mb-8 flex gap-6 border-b border-white/5">

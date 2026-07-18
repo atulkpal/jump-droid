@@ -1,34 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-function getCallbackUrl(): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (appUrl) return `${appUrl}/gmail/callback`;
-  if (process.env.NODE_ENV === "development") {
-    return "http://localhost:3000/gmail/callback";
-  }
-  throw new Error(
-    "NEXT_PUBLIC_APP_URL is required in production. " +
-    "Set it to your deployment URL (e.g. https://jump-droid.vercel.app)."
-  );
-}
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { code } = await req.json();
     if (!code) {
-      return NextResponse.json({ error: "Missing authorization code" }, { status: 400 });
+      return NextResponse.json({ error: "Authorization code is required" }, { status: 400 });
     }
 
-    const callbackUrl = getCallbackUrl();
-
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/gmail/callback`;
 
     if (!clientId || !clientSecret) {
-      return NextResponse.json(
-        { error: "Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Google OAuth not configured" }, { status: 500 });
     }
 
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -38,29 +22,35 @@ export async function POST(req: Request) {
         code,
         client_id: clientId,
         client_secret: clientSecret,
-        redirect_uri: callbackUrl,
+        redirect_uri: redirectUri,
         grant_type: "authorization_code",
       }),
     });
 
-    const tokens = await tokenRes.json();
-    if (!tokens.refresh_token) {
-      return NextResponse.json({ error: "No refresh_token in response" }, { status: 400 });
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.refresh_token) {
+      return NextResponse.json(
+        { error: tokenData.error_description || tokenData.error || "Token exchange failed" },
+        { status: 400 }
+      );
     }
 
-    const { getFirestore } = await import("@/lib/firebase/config");
-    const firestore = await getFirestore();
-    const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");
+    const infoRes = await fetch(
+      `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${tokenData.access_token}`
+    );
+    const infoData = await infoRes.json();
+    const email: string = infoData.email || "unknown";
+    const displayName: string = infoData.name || email;
 
-    await setDoc(doc(firestore, "gmailAuth", "tokens"), {
-      refreshToken: tokens.refresh_token,
-      accessToken: tokens.access_token,
-      expiryDate: Date.now() + (tokens.expires_in || 3600) * 1000,
-      updatedAt: serverTimestamp(),
+    return NextResponse.json({
+      success: true,
+      email: email.toLowerCase().trim(),
+      displayName,
+      refreshToken: tokenData.refresh_token,
+      accessToken: tokenData.access_token,
+      expiresIn: tokenData.expires_in || 3600,
     });
-
-    return NextResponse.json({ success: true });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Exchange failed" }, { status: 500 });
+    return NextResponse.json({ error: e?.message || "Exchange failed" }, { status: 500 });
   }
 }

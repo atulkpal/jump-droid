@@ -11,9 +11,11 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function processCampaign(): Promise<CampaignProcessResult> {
-  const [config, sender] = await Promise.all([
-    getCampaignConfig(),
-    getSenderProfile(),
+  const config = await getCampaignConfig();
+
+  const senderAccountId = config.senderAccountId || undefined;
+  const [sender] = await Promise.all([
+    getSenderProfile(senderAccountId),
   ]);
 
   await detectBounces();
@@ -63,7 +65,7 @@ export async function processCampaign(): Promise<CampaignProcessResult> {
         inviteNumber
       );
 
-      const sentResult = await sendEmailViaGmail(email, contact.name || "", html, text, subject, "invitation", contact.campaignId || "default", sender);
+      const sentResult = await sendEmailViaGmail(email, contact.name || "", html, text, subject, "invitation", contact.campaignId || "default", sender, senderAccountId);
 
       if (sentResult.success) {
         await incrementInviteCount(email, config.delayDays);
@@ -110,10 +112,11 @@ async function sendEmailViaGmail(
   subject: string,
   template: string,
   campaign: string,
-  sender: SenderProfile
+  sender: SenderProfile,
+  senderAccountId?: string
 ): Promise<{ success: boolean; error?: string; gmailMessageId?: string; gmailThreadId?: string }> {
   try {
-    const accessToken = await getAccessToken();
+    const accessToken = await getAccessToken(senderAccountId);
 
     const { raw } = buildMimeMessage(to, name, subject, html, text, sender);
 
@@ -143,13 +146,21 @@ async function sendEmailViaGmail(
       messageId = parsed.id || "";
       threadId = parsed.threadId || "";
     } catch {
-
+      // Non-critical parse failure
     }
 
     await logEmail(to, name, template, campaign, "campaign", "sent", messageId, threadId, "");
+
+    const { logEmailAudit } = await import("@/lib/firebase/auditService");
+    await logEmailAudit("send_success", sender.email, `Campaign email sent to ${to}`, "system");
+
     return { success: true, gmailMessageId: messageId, gmailThreadId: threadId };
   } catch (e: any) {
     await logEmail(to, name, template, campaign, "campaign", "failed", "", "", e?.message || "");
+
+    const { logEmailAudit } = await import("@/lib/firebase/auditService");
+    await logEmailAudit("send_failed", sender.email, `Campaign email to ${to} failed: ${e?.message}`, "system");
+
     return { success: false, error: e?.message };
   }
 }

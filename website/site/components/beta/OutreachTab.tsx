@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { OutreachContact } from "@/types/recruitmentContacts";
 import { fetchAllContacts, batchUpdateInvited } from "@/lib/firebase/outreachService";
-import { getAuthUrl, checkAuthStatus, disconnectGmail } from "@/lib/firebase/gmailService";
 import OutreachDashboardCards from "./OutreachDashboardCards";
 import OutreachContactsTable from "./OutreachContactsTable";
 import OutreachImportCsv from "./OutreachImportCsv";
@@ -22,7 +21,9 @@ export default function OutreachTab() {
     failed: number;
     errors: { email: string; error: string }[];
   } | null>(null);
-  const [authStatus, setAuthStatus] = useState<boolean | null>(null);
+  const [accounts, setAccounts] = useState<{ email: string; displayName?: string; status: string; isDefault?: boolean }[]>([]);
+  const [selectedAccount, setSelectedAccount] = useState<string>("");
+  const [accountsLoading, setAccountsLoading] = useState(true);
 
   const loadContacts = useCallback(async () => {
     setLoading(true);
@@ -38,22 +39,25 @@ export default function OutreachTab() {
 
   useEffect(() => {
     loadContacts();
-    checkAuthStatus().then(setAuthStatus);
   }, [loadContacts]);
+
+  useEffect(() => {
+    fetch("/api/email-accounts")
+      .then((res) => res.json())
+      .then((data) => {
+        const list: { email: string; displayName?: string; status: string; isDefault?: boolean }[] = data.accounts || [];
+        setAccounts(list);
+        const connected = list.filter((a: any) => a.status === "connected");
+        const defaultConn = connected.find((a: any) => a.isDefault);
+        setSelectedAccount(defaultConn?.email || connected[0]?.email || "");
+        setAccountsLoading(false);
+      })
+      .catch(() => setAccountsLoading(false));
+  }, []);
 
   const handleImported = () => {
     setImportOpen(false);
     loadContacts();
-  };
-
-  const handleDisconnect = async () => {
-    try {
-      await disconnectGmail();
-      setAuthStatus(false);
-      setResult(null);
-    } catch {
-      // handled silently
-    }
   };
 
   const handleManualAdded = () => {
@@ -64,19 +68,6 @@ export default function OutreachTab() {
   const handleSend = async () => {
     const selectedContacts = contacts.filter((c) => selected.has(c.email));
     if (selectedContacts.length === 0) return;
-
-    const authed = await checkAuthStatus();
-    if (!authed) {
-      const url = getAuthUrl();
-      if (url) {
-        window.location.href = url;
-      } else {
-        alert(
-          "Google OAuth is not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local"
-        );
-      }
-      return;
-    }
 
     setSending(true);
     setResult(null);
@@ -90,6 +81,7 @@ export default function OutreachTab() {
             email: c.email,
             name: c.name || c.email,
           })),
+          senderAccountId: selectedAccount || undefined,
         }),
       });
 
@@ -179,21 +171,40 @@ export default function OutreachTab() {
             <OutreachDashboardCards contacts={contacts} />
           </section>
 
-          {authStatus === true && (
-            <section className="mb-6">
-              <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-4 py-2">
-                <span className="font-mono text-[11px] text-green-400/60">
-                  Gmail connected
+          <section className="mb-6">
+            <div className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-4 py-2">
+              {accountsLoading ? (
+                <span className="font-mono text-[11px] text-slate-500">Loading sender info...</span>
+              ) : accounts.filter((a) => a.status === "connected").length === 0 ? (
+                <span className="font-mono text-[11px] text-amber-400/60">
+                  {"\u{1F7E1}"} No email account configured
                 </span>
-                <button
-                  onClick={handleDisconnect}
-                  className="font-mono text-[11px] text-slate-500 hover:text-red-400 transition-colors"
-                >
-                  Switch Account
-                </button>
-              </div>
-            </section>
-          )}
+              ) : (
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[11px] text-slate-400">Send from:</span>
+                  <select
+                    value={selectedAccount}
+                    onChange={(e) => setSelectedAccount(e.target.value)}
+                    className="rounded-lg border border-white/10 bg-black px-3 py-1.5 font-mono text-[11px] text-white outline-none transition focus:border-cyan-400/40"
+                  >
+                    {accounts
+                      .filter((a) => a.status === "connected")
+                      .map((a) => (
+                        <option key={a.email} value={a.email}>
+                          {a.displayName || a.email}{a.isDefault ? " (Default)" : ""}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+              <a
+                href="/beta-dashboard/settings/email-accounts"
+                className="font-mono text-[11px] text-slate-500 hover:text-white transition-colors"
+              >
+                Manage Accounts
+              </a>
+            </div>
+          </section>
 
           <section className="mb-6">
             <OutreachContactsTable
@@ -212,14 +223,10 @@ export default function OutreachTab() {
                   </p>
                   <button
                     onClick={handleSend}
-                    disabled={sending}
+                    disabled={sending || !selectedAccount}
                     className="rounded-lg border border-cyan-400/30 px-6 py-3 font-mono text-xs tracking-[0.15em] text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:border-cyan-400/50 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
-                    {sending
-                      ? "Sending..."
-                      : authStatus === false
-                      ? "Authenticate & Send"
-                      : "Send Invitations"}
+                    {sending ? "Sending..." : "Send Invitations"}
                   </button>
                 </div>
               </div>

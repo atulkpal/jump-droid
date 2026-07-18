@@ -17,6 +17,7 @@ export async function getCampaignConfig(): Promise<CampaignConfig> {
       delayBetweenEmailsMs: 5000,
       batchSize: 10,
       maxEmailsPerHour: 100,
+      senderAccountId: null,
     };
   }
 
@@ -27,6 +28,7 @@ export async function getCampaignConfig(): Promise<CampaignConfig> {
     delayBetweenEmailsMs: d.delayBetweenEmailsMs ?? 5000,
     batchSize: d.batchSize ?? 10,
     maxEmailsPerHour: d.maxEmailsPerHour ?? 100,
+    senderAccountId: d.senderAccountId ?? null,
   };
 }
 
