@@ -4,6 +4,89 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-18
+
+**Version:** v1.5.2 — Website Community Platform & Hero CTA Redesign
+
+**Status:** Deployed to Vercel ✅
+
+### Added — Community & Growth Platform (`website/site/`)
+
+**4 new routes:**
+- `/beta` — Tester Portal: profile selector, progress card, eligibility, statistics, leaderboard, community progress, feedback section
+- `/beta-info` — Public beta info with registration form + FAQ accordion
+- `/beta-dashboard` — Admin dashboard: 8 KPI overview cards, tester table, recent sessions, daily summary, feedback table, config modal
+- `/beta-dashboard/recruitment` — Recruitment dashboard with Applicants tab (summary, filters, table, side panel, activity timeline) + Outreach tab (contacts table, CSV import, manual add, Gmail auth, send invites)
+
+**27 beta components** in `components/beta/`:
+- TesterSelector, ProgressCard, EligibilityCard, StatisticsCard, Leaderboard, CommunityProgress, FeedbackSection, BetaRulesCard
+- OverviewCards, TesterTable, RecentSessions, DailySummaryTable, FeedbackTable, ConfigurationCard
+- RecruitmentSummaryCards, RecruitmentTable, RecruitmentSidePanel, ActivityTimeline, StatusBadge
+- OutreachDashboardCards, OutreachContactsTable, OutreachImportCsv, AddManualContact, OutreachTab
+- BetaRegistrationForm, BetaAccordion
+
+**Campaign automation engine:**
+- `lib/campaignEngine.ts` — full pipeline: bounce detection → eligibility fetch → 5-call invite sequence → tracking
+- `lib/firebase/campaignService.ts` — config CRUD, eligible contact queries, status updates
+- Vercel cron every 8h → `GET /api/campaign/process`
+- Configurable: delayDays=4, maxInvites=5, batchSize=10, maxEmailsPerHour=100
+- Respects timing delay between emails (5s), per-hour cap (100/hr)
+
+**Gmail API integration:**
+- OAuth flow: `getAuthUrl()` → consent → `/gmail/callback` → `POST /api/gmail/exchange` → tokens stored in Firestore `gmailAuth/tokens`
+- `POST /api/gmail/send` — multipart/alternative HTML emails via Gmail API
+- `GET /api/gmail/status` — check auth status
+- `POST /api/gmail/disconnect` — "Switch Account" clears stored tokens
+- Auto token refresh (60s expiry buffer)
+- **Bounce detection**: polls Gmail DSN inbox from `mailer-daemon@googlemail.com`, idempotent via `processedBounceIds` array, updates emailLog + recruitmentContacts + betaUsers
+
+**Email template system:**
+- `lib/emailTemplates/layout.ts` — shared dark-theme HTML shell with inline CSS
+- 7 templates: acknowledgement, welcome, invitation-1 through invitation-5
+- `index.ts` — registry with `renderTemplate(template, name, inviteNumber?)`
+- All sent as multipart/alternative (HTML + plaintext fallback)
+
+**Firestore data model:**
+- 10+ collections: testers, sessions, testerFeedback, betaUsers, recruitmentContacts, activityLog, emailLog, dashboardConfig, campaignConfig, gmailAuth, senderProfiles, appConfig
+- 3 composite indexes deployed via `firestore.indexes.json`
+- Default configs for campaign (delayDays, maxInvites, etc.), dashboard (beta dates, revenue eCPM), sender profile
+
+**6 API routes:**
+- `POST /api/recruitment/register` — server-side registration + acknowledgement email + matchRegistration + logEvent
+- `GET /api/campaign/process` — cron trigger
+- `POST /api/gmail/send` — send email(s)
+- `GET /api/gmail/status` — auth status
+- `POST /api/gmail/exchange` — OAuth code exchange
+- `POST /api/gmail/disconnect` — delete tokens
+
+**12 TypeScript type files** in `types/`: betaUser, tester, config, recruitment, recruitmentContacts, campaign, feedback, stats, activityLog, emailLog, senderProfile
+
+**Documentation:**
+- `docs/COMMUNITY_PLATFORM.md` — comprehensive reference with architecture, routing, component map, Firestore data model, Gmail integration, campaign automation, reuse checklist, setup guide
+
+### Added — Website Hero CTA Redesign
+
+- **Premium Beta CTA** with 3-state lifecycle (`sticky` → `landing` → `landed`) via scroll handler
+- **Single CTA sentinel wrapper** (`ctaRef` on shared parent div) — eliminates mobile duplicate CTA during transition
+- **Sticky bar** at `top: 72px` with 700ms fade-in/fade-out; desktop side buttons fade on landing, mobile buttons hidden instantly
+- **BetaTagline** (`BetaTagline.tsx`) — rotating rewards/taglines inside the Beta button
+- **Play Store modal** (`PlayStoreModal.tsx`) — replaces direct Play Store link; opens overlay when Play Store icon is clicked
+- **Precise midpoint scroll calculation** — replaces `scrollIntoView({ block: "center" })` with `getBoundingClientRect` midpoint between `#download-section-end` and `#made-with`, using `behavior: "auto"` for consistent positioning across viewport heights
+
+### Changed
+
+- **Footer**: "Built with ❤️" → "Made with ❤️ by Ashwath AI" in `screens/Footer.tsx`
+- **Landing zone spacing**: `mt-10 pt-8 min-h-[80px]` → `mt-8 pt-4 pb-8 min-h-[60px]` for vertical centering
+- **Section bottom padding**: `py-20 sm:py-28` → `py-20 sm:py-32` for breathing room
+- **Root AGENTS.md**: Added "Website & Community Platform" to Master Documentation Index
+- **docs/INVENTORY.md**: Updated with all new website files
+
+### Build
+
+- `npm run build` — BUILD SUCCESSFUL (zero errors, 19 routes)
+
+---
+
 ## 2026-07-16
 
 **Version:** v1.5.2 — Beta Analytics V0 / Stabilization
