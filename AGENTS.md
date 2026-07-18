@@ -108,6 +108,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | (Reference Only) |
 | **Inventory** | `docs/INVENTORY.md` | (Cross-Reference) |
 | **Production Checklist** | `docs/PRODUCTION_CHECKLIST.md` | Mandatory gate before any release |
+| **Website & Community Platform** | `docs/COMMUNITY_PLATFORM.md` | `website/site/AGENTS.md` |
 
 ---
 
