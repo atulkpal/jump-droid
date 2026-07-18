@@ -38,7 +38,7 @@ export default function Home() {
       <ParticleCanvas strength={signalStrength} />
 
       <main className="relative z-10" id="main-content">
-        <HeroSignal onPlayStoreClick={() => setShowModal(true)} onBetaLanded={() => setBetaLanded(true)} />
+        <HeroSignal onPlayStoreClick={() => setShowModal(true)} onBetaLanded={() => setBetaLanded(true)} onLandingReset={() => setBetaLanded(false)} />
         <MysteryTransmission />
         <GameplayCards />
         <ScreenshotGallery />

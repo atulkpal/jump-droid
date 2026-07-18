@@ -12,7 +12,7 @@ interface Props {
 
 export default function MissionLog({ onPlayStoreClick, showBetaLanded }: Props) {
   return (
-    <section className="flex w-full items-center justify-center px-6 py-20 sm:py-28">
+    <section className="flex w-full items-center justify-center px-6 py-20 sm:py-32">
       <div className="mx-auto max-w-lg w-full">
         {/* Source code card */}
         <div className="rounded-xl border border-white/5 bg-white/[0.02] px-6 py-8 sm:px-8 mb-8">
@@ -87,7 +87,7 @@ export default function MissionLog({ onPlayStoreClick, showBetaLanded }: Props) 
             </div>
           </button>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3" id="download-section-end">
             <a
               href={SOCIAL_LINKS.github}
               target="_blank"
@@ -138,7 +138,7 @@ export default function MissionLog({ onPlayStoreClick, showBetaLanded }: Props) 
         </div>
 
         {/* Landing zone for sticky Beta CTA */}
-        <div id="beta-landing" className="text-center mt-10 pt-8 border-t border-white/5 min-h-[80px]">
+        <div id="beta-landing" className="text-center mt-8 pt-4 pb-8 border-t border-white/5 min-h-[60px]">
           {showBetaLanded && (
             <div className="animate-fade-in-up opacity-0" style={{ animationFillMode: "forwards" }}>
               <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/40 uppercase mb-3">

@@ -10,15 +10,18 @@ import BetaTagline from "./BetaTagline";
 interface Props {
   onPlayStoreClick: () => void;
   onBetaLanded?: () => void;
+  onLandingReset?: () => void;
 }
 
-export default function HeroSignal({ onPlayStoreClick, onBetaLanded }: Props) {
+export default function HeroSignal({ onPlayStoreClick, onBetaLanded, onLandingReset }: Props) {
   const [sticky, setSticky] = useState(false);
   const [landing, setLanding] = useState(false);
   const [landed, setLanded] = useState(false);
   const ctaRef = useRef<HTMLDivElement>(null);
-  const stickyRef = useRef<HTMLDivElement>(null);
+  const stickyElRef = useRef<HTMLDivElement>(null);
   const landingOffset = useRef(0);
+  const callbacksRef = useRef({ onBetaLanded, onLandingReset });
+  callbacksRef.current = { onBetaLanded, onLandingReset };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -31,10 +34,17 @@ export default function HeroSignal({ onPlayStoreClick, onBetaLanded }: Props) {
       const landingEl = document.getElementById("beta-landing");
       const landingTop = landingEl ? landingEl.getBoundingClientRect().top : Infinity;
 
-      if (landed) return;
+      if (landed) {
+        if (!heroPast) {
+          setLanded(false);
+          setSticky(false);
+          callbacksRef.current.onLandingReset?.();
+        }
+        return;
+      }
 
       if (sticky && landingTop < window.innerHeight * 0.75 && !landing) {
-        landingOffset.current = landingTop - 72;
+        landingOffset.current = landingTop - 50;
         setLanding(true);
         return;
       }
@@ -46,7 +56,6 @@ export default function HeroSignal({ onPlayStoreClick, onBetaLanded }: Props) {
 
       if (landing && landingTop < 100) {
         setLanded(true);
-        setSticky(false);
         setLanding(false);
         return;
       }
@@ -62,11 +71,29 @@ export default function HeroSignal({ onPlayStoreClick, onBetaLanded }: Props) {
 
   useEffect(() => {
     if (!landed) return;
+
+    const topEl = document.getElementById("download-section-end");
+    const bottomEl = document.getElementById("made-with");
     const landingEl = document.getElementById("beta-landing");
     if (!landingEl) return;
-    landingEl.scrollIntoView({ behavior: "smooth", block: "center" });
-    onBetaLanded?.();
-  }, [landed, onBetaLanded]);
+
+    if (topEl && bottomEl) {
+      const top = topEl.getBoundingClientRect().bottom + window.scrollY;
+      const bottom = bottomEl.getBoundingClientRect().top + window.scrollY;
+      const mid = (top + bottom) / 2;
+
+      const betaBtn = landingEl.querySelector("a");
+      const btnCenter = betaBtn
+        ? betaBtn.getBoundingClientRect().top + betaBtn.offsetHeight / 2 + window.scrollY
+        : landingEl.offsetTop + landingEl.offsetHeight / 2;
+
+      window.scrollTo({ top: window.scrollY + btnCenter - mid, behavior: "auto" });
+    } else {
+      landingEl.scrollIntoView({ block: "center" });
+    }
+
+    callbacksRef.current.onBetaLanded?.();
+  }, [landed]);
 
   const playStoreIcon = (
     <svg viewBox="0 0 24 24" className="w-4 h-4 flex-shrink-0" fill="none" aria-hidden="true">
@@ -125,7 +152,7 @@ export default function HeroSignal({ onPlayStoreClick, onBetaLanded }: Props) {
     <>
       {/* Sticky CTA bar */}
       <div
-        ref={stickyRef}
+        ref={stickyElRef}
         className={`fixed left-0 right-0 z-30 border-b border-white/5 bg-black/80 backdrop-blur-xl px-4 py-3 shadow-lg transition-all duration-700 ease-out ${
           landing
             ? "opacity-100"
@@ -134,7 +161,7 @@ export default function HeroSignal({ onPlayStoreClick, onBetaLanded }: Props) {
             : "opacity-0 -translate-y-full pointer-events-none"
         }`}
         style={{
-          top: landing ? `${landingOffset.current}px` : "72px",
+          top: landing ? `${landingOffset.current}px` : "50px",
         }}
       >
         <div className="mx-auto flex max-w-4xl items-center justify-center gap-4">
@@ -213,48 +240,48 @@ export default function HeroSignal({ onPlayStoreClick, onBetaLanded }: Props) {
           {HERO.subtitle}
         </p>
 
-        {/* Desktop CTA row (in hero) */}
-        <div
-          ref={ctaRef}
-          className={`hidden sm:flex flex-col items-center justify-center gap-3 opacity-0 animate-fade-in-up mb-10 ${
-            sticky ? "opacity-0 pointer-events-none" : ""
-          }`}
-          style={{
-            animationDelay: "1.4s",
-            animationFillMode: "forwards",
-            transition: "opacity 300ms",
-          }}
-        >
-          <div className="flex items-center justify-center gap-4">
-            {desktopButtons(true)}
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="w-1/2 border-t border-cyan-400/15 opacity-60" />
-            <div className="py-1.5">
-              <BetaTagline />
+        {/* CTA sentinel wrapper — always visible on all sizes */}
+        <div ref={ctaRef}>
+          {/* Desktop CTA row (in hero) */}
+          <div
+            className={`hidden sm:flex flex-col items-center justify-center gap-3 opacity-0 animate-fade-in-up mb-10 ${
+              sticky ? "opacity-0 pointer-events-none" : ""
+            }`}
+            style={{
+              animationDelay: "1.4s",
+              animationFillMode: "forwards",
+            }}
+          >
+            <div className="flex items-center justify-center gap-4">
+              {desktopButtons(true)}
             </div>
-            <div className="w-1/2 border-t border-cyan-400/15 opacity-60" />
+            <div className="flex flex-col items-center">
+              <div className="w-1/2 border-t border-cyan-400/15 opacity-60" />
+              <div className="py-1.5">
+                <BetaTagline />
+              </div>
+              <div className="w-1/2 border-t border-cyan-400/15 opacity-60" />
+            </div>
           </div>
-        </div>
 
-        {/* Mobile CTA row (in hero) */}
-        <div
-          className={`flex sm:hidden flex-col items-center justify-center gap-3 opacity-0 animate-fade-in-up mb-10 ${
-            sticky ? "opacity-0 pointer-events-none" : ""
-          }`}
-          style={{
-            animationDelay: "1.4s",
-            animationFillMode: "forwards",
-            transition: "opacity 300ms",
-          }}
-        >
+          {/* Mobile CTA row (in hero) */}
+          <div
+            className={`flex sm:hidden flex-col items-center justify-center gap-3 opacity-0 animate-fade-in-up mb-10 ${
+              sticky ? "opacity-0 pointer-events-none" : ""
+            }`}
+            style={{
+              animationDelay: "1.4s",
+              animationFillMode: "forwards",
+            }}
+          >
           <div className="flex items-center justify-center gap-4">
             {mobileButtons()}
           </div>
           <BetaTagline />
         </div>
+      </div>
 
-        {/* Description + features */}
+      {/* Description + features */}
         <div
           className="w-full max-w-3xl mx-auto opacity-0 animate-fade-in-up"
           style={{ animationDelay: "1.8s", animationFillMode: "forwards" }}
