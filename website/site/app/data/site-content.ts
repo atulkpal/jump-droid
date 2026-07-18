@@ -21,8 +21,23 @@ export const HERO = {
   subtitle: "Pilot the ultimate droid explorer",
   description:
     "Jump Droid is a free, open-source Android arcade game. Touch to thrust. Manage fuel, heat, and shield as you climb through 8 atmospheric zones. Land on platforms, build combos, face bosses, unlock new rockets, and discover the truth hidden in the void.",
-  cta: "Download Now",
-  ctaSecondary: "APK Download",
+  cta: "Download on Play Store",
+  ctaSecondary: "Download APK (GitHub)",
+  ctaBeta: "⭐ Become a Beta Tester",
+  modalTitle: "Jump Droid is currently in Beta",
+  modalBody: [
+    "🚀 Early Access",
+    "🎁 Exclusive Beta Rewards",
+    "🏆 Rewards for Outstanding Contributors",
+    "💬 Help Shape Jump Droid",
+  ],
+  taglines: [
+    "🚀 Early Access",
+    "🎁 Exclusive Beta Rewards",
+    "🏆 Rewards for Outstanding Testers",
+    "💬 Help Shape Jump Droid",
+    "⭐ Limited Beta Slots",
+  ],
   features: [
     { label: "Exploration First", value: "A vertical odyssey driven by altitude progression and discovery rather than simple scoring." },
     { label: "Tactical Resource Loop", value: "Balance fuel consumption, thruster heat cooldown, shield recharge, and permanent hull integrity." },

@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/campaign/process",
-      "schedule": "0 */8 * * *"
-    }
-  ]
-}

@@ -55,6 +55,9 @@ export default function FooterSection() {
         <p className="font-mono text-[10px] tracking-[0.1em] text-slate-700">
           &copy; {new Date().getFullYear()} Ashwath AI &middot; Jump Droid &middot; Open Source (MIT)
         </p>
+        <p className="font-mono text-[10px] tracking-[0.1em] text-slate-600 mt-3" id="made-with">
+          Made with &hearts; by Ashwath AI
+        </p>
       </div>
     </footer>
   );

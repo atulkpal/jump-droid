@@ -1,0 +1,21 @@
+name: Campaign Processor
+
+on:
+  schedule:
+    # Runs every hour
+    - cron: '0 * * * *'
+
+  # Allows you to click "Run workflow" from GitHub
+  workflow_dispatch:
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Jump Droid Campaign Processor
+        run: |
+          echo "Triggering campaign processor..."
+          curl --fail --silent --show-error \
+            https://jump-droid.vercel.app/api/campaign/process
+          echo "Campaign processor completed successfully."

@@ -8,9 +8,12 @@ import GameplayCards from "@/app/components/screens/GameplayCards";
 import ScreenshotGallery from "@/app/components/screens/ScreenshotGallery";
 import MissionLog from "@/app/components/screens/MissionLog";
 import FooterSection from "@/app/components/screens/Footer";
+import PlayStoreModal from "@/app/components/screens/PlayStoreModal";
 
 export default function Home() {
   const [signalStrength, setSignalStrength] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const [betaLanded, setBetaLanded] = useState(false);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
@@ -35,13 +38,15 @@ export default function Home() {
       <ParticleCanvas strength={signalStrength} />
 
       <main className="relative z-10" id="main-content">
-        <HeroSignal />
+        <HeroSignal onPlayStoreClick={() => setShowModal(true)} onBetaLanded={() => setBetaLanded(true)} onLandingReset={() => setBetaLanded(false)} />
         <MysteryTransmission />
         <GameplayCards />
         <ScreenshotGallery />
-        <MissionLog />
+        <MissionLog onPlayStoreClick={() => setShowModal(true)} showBetaLanded={betaLanded} />
         <FooterSection />
       </main>
+
+      {showModal && <PlayStoreModal onClose={() => setShowModal(false)} />}
     </>
   );
 }
