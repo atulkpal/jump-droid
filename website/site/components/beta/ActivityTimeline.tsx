@@ -8,10 +8,10 @@ interface Props {
   applicantEmail: string;
 }
 
-const EVENT_CONFIG: Record<
+const EVENT_CONFIG: Partial<Record<
   ActivityEventType,
   { label: string; color: string; dot: string }
-> = {
+>> = {
   registered: {
     label: "Registered",
     color: "text-slate-400",
@@ -71,6 +71,116 @@ const EVENT_CONFIG: Record<
     label: "Duplicate Outreach",
     color: "text-amber-400",
     dot: "bg-amber-400",
+  },
+  rejected: {
+    label: "Rejected",
+    color: "text-red-400",
+    dot: "bg-red-400",
+  },
+  campaign_created: {
+    label: "Campaign Created",
+    color: "text-cyan-400",
+    dot: "bg-cyan-400",
+  },
+  campaign_scheduled: {
+    label: "Campaign Scheduled",
+    color: "text-yellow-400",
+    dot: "bg-yellow-400",
+  },
+  campaign_started: {
+    label: "Campaign Started",
+    color: "text-green-400",
+    dot: "bg-green-400",
+  },
+  campaign_paused: {
+    label: "Campaign Paused",
+    color: "text-orange-400",
+    dot: "bg-orange-400",
+  },
+  campaign_resumed: {
+    label: "Campaign Resumed",
+    color: "text-green-400",
+    dot: "bg-green-400",
+  },
+  campaign_completed: {
+    label: "Campaign Completed",
+    color: "text-blue-400",
+    dot: "bg-blue-400",
+  },
+  campaign_failed: {
+    label: "Campaign Failed",
+    color: "text-red-400",
+    dot: "bg-red-400",
+  },
+  campaign_cancelled: {
+    label: "Campaign Cancelled",
+    color: "text-slate-500",
+    dot: "bg-slate-500",
+  },
+  preflight_passed: {
+    label: "Pre-flight Passed",
+    color: "text-green-400",
+    dot: "bg-green-400",
+  },
+  preflight_failed: {
+    label: "Pre-flight Failed",
+    color: "text-red-400",
+    dot: "bg-red-400",
+  },
+  sender_fallback: {
+    label: "Sender Fallback",
+    color: "text-amber-400",
+    dot: "bg-amber-400",
+  },
+  contact_added_to_campaign: {
+    label: "Added to Campaign",
+    color: "text-cyan-300",
+    dot: "bg-cyan-300",
+  },
+  email_run_completed: {
+    label: "Email Run Completed",
+    color: "text-blue-300",
+    dot: "bg-blue-300",
+  },
+  unsubscribed: {
+    label: "Unsubscribed",
+    color: "text-red-400",
+    dot: "bg-red-400",
+  },
+  resubscribed: {
+    label: "Resubscribed",
+    color: "text-green-400",
+    dot: "bg-green-400",
+  },
+  skipped_unsubscribed: {
+    label: "Skipped (Unsubscribed)",
+    color: "text-red-400/60",
+    dot: "bg-red-500/50",
+  },
+  manual_send_triggered: {
+    label: "Manual Send",
+    color: "text-orange-400",
+    dot: "bg-orange-400",
+  },
+  replied: {
+    label: "Replied",
+    color: "text-green-400",
+    dot: "bg-green-400",
+  },
+  rate_limited: {
+    label: "Rate Limited",
+    color: "text-amber-400",
+    dot: "bg-amber-400",
+  },
+  system_error: {
+    label: "System Error",
+    color: "text-red-400",
+    dot: "bg-red-400",
+  },
+  email_opened: {
+    label: "Email Opened",
+    color: "text-cyan-400",
+    dot: "bg-cyan-400",
   },
 };
 

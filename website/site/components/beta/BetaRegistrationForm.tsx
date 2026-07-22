@@ -18,7 +18,7 @@ function validatePhone(v: string): string | null {
   return null;
 }
 
-export default function BetaRegistrationForm() {
+export default function BetaRegistrationForm({ convertedFrom }: { convertedFrom?: string }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -49,6 +49,7 @@ export default function BetaRegistrationForm() {
         name: name.trim() || undefined,
         phone: phone.trim() || undefined,
         codeJam,
+        convertedFrom,
       });
       setSuccess(true);
     } catch (e: any) {

@@ -6,11 +6,13 @@ import { addManualContact } from "@/lib/firebase/outreachService";
 interface Props {
   onAdded: () => void;
   onClose: () => void;
+  importedBy?: string;
+  campaignId?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function AddManualContact({ onAdded, onClose }: Props) {
+export default function AddManualContact({ onAdded, onClose, importedBy, campaignId }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -34,11 +36,15 @@ export default function AddManualContact({ onAdded, onClose }: Props) {
 
     setSaving(true);
     try {
-      const result = await addManualContact(name.trim(), trimmedEmail, phone.trim() || undefined);
+      const result = await addManualContact(name.trim(), trimmedEmail, phone.trim() || undefined, importedBy);
       if (result.exists) {
         setError(result.duplicateType || "Already in Outreach.");
         setSaving(false);
         return;
+      }
+      if (campaignId) {
+        const { addContactToCampaign } = await import("@/lib/firebase/campaignService");
+        await addContactToCampaign(trimmedEmail, campaignId, importedBy);
       }
       setDone(true);
       onAdded();

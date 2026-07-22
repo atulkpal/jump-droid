@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { RecruitmentApplicant, RecruitmentStatus } from "@/types/recruitment";
 import { fetchAllApplicants } from "@/lib/firebase/recruitmentService";
@@ -17,7 +16,7 @@ function pct(part: number, total: number): string {
 
 const TABS = [
   { id: "applicants", label: "Applicants" },
-  { id: "outreach", label: "Outreach" },
+  { id: "outreach", label: "Contacts" },
 ];
 
 export default function RecruitmentPageWrapper() {
@@ -124,8 +123,8 @@ function RecruitmentPage() {
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
       <div className="fixed inset-0 z-0 bg-glow-top-cyan" />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-6 py-24 sm:px-8 sm:py-32">
-        <div className="mb-12 flex items-start justify-between">
+      <main className="relative z-10 mx-auto max-w-7xl px-6 py-16 sm:px-8 sm:py-20">
+        <div className="mb-12">
           <div className="space-y-4">
             <p className="font-mono text-[10px] tracking-[0.25em] text-cyan-400/60 uppercase">
               Admin Terminal
@@ -136,12 +135,6 @@ function RecruitmentPage() {
               <span className="text-cyan-300">Dashboard</span>
             </h1>
           </div>
-          <Link
-            href="/beta-dashboard"
-            className="rounded-lg border border-white/10 px-4 py-3 font-mono text-sm text-slate-400 transition-colors hover:border-white/20 hover:text-white"
-          >
-            &larr; Dashboard
-          </Link>
         </div>
 
         <div className="mb-8 flex gap-6 border-b border-white/5">

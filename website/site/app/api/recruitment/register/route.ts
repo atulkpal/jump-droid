@@ -1,94 +1,111 @@
 import { NextResponse } from "next/server";
-import { getAccessToken, buildMimeMessage, logEmail, getSenderProfile } from "@/lib/emailService";
-import { renderTemplate } from "@/lib/emailTemplates";
+import { getAdminFirestore } from "@/lib/firebase/admin";
 
 export async function POST(req: Request) {
   try {
-    const { email, name, phone, codeJam, source } = await req.json();
+    const { email, name, phone, codeJam, source, convertedFrom } = await req.json();
 
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const sender = await getSenderProfile();
+    const adminFirestore = getAdminFirestore();
+    const { logEvent } = await import("@/lib/firebase/activityService");
 
-    const { getFirestore } = await import("@/lib/firebase/config");
-    const firestore = await getFirestore();
-    const { doc, getDoc, setDoc, serverTimestamp } = await import("firebase/firestore");
-    const logEventModule = await import("@/lib/firebase/activityService");
-    const logEvent = logEventModule.logEvent;
+    const existingSnap = await adminFirestore.collection("betaUsers").doc(cleanEmail).get();
 
-    const existingSnap = await getDoc(doc(firestore, "betaUsers", cleanEmail));
-    if (existingSnap.exists()) {
-      return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+    if (!existingSnap.exists) {
+      await adminFirestore.collection("betaUsers").doc(cleanEmail).set({
+        email: cleanEmail,
+        name: name ?? "",
+        phone: phone ?? "",
+        codeJam: codeJam ?? false,
+        status: "pending",
+        source: source ?? "website",
+        version: 1,
+        notes: "",
+        registeredFrom: "api",
+        registeredAt: new Date(),
+        acknowledgementSent: false,
+        convertedFromCampaign: convertedFrom || null,
+      });
     }
 
-    await setDoc(doc(firestore, "betaUsers", cleanEmail), {
-      email: cleanEmail,
-      name: name ?? "",
-      phone: phone ?? "",
-      codeJam: codeJam ?? false,
-      status: "pending",
-      source: source ?? "website",
-      version: 1,
-      notes: "",
-      registeredFrom: "api",
-      registeredAt: serverTimestamp(),
-      acknowledgementSent: false,
-    });
-
-    const outreachService = await import("@/lib/firebase/outreachService");
-    try { await outreachService.matchRegistration(cleanEmail); } catch { /* non-critical */ }
+    // Auto-create recruitment contact for the applicant
+    try {
+      const contactRef = adminFirestore.collection("recruitmentContacts").doc(cleanEmail);
+      const contactSnap = await contactRef.get();
+      if (!contactSnap.exists) {
+        await contactRef.set({
+          name: name || "",
+          email: cleanEmail,
+          phone: phone || "",
+          status: "pending",
+          source: "website",
+          importedBy: "Applicant",
+          importedAt: new Date(),
+          registeredAt: new Date(),
+          lastInviteAt: null,
+          notes: "",
+          inviteCount: 0,
+          nextEligibleAt: null,
+          campaignId: "",
+          campaigns: [],
+          campaignData: {},
+          emailStatus: "pending",
+          stoppedReason: "",
+        });
+      } else {
+        await contactRef.update({ status: "pending", registeredAt: new Date() });
+      }
+    } catch { /* non-critical */ }
 
     try { await logEvent(cleanEmail, "registered"); } catch { /* non-critical */ }
 
     let acknowledgementSent = false;
+    const displayName = name || cleanEmail;
     try {
-      const displayName = name || cleanEmail;
-      const { html, subject, text } = renderTemplate("acknowledgement", displayName);
-
-      const accessToken = await getAccessToken();
-      const { raw } = buildMimeMessage(cleanEmail, displayName, subject, html, text, sender);
-
-      const sendRes = await fetch(
-        "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ raw }),
-        }
-      );
-
-      const responseBody = await sendRes.text();
+      const sendRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/gmail/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emails: [{ email: cleanEmail, name: displayName }],
+          template: "acknowledgement",
+          source: "registration",
+        }),
+      });
 
       if (sendRes.ok) {
-        let messageId = "";
-        let threadId = "";
-        try {
-          const parsed = JSON.parse(responseBody);
-          messageId = parsed.id || "";
-          threadId = parsed.threadId || "";
-        } catch {
-
+        const results = await sendRes.json();
+        const result = Array.isArray(results) ? results[0] : results;
+        if (result?.success) {
+          await logEvent(cleanEmail, "acknowledgement_sent");
+          await adminFirestore.collection("betaUsers").doc(cleanEmail).update({
+            acknowledgementSent: true,
+          });
+          acknowledgementSent = true;
+        } else {
+          const errMsg = result?.error || "Failed to send acknowledgement email";
+          await adminFirestore.collection("betaUsers").doc(cleanEmail).update({
+            acknowledgementSent: false,
+            acknowledgementError: errMsg,
+          }).catch(() => {});
         }
-
-        await logEmail(cleanEmail, displayName, "acknowledgement", "", "registration", "sent", messageId, threadId, "");
-        await logEvent(cleanEmail, "acknowledgement_sent");
-
-        await setDoc(doc(firestore, "betaUsers", cleanEmail), {
-          acknowledgementSent: true,
-        }, { merge: true });
-
-        acknowledgementSent = true;
       } else {
-        await logEmail(cleanEmail, displayName, "acknowledgement", "", "registration", "failed", "", "", responseBody);
+        const errData = await sendRes.json().catch(() => ({ error: `HTTP ${sendRes.status}` }));
+        const errMsg = errData?.error || `HTTP ${sendRes.status}`;
+        await adminFirestore.collection("betaUsers").doc(cleanEmail).update({
+          acknowledgementSent: false,
+          acknowledgementError: errMsg,
+        }).catch(() => {});
       }
-    } catch {
-      // Acknowledgement email failure should not block registration
+    } catch (e: any) {
+      const errMsg = e?.message || "Acknowledgement email failed";
+      await adminFirestore.collection("betaUsers").doc(cleanEmail).update({
+        acknowledgementSent: false,
+        acknowledgementError: errMsg,
+      }).catch(() => {});
     }
 
     return NextResponse.json({

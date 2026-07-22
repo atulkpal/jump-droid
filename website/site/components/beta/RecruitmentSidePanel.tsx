@@ -12,8 +12,18 @@ import {
 } from "@/lib/firebase/recruitmentService";
 import { logEvent } from "@/lib/firebase/activityService";
 import { sendEmail } from "@/lib/emailService";
+import { useRole } from "./AuthContext";
 import StatusBadge from "./StatusBadge";
 import ActivityTimeline from "./ActivityTimeline";
+
+const REJECT_REASONS = [
+  { label: "Not enough experience", value: "Not enough experience" },
+  { label: "Region not supported", value: "Region not supported" },
+  { label: "Application incomplete", value: "Application incomplete" },
+  { label: "Device incompatible", value: "Device incompatible" },
+  { label: "Too many applicants", value: "Too many applicants" },
+  { label: "Other", value: "__other__" },
+];
 
 interface Props {
   applicant: RecruitmentApplicant;
@@ -45,6 +55,18 @@ export default function RecruitmentSidePanel({
   const [approveError, setApproveError] = useState<string | null>(null);
   const [sendingWelcome, setSendingWelcome] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectCustomReason, setRejectCustomReason] = useState("");
+  const [rejectSendEmail, setRejectSendEmail] = useState(true);
+  const [rejectProcessing, setRejectProcessing] = useState(false);
+  const [rejectError, setRejectError] = useState<string | null>(null);
+  const { role, user: authUser } = useRole();
+  const currentUserEmail = authUser?.email || "";
+  const [campaigns, setCampaigns] = useState<{ id: string; name: string }[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
+  const [selectedCampaignForAdd, setSelectedCampaignForAdd] = useState("");
+  const [campaignAdding, setCampaignAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
@@ -59,6 +81,14 @@ export default function RecruitmentSidePanel({
     setDeleteConfirmed(false);
     setDeleteError(null);
   }, [applicant.notes, applicant.email, applicant.status, applicant.emailStatus]);
+
+  useEffect(() => {
+    fetch("/api/campaigns")
+      .then((r) => r.json())
+      .then((list) => setCampaigns(list))
+      .catch(() => {})
+      .finally(() => setCampaignsLoading(false));
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -148,16 +178,49 @@ export default function RecruitmentSidePanel({
     }
   };
 
-  const handleReject = async () => {
-    setRejecting(true);
-    setApproveError(null);
+  const handleRejectClick = () => {
+    setShowRejectModal(true);
+    setRejectReason("");
+    setRejectCustomReason("");
+    setRejectSendEmail(true);
+    setRejectError(null);
+  };
+
+  const handleRejectConfirm = async () => {
+    const reason = rejectReason === "__other__" ? rejectCustomReason : rejectReason;
+    setRejectProcessing(true);
+    setRejectError(null);
     try {
+      if (rejectSendEmail) {
+        const result = await sendEmail(
+          applicant.email,
+          applicant.name || "Tester",
+          "reject",
+          "beta-onboarding",
+          "recruitment"
+        );
+        if (!result.success) {
+          setRejectError(`Email failed to send: ${result.error}`);
+          setRejectProcessing(false);
+          return;
+        }
+      }
+
       await updateApplicantStatus(applicant.email, "rejected");
+      await logEvent(applicant.email, "rejected", reason || undefined);
+      if (reason) {
+        const timestamp = new Date().toLocaleString();
+        const noteLine = `[${timestamp}] Rejected: ${reason}`;
+        const updatedNotes = (applicant.notes || "") + "\n" + noteLine;
+        await updateApplicantNotes(applicant.email, updatedNotes);
+        onNotesSaved(applicant.email, updatedNotes);
+      }
       onStatusChanged(applicant.email, "rejected");
-    } catch {
-      // handled silently
+      setShowRejectModal(false);
+    } catch (e: any) {
+      setRejectError(e?.message || "Failed to reject applicant.");
     } finally {
-      setRejecting(false);
+      setRejectProcessing(false);
     }
   };
 
@@ -273,6 +336,29 @@ export default function RecruitmentSidePanel({
                 {applicant.codeJam ? "Yes" : "No"}
               </p>
             </div>
+            <div className="col-span-2">
+              <p className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase mb-1">
+                Acknowledgement Email
+              </p>
+              {applicant.acknowledgementSent === true ? (
+                <p className="font-mono text-xs text-green-400 flex items-center gap-1">
+                  &#x2713; Sent
+                </p>
+              ) : applicant.acknowledgementError ? (
+                <div>
+                  <p className="font-mono text-xs text-red-400 flex items-center gap-1">
+                    &#x2715; Failed
+                  </p>
+                  <p className="font-mono text-[10px] text-red-300/70 mt-0.5 break-all">
+                    {applicant.acknowledgementError}
+                  </p>
+                </div>
+              ) : (
+                <p className="font-mono text-xs text-amber-400/60 flex items-center gap-1">
+                  &#x25CB; Pending
+                </p>
+              )}
+            </div>
           </div>
 
           {showDeleteConfirm ? (
@@ -316,6 +402,86 @@ export default function RecruitmentSidePanel({
               </div>
               {deleteError && (
                 <p className="font-mono text-xs text-red-400">{deleteError}</p>
+              )}
+            </div>
+          ) : showRejectModal ? (
+            <div className="rounded-lg border border-red-400/10 bg-red-400/[0.02] p-4 space-y-4">
+              <p className="font-mono text-xs font-bold text-red-200">
+                Reject Applicant
+              </p>
+              <p className="font-mono text-xs text-slate-400 leading-relaxed">
+                This will reject{" "}
+                <span className="text-cyan-100">{applicant.email}</span>.
+                {rejectSendEmail && " A rejection email will be sent."}
+              </p>
+
+              <div>
+                <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
+                  Reason
+                </label>
+                <select
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40"
+                >
+                  <option value="">— Select reason —</option>
+                  {REJECT_REASONS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {rejectReason === "__other__" && (
+                <div>
+                  <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
+                    Custom Reason
+                  </label>
+                  <textarea
+                    value={rejectCustomReason}
+                    onChange={(e) => setRejectCustomReason(e.target.value)}
+                    rows={3}
+                    placeholder="Enter rejection reason..."
+                    className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none resize-none transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="reject-send-email"
+                  checked={rejectSendEmail}
+                  onChange={(e) => setRejectSendEmail(e.target.checked)}
+                  className="h-4 w-4 rounded border-white/10 bg-black text-cyan-400 focus:ring-cyan-400/20 focus:ring-1"
+                />
+                <label
+                  htmlFor="reject-send-email"
+                  className="font-mono text-xs text-slate-400"
+                >
+                  Send rejection email
+                </label>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleRejectConfirm}
+                  disabled={rejectProcessing}
+                  className="rounded-lg border border-red-400/30 px-5 py-3 font-mono text-xs tracking-[0.15em] text-red-300 transition-colors hover:bg-red-400/10 hover:border-red-400/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  {rejectProcessing ? "Rejecting..." : "Confirm Rejection"}
+                </button>
+                <button
+                  onClick={() => setShowRejectModal(false)}
+                  disabled={rejectProcessing}
+                  className="rounded-lg border border-white/10 px-5 py-3 font-mono text-xs tracking-[0.15em] text-slate-400 transition-colors hover:border-white/20 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
+              {rejectError && (
+                <p className="font-mono text-xs text-red-400">{rejectError}</p>
               )}
             </div>
           ) : confirming ? (
@@ -377,19 +543,21 @@ export default function RecruitmentSidePanel({
                     applicant.status !== "approved" &&
                     applicant.status !== "active" && (
                       <button
-                        onClick={handleReject}
+                        onClick={handleRejectClick}
                         disabled={rejecting}
                         className="rounded-lg border border-red-400/30 px-5 py-3 font-mono text-xs tracking-[0.15em] text-red-300 transition-colors hover:bg-red-400/10 hover:border-red-400/50 disabled:opacity-30 disabled:cursor-not-allowed"
                       >
-                        {rejecting ? "Rejecting..." : "Reject"}
+                        Reject
                       </button>
                     )}
-                  <button
-                    onClick={handleDeleteClick}
-                    className="rounded-lg border border-white/10 px-5 py-3 font-mono text-xs tracking-[0.15em] text-slate-500 transition-colors hover:border-red-400/30 hover:text-red-300"
-                  >
-                    Delete
-                  </button>
+                  {role === "owner" && (
+                    <button
+                      onClick={handleDeleteClick}
+                      className="rounded-lg border border-white/10 px-5 py-3 font-mono text-xs tracking-[0.15em] text-slate-500 transition-colors hover:border-red-400/30 hover:text-red-300"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
 
                 {sendingWelcome && (
@@ -441,27 +609,97 @@ export default function RecruitmentSidePanel({
 
           <div className="border-t border-white/5 pt-6">
             <p className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase mb-3">
+              Campaigns
+            </p>
+            {campaignsLoading ? (
+              <p className="font-mono text-xs text-slate-500">Loading...</p>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedCampaignForAdd}
+                    onChange={(e) => setSelectedCampaignForAdd(e.target.value)}
+                    className="flex-1 rounded-lg border border-white/10 bg-black px-3 py-2 font-mono text-xs text-white outline-none transition focus:border-cyan-400/40"
+                  >
+                    <option value="">— Select Campaign —</option>
+                    {campaigns.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={async () => {
+                      if (!selectedCampaignForAdd) return;
+                      setCampaignAdding(true);
+                      try {
+                        const { createContactFromApplicant } = await import("@/lib/firebase/outreachService");
+                        const { addContactToCampaign } = await import("@/lib/firebase/campaignService");
+                        await createContactFromApplicant(applicant.email, applicant.name || applicant.email);
+                        await addContactToCampaign(applicant.email, selectedCampaignForAdd, currentUserEmail);
+                      } catch {
+                        // silently fail
+                      } finally {
+                        setCampaignAdding(false);
+                        setSelectedCampaignForAdd("");
+                      }
+                    }}
+                    disabled={!selectedCampaignForAdd || campaignAdding}
+                    className="rounded-lg border border-cyan-400/30 px-3 py-2 font-mono text-[11px] text-cyan-300 transition-colors hover:bg-cyan-400/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    {campaignAdding ? "..." : "Add"}
+                  </button>
+                </div>
+                {applicant.campaigns && applicant.campaigns.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {applicant.campaigns.map((cid) => {
+                      const c = campaigns.find((x) => x.id === cid);
+                      return (
+                        <span
+                          key={cid}
+                          className="rounded border border-cyan-400/20 bg-cyan-400/5 px-2 py-1 font-mono text-[10px] text-cyan-300"
+                        >
+                          {c?.name || cid}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-white/5 pt-6">
+            <p className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase mb-3">
               Notes
             </p>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              placeholder="Add internal notes about this applicant..."
-              className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none resize-none transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20"
-            />
-            <div className="flex items-center gap-3 mt-3">
-              <button
-                onClick={handleSaveNotes}
-                disabled={savingNotes}
-                className="rounded-lg border border-cyan-400/30 px-5 py-2 font-mono text-xs tracking-[0.15em] text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:border-cyan-400/50 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                {savingNotes ? "Saving..." : "Save Notes"}
-              </button>
-              {notesSaved && (
-                <p className="font-mono text-[11px] text-green-400">Notes saved.</p>
-              )}
-            </div>
+            {role !== "user" ? (
+              <>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Add internal notes about this applicant..."
+                  className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none resize-none transition focus:border-cyan-400/40 focus:ring-1 focus:ring-cyan-400/20"
+                />
+                <div className="flex items-center gap-3 mt-3">
+                  <button
+                    onClick={handleSaveNotes}
+                    disabled={savingNotes}
+                    className="rounded-lg border border-cyan-400/30 px-5 py-2 font-mono text-xs tracking-[0.15em] text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:border-cyan-400/50 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    {savingNotes ? "Saving..." : "Save Notes"}
+                  </button>
+                  {notesSaved && (
+                    <p className="font-mono text-[11px] text-green-400">Notes saved.</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3">
+                <p className="font-mono text-sm text-slate-400 whitespace-pre-wrap">
+                  {applicant.notes || "\u2014"}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

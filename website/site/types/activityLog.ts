@@ -10,7 +10,75 @@ export type ActivityEventType =
   | "invitation_failed"
   | "contact_converted"
   | "contact_no_response"
-  | "outreach_duplicate";
+  | "outreach_duplicate"
+  | "rejected"
+  | "campaign_created"
+  | "campaign_scheduled"
+  | "campaign_started"
+  | "campaign_paused"
+  | "campaign_resumed"
+  | "campaign_completed"
+  | "campaign_failed"
+  | "campaign_cancelled"
+  | "preflight_passed"
+  | "preflight_failed"
+  | "sender_fallback"
+  | "contact_added_to_campaign"
+  | "contact_removed_from_campaign"
+  | "email_run_completed"
+  | "unsubscribed"
+  | "resubscribed"
+  | "skipped_unsubscribed"
+  | "manual_send_triggered"
+  | "replied"
+  | "rate_limited"
+  | "system_error"
+  | "email_opened"
+  // Lead Management (standalone product prep)
+  | "lead_created"
+  | "lead_imported"
+  | "lead_merged"
+  | "lead_deleted"
+  | "lead_unsubscribed"
+  | "lead_resubscribed"
+  | "lead_tagged"
+  | "lead_untagged"
+  | "lead_field_updated"
+  | "lead_scored"
+  | "lead_converted"
+  | "lead_attributed"
+  // Campaign (standalone)
+  | "campaign_updated"
+  | "campaign_duplicated"
+  | "campaign_archived"
+  // Email Pipeline (standalone)
+  | "email_queued"
+  | "email_delivered"
+  | "email_clicked"
+  | "email_complained"
+  | "email_deferred"
+  // Workflow / Automation (standalone)
+  | "workflow_triggered"
+  | "workflow_completed"
+  | "workflow_failed"
+  | "condition_evaluated"
+  | "action_executed"
+  // System (standalone)
+  | "integration_connected"
+  | "integration_disconnected"
+  | "integration_failed"
+  | "webhook_sent"
+  | "webhook_failed"
+  | "api_key_created"
+  | "api_key_revoked"
+  | "user_login"
+  | "user_invited"
+  | "export_completed"
+  | "import_completed"
+  | "import_failed"
+  | "quota_exceeded"
+  // Custom
+  | "custom_event";
 
 export interface ActivityLogEntry {
   id: string;
@@ -18,4 +86,5 @@ export interface ActivityLogEntry {
   eventType: ActivityEventType;
   details: string;
   createdAt: { seconds: number } | null;
+  campaignId?: string;
 }

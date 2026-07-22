@@ -4,6 +4,7 @@ import type { Tester } from "@/types/tester";
 import type { DashboardConfig } from "@/types/config";
 import { formatDuration } from "@/lib/firebase/analytics";
 import { computeRevenue, formatCurrency } from "@/lib/firebase/revenue";
+import { useRole } from "./AuthContext";
 
 interface Props {
   testers: Tester[];
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function TesterTable({ testers, config }: Props) {
+  const { role } = useRole();
   const sorted = [...testers].sort((a, b) => {
     const at = a.lastSeen?.seconds ?? 0;
     const bt = b.lastSeen?.seconds ?? 0;
@@ -40,15 +42,17 @@ export default function TesterTable({ testers, config }: Props) {
             <th className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase px-4 py-3">
               Best Score
             </th>
-            <th className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase px-4 py-3">
-              Est. Revenue
-            </th>
+            {role !== "user" && (
+              <th className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase px-4 py-3">
+                Est. Revenue
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
           {sorted.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-4 py-8 text-center font-mono text-xs text-slate-500">
+              <td colSpan={role !== "user" ? 7 : 6} className="px-4 py-8 text-center font-mono text-xs text-slate-500">
                 No testers found.
               </td>
             </tr>
@@ -87,9 +91,11 @@ export default function TesterTable({ testers, config }: Props) {
                   <td className="px-4 py-3 font-mono text-xs text-cyan-300">
                     {t.highestScore?.toLocaleString() ?? "—"}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-cyan-100">
-                    {formatCurrency(revenue.totalRevenue)}
-                  </td>
+                  {role !== "user" && (
+                    <td className="px-4 py-3 font-mono text-xs text-cyan-100">
+                      {formatCurrency(revenue.totalRevenue)}
+                    </td>
+                  )}
                 </tr>
               );
             })

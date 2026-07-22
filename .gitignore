@@ -34,3 +34,6 @@ keystore.properties
 
 # External media source
 Jump_Droid_GitHub_Media_Kit/
+
+# Cron secrets (gitignored — set on Vercel + GitHub Actions)
+secrets.env

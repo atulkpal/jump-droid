@@ -48,15 +48,4 @@ export async function disconnectGmail(accountEmail?: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to disconnect Gmail");
 }
 
-export async function sendInvitations(
-  emails: { email: string; name: string }[],
-  senderAccountId?: string
-): Promise<{ email: string; success: boolean; error?: string }[]> {
-  const res = await fetch("/api/gmail/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ emails, senderAccountId }),
-  });
-  if (!res.ok) throw new Error("Failed to send invitations");
-  return res.json();
-}
+

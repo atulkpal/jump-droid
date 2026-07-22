@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { code } = await req.json();
+    const { code, connectedBy, connectedByEmail } = await req.json();
     if (!code) {
       return NextResponse.json({ error: "Authorization code is required" }, { status: 400 });
     }
@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
       refreshToken: tokenData.refresh_token,
       accessToken: tokenData.access_token,
       expiresIn: tokenData.expires_in || 3600,
+      connectedBy: connectedBy || null,
+      connectedByEmail: connectedByEmail || null,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Exchange failed" }, { status: 500 });

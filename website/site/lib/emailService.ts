@@ -177,16 +177,24 @@ export async function getAccessToken(accountEmail?: string): Promise<string> {
     return data.accessToken;
   }
 
-  const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      refresh_token: data.refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "refresh_token",
-    }),
-  });
+  const refreshController = new AbortController();
+  const refreshTimeoutId = setTimeout(() => refreshController.abort(), 10000);
+  let refreshRes: Response;
+  try {
+    refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        refresh_token: data.refreshToken,
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "refresh_token",
+      }),
+      signal: refreshController.signal,
+    });
+  } finally {
+    clearTimeout(refreshTimeoutId);
+  }
 
   const refreshed = await refreshRes.json();
   if (!refreshed.access_token) {
@@ -218,6 +226,17 @@ export async function getAccessToken(accountEmail?: string): Promise<string> {
   return refreshed.access_token;
 }
 
+export function getTrackingUrl(email: string, campaignId: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const payload = `${email}|${campaignId}`;
+  const token = require("crypto")
+    .createHmac("sha256", process.env.TRACKING_SECRET || "fallback-secret")
+    .update(payload)
+    .digest("hex")
+    .slice(0, 12);
+  return `${baseUrl}/api/track/open?e=${encodeURIComponent(email)}&c=${campaignId}&t=${token}`;
+}
+
 export function buildMimeMessage(
   to: string,
   name: string,
@@ -232,11 +251,16 @@ export function buildMimeMessage(
     .toString("base64")
     .replace(/=/g, "");
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const unsubscribeUrl = `${baseUrl}/api/unsubscribe?email=${encodeURIComponent(to)}`;
+
   const headers = [
     `From: ${s.name} <${s.email}>`,
     `To: "${name}" <${to}>`,
     `Subject: =?UTF-8?B?${subjectEncoded}?=`,
     "MIME-Version: 1.0",
+    `List-Unsubscribe: <${unsubscribeUrl}>`,
+    "List-Unsubscribe-Post: List-Unsubscribe=One-Click",
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     "",
     `--${boundary}`,
@@ -369,17 +393,18 @@ async function markBouncedInEmailLog(recipient: string): Promise<void> {
   try {
     const { getFirestore } = await import("@/lib/firebase/config");
     const firestore = await getFirestore();
-    const { collection, getDocs, query, where, orderBy, doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
+    const { collection, getDocs, query, where, doc, updateDoc, serverTimestamp } = await import("firebase/firestore");
 
     const q = query(
       collection(firestore, "emailLog"),
-      where("recipient", "==", recipient.toLowerCase().trim()),
-      orderBy("sentAt", "desc")
+      where("recipient", "==", recipient.toLowerCase().trim())
     );
     const snap = await getDocs(q);
     if (snap.empty) return;
 
-    const latest = snap.docs[0];
+    const docs = snap.docs;
+    docs.sort((a: any, b: any) => ((b.data().sentAt?.seconds ?? 0) - (a.data().sentAt?.seconds ?? 0)));
+    const latest = docs[0];
     await updateDoc(doc(firestore, "emailLog", latest.id), {
       status: "failed",
       failedAt: serverTimestamp(),
@@ -401,11 +426,19 @@ async function markBouncedInOutreach(recipient: string): Promise<void> {
     const snap = await getDoc(ref);
     if (!snap.exists()) return;
 
-    await updateDoc(ref, {
-      status: "failed",
+    const data = snap.data() || {};
+    const campaigns: string[] = data.campaigns || [];
+    const updates: Record<string, any> = {
+      status: "bounced",
       stoppedReason: "permanent_bounce",
       emailStatus: "failed",
-    });
+    };
+    for (const cid of campaigns) {
+      updates[`campaignData.${cid}.status`] = "bounced";
+      updates[`campaignData.${cid}.stoppedReason`] = "permanent_bounce";
+      updates[`campaignData.${cid}.emailStatus`] = "failed";
+    }
+    await updateDoc(ref, updates);
   } catch {
     // Non-critical
   }
@@ -517,16 +550,24 @@ export async function getAccessTokenAdmin(
     return data.accessToken;
   }
 
-  const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      refresh_token: data.refreshToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "refresh_token",
-    }),
-  });
+  const refreshController = new AbortController();
+  const refreshTimeoutId = setTimeout(() => refreshController.abort(), 10000);
+  let refreshRes: Response;
+  try {
+    refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        refresh_token: data.refreshToken,
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "refresh_token",
+      }),
+      signal: refreshController.signal,
+    });
+  } finally {
+    clearTimeout(refreshTimeoutId);
+  }
 
   const refreshed = await refreshRes.json();
   if (!refreshed.access_token) {
@@ -596,57 +637,79 @@ export async function detectBounces(): Promise<number> {
   try {
     const sender = await getSenderProfile();
     const lastCheck = await getLastBounceCheck();
-    const accessToken = await getAccessToken();
+
+    const { getFirestore } = await import("@/lib/firebase/config");
+    const firestore = await getFirestore();
+    const { collection, getDocs, query, where } = await import("firebase/firestore");
+
+    const accountsQuery = query(
+      collection(firestore, "emailAccounts"),
+      where("status", "==", "connected")
+    );
+    const accountsSnap = await getDocs(accountsQuery);
+    const accountEmails: string[] = [];
+    accountsSnap.forEach((doc) => {
+      const d = doc.data();
+      if (d.email) accountEmails.push(d.email);
+    });
+    if (sender.email && !accountEmails.includes(sender.email)) {
+      accountEmails.push(sender.email);
+    }
 
     let q = "from:mailer-daemon@googlemail.com";
     if (lastCheck) {
       q += ` after:${Math.floor(lastCheck)}`;
     }
 
-    const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-
-    if (!listRes.ok) return 0;
-
-    const listData = await listRes.json();
-    const messages: { id: string }[] = listData.messages || [];
-    if (messages.length === 0) {
-      await setLastBounceCheck();
-      return 0;
-    }
-
-    for (const msg of messages) {
+    for (const accountEmail of accountEmails) {
+      let accessToken: string;
       try {
-        if (await isBounceProcessed(msg.id)) continue;
-
-        const getRes = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        if (!getRes.ok) continue;
-
-        const msgData = await getRes.json();
-        const bodyText = decodeBounceBody(msgData.payload);
-        const bouncedEmails = extractBouncedEmails(bodyText, sender.email);
-
-        for (const be of bouncedEmails) {
-          await Promise.all([
-            markBouncedInEmailLog(be),
-            markBouncedInOutreach(be),
-            markBouncedInApplicants(be),
-          ]);
-
-          const { logEvent } = await import("@/lib/firebase/activityService");
-          await logEvent(be, "invitation_failed", "Permanent bounce detected via Gmail DSN");
-
-          bounced++;
-        }
-
-        await markBounceProcessed(msg.id);
+        accessToken = await getAccessToken(accountEmail);
       } catch {
-        // Per-message failure should not break the batch
+        continue;
+      }
+
+      const listRes = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!listRes.ok) continue;
+
+      const listData = await listRes.json();
+      const messages: { id: string }[] = listData.messages || [];
+      if (messages.length === 0) continue;
+
+      for (const msg of messages) {
+        try {
+          if (await isBounceProcessed(msg.id)) continue;
+
+          const getRes = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          if (!getRes.ok) continue;
+
+          const msgData = await getRes.json();
+          const bodyText = decodeBounceBody(msgData.payload);
+          const bouncedEmails = extractBouncedEmails(bodyText, sender.email);
+
+          for (const be of bouncedEmails) {
+            await Promise.all([
+              markBouncedInEmailLog(be),
+              markBouncedInOutreach(be),
+              markBouncedInApplicants(be),
+            ]);
+
+            const { logEvent } = await import("@/lib/firebase/activityService");
+            await logEvent(be, "invitation_failed", "Permanent bounce detected via Gmail DSN");
+
+            bounced++;
+          }
+
+          await markBounceProcessed(msg.id);
+        } catch {
+          // Per-message failure should not break the batch
+        }
       }
     }
 

@@ -68,10 +68,11 @@ export async function getCurrentUser(): Promise<{ uid: string; email: string; di
 
 const DEFAULT_ALLOWED_EMAILS = ["ashwathai.dev@gmail.com", "atulkpal@gmail.com"];
 const DEFAULT_OWNER_EMAILS = ["ashwathai.dev@gmail.com", "atulkpal@gmail.com"];
+const DEFAULT_USER_EMAILS: string[] = ["promptwala.xyz@gmail.com"];
 
 export async function ensureAdmin(uid: string, email: string, displayName: string): Promise<void> {
   const firestore = await getFirestore();
-  const { doc, getDoc, setDoc, serverTimestamp } = await import("firebase/firestore");
+  const { doc, getDoc, setDoc, updateDoc, serverTimestamp } = await import("firebase/firestore");
 
   const adminRef = doc(firestore, "admins", uid);
   let existing;
@@ -80,10 +81,10 @@ export async function ensureAdmin(uid: string, email: string, displayName: strin
   } catch {
     throw new Error("Could not verify admin status.");
   }
-  if (existing.exists()) return;
 
   let allowedEmails: string[] = DEFAULT_ALLOWED_EMAILS;
   let ownerEmails: string[] = DEFAULT_OWNER_EMAILS;
+  let userEmails: string[] = DEFAULT_USER_EMAILS;
 
   try {
     const allowedSnap = await getDoc(doc(firestore, "appConfig", "allowedAdmins"));
@@ -91,25 +92,36 @@ export async function ensureAdmin(uid: string, email: string, displayName: strin
       const data = allowedSnap.data();
       if (data.emails && Array.isArray(data.emails)) allowedEmails = data.emails;
       if (data.owners && Array.isArray(data.owners)) ownerEmails = data.owners;
+      if (data.users && Array.isArray(data.users)) userEmails = data.users;
     }
   } catch {
     // Allowlist doc not readable — fallback to hardcoded values
   }
 
-  if (!allowedEmails.includes(email)) {
+  const isOwner = ownerEmails.includes(email);
+  const isAdmin = allowedEmails.includes(email);
+  const isUser = userEmails.includes(email);
+
+  if (!isOwner && !isAdmin && !isUser) {
     throw new Error("Your email is not authorized for admin access. Contact an owner to be added.");
   }
 
-  const role = ownerEmails.includes(email) ? "owner" : "admin";
+  const role = isOwner ? "owner" : isAdmin ? "admin" : "user";
 
   try {
-    await setDoc(adminRef, {
-      uid,
-      email,
-      displayName,
-      role,
-      createdAt: serverTimestamp(),
-    });
+    if (existing.exists()) {
+      if (existing.data().role !== role) {
+        await updateDoc(adminRef, { role, email, displayName });
+      }
+    } else {
+      await setDoc(adminRef, {
+        uid,
+        email,
+        displayName,
+        role,
+        createdAt: serverTimestamp(),
+      });
+    }
   } catch {
     throw new Error("Could not create admin record.");
   }
@@ -122,12 +134,13 @@ export async function fetchAdmin(uid: string): Promise<{ role: string; email?: s
   const snap = await getDoc(doc(firestore, "admins", uid));
   if (!snap.exists()) return null;
   const data = snap.data();
-  return { role: data.role || "admin", email: data.email };
+  return { role: data.role, email: data.email };
 }
 
 export interface AllowedAdminsConfig {
   emails: string[];
   owners: string[];
+  users: string[];
 }
 
 export async function getAllowedAdminsConfig(): Promise<AllowedAdminsConfig> {
@@ -141,11 +154,12 @@ export async function getAllowedAdminsConfig(): Promise<AllowedAdminsConfig> {
       return {
         emails: Array.isArray(data.emails) ? data.emails : [...DEFAULT_ALLOWED_EMAILS],
         owners: Array.isArray(data.owners) ? data.owners : [...DEFAULT_OWNER_EMAILS],
+        users: Array.isArray(data.users) ? data.users : [],
       };
     }
   } catch {
     // Allowlist doc not readable — return hardcoded defaults
   }
 
-  return { emails: [...DEFAULT_ALLOWED_EMAILS], owners: [...DEFAULT_OWNER_EMAILS] };
+  return { emails: [...DEFAULT_ALLOWED_EMAILS], owners: [...DEFAULT_OWNER_EMAILS], users: [] };
 }
