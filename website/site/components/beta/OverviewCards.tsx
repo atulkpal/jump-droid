@@ -8,6 +8,7 @@ import {
   formatDuration,
 } from "@/lib/firebase/analytics";
 import { formatCurrency } from "@/lib/firebase/revenue";
+import { useRole } from "./AuthContext";
 
 interface Props {
   testers: Tester[];
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function OverviewCards({ testers, sessions, config }: Props) {
+  const { role } = useRole();
   const stats = computeDashboardStats(testers, sessions, config);
   const todayActive = countTodayActiveTesters(sessions);
 
@@ -27,7 +29,9 @@ export default function OverviewCards({ testers, sessions, config }: Props) {
     { label: "Total Gameplay Time", value: formatDuration(stats.totalGameplayTime) },
     { label: "Banner Impressions", value: stats.bannerImpressions.toString() },
     { label: "Reward Ads", value: stats.rewardAds.toString() },
-    { label: "Estimated Revenue", value: formatCurrency(stats.estimatedRevenue) },
+    ...(role !== "user"
+      ? [{ label: "Estimated Revenue", value: formatCurrency(stats.estimatedRevenue) }]
+      : []),
   ];
 
   return (

@@ -1,6 +1,6 @@
 import { renderLayout } from "./layout";
 
-export function renderAcknowledgement(name: string): { html: string; subject: string } {
+export function renderAcknowledgement(name: string, unsubscribeUrl?: string): { html: string; subject: string } {
   const body = `
     <h1 style="font-size: 18px; color: #e2e8f0; margin: 0 0 16px;">Application Received</h1>
     <p style="font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 0 12px;">Hi ${name},</p>
@@ -10,7 +10,7 @@ export function renderAcknowledgement(name: string): { html: string; subject: st
   `;
 
   return {
-    html: renderLayout(body),
+    html: renderLayout(body, unsubscribeUrl),
     subject: "Application Received - Jump Droid Beta",
   };
 }

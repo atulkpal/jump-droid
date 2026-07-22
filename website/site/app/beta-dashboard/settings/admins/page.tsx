@@ -4,6 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import { getCurrentUser, fetchAdmin, getAllowedAdminsConfig } from "@/lib/firebase/authService";
 import type { AllowedAdminsConfig } from "@/lib/firebase/authService";
 
+const ROLE_STYLES: Record<string, string> = {
+  owner: "border-cyan-400/30 bg-cyan-400/10 text-cyan-300",
+  admin: "border-violet-400/30 bg-violet-400/10 text-violet-300",
+  user: "border-slate-500/30 bg-slate-500/10 text-slate-300",
+};
+
+const ROLE_OPTIONS = ["owner", "admin", "user"] as const;
+
 interface Admin {
   uid: string;
   email: string;
@@ -18,6 +26,7 @@ export default function AdminsPage() {
   const [allowedConfig, setAllowedConfig] = useState<AllowedAdminsConfig | null>(null);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState("");
+  const [newRole, setNewRole] = useState<string>("user");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -58,6 +67,10 @@ export default function AdminsPage() {
   }, [load]);
 
   const isOwner = myRole === "owner";
+  const isAdmin = myRole === "admin";
+
+  const canWrite = isOwner || isAdmin;
+  const availableRoles: readonly string[] = isOwner ? ROLE_OPTIONS : ["user"];
 
   const handleAddEmail = async () => {
     const email = newEmail.trim().toLowerCase();
@@ -67,7 +80,12 @@ export default function AdminsPage() {
     }
 
     if (!allowedConfig) return;
-    if (allowedConfig.emails.includes(email)) {
+
+    const inAdmins = allowedConfig.emails.includes(email);
+    const inOwners = allowedConfig.owners.includes(email);
+    const inUsers = allowedConfig.users?.includes(email) ?? false;
+
+    if (inAdmins || inOwners || inUsers) {
       setSaveError(`${email} is already in the allowlist.`);
       return;
     }
@@ -81,14 +99,26 @@ export default function AdminsPage() {
       const { getFirestore } = await import("@/lib/firebase/config");
       const firestore = await getFirestore();
 
-      await setDoc(doc(firestore, "appConfig", "allowedAdmins"), {
-        emails: [...allowedConfig.emails, email],
+      const updated: Record<string, string[]> = {
+        emails: allowedConfig.emails,
         owners: allowedConfig.owners,
-      }, { merge: true });
+        users: allowedConfig.users ?? [],
+      };
 
-      setAllowedConfig({ ...allowedConfig, emails: [...allowedConfig.emails, email] });
+      if (newRole === "owner") {
+        updated.owners = [...updated.owners, email];
+      } else if (newRole === "admin") {
+        updated.emails = [...updated.emails, email];
+      } else {
+        updated.users = [...updated.users, email];
+      }
+
+      await setDoc(doc(firestore, "appConfig", "allowedAdmins"), updated, { merge: true });
+
+      setAllowedConfig({ ...allowedConfig, ...updated });
       setNewEmail("");
-      setSaveSuccess(`${email} added to allowlist.`);
+      setNewRole("user");
+      setSaveSuccess(`${email} added as ${newRole}.`);
     } catch (e: any) {
       setSaveError(e?.message || "Failed to add email.");
     } finally {
@@ -96,10 +126,15 @@ export default function AdminsPage() {
     }
   };
 
-  const handleRemoveEmail = async (email: string) => {
+  const handleRemoveEmail = async (email: string, roleCategory: string) => {
     if (!allowedConfig) return;
-    if (allowedConfig.owners.includes(email)) {
-      setSaveError(`Cannot remove ${email} — they are an owner.`);
+
+    if (roleCategory === "owner" && !isOwner) {
+      setSaveError(`Only owners can remove owners.`);
+      return;
+    }
+    if (roleCategory === "admin" && !isOwner) {
+      setSaveError(`Only owners can remove admins.`);
       return;
     }
 
@@ -112,15 +147,15 @@ export default function AdminsPage() {
       const { getFirestore } = await import("@/lib/firebase/config");
       const firestore = await getFirestore();
 
-      await setDoc(doc(firestore, "appConfig", "allowedAdmins"), {
-        emails: allowedConfig.emails.filter((e) => e !== email),
-        owners: allowedConfig.owners,
-      }, { merge: true });
+      const updated: Record<string, string[]> = {
+        emails: roleCategory === "admin" ? allowedConfig.emails.filter((e) => e !== email) : allowedConfig.emails,
+        owners: roleCategory === "owner" ? allowedConfig.owners.filter((e) => e !== email) : allowedConfig.owners,
+        users: roleCategory === "user" ? (allowedConfig.users ?? []).filter((e) => e !== email) : (allowedConfig.users ?? []),
+      };
 
-      setAllowedConfig({
-        ...allowedConfig,
-        emails: allowedConfig.emails.filter((e) => e !== email),
-      });
+      await setDoc(doc(firestore, "appConfig", "allowedAdmins"), updated, { merge: true });
+
+      setAllowedConfig({ ...allowedConfig, ...updated });
       setSaveSuccess(`${email} removed from allowlist.`);
       setAdmins(admins.filter((a) => a.email !== email));
     } catch (e: any) {
@@ -128,6 +163,19 @@ export default function AdminsPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const getAllowedList = () => {
+    if (!allowedConfig) return [];
+    const list: { email: string; role: string }[] = [];
+    allowedConfig.owners.forEach((e) => list.push({ email: e, role: "owner" }));
+    allowedConfig.emails.forEach((e) => {
+      if (!list.some((l) => l.email === e)) list.push({ email: e, role: "admin" });
+    });
+    (allowedConfig.users ?? []).forEach((e) => {
+      if (!list.some((l) => l.email === e)) list.push({ email: e, role: "user" });
+    });
+    return list;
   };
 
   return (
@@ -164,10 +212,13 @@ export default function AdminsPage() {
               Allowed Emails
             </h3>
             <div className="rounded-xl border border-white/10 bg-white/[0.02] px-5 py-4">
-              {allowedConfig && allowedConfig.emails.length > 0 ? (
+              {allowedConfig && getAllowedList().length > 0 ? (
                 <div className="space-y-2">
-                  {allowedConfig.emails.map((email) => {
-                    const isOwnerEmail = allowedConfig.owners.includes(email);
+                  {getAllowedList().map(({ email, role }) => {
+                    const canRemove =
+                      (role === "user" && canWrite) ||
+                      (role === "admin" && isOwner) ||
+                      (role === "owner" && isOwner);
                     return (
                       <div
                         key={email}
@@ -175,15 +226,17 @@ export default function AdminsPage() {
                       >
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm text-white">{email}</span>
-                          {isOwnerEmail && (
-                            <span className="rounded-full border border-cyan-400/20 bg-cyan-400/5 px-2 py-0.5 font-mono text-[10px] text-cyan-300 uppercase tracking-[0.1em]">
-                              Owner
-                            </span>
-                          )}
+                          <span
+                            className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] ${
+                              ROLE_STYLES[role] ?? "border-white/10 text-slate-400"
+                            }`}
+                          >
+                            {role}
+                          </span>
                         </div>
-                        {isOwner && !isOwnerEmail && (
+                        {canRemove && (
                           <button
-                            onClick={() => handleRemoveEmail(email)}
+                            onClick={() => handleRemoveEmail(email, role)}
                             disabled={saving}
                             className="font-mono text-[11px] text-red-400/60 hover:text-red-400 transition-colors disabled:opacity-30"
                           >
@@ -198,7 +251,7 @@ export default function AdminsPage() {
                 <p className="font-mono text-xs text-slate-500">No emails in allowlist.</p>
               )}
 
-              {isOwner && (
+              {canWrite && (
                 <div className="mt-4 pt-4 border-t border-white/5 flex gap-2">
                   <input
                     type="email"
@@ -208,6 +261,17 @@ export default function AdminsPage() {
                     className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-2 font-mono text-xs text-white placeholder:text-slate-600 outline-none focus:border-cyan-400/40 transition-colors"
                     onKeyDown={(e) => e.key === "Enter" && handleAddEmail()}
                   />
+                  <select
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value)}
+                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-xs text-white outline-none focus:border-cyan-400/40 transition-colors"
+                  >
+                    {availableRoles.map((r) => (
+                      <option key={r} value={r}>
+                        {r.charAt(0).toUpperCase() + r.slice(1)}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     onClick={handleAddEmail}
                     disabled={saving || !newEmail.trim()}
@@ -242,9 +306,7 @@ export default function AdminsPage() {
                     </div>
                     <span
                       className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.1em] ${
-                        admin.role === "owner"
-                          ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
-                          : "border-white/10 text-slate-400"
+                        ROLE_STYLES[admin.role] ?? "border-white/10 text-slate-400"
                       }`}
                     >
                       {admin.role}
@@ -260,11 +322,10 @@ export default function AdminsPage() {
       <div className="mt-10 rounded-xl border border-white/5 bg-white/[0.01] px-5 py-4 space-y-2">
         <p className="font-mono text-[10px] text-slate-600 leading-relaxed">
           Only users whose email is in the <strong className="text-slate-400">Allowed Emails</strong> list
-          can sign in. Owners (you and atulkpal@gmail.com) can add or remove emails.
+          can sign in. Owners can add any role. Admins can only add the <strong className="text-slate-400">user</strong> role.
         </p>
         <p className="font-mono text-[10px] text-slate-600 leading-relaxed">
           When an allowed user signs in with Google, they are automatically added to the Registered Admins list.
-          New users added via the allowlist get the <strong className="text-slate-400">admin</strong> role.
         </p>
       </div>
     </div>

@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getFirebaseAuth, onAuthChange, fetchAdmin } from "@/lib/firebase/authService";
+import { AuthProvider } from "@/components/beta/AuthContext";
+import DashboardNav from "@/components/beta/DashboardNav";
 
 export default function BetaDashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -91,5 +93,10 @@ export default function BetaDashboardLayout({ children }: { children: React.Reac
     );
   }
 
-  return <>{children}</>;
+  return (
+    <AuthProvider>
+      {pathname !== "/beta-dashboard/login" && <DashboardNav />}
+      {children}
+    </AuthProvider>
+  );
 }

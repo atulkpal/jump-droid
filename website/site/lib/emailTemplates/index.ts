@@ -1,13 +1,19 @@
 import type { EmailTemplate } from "@/types/emailLog";
 import { renderAcknowledgement } from "./acknowledgement";
 import { renderWelcome } from "./welcome";
+import { renderReject } from "./reject";
 import { renderInvitation1 } from "./invitation-1";
 import { renderInvitation2 } from "./invitation-2";
 import { renderInvitation3 } from "./invitation-3";
 import { renderInvitation4 } from "./invitation-4";
 import { renderInvitation5 } from "./invitation-5";
+import { renderOutreach1 } from "./outreach-1";
+import { renderOutreach2 } from "./outreach-2";
+import { renderOutreach3 } from "./outreach-3";
+import { renderOutreach4 } from "./outreach-4";
+import { renderOutreach5 } from "./outreach-5";
 
-const INVITATION_MAP: Record<number, (name: string) => { html: string; subject: string }> = {
+const INVITATION_MAP: Record<number, (name: string, unsubscribeUrl?: string) => { html: string; subject: string }> = {
   1: renderInvitation1,
   2: renderInvitation2,
   3: renderInvitation3,
@@ -15,31 +21,61 @@ const INVITATION_MAP: Record<number, (name: string) => { html: string; subject: 
   5: renderInvitation5,
 };
 
+const OUTREACH_MAP: Record<number, (name: string, unsubscribeUrl?: string) => { html: string; subject: string }> = {
+  1: renderOutreach1,
+  2: renderOutreach2,
+  3: renderOutreach3,
+  4: renderOutreach4,
+  5: renderOutreach5,
+};
+
 export function renderTemplate(
   template: EmailTemplate,
   name: string,
-  inviteNumber?: number
+  inviteNumber?: number,
+  unsubscribeUrl?: string,
+  trackingPixel?: string,
+  campaignId?: string
 ): { html: string; subject: string; text: string } {
   let result: { html: string; subject: string };
 
+  const renderWithUrl = (fn: (name: string, unsubscribeUrl?: string) => { html: string; subject: string }) =>
+    fn(name, unsubscribeUrl);
+
   if (template === "acknowledgement") {
-    result = renderAcknowledgement(name);
+    result = renderWithUrl(renderAcknowledgement);
   } else if (template === "welcome") {
-    result = renderWelcome(name);
-  } else if (template === "invitation" || template.startsWith("invitation-")) {
-    const num = inviteNumber || 1;
-    const renderFn = INVITATION_MAP[num];
-    if (!renderFn) {
-      result = renderInvitation1(name);
+    result = renderWithUrl(renderWelcome);
+  } else if (template === "reject") {
+    result = renderWithUrl(renderReject);
+  } else if (template === "invitation" || template.startsWith("invitation-") || template.startsWith("outreach-")) {
+    if (template.startsWith("outreach-")) {
+      const parsed = parseInt(template.split("-")[1], 10);
+      const renderFn = OUTREACH_MAP[parsed];
+      if (renderFn) {
+        result = renderFn(name, unsubscribeUrl);
+      } else {
+        result = renderOutreach1(name, unsubscribeUrl);
+      }
     } else {
-      result = renderFn(name);
+      const num = inviteNumber || 1;
+      const renderFn = INVITATION_MAP[num];
+      if (renderFn) {
+        result = renderFn(name, unsubscribeUrl);
+      } else {
+        result = renderInvitation1(name, unsubscribeUrl);
+      }
     }
   } else {
-    result = renderWelcome(name);
+    result = renderWithUrl(renderWelcome);
   }
 
+  const betaInfoUrl = campaignId
+    ? `https://jump-droid.vercel.app/beta-info?c=${campaignId}`
+    : "https://jump-droid.vercel.app/beta-info";
+
   return {
-    html: result.html,
+    html: result.html.replace("{trackingPixel}", trackingPixel || "").replace(/\{betaInfoUrl\}/g, betaInfoUrl),
     subject: result.subject,
     text: stripHtml(result.html),
   };

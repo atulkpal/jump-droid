@@ -12,9 +12,12 @@ export async function POST(req: Request) {
     if (!emails || !Array.isArray(emails) || emails.length === 0) {
       return NextResponse.json({ error: "No recipients provided" }, { status: 400 });
     }
+    if (!template || !template.trim()) {
+      return NextResponse.json({ error: "No template specified" }, { status: 400 });
+    }
 
     const adminFirestore = getAdminFirestore();
-    const emailTemplate: EmailTemplate = template || "welcome";
+    const emailTemplate: EmailTemplate = template;
     const sender: SenderProfile = await getSenderProfileAdmin(adminFirestore, senderAccountId);
     const accessToken = await getAccessTokenAdmin(adminFirestore, senderAccountId);
     const results: {
@@ -45,16 +48,18 @@ export async function POST(req: Request) {
         let html: string;
         let text: string;
 
+        const recipientName = item.name || "";
         if (customHtml) {
-          subject = customSubject || "";
-          html = customHtml;
-          text = customHtml.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+          subject = customSubject?.replace(/\{\{name\}\}/gi, recipientName).replace(/\$\{name\}/gi, recipientName) || "";
+          html = customHtml.replace(/\{\{name\}\}/gi, recipientName).replace(/\$\{name\}/gi, recipientName);
+          text = html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
         } else if (overrideHtml) {
-          subject = overrideSubject || "";
-          html = overrideHtml;
-          text = overrideHtml.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+          subject = overrideSubject?.replace(/\{\{name\}\}/gi, recipientName).replace(/\$\{name\}/gi, recipientName) || "";
+          html = overrideHtml.replace(/\{\{name\}\}/gi, recipientName).replace(/\$\{name\}/gi, recipientName);
+          text = html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
         } else {
-          const rendered = renderTemplate(emailTemplate, item.name || "");
+          const unsubscribeUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/unsubscribe?email=${encodeURIComponent(item.email)}`;
+          const rendered = renderTemplate(emailTemplate, item.name || "", undefined, unsubscribeUrl);
           subject = rendered.subject;
           html = rendered.html;
           text = rendered.text;

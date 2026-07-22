@@ -1,4 +1,4 @@
-export type EmailTemplate = "acknowledgement" | "invitation" | "invitation-1" | "invitation-2" | "invitation-3" | "invitation-4" | "invitation-5" | "welcome";
+export type EmailTemplate = "acknowledgement" | "invitation" | "invitation-1" | "invitation-2" | "invitation-3" | "invitation-4" | "invitation-5" | "outreach-1" | "outreach-2" | "outreach-3" | "outreach-4" | "outreach-5" | "welcome" | "reject";
 
 export type EmailStatus = "queued" | "sent" | "failed";
 

@@ -25,6 +25,8 @@ export async function fetchAllApplicants(): Promise<RecruitmentApplicant[]> {
       approvedAt: data.approvedAt ?? null,
       invitedAt: data.invitedAt ?? null,
       emailStatus: data.emailStatus ?? "",
+      acknowledgementSent: data.acknowledgementSent ?? undefined,
+      acknowledgementError: data.acknowledgementError ?? undefined,
     } as RecruitmentApplicant;
   });
 }

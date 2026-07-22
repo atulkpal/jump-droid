@@ -7,6 +7,8 @@ import { importContacts } from "@/lib/firebase/outreachService";
 interface Props {
   onImported: () => void;
   onClose: () => void;
+  importedBy?: string;
+  campaignId?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,7 +35,7 @@ function parseCsv(text: string): CsvRow[] {
   return rows;
 }
 
-export default function OutreachImportCsv({ onImported, onClose }: Props) {
+export default function OutreachImportCsv({ onImported, onClose, importedBy, campaignId }: Props) {
   const [preview, setPreview] = useState<CsvRow[] | null>(null);
   const [importing, setImporting] = useState(false);
   const [done, setDone] = useState(false);
@@ -56,7 +58,15 @@ export default function OutreachImportCsv({ onImported, onClose }: Props) {
     if (!preview || preview.length === 0) return;
     setImporting(true);
     try {
-      const imported = await importContacts(preview);
+      const imported = await importContacts(preview, importedBy);
+      if (campaignId) {
+        const { addContactToCampaign } = await import("@/lib/firebase/campaignService");
+        for (const row of preview) {
+          try {
+            await addContactToCampaign(row.email, campaignId, importedBy);
+          } catch {}
+        }
+      }
       setCount(imported);
       setDone(true);
       onImported();

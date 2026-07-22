@@ -46,10 +46,18 @@ function GmailCallbackPage() {
   const exchange = useCallback(async (code: string) => {
     setState({ phase: "exchanging" });
     try {
+      const { getFirebaseAuth } = await import("@/lib/firebase/authService");
+      const auth = await getFirebaseAuth();
+      const currentUser = auth.currentUser;
+
       const res = await fetch("/api/gmail/exchange", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({
+          code,
+          connectedBy: currentUser?.uid || null,
+          connectedByEmail: currentUser?.email || null,
+        }),
       });
 
       const data = await res.json();
@@ -69,8 +77,6 @@ function GmailCallbackPage() {
 
       setState({ phase: "saving" });
 
-      const { getFirebaseAuth } = await import("@/lib/firebase/authService");
-      const auth = await getFirebaseAuth();
       const { onAuthStateChanged } = await import("firebase/auth");
       await new Promise<void>((resolve) => {
         const unsub = onAuthStateChanged(auth, () => { unsub(); resolve(); });
@@ -113,7 +119,9 @@ function GmailCallbackPage() {
         expiryDate: Date.now() + (data.expiresIn || 3600) * 1000,
         status: "connected",
         isDefault,
-        createdBy: "owner",
+        createdBy: data.connectedBy || "owner",
+        connectedBy: data.connectedBy || null,
+        connectedByEmail: data.connectedByEmail || null,
         createdAt: serverTimestamp(),
         lastUsedAt: serverTimestamp(),
         errorMessage: null,
@@ -124,6 +132,30 @@ function GmailCallbackPage() {
       await logEmailAudit("oauth_connected", data.email, "Gmail account connected via OAuth");
 
       setState({ phase: "success" });
+
+      const pendingSendRaw = sessionStorage.getItem("pendingSend");
+      if (pendingSendRaw) {
+        sessionStorage.removeItem("pendingSend");
+        try {
+          const pending = JSON.parse(pendingSendRaw);
+          if (pending.recipientEmail && pending.subject) {
+            const { sendEmail } = await import("@/lib/emailService");
+            await sendEmail(
+              pending.recipientEmail,
+              pending.recipientName || pending.recipientEmail,
+              "welcome",
+              "",
+              "manual",
+              data.email,
+              pending.htmlBody || undefined,
+              pending.subject
+            );
+          }
+        } catch {
+          // Pending send failed silently - user can retry manually
+        }
+      }
+
       let c = 5;
       setCountdown(c);
       const interval = setInterval(() => {

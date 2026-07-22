@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import type { TemplateWithSource } from "@/types/emailTemplates";
 import {
   loadAllTemplates,
@@ -14,8 +13,10 @@ import {
 } from "@/lib/firebase/templateService";
 import { renderTemplate } from "@/lib/emailTemplates";
 import { sendEmail } from "@/lib/emailService";
+import { useRole } from "@/components/beta/AuthContext";
 
 export default function EmailPage() {
+  const { role } = useRole();
   const [templates, setTemplates] = useState<TemplateWithSource[]>([]);
   const [selectedKey, setSelectedKey] = useState<string>("");
   const [name, setName] = useState("");
@@ -64,7 +65,7 @@ export default function EmailPage() {
     } else {
       // Load from hardcoded template for preview
       try {
-        const rendered = renderTemplate(selectedKey as any, "Preview User");
+        const rendered = renderTemplate(selectedKey as any, "{{name}}");
         setName(selected.name);
         setSubject(rendered.subject);
         setHtmlBody(rendered.html);
@@ -92,7 +93,9 @@ export default function EmailPage() {
       } else if (isCustom) {
         await updateCustomTemplate(selectedKey, { name, subject, htmlBody });
       } else {
-        await saveTemplateOverride(selectedKey, { subject, htmlBody });
+        await saveTemplateOverride(selectedKey, { name, subject, htmlBody });
+        const list = await loadAllTemplates();
+        setTemplates(list);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -108,7 +111,7 @@ export default function EmailPage() {
     setSaving(true);
     try {
       await deleteTemplateOverride(selectedKey);
-      const rendered = renderTemplate(selectedKey as any, "Preview User");
+      const rendered = renderTemplate(selectedKey as any, "{{name}}");
       const templateInfo = PERMANENT_TEMPLATES.find((t) => t.key === selectedKey);
       setName(templateInfo?.label || selectedKey);
       setSubject(rendered.subject);
@@ -150,14 +153,23 @@ export default function EmailPage() {
     setSending(true);
     setSendResult(null);
     try {
-      const result = await sendEmail(sendTo.trim(), sendTo.trim(), "welcome", "test", "email-page", selectedAccount || undefined);
+      const result = await sendEmail(
+        sendTo.trim(),
+        sendTo.trim(),
+        selectedKey as any || "welcome",
+        "test",
+        "email-page",
+        selectedAccount || undefined,
+        htmlBody || undefined,
+        subject
+      );
       setSendResult(result.success ? "Sent successfully" : `Failed: ${result.error}`);
     } catch (e: any) {
       setSendResult(`Error: ${e.message}`);
     } finally {
       setSending(false);
     }
-  }, [sendTo, subject, htmlBody, selectedAccount]);
+  }, [sendTo, subject, htmlBody, selectedAccount, selectedKey]);
 
   const previewUrl = URL.createObjectURL(new Blob([htmlBody || ""], { type: "text/html" }));
 
@@ -165,15 +177,9 @@ export default function EmailPage() {
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
       <div className="fixed inset-0 z-0 bg-glow-top-cyan" />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-6 py-24 sm:px-8 sm:py-32">
+      <main className="relative z-10 mx-auto max-w-7xl px-6 py-16 sm:px-8 sm:py-20">
         <div className="mb-10">
-          <Link
-            href="/beta-dashboard"
-            className="font-mono text-xs text-slate-500 hover:text-white transition-colors mb-6 inline-block"
-          >
-            &larr; Back to Dashboard
-          </Link>
-          <h1 className="font-mono text-xl font-bold tracking-[0.1em] text-white uppercase mt-4">
+          <h1 className="font-mono text-xl font-bold tracking-[0.1em] text-white uppercase">
             Email
             <span className="text-cyan-300 ml-2">Templates</span>
           </h1>
@@ -265,14 +271,16 @@ export default function EmailPage() {
                 </div>
 
                 <div className="flex items-center gap-3 pt-2">
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || !subject.trim()}
-                    className="rounded-lg border border-cyan-400/30 px-5 py-2.5 font-mono text-xs tracking-[0.15em] text-cyan-300 transition-colors hover:bg-cyan-400/10 disabled:opacity-30"
-                  >
-                    {saving ? "Saving..." : "Save"}
-                  </button>
-                  {isPermanent && !editingNew && (
+                  {(!isPermanent || role !== "user") && (
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || !subject.trim()}
+                      className="rounded-lg border border-cyan-400/30 px-5 py-2.5 font-mono text-xs tracking-[0.15em] text-cyan-300 transition-colors hover:bg-cyan-400/10 disabled:opacity-30"
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+                  )}
+                  {isPermanent && !editingNew && role !== "user" && (
                     <button
                       onClick={handleReset}
                       disabled={saving}

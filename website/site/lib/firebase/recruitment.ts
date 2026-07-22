@@ -54,11 +54,39 @@ export async function registerBetaUser(userData: BetaUserRegistration): Promise<
     registeredFrom: "website",
     registeredAt: serverTimestamp(),
     acknowledgementSent: false,
+    convertedFromCampaign: userData.convertedFrom || null,
   });
 
   // Non-critical outreach and logging
   try { await matchRegistration(cleanEmail); } catch {}
   try { await logEvent(cleanEmail, "registered"); } catch {}
+
+  // Auto-create recruitment contact as fallback
+  try {
+    const contactRef = doc(firestore, "recruitmentContacts", cleanEmail);
+    const contactSnap = await getDoc(contactRef);
+    if (!contactSnap.exists()) {
+      await setDoc(contactRef, {
+        name: userData.name || "",
+        email: cleanEmail,
+        phone: userData.phone || "",
+        status: "pending",
+        source: "website",
+        importedBy: "Applicant",
+        importedAt: serverTimestamp(),
+        registeredAt: serverTimestamp(),
+        lastInviteAt: null,
+        notes: "",
+        inviteCount: 0,
+        nextEligibleAt: null,
+        campaignId: "",
+        campaigns: [],
+        campaignData: {},
+        emailStatus: "pending",
+        stoppedReason: "",
+      });
+    }
+  } catch {}
 
   // Send acknowledgement email via server API
   const res = await fetch("/api/recruitment/register", {
@@ -70,6 +98,7 @@ export async function registerBetaUser(userData: BetaUserRegistration): Promise<
       phone: userData.phone || "",
       codeJam: userData.codeJam || false,
       source,
+      convertedFrom: userData.convertedFrom || null,
     }),
   });
 

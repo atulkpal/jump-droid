@@ -1,4 +1,4 @@
-export function renderLayout(bodyHtml: string): string {
+export function renderLayout(bodyHtml: string, unsubscribeUrl?: string): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -21,9 +21,11 @@ export function renderLayout(bodyHtml: string): string {
       <a href="https://jump-droid.vercel.app" class="logo">JUMP DROID</a>
     </div>
     <div class="content">${bodyHtml}</div>
+    {trackingPixel}
     <div class="footer">
       <p class="footer-text">Ashwath AI &mdash; Jump Droid Beta Program</p>
       <p class="footer-text">This is an automated message. Please do not reply directly.</p>
+      ${unsubscribeUrl ? `<p class="footer-text"><a href="${unsubscribeUrl}" style="color:#ef4444;text-decoration:underline;">Unsubscribe</a></p>` : ""}
     </div>
   </div>
 </body>

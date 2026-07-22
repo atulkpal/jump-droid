@@ -8,11 +8,12 @@ const CUSTOM_COLLECTION = "emailTemplatesCustom";
 export const PERMANENT_TEMPLATES: { key: EmailTemplate | string; label: string }[] = [
   { key: "acknowledgement", label: "Acknowledgement" },
   { key: "welcome", label: "Welcome" },
-  { key: "invitation-1", label: "Outreach 1" },
-  { key: "invitation-2", label: "Outreach 2" },
-  { key: "invitation-3", label: "Outreach 3" },
-  { key: "invitation-4", label: "Outreach 4" },
-  { key: "invitation-5", label: "Outreach 5" },
+  { key: "outreach-1", label: "Outreach 1" },
+  { key: "outreach-2", label: "Outreach 2" },
+  { key: "outreach-3", label: "Outreach 3" },
+  { key: "outreach-4", label: "Outreach 4" },
+  { key: "outreach-5", label: "Outreach 5" },
+  { key: "reject", label: "Rejection" },
 ];
 
 export async function loadAllTemplates(): Promise<TemplateWithSource[]> {
@@ -31,7 +32,7 @@ export async function loadAllTemplates(): Promise<TemplateWithSource[]> {
   for (const pt of PERMANENT_TEMPLATES) {
     const override = overrideMap.get(pt.key);
     if (override) {
-      result.push({ ...override, templateKey: pt.key, isCustom: false });
+      result.push({ ...override, name: override.name || pt.label, templateKey: pt.key, isCustom: false });
     } else {
       result.push({
         name: pt.label,
@@ -70,7 +71,7 @@ export async function getTemplateContent(
 
 export async function saveTemplateOverride(
   key: string,
-  data: { subject: string; htmlBody: string }
+  data: { name: string; subject: string; htmlBody: string }
 ): Promise<void> {
   const firestore = await getFirestore();
   const { doc, setDoc, serverTimestamp } = await import("firebase/firestore");

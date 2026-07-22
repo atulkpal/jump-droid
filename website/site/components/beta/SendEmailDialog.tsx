@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import { PERMANENT_TEMPLATES, getTemplateContent, loadAllTemplates } from "@/lib/firebase/templateService";
 import type { TemplateWithSource } from "@/types/emailTemplates";
 import { sendEmail } from "@/lib/emailService";
+import { useAuth } from "./AuthContext";
+import { getAuthUrl } from "@/lib/firebase/gmailService";
+import { getAllowedAdminsConfig } from "@/lib/firebase/authService";
 
 interface Props {
   recipientEmail: string;
@@ -11,27 +14,57 @@ interface Props {
   onClose: () => void;
 }
 
+function isAccountVisible(
+  accountEmail: string,
+  role: string | undefined,
+  currentUserEmail: string | undefined,
+  ownerSet: Set<string>,
+  adminSet: Set<string>,
+  defaultSenderEmail?: string
+): boolean {
+  if (accountEmail === defaultSenderEmail) return true;
+  if (role === "owner") return true;
+  if (role === "user") {
+    if (!currentUserEmail) return false;
+    return accountEmail === currentUserEmail;
+  }
+  if (role === "admin") {
+    if (ownerSet.has(accountEmail)) return false;
+    if (adminSet.has(accountEmail) && accountEmail !== currentUserEmail) return false;
+    return true;
+  }
+  return true;
+}
+
 export default function SendEmailDialog({ recipientEmail, recipientName, onClose }: Props) {
+  const { user } = useAuth();
   const [subject, setSubject] = useState("");
   const [htmlBody, setHtmlBody] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<{ email: string; displayName?: string }[]>([]);
+  const [accounts, setAccounts] = useState<{ email: string; displayName?: string; isDefault?: boolean }[]>([]);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [templates, setTemplates] = useState<TemplateWithSource[]>([]);
+  const [ownerSet, setOwnerSet] = useState<Set<string>>(new Set());
+  const [adminSet, setAdminSet] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadAllTemplates().then(setTemplates);
 
-    fetch("/api/email-accounts")
-      .then((res) => res.json())
-      .then((data) => {
-        const list = (data.accounts || []).filter((a: any) => a.status === "connected");
-        setAccounts(list);
-        const def = list.find((a: any) => a.isDefault);
-        setSelectedAccount(def?.email || list[0]?.email || "");
-      })
-      .catch(() => {});
+    Promise.all([
+      fetch("/api/email-accounts").then((res) => res.json()),
+      getAllowedAdminsConfig().catch(() => null),
+    ]).then(([accountsData, allowedConfig]) => {
+      const list = (accountsData.accounts || []).filter((a: any) => a.status === "connected");
+      setAccounts(list);
+      const def = list.find((a: any) => a.isDefault);
+      setSelectedAccount(def?.email || list[0]?.email || "");
+
+      if (allowedConfig) {
+        setOwnerSet(new Set(allowedConfig.owners));
+        setAdminSet(new Set(allowedConfig.emails));
+      }
+    }).catch(() => {});
   }, []);
 
   const loadTemplate = async (key: string) => {
@@ -41,7 +74,6 @@ export default function SendEmailDialog({ recipientEmail, recipientName, onClose
       setSubject(info.subject);
       setHtmlBody(info.htmlBody);
     } else {
-      // Load from hardcoded template
       const { renderTemplate } = await import("@/lib/emailTemplates");
       try {
         const rendered = renderTemplate(key as any, recipientName);
@@ -146,24 +178,62 @@ export default function SendEmailDialog({ recipientEmail, recipientName, onClose
             />
           </div>
 
-          {accounts.length > 0 && (
-            <div>
-              <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
-                Send From
-              </label>
-              <select
-                value={selectedAccount}
-                onChange={(e) => setSelectedAccount(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40"
-              >
-                {accounts.map((a) => (
-                  <option key={a.email} value={a.email}>
-                    {a.displayName || a.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div>
+            <label className="font-mono text-[10px] tracking-[0.15em] text-slate-500 uppercase block mb-2">
+              Send From
+            </label>
+            <select
+              value={selectedAccount}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "__connect_own__") {
+                  const url = getAuthUrl(user?.email);
+                  if (url) {
+                    sessionStorage.setItem("pendingSend", JSON.stringify({
+                      recipientEmail,
+                      recipientName,
+                      subject,
+                      htmlBody,
+                    }));
+                    window.location.href = url;
+                  }
+                  return;
+                }
+                setSelectedAccount(val);
+              }}
+              className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40"
+            >
+              {(() => {
+                const defaultSenderEmail = accounts.find((a) => a.isDefault)?.email;
+                const visibleAccounts = accounts.filter((a) =>
+                  isAccountVisible(a.email, user?.role, user?.email, ownerSet, adminSet, defaultSenderEmail)
+                );
+                const userHasConnected = user?.email && accounts.some((a) => a.email === user.email);
+                if (visibleAccounts.length === 0 && user?.role !== "user") {
+                  return <option value="">No connected accounts</option>;
+                }
+                return (
+                  <>
+                    {visibleAccounts.map((a) => (
+                      <option key={a.email} value={a.email}>
+                        {a.displayName || a.email}{a.isDefault ? " (Default)" : ""}
+                      </option>
+                    ))}
+                    {user?.role === "user" && user.email && !userHasConnected && (
+                      <option value="__connect_own__">
+                        {"\u2192"} Send as {user.email} (Connect Gmail)
+                      </option>
+                    )}
+                    {user?.role === "user" && user.email && userHasConnected && (
+                      <option value={user.email}>
+                        {user.displayName || user.email} (Me)
+                      </option>
+                    )}
+                  </>
+                );
+              })()}
+            </select>
+          </div>
 
           <div className="flex items-center gap-3 pt-2">
             <button
