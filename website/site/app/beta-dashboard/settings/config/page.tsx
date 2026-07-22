@@ -6,6 +6,7 @@ import { fetchConfig, getDefaultConfig, updateConfig } from "@/lib/firebase/conf
 import { computeDaysRemaining, computeCurrentDay } from "@/lib/firebase/analytics";
 import { formatCurrency } from "@/lib/firebase/revenue";
 import { fetchUsdToInr } from "@/lib/firebase/exchangeRate";
+import { useRole } from "@/components/beta/AuthContext";
 
 function formatTimestamp(ts: { seconds: number } | undefined): string {
   if (!ts?.seconds) return "—";
@@ -13,6 +14,7 @@ function formatTimestamp(ts: { seconds: number } | undefined): string {
 }
 
 export default function ConfigPage() {
+  const { role } = useRole();
   const [draft, setDraft] = useState<DashboardConfig>(() => getDefaultConfig());
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -109,7 +111,8 @@ export default function ConfigPage() {
               type="date"
               value={draft.beta.startDate}
               onChange={(e) => setField("beta", "startDate", e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40"
+              className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-30"
+              disabled={role === "user"}
             />
           </div>
           <div>
@@ -120,9 +123,10 @@ export default function ConfigPage() {
               type="date"
               value={draft.beta.endDate}
               onChange={(e) => setField("beta", "endDate", e.target.value)}
-              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 ${
+              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-30 ${
                 validationErrors.endDate ? "border-red-400" : "border-white/10"
               }`}
+              disabled={role === "user"}
             />
             {validationErrors.endDate && (
               <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.endDate}</p>
@@ -138,9 +142,10 @@ export default function ConfigPage() {
                 min={1}
                 value={draft.beta.requiredDays}
                 onChange={(e) => setField("beta", "requiredDays", parseInt(e.target.value) || 0)}
-                className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 ${
+                className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-30 ${
                   validationErrors.requiredDays ? "border-red-400" : "border-white/10"
                 }`}
+                disabled={role === "user"}
               />
               {validationErrors.requiredDays && (
                 <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.requiredDays}</p>
@@ -157,9 +162,10 @@ export default function ConfigPage() {
                 min={1}
                 value={draft.beta.requiredMinutes}
                 onChange={(e) => setField("beta", "requiredMinutes", parseInt(e.target.value) || 0)}
-                className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 ${
+                className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-30 ${
                   validationErrors.requiredMinutes ? "border-red-400" : "border-white/10"
                 }`}
+                disabled={role === "user"}
               />
               {validationErrors.requiredMinutes && (
                 <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.requiredMinutes}</p>
@@ -177,11 +183,12 @@ export default function ConfigPage() {
               <button
                 key={mode}
                 onClick={() => setRequirementMode(mode)}
+                disabled={role === "user"}
                 className={`rounded-lg border px-4 py-2 font-mono text-xs tracking-wider transition-colors ${
                   draft.beta.requirementMode === mode
                     ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-300"
                     : "border-white/10 text-slate-400 hover:border-white/20"
-                }`}
+                } disabled:opacity-30 disabled:cursor-not-allowed`}
               >
                 {mode === "daily" ? "Daily" : mode === "total" ? "Total" : "Both"}
               </button>
@@ -200,9 +207,10 @@ export default function ConfigPage() {
               step={0.5}
               value={draft.beta.requiredTotalHours}
               onChange={(e) => setField("beta", "requiredTotalHours", parseFloat(e.target.value) || 0)}
-              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 ${
+              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-30 ${
                 validationErrors.requiredTotalHours ? "border-red-400" : "border-white/10"
               }`}
+              disabled={role === "user"}
             />
             {validationErrors.requiredTotalHours && (
               <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.requiredTotalHours}</p>
@@ -226,9 +234,10 @@ export default function ConfigPage() {
               min={0.01}
               value={draft.revenue.usdToInr}
               onChange={(e) => setField("revenue", "usdToInr", parseFloat(e.target.value) || 0)}
-              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 ${
+              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-30 ${
                 validationErrors.usdToInr ? "border-red-400" : "border-white/10"
               }`}
+              disabled={role === "user"}
             />
             {validationErrors.usdToInr && (
               <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.usdToInr}</p>
@@ -248,9 +257,10 @@ export default function ConfigPage() {
               min={0}
               value={draft.revenue.bannerEcpmUsd}
               onChange={(e) => setField("revenue", "bannerEcpmUsd", parseFloat(e.target.value) || 0)}
-              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 ${
+              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-30 ${
                 validationErrors.bannerEcpmUsd ? "border-red-400" : "border-white/10"
               }`}
+              disabled={role === "user"}
             />
             {validationErrors.bannerEcpmUsd && (
               <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.bannerEcpmUsd}</p>
@@ -266,9 +276,10 @@ export default function ConfigPage() {
               min={0}
               value={draft.revenue.rewardedEcpmUsd}
               onChange={(e) => setField("revenue", "rewardedEcpmUsd", parseFloat(e.target.value) || 0)}
-              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 ${
+              className={`w-full rounded-lg border bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 disabled:opacity-30 ${
                 validationErrors.rewardedEcpmUsd ? "border-red-400" : "border-white/10"
               }`}
+              disabled={role === "user"}
             />
             {validationErrors.rewardedEcpmUsd && (
               <p className="mt-1 font-mono text-[10px] text-red-400">{validationErrors.rewardedEcpmUsd}</p>
@@ -326,24 +337,30 @@ export default function ConfigPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 pt-2">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-lg border border-cyan-400/30 px-6 py-3 font-mono text-xs tracking-[0.15em] text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:border-cyan-400/50 disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-        <button
-          onClick={handleReset}
-          className="rounded-lg border border-white/10 px-6 py-3 font-mono text-xs tracking-[0.15em] text-slate-400 transition-colors hover:border-white/20 hover:text-white"
-        >
-          Reset Defaults
-        </button>
-        {saved && (
-          <p className="font-mono text-[11px] text-green-400">Configuration Saved</p>
-        )}
-      </div>
+      {role !== "user" ? (
+        <div className="flex items-center gap-4 pt-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="rounded-lg border border-cyan-400/30 px-6 py-3 font-mono text-xs tracking-[0.15em] text-cyan-300 transition-colors hover:bg-cyan-400/10 hover:border-cyan-400/50 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+          <button
+            onClick={handleReset}
+            className="rounded-lg border border-white/10 px-6 py-3 font-mono text-xs tracking-[0.15em] text-slate-400 transition-colors hover:border-white/20 hover:text-white"
+          >
+            Reset Defaults
+          </button>
+          {saved && (
+            <p className="font-mono text-[11px] text-green-400">Configuration Saved</p>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-white/5 bg-white/[0.02] px-4 py-3">
+          <p className="font-mono text-xs text-slate-500">Configuration is view-only. Contact an owner to make changes.</p>
+        </div>
+      )}
     </div>
   );
 }

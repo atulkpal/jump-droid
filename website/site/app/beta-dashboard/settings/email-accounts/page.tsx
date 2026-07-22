@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getAuthUrl } from "@/lib/firebase/gmailService";
 import { getFirestore } from "@/lib/firebase/config";
+import { useRole } from "@/components/beta/AuthContext";
 
 interface Account {
   email: string;
@@ -14,6 +15,7 @@ interface Account {
 }
 
 export default function EmailAccountsPage() {
+  const { role } = useRole();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [defaultEmail, setDefaultEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -195,7 +197,7 @@ export default function EmailAccountsPage() {
                     Reconnect
                   </button>
                 )}
-                {account.status === "connected" && !account.isDefault && (
+                {account.status === "connected" && !account.isDefault && role !== "user" && (
                   <button
                     onClick={() => handleSetDefault(account.email)}
                     disabled={actionLoading === account.email}
@@ -204,13 +206,15 @@ export default function EmailAccountsPage() {
                     Set as Default
                   </button>
                 )}
-                <button
-                  onClick={() => handleRemove(account.email)}
-                  disabled={actionLoading === account.email}
-                  className="rounded-lg border border-red-400/20 px-3 py-2 font-mono text-[10px] text-red-400/60 uppercase tracking-[0.1em] transition-colors hover:border-red-400/40 hover:text-red-400 disabled:opacity-50"
-                >
-                  {actionLoading === account.email ? "..." : "Remove"}
-                </button>
+                {role !== "user" && (
+                  <button
+                    onClick={() => handleRemove(account.email)}
+                    disabled={actionLoading === account.email}
+                    className="rounded-lg border border-red-400/20 px-3 py-2 font-mono text-[10px] text-red-400/60 uppercase tracking-[0.1em] transition-colors hover:border-red-400/40 hover:text-red-400 disabled:opacity-50"
+                  >
+                    {actionLoading === account.email ? "..." : "Remove"}
+                  </button>
+                )}
               </div>
             </div>
           ))}

@@ -3,6 +3,7 @@ export interface BetaUserRegistration {
   name?: string;
   phone?: string;
   codeJam?: boolean;
+  convertedFrom?: string;
 }
 
 export interface BetaUserDoc extends BetaUserRegistration {

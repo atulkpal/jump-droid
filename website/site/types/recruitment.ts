@@ -24,6 +24,10 @@ export interface RecruitmentApplicant {
   approvedAt: { seconds: number } | null;
   invitedAt: { seconds: number } | null;
   emailStatus: EmailStatus;
+  acknowledgementSent?: boolean;
+  acknowledgementError?: string;
+  campaigns?: string[];
+  campaignData?: Record<string, { inviteCount: number; emailStatus: string; currentStep: number }>;
 }
 
 export type VisibleStatus = Extract<

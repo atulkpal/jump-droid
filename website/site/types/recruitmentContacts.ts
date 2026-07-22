@@ -1,4 +1,6 @@
-export type OutreachStatus = "pending" | "invited" | "registered" | "failed" | "converted" | "no_response";
+import type { CampaignContactData } from "./campaign";
+
+export type OutreachStatus = "pending" | "invited" | "registered" | "converted" | "no_response" | "deleting" | "unsubscribed";
 
 export interface OutreachContact {
   email: string;
@@ -7,14 +9,12 @@ export interface OutreachContact {
   status: OutreachStatus;
   source: string;
   importedAt: { seconds: number } | null;
-  lastInviteAt: { seconds: number } | null;
+  importedBy: string;
   registeredAt: { seconds: number } | null;
   notes: string;
-  inviteCount: number;
-  nextEligibleAt: { seconds: number } | null;
-  campaignId: string;
-  emailStatus: "pending" | "sent" | "failed";
-  stoppedReason: string;
+  campaigns: string[];
+  campaignData: Record<string, CampaignContactData>;
+  scheduledDeleteAt?: { seconds: number } | null;
 }
 
 export interface CsvRow {

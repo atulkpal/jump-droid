@@ -18,15 +18,9 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
       <div className="fixed inset-0 z-0 bg-glow-top-cyan" />
 
-      <main className="relative z-10 mx-auto max-w-5xl px-6 py-24 sm:px-8 sm:py-32">
+      <main className="relative z-10 mx-auto max-w-5xl px-6 py-16 sm:px-8 sm:py-20">
         <div className="mb-10">
-          <Link
-            href="/beta-dashboard"
-            className="font-mono text-xs text-slate-500 hover:text-white transition-colors mb-6 inline-block"
-          >
-            &larr; Back to Dashboard
-          </Link>
-          <h1 className="font-mono text-xl font-bold tracking-[0.1em] text-white uppercase mt-4">
+          <h1 className="font-mono text-xl font-bold tracking-[0.1em] text-white uppercase">
             Settings
           </h1>
         </div>

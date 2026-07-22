@@ -3,6 +3,8 @@ import Link from "next/link";
 import BetaRegistrationForm from "@/components/beta/BetaRegistrationForm";
 import BetaAccordion from "@/components/beta/BetaAccordion";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Jump Droid Beta Program — Early Access",
   description:
@@ -26,7 +28,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function BetaInfoPage() {
+export default async function BetaInfoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ c?: string }>;
+}) {
+  const sp = await searchParams;
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-black text-white selection:bg-cyan-500/30">
       <div className="fixed inset-0 z-0 bg-glow-top-cyan" />
@@ -70,7 +77,7 @@ export default function BetaInfoPage() {
           <h2 className="font-mono text-xs font-bold tracking-[0.15em] text-cyan-200 uppercase mb-4">
             Registration
           </h2>
-          <BetaRegistrationForm />
+          <BetaRegistrationForm convertedFrom={sp.c} />
         </section>
 
         <BetaAccordion />
