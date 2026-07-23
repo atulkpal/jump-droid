@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAccessTokenAdmin } from "@/lib/emailService";
 import type { PendingWrite } from "@/lib/campaignProcessor";
 import { pushWrite } from "@/lib/campaignProcessor";
+import { logDebug, logDebugAdmin } from "@/lib/debugLogger";
 
 const REPLY_CONFIG_DOC = "appConfig/replyDetection";
 const DEFAULT_SENDER_EMAIL = "ashwathai.dev@gmail.com";
@@ -70,7 +71,10 @@ export async function detectReplies(
     }
   });
 
+  logDebug("reply_detection.thread_map", "info", `Reply detection: ${threadMap.size} threads in emailLog (${emailLogSnap.docs.length} log entries)`);
+
   if (threadMap.size === 0) {
+    logDebug("reply_detection.no_threads", "info", "No sent email threads found — skipping reply detection");
     return { accountsPolled: 0, totalChecked: 0, totalReplied: 0, errors: [] };
   }
 
@@ -194,6 +198,13 @@ export async function detectReplies(
                 snippet,
               });
               processedSet.add(msg.id);
+              logDebug("reply_detection.match_found", "info",
+                `Reply from ${fromEmail} matched thread ${msg.threadId} → campaign ${match.campaignId}`,
+                { campaignId: match.campaignId, contactEmail: fromEmail });
+            } else {
+              logDebug("reply_detection.sender_mismatch", "info",
+                `Thread ${msg.threadId} matched but sender ${fromEmail} !== recipient ${match.recipient}`,
+                { campaignId: match.campaignId });
             }
           } catch {
             // Skip messages that fail metadata fetch

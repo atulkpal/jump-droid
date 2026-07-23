@@ -3,6 +3,7 @@ import {
   getSenderProfileAdmin,
   getAccessTokenAdmin,
 } from "@/lib/emailService";
+import { logDebug } from "@/lib/debugLogger";
 
 function decodeBounceBody(payload: any): string {
   const parts: string[] = [];
@@ -87,19 +88,32 @@ async function markBouncedInEmailLog(adminFirestore: Firestore, recipient: strin
   }
 }
 
-async function markBouncedInOutreach(adminFirestore: Firestore, recipient: string): Promise<void> {
+async function markBouncedInOutreach(adminFirestore: Firestore, recipient: string, sentCampaigns?: Set<string>): Promise<void> {
   try {
     const ref = adminFirestore.collection("recruitmentContacts").doc(recipient.toLowerCase().trim());
     const snap = await ref.get();
     if (!snap.exists) return;
     const data = snap.data() || {};
     const campaigns: string[] = data.campaigns || [];
+
+    // Only mark campaigns that actually sent to this contact (or all if no filter provided)
+    const targetCampaigns = sentCampaigns && sentCampaigns.size > 0
+      ? campaigns.filter(c => sentCampaigns.has(c))
+      : campaigns;
+
+    if (targetCampaigns.length === 0) {
+      logDebug("bounce_detection.no_campaign_match", "warn",
+        `Bounce for ${recipient} but no matching campaign with sent record — skipping outreach update`,
+        { contactEmail: recipient });
+      return;
+    }
+
     const updates: Record<string, any> = {
       status: "bounced",
       stoppedReason: "permanent_bounce",
       emailStatus: "failed",
     };
-    for (const cid of campaigns) {
+    for (const cid of targetCampaigns) {
       updates[`campaignData.${cid}.status`] = "bounced";
       updates[`campaignData.${cid}.stoppedReason`] = "permanent_bounce";
       updates[`campaignData.${cid}.emailStatus`] = "failed";
@@ -182,9 +196,31 @@ export async function detectBounces(adminFirestore: Firestore): Promise<number> 
           const bouncedEmails = extractBouncedEmails(bodyText, sender.email);
 
           for (const be of bouncedEmails) {
+            // Verify email was actually sent by us before marking bounced
+            const sentSnap = await adminFirestore
+              .collection("emailLog")
+              .where("recipient", "==", be.toLowerCase().trim())
+              .where("status", "==", "sent")
+              .limit(1)
+              .get();
+
+            if (sentSnap.empty) {
+              logDebug("bounce_detection.not_sent", "warn",
+                `Bounce found for ${be} but no sent emailLog record — skipping (possibly stale or unrelated bounce)`,
+                { contactEmail: be });
+              continue;
+            }
+
+            // Extract which campaigns sent to this contact
+            const sentCampaigns = new Set<string>();
+            sentSnap.docs.forEach(d => {
+              const cid = d.data().campaign;
+              if (cid) sentCampaigns.add(cid);
+            });
+
             await Promise.all([
               markBouncedInEmailLog(adminFirestore, be),
-              markBouncedInOutreach(adminFirestore, be),
+              markBouncedInOutreach(adminFirestore, be, sentCampaigns),
               markBouncedInApplicants(adminFirestore, be),
             ]);
 

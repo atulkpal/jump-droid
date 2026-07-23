@@ -21,7 +21,9 @@ import {
   logEmailAdmin,
   getSenderProfileAdmin,
   getTrackingUrl,
+  resolveBaseUrl,
 } from "@/lib/emailService";
+import { logDebug, logDebugAdmin } from "@/lib/debugLogger";
 import { detectBounces } from "@/lib/firebase/bounceDetectionAdmin";
 import { detectReplies } from "@/lib/gmailReplyDetection";
 import { createWriteBuffer, pushWrite, flushWrites, type PendingWrite } from "@/lib/campaignProcessor";
@@ -60,7 +62,21 @@ export async function processAllCampaigns(
     );
   }
 
-  await detectBounces(adminFirestore);
+  const bounceCount = await detectBounces(adminFirestore);
+
+  // Log detection summary for visibility in Activity tab
+  pushWrite(
+    buffer,
+    adminFirestore.collection("activityLog").doc(),
+    {
+      applicantEmail: "system",
+      eventType: "detection_check",
+      details: `Detection run: ${bounceCount} bounces, ${replyResult.totalReplied} replies found across ${replyResult.accountsPolled} accounts (${replyResult.totalChecked} checked)`,
+      createdAt: new Date(),
+    },
+    false
+  );
+
   await hardDeleteExpiredSoftDeletesAdmin(adminFirestore);
 
   // Start scheduled campaigns whose time has come
@@ -68,7 +84,12 @@ export async function processAllCampaigns(
 
   // Get all running campaigns
   const runningCampaigns = await getRunningCampaignsAdmin(adminFirestore);
+  await logDebugAdmin(adminFirestore, "campaign_engine.start", "info", "Campaign processing run started", {
+    data: { runningCampaigns: runningCampaigns.length, campaignIds: runningCampaigns.map(c => c.id).join(",") },
+  });
+
   if (runningCampaigns.length === 0) {
+    await logDebugAdmin(adminFirestore, "campaign_engine.no_campaigns", "info", "No running campaigns found");
     await flushWrites(buffer, adminFirestore);
     return [];
   }
@@ -142,7 +163,14 @@ async function processSingleCampaign(
     config.maxInvites
   );
 
-  if (eligibleContacts.length === 0) return result;
+  logDebug("campaign_engine.contacts_fetched", "info",
+    `Campaign ${campaignId}: ${eligibleContacts.length} eligible contacts, batchSize=${config.batchSize}, templateCount=${config.templateSequence?.length ?? 0}`,
+    { campaignId, data: { eligibleCount: eligibleContacts.length, batchSize: config.batchSize, templateCount: config.templateSequence?.length ?? 0 } });
+
+  if (eligibleContacts.length === 0) {
+    logDebug("campaign_engine.no_contacts", "info", `Campaign ${campaignId}: no eligible contacts`, { campaignId });
+    return result;
+  }
 
   let emailsSentThisHour = 0;
 
@@ -255,7 +283,12 @@ async function processSingleCampaign(
 
       // Render template
       const templateName = config.templateSequence?.[inviteNumber - 1];
-      if (!templateName) continue;
+      if (!templateName) {
+        logDebug("campaign_engine.template_missing", "warn",
+          `Contact ${email}: no template for invite #${inviteNumber} (templateSequence has ${config.templateSequence?.length ?? 0} entries)`,
+          { campaignId, contactEmail: email });
+        continue;
+      }
       const overrideDoc = templateName === "invitation" ? `invitation-${inviteNumber}` : templateName;
       const overrideSnap = await adminFirestore
         .collection("emailTemplateOverrides")
@@ -265,7 +298,7 @@ async function processSingleCampaign(
       let subject: string;
       let text: string;
 
-      const unsubscribeUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/unsubscribe?email=${encodeURIComponent(email)}`;
+      const unsubscribeUrl = `${resolveBaseUrl()}/api/unsubscribe?email=${encodeURIComponent(email)}`;
       const betaInfoUrl = campaignId
         ? `https://jump-droid.vercel.app/beta-info?c=${campaignId}`
         : "https://jump-droid.vercel.app/beta-info";

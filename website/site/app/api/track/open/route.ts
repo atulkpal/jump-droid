@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { logDebug } from "@/lib/debugLogger";
 
 const TRANSPARENT_GIF = Buffer.from(
   "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
@@ -24,6 +25,9 @@ export async function GET(request: Request) {
     });
 
   if (!token || !email || !campaignId) {
+    logDebug("tracking_pixel.missing_params", "warn", "Pixel hit with missing params", {
+      data: { hasToken: !!token, hasEmail: !!email, hasCampaign: !!campaignId },
+    });
     return returnPixel();
   }
 
@@ -34,6 +38,9 @@ export async function GET(request: Request) {
     .slice(0, 12);
 
   if (token !== expected) {
+    logDebug("tracking_pixel.invalid_hmac", "warn", `Pixel hit with invalid HMAC for campaign ${campaignId}`, {
+      campaignId,
+    });
     return returnPixel();
   }
 
@@ -51,8 +58,10 @@ export async function GET(request: Request) {
       [`campaignData.${campaignId}.opened`]: true,
       [`campaignData.${campaignId}.openedAt`]: new Date(),
     }).catch(() => {});
+
+    logDebug("tracking_pixel.opened", "info", `Email opened for campaign ${campaignId}`, { campaignId });
   } catch {
-    // Non-critical — pixel should always return
+    logDebug("tracking_pixel.write_error", "error", `Failed to write open event for campaign ${campaignId}`, { campaignId });
   }
 
   return returnPixel();

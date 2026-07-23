@@ -226,8 +226,14 @@ export async function getAccessToken(accountEmail?: string): Promise<string> {
   return refreshed.access_token;
 }
 
+export function resolveBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+    || "http://localhost:3000";
+}
+
 export function getTrackingUrl(email: string, campaignId: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const baseUrl = resolveBaseUrl();
   const payload = `${email}|${campaignId}`;
   const token = require("crypto")
     .createHmac("sha256", process.env.TRACKING_SECRET || "fallback-secret")
@@ -251,8 +257,7 @@ export function buildMimeMessage(
     .toString("base64")
     .replace(/=/g, "");
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const unsubscribeUrl = `${baseUrl}/api/unsubscribe?email=${encodeURIComponent(to)}`;
+  const unsubscribeUrl = `${resolveBaseUrl()}/api/unsubscribe?email=${encodeURIComponent(to)}`;
 
   const headers = [
     `From: ${s.name} <${s.email}>`,

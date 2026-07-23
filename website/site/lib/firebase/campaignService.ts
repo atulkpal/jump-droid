@@ -571,13 +571,15 @@ export async function runPreflightAdmin(
     }
   }
 
-  // Templates check (check campaign subcollection + global overrides + code defaults always available)
-  const templateSnap = await adminFirestore.collection("campaigns").doc(campaignId).collection("templates").get();
-  const campaignTemplateCount = templateSnap.docs.length;
-  if (campaignTemplateCount === 0) {
-    checks.push({ label: "Templates", status: "ok", message: "Using code defaults (no campaign-specific overrides)" });
+  // Template sequence check (engine uses settings.templateSequence)
+  const templateSeq = campaign.settings?.templateSequence ?? [];
+  const hasTemplateOverrides = (await adminFirestore.collection("campaigns").doc(campaignId).collection("templates").get()).docs.length > 0;
+  if (templateSeq.length === 0) {
+    checks.push({ label: "Template Sequence", status: "error", message: "No templates selected. Go to Settings → Mail Sequence and select templates before starting." });
+  } else if (templateSeq.some(t => !t || t.trim() === "")) {
+    checks.push({ label: "Template Sequence", status: "error", message: "One or more mail slots have no template selected. Fill all slots before starting." });
   } else {
-    checks.push({ label: "Templates", status: "ok", message: `${campaignTemplateCount} campaign-specific template override(s) found` });
+    checks.push({ label: "Template Sequence", status: "ok", message: `${templateSeq.length} template(s) selected${hasTemplateOverrides ? " (with custom overrides)" : ""}` });
   }
 
   // Scheduling check

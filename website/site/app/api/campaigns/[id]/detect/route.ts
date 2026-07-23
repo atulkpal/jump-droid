@@ -5,6 +5,7 @@ import { detectBounces } from "@/lib/firebase/bounceDetectionAdmin";
 import { detectReplies } from "@/lib/gmailReplyDetection";
 import { createWriteBuffer, flushWrites } from "@/lib/campaignProcessor";
 import { logEventAdmin } from "@/lib/firebase/activityService";
+import { logDebugAdmin } from "@/lib/debugLogger";
 
 export async function POST(
   _request: Request,
@@ -12,15 +13,15 @@ export async function POST(
 ) {
   const diagnostics: Record<string, any> = {};
 
+  const { id } = await params;
+  const adminFirestore = getAdminFirestore();
+
+  const campaign = await getCampaignAdmin(adminFirestore, id);
+  if (!campaign) {
+    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  }
+
   try {
-    const { id } = await params;
-    const adminFirestore = getAdminFirestore();
-
-    const campaign = await getCampaignAdmin(adminFirestore, id);
-    if (!campaign) {
-      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
-    }
-
     // Step 1: Bounce detection
     let bounced = 0;
     try {
@@ -64,6 +65,10 @@ export async function POST(
       );
     } catch {}
 
+    await logDebugAdmin(adminFirestore, "detect.manual_complete", "info",
+      `Manual detect for campaign ${id}: ${bounced} bounces, ${replyResult.totalReplied} replies, ${replyResult.totalChecked} checked`,
+      { campaignId: id, data: { bounced, replies: replyResult.totalReplied, checked: replyResult.totalChecked, errors: replyResult.errors } });
+
     return NextResponse.json({
       success: true,
       bounced,
@@ -72,6 +77,9 @@ export async function POST(
       diagnostics,
     });
   } catch (e: any) {
+    await logDebugAdmin(adminFirestore, "detect.manual_error", "error",
+      `Manual detect for campaign failed: ${e?.message}`,
+      { data: { diagnostics } });
     return NextResponse.json({
       error: e?.message ?? "Detection failed",
       diagnostics,
