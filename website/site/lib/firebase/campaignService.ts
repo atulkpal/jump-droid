@@ -18,8 +18,8 @@ const CONFIG_DOC = "campaignConfig";
 export const DEFAULT_CAMPAIGN_CONFIG: CampaignConfig = {
   delayDays: 4,
   maxInvites: 5,
-  delayBetweenEmailsMs: 5000,
-  batchSize: 3,
+  delayBetweenEmailsMs: 1000,
+  batchSize: 20,
   maxEmailsPerHour: 100,
   senderAccountId: null,
   templateSequence: [],
