@@ -12,6 +12,7 @@
 *   `docs/RELEASES.md`: Release history — version table, key changes, artifact links.
 *   `docs/VISION.md`: The creative and gameplay goal for Jump Droid.
 *   `docs/COMMUNITY_PLATFORM.md`: Portable website Community & Growth Platform — routing, components, Firestore data model, Gmail OAuth, campaign automation, reuse checklist, setup guide.
+*   `docs/CRM_SYSTEM.md`: Full CRM & Campaign System reference — data model, types, email system, campaign engine, detection, API, UI, whitelabel catalog, file layout.
 
 ## Architecture
 *   `docs/ARCHITECTURE.md`: System architecture, component map, game loop, data flow, extension points.
@@ -43,6 +44,7 @@
 *   `docs/roadmap/EPIC_11_EXECUTION_PLAN.md`: Execution plan for Ascension (The End).
 *   `docs/roadmap/MONETIZATION_VISION.md`: Principles for ethical revenue generation.
 *   `docs/roadmap/RELEASE_POLISH_PLAN.md`: Pre-ship sprint plan — 7 phases, 20 items.
+*   `docs/roadmap/CRM_DECOUPLE_PLAN.md`: ReachEngine extraction roadmap — variable catalog, integration contracts, 5-phase extraction plan, customization API design, migration guide.
 
 ## Marketing
 *   `docs/marketing/`: Store copy, brand guide, press materials, launch checklist.

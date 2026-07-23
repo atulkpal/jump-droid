@@ -70,17 +70,9 @@ export async function importContacts(
       source: "csv-import",
       importedBy: importedBy || "",
       importedAt: serverTimestamp(),
-      lastInviteAt: null,
-      registeredAt: null,
-      repliedAt: null,
       notes: "",
-      inviteCount: 0,
-      nextEligibleAt: null,
-      campaignId: "",
       campaigns: [],
       campaignData: {},
-      emailStatus: "pending",
-      stoppedReason: "",
     });
     imported++;
   }
@@ -88,15 +80,16 @@ export async function importContacts(
 }
 
 export async function batchUpdateInvited(
-  emails: string[]
+  emails: string[],
+  campaignId: string
 ): Promise<void> {
   const firestore = await getFirestore();
   const { doc, updateDoc, serverTimestamp, increment } = await import("firebase/firestore");
 
   const promises = emails.map((email) =>
     updateDoc(doc(firestore, COLLECTION, normalizeEmail(email)), {
-      lastInviteAt: serverTimestamp(),
-      inviteCount: increment(1),
+      [`campaignData.${campaignId}.lastInviteAt`]: serverTimestamp(),
+      [`campaignData.${campaignId}.inviteCount`]: increment(1),
     }).catch(() => {})
   );
   await Promise.allSettled(promises);
@@ -133,16 +126,9 @@ export async function addManualContact(
     source: "manual",
     importedBy: importedBy || "",
     importedAt: serverTimestamp(),
-    lastInviteAt: null,
-    registeredAt: null,
     notes: "",
-    inviteCount: 0,
-    nextEligibleAt: null,
-    campaignId: "",
     campaigns: [],
     campaignData: {},
-    emailStatus: "pending",
-    stoppedReason: "",
   });
 
   return { success: true, exists: false };
@@ -184,16 +170,9 @@ export async function createContactFromApplicant(
     source: "applicant-conversion",
     importedBy: "Applicant",
     importedAt: serverTimestamp(),
-    lastInviteAt: null,
-    registeredAt: null,
     notes: "",
-    inviteCount: 0,
-    nextEligibleAt: null,
-    campaignId: "",
     campaigns: [],
     campaignData: {},
-    emailStatus: "pending",
-    stoppedReason: "",
   });
   return true;
 }

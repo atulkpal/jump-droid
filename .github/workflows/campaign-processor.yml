@@ -1,13 +1,26 @@
 name: Campaign Processor
+
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: '0 */8 * * *'
+  workflow_dispatch:
+
 jobs:
-  process:
+  detect:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger campaign processor
+      - name: Detect Bounces & Replies
         run: |
-          curl -s -X POST "${{ secrets.CAMPAIGN_PROCESSOR_URL }}" \
+          curl -s -X POST "${{ secrets.CAMPAIGN_API_URL }}/api/campaign/detect" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
+
+  send:
+    needs: detect
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process Campaigns (Send)
+        run: |
+          curl -s -X POST "${{ secrets.CAMPAIGN_API_URL }}/api/campaign/process" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { OutreachContact } from "@/types/recruitmentContacts";
-import { fetchAllContacts, batchUpdateInvited } from "@/lib/firebase/outreachService";
+import { fetchAllContacts } from "@/lib/firebase/outreachService";
 import { useAuth } from "./AuthContext";
 import { getAuthUrl } from "@/lib/firebase/gmailService";
 import { getAllowedAdminsConfig } from "@/lib/firebase/authService";
@@ -140,7 +140,6 @@ export default function OutreachTab({ onContactDeleted, campaignId }: OutreachTa
     });
 
     if (succeeded.length > 0) {
-      await batchUpdateInvited(succeeded.map((r) => r.email));
       await loadContacts();
       setSelected(new Set());
     }

@@ -24,8 +24,6 @@ import {
   resolveBaseUrl,
 } from "@/lib/emailService";
 import { logDebug, logDebugAdmin } from "@/lib/debugLogger";
-import { detectBounces } from "@/lib/firebase/bounceDetectionAdmin";
-import { detectReplies } from "@/lib/gmailReplyDetection";
 import { createWriteBuffer, pushWrite, flushWrites, type PendingWrite } from "@/lib/campaignProcessor";
 
 const DEFAULT_SENDER: SenderProfile = {
@@ -37,45 +35,34 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ── Process all running campaigns (called by cron) ──
+function injectCampaignId(html: string, campaignId: string): string {
+  return html.replace(
+    /(<a\s+[^>]*?href\s*=\s*")([^"]+)(")/gi,
+    (match, before, url, after) => {
+      if (/^(mailto:|tel:|#|javascript:)/i.test(url)) return match;
+      if (/[?&]c=/.test(url)) return match;
+      const sep = url.includes("?") ? "&" : "?";
+      const hashIx = url.indexOf("#");
+      if (hashIx >= 0) {
+        url = url.slice(0, hashIx) + sep + "c=" + campaignId + url.slice(hashIx);
+      } else {
+        url += sep + "c=" + campaignId;
+      }
+      return before + url + after;
+    }
+  );
+}
+
+const MAX_DURATION_MS = 100000; // 100s — leaves 20s buffer in a 120s timeout
+
+// ── Process all running campaigns (called by cron, send only) ──
 
 export async function processAllCampaigns(
   adminFirestore: Firestore
 ): Promise<CampaignProcessResult[]> {
   const buffer = createWriteBuffer();
   const globalConfig = await getGlobalCampaignConfigAdmin(adminFirestore);
-
-  // Shared operations (once per cron run)
-  const replyResult = await detectReplies(adminFirestore, buffer);
-  if (replyResult.errors.length > 0) {
-    const errRef = adminFirestore.collection("activityLog").doc();
-    pushWrite(
-      buffer,
-      errRef,
-      {
-        applicantEmail: "system",
-        eventType: "system_error",
-        details: `Reply detection errors: ${replyResult.errors.join("; ")}`,
-        createdAt: new Date(),
-      },
-      false
-    );
-  }
-
-  const bounceCount = await detectBounces(adminFirestore);
-
-  // Log detection summary for visibility in Activity tab
-  pushWrite(
-    buffer,
-    adminFirestore.collection("activityLog").doc(),
-    {
-      applicantEmail: "system",
-      eventType: "detection_check",
-      details: `Detection run: ${bounceCount} bounces, ${replyResult.totalReplied} replies found across ${replyResult.accountsPolled} accounts (${replyResult.totalChecked} checked)`,
-      createdAt: new Date(),
-    },
-    false
-  );
+  const startTime = Date.now();
 
   await hardDeleteExpiredSoftDeletesAdmin(adminFirestore);
 
@@ -84,8 +71,8 @@ export async function processAllCampaigns(
 
   // Get all running campaigns
   const runningCampaigns = await getRunningCampaignsAdmin(adminFirestore);
-  await logDebugAdmin(adminFirestore, "campaign_engine.start", "info", "Campaign processing run started", {
-    data: { runningCampaigns: runningCampaigns.length, campaignIds: runningCampaigns.map(c => c.id).join(",") },
+  await logDebugAdmin(adminFirestore, "campaign_engine.start", "info", "Campaign send run started", {
+    data: { runningCampaigns: runningCampaigns.length, campaignIds: runningCampaigns.map(c => c.id).join(","), maxDurationMs: MAX_DURATION_MS },
   });
 
   if (runningCampaigns.length === 0) {
@@ -97,21 +84,17 @@ export async function processAllCampaigns(
   const results: CampaignProcessResult[] = [];
 
   for (const campaign of runningCampaigns) {
+    if (Date.now() - startTime > MAX_DURATION_MS) break;
+
     const config = await mergeCampaignConfig(globalConfig, campaign);
-    const result = await processSingleCampaign(adminFirestore, campaign.id, config, buffer);
-    results.push(result);
-  }
 
-  await flushWrites(buffer, adminFirestore);
-
-  // Update lastDetectedAt for all running campaigns
-  for (const campaign of runningCampaigns) {
-    pushWrite(
-      buffer,
-      adminFirestore.collection("campaigns").doc(campaign.id),
-      { lastDetectedAt: new Date() },
-      true
-    );
+    // Multi-batch: keep processing this campaign while time remains
+    while (Date.now() - startTime < MAX_DURATION_MS) {
+      const result = await processSingleCampaign(adminFirestore, campaign.id, config, buffer, startTime, MAX_DURATION_MS);
+      if (result.processed === 0) break; // no more eligible contacts
+      results.push(result);
+      await flushWrites(buffer, adminFirestore);
+    }
   }
 
   await flushWrites(buffer, adminFirestore);
@@ -143,7 +126,9 @@ async function processSingleCampaign(
   adminFirestore: Firestore,
   campaignId: string,
   config: CampaignConfig,
-  buffer: PendingWrite[]
+  buffer: PendingWrite[],
+  startTime?: number,
+  maxDuration?: number
 ): Promise<CampaignProcessResult> {
   const senderAccountId = config.senderAccountId || undefined;
   let sender = await getSenderProfileAdmin(adminFirestore, senderAccountId);
@@ -177,6 +162,7 @@ async function processSingleCampaign(
   for (const contact of eligibleContacts) {
     if (result.processed >= config.batchSize) break;
     if (emailsSentThisHour >= config.maxEmailsPerHour) break;
+    if (startTime && maxDuration && Date.now() - startTime > maxDuration) break;
 
     result.processed++;
 
@@ -310,20 +296,7 @@ async function processSingleCampaign(
           .replace(/\{\{name\}\}/g, contact.name || contact.email)
           .replace(/\$\{name\}/g, contact.name || contact.email)
           .replace(/\{betaInfoUrl\}/g, betaInfoUrl);
-        html = html.replace(
-          /(<a\s+[^>]*?href\s*=\s*")([^"]*beta-info[^"]*)(")/gi,
-          (match, before, url, after) => {
-            if (/[?&]c=/.test(url)) return match;
-            const sep = url.includes("?") ? "&" : "?";
-            const hashIx = url.indexOf("#");
-            if (hashIx >= 0) {
-              url = url.slice(0, hashIx) + sep + "c=" + campaignId + url.slice(hashIx);
-            } else {
-              url += sep + "c=" + campaignId;
-            }
-            return before + url + after;
-          }
-        );
+        html = injectCampaignId(html, campaignId);
         html += trackingPixel;
         html += `<br><p style="font-size:12px;color:#888;text-align:center"><a href="${unsubscribeUrl}" style="color:#888">Unsubscribe</a></p>`;
         text = html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();

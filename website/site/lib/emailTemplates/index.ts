@@ -74,10 +74,30 @@ export function renderTemplate(
     ? `https://jump-droid.vercel.app/beta-info?c=${campaignId}`
     : "https://jump-droid.vercel.app/beta-info";
 
+  let html = result.html.replace("{trackingPixel}", trackingPixel || "").replace(/\{betaInfoUrl\}/g, betaInfoUrl);
+
+  if (campaignId) {
+    html = html.replace(
+      /(<a\s+[^>]*?href\s*=\s*")([^"]+)(")/gi,
+      (match, before, url, after) => {
+        if (/^(mailto:|tel:|#|javascript:)/i.test(url)) return match;
+        if (/[?&]c=/.test(url)) return match;
+        const sep = url.includes("?") ? "&" : "?";
+        const hashIx = url.indexOf("#");
+        if (hashIx >= 0) {
+          url = url.slice(0, hashIx) + sep + "c=" + campaignId + url.slice(hashIx);
+        } else {
+          url += sep + "c=" + campaignId;
+        }
+        return before + url + after;
+      }
+    );
+  }
+
   return {
-    html: result.html.replace("{trackingPixel}", trackingPixel || "").replace(/\{betaInfoUrl\}/g, betaInfoUrl),
+    html,
     subject: result.subject,
-    text: stripHtml(result.html),
+    text: stripHtml(html),
   };
 }
 

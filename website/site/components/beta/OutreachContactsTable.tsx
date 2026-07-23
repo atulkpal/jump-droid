@@ -285,8 +285,13 @@ export default function OutreachContactsTable({
   const handleDelete = async (email: string) => {
     setDeleting(true);
     try {
-      const c = contacts.find((x) => x.email === email);
-      await softDeleteContact(email, c?.status || "pending");
+      if (campaignId) {
+        const { removeContactFromCampaign } = await import("@/lib/firebase/campaignService");
+        await removeContactFromCampaign(email, campaignId);
+      } else {
+        const c = contacts.find((x) => x.email === email);
+        await softDeleteContact(email, c?.status || "pending");
+      }
       onContactDeleted?.(email);
       onRefreshContacts?.();
       setConfirmDelete(null);
@@ -563,7 +568,33 @@ export default function OutreachContactsTable({
                   </td>
                   {role !== "user" && (
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      {c.status === "deleting" ? (
+                      {campaignId ? (
+                        confirmDelete === c.email ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleDelete(c.email)}
+                              disabled={deleting}
+                              className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                            >
+                              {deleting ? "..." : "Remove"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete(null)}
+                              className="text-[10px] text-slate-500 hover:text-white transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDelete(c.email)}
+                            className="text-slate-500 hover:text-red-400 transition-colors"
+                            title="Remove from campaign"
+                          >
+                            &#x2715;
+                          </button>
+                        )
+                      ) : c.status === "deleting" ? (
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleRestore(c.email)}

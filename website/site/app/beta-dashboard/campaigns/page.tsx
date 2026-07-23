@@ -33,7 +33,7 @@ export default function CampaignsPage() {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
+  const [createStep, setCreateStep] = useState<"template-confirm" | "details" | null>(null);
   const [newName, setNewName] = useState("");
   const [scheduledStart, setScheduledStart] = useState(new Date().toISOString().slice(0, 16));
   const [creating, setCreating] = useState(false);
@@ -78,7 +78,7 @@ export default function CampaignsPage() {
         throw new Error(data.error || "Failed to create");
       }
       const campaign = await res.json();
-      setShowCreate(false);
+      setCreateStep(null);
       setNewName("");
       setScheduledStart("");
       router.push(`/beta-dashboard/campaigns/${campaign.id}?tab=settings`);
@@ -97,7 +97,7 @@ export default function CampaignsPage() {
         </h1>
         {canManage && (
           <button
-            onClick={() => { setNewName(randomCampaignName()); setScheduledStart(new Date().toISOString().slice(0, 16)); setShowCreate(true); }}
+            onClick={() => { setNewName(randomCampaignName()); setScheduledStart(new Date().toISOString().slice(0, 16)); setCreateStep("template-confirm"); }}
             className="flex items-center gap-2 rounded-lg border border-cyan-400/40 bg-cyan-400/10 px-5 py-2.5 font-mono text-xs tracking-[0.1em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20"
           >
             <span className="text-base leading-none">+</span>
@@ -234,10 +234,10 @@ export default function CampaignsPage() {
         </div>
       )}
 
-      {showCreate && (
+      {createStep && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowCreate(false)}
+          onClick={() => setCreateStep(null)}
         >
           <div
             className="w-full max-w-md rounded-xl border border-white/10 bg-[#0a0a0f] p-6 shadow-2xl"
@@ -247,44 +247,95 @@ export default function CampaignsPage() {
               New Campaign
             </h2>
 
-            <div className="space-y-4">
-              <div>
-                <label className="font-mono text-xs text-slate-400 mb-1.5 block">Campaign Name *</label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Summer 2026 Launch"
-                  className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="font-mono text-xs text-slate-400 mb-1.5 block">Schedule Start (optional)</label>
-                <input
-                  type="datetime-local"
-                  value={scheduledStart}
-                  onChange={(e) => setScheduledStart(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 [color-scheme:dark]"
-                />
-              </div>
-            </div>
+            {createStep === "template-confirm" && (
+              <>
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-amber-400/20 bg-amber-400/5 px-4 py-4">
+                    <p className="font-mono text-sm text-amber-200 mb-2">
+                      Before creating a campaign, make sure your email templates are set up.
+                    </p>
+                    <p className="font-mono text-xs text-slate-400">
+                      Each mail slot in your campaign needs a template assigned. You can create and manage templates on the Email Templates page.
+                    </p>
+                  </div>
+                </div>
 
-            <div className="flex items-center justify-end gap-3 mt-8">
-              <button
-                onClick={() => setShowCreate(false)}
-                className="rounded-lg px-5 py-2.5 font-mono text-xs text-slate-400 transition-colors hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={creating || !newName.trim()}
-                className="rounded-lg border border-cyan-400/40 bg-cyan-400/10 px-6 py-2.5 font-mono text-xs tracking-[0.1em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {creating ? "Creating..." : "Create"}
-              </button>
-            </div>
+                <div className="flex items-center justify-end gap-3 mt-8">
+                  <button
+                    onClick={() => setCreateStep(null)}
+                    className="rounded-lg px-5 py-2.5 font-mono text-xs text-slate-400 transition-colors hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { window.location.href = "/beta-dashboard/email"; }}
+                    className="rounded-lg border border-slate-500/30 bg-slate-500/10 px-5 py-2.5 font-mono text-xs tracking-[0.1em] text-slate-300 uppercase transition-all hover:bg-slate-500/20"
+                  >
+                    Create Templates
+                  </button>
+                  <button
+                    onClick={() => setCreateStep("details")}
+                    className="rounded-lg border border-cyan-400/40 bg-cyan-400/10 px-6 py-2.5 font-mono text-xs tracking-[0.1em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20"
+                  >
+                    Continue →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {createStep === "details" && (
+              <>
+                <div className="space-y-4">
+                  <div>
+                    <label className="font-mono text-xs text-slate-400 mb-1.5 block">Campaign Name *</label>
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="e.g. Summer 2026 Launch"
+                      className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="font-mono text-xs text-slate-400 mb-1.5 block">Schedule Start (optional)</label>
+                    <input
+                      type="datetime-local"
+                      value={scheduledStart}
+                      onChange={(e) => {
+                        setScheduledStart(e.target.value);
+                        (e.target as HTMLInputElement).blur();
+                      }}
+                      className="w-full rounded-lg border border-white/10 bg-black px-4 py-3 font-mono text-sm text-white outline-none transition focus:border-cyan-400/40 [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 mt-8">
+                  <button
+                    onClick={() => setCreateStep("template-confirm")}
+                    className="rounded-lg px-5 py-2.5 font-mono text-xs text-slate-400 transition-colors hover:text-white"
+                  >
+                    ← Back
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setCreateStep(null)}
+                      className="rounded-lg px-5 py-2.5 font-mono text-xs text-slate-400 transition-colors hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleCreate}
+                      disabled={creating || !newName.trim()}
+                      className="rounded-lg border border-cyan-400/40 bg-cyan-400/10 px-6 py-2.5 font-mono text-xs tracking-[0.1em] text-cyan-300 uppercase transition-all hover:bg-cyan-400/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {creating ? "Creating..." : "Create"}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
