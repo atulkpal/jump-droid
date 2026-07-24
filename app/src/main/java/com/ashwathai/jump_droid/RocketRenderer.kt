@@ -25,10 +25,11 @@ class RocketRenderer {
         isThrusting: Boolean,
         thrustTarget: Offset,
         cameraY: Float,
-        gameTime: Long
+        gameTime: Long,
+        offsetOverride: Offset? = null
     ) {
-        val rocketX = player.x
-        val rocketY = player.y - cameraY
+        val rocketX = offsetOverride?.x ?: player.x
+        val rocketY = offsetOverride?.y ?: (player.y - cameraY)
 
         val maxTilt = 15f
         val tilt = (player.velocityX / 400f * maxTilt).coerceIn(-maxTilt, maxTilt)

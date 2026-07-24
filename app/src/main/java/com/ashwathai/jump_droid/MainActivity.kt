@@ -301,6 +301,8 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                 player = engine.player,
                 highScore = engine.progressionManager.highScore,
                 progressionManager = engine.progressionManager,
+                loadoutManager = engine.loadoutManager,
+                missionManager = engine.missionManager,
                 sharedPrefs = engine.sharedPrefs,
                 onNavigate = { state ->
                     when (state) {
@@ -310,25 +312,10 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                             navController.navigate("game") 
                         }
                         GameState.MAIN_MENU -> navController.navigate("main_menu")
-                        GameState.LOADOUT -> navController.navigate("loadout")
                         else -> navController.navigate("main_menu")
                     }
                 },
                 soundManager = engine.soundManager
-            )
-        }
-        composable(
-            route = "loadout",
-            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
-            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
-            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
-            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
-        ) {
-            LoadoutScreen(
-                loadoutManager = engine.loadoutManager,
-                progressionManager = engine.progressionManager,
-                missionManager = engine.missionManager,
-                onNavigate = { navController.popBackStack() }
             )
         }
         composable(
