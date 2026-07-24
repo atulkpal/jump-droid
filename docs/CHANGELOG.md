@@ -4,6 +4,17 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-24
+
+**Version:** v1.5.3 — Scout Drone Gradient Crash Fix (Hotfix)
+
+**Status:** Hotfix — branch `hotfix/v1.5.3-scout-drone-gradient-crash`
+
+### Fixed
+- **RadialGradient crash in ScoutDroneRenderer** (`IllegalArgumentException` from `nativeCreate`): Guarded the `Brush.radialGradient()` radius with `.coerceAtLeast(0.01f)` to prevent native Skia shader creation failure on certain devices. Radius value is now clamped to a minimum of 0.01f to ensure the native `RadialGradient` layer never receives an invalid radius.
+
+---
+
 ## 2026-07-18
 
 **Version:** v1.5.2 — Website Community Platform & Hero CTA Redesign
