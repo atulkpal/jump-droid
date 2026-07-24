@@ -143,8 +143,44 @@ enum class RocketType(
     BALANCED("Explorer", "Sensor Array", "Native +20% discovery range.", 1.0f, 1.0f, 1.0f, 0, DiscoveryType.ROCKET_BALANCED),
     SCOUT("Striker", "Target Lock", "Precision strikes on weak points.", 1.25f, 0.7f, 0.9f, 2000, DiscoveryType.ROCKET_SCOUT),
     TANK("Heavy", "Kinetic Mass", "Impact shockwaves on weak point destruction.", 0.85f, 1.5f, 0.8f, 5000, DiscoveryType.ROCKET_TANK),
-    EXPERIMENTAL("Prototype", "Overclocked Core", "Retain steering authority while overheated.", 1.5f, 1.0f, 1.4f, 10000, DiscoveryType.ROCKET_EXPERIMENTAL)
+    EXPERIMENTAL("Prototype", "Overclocked Core", "Retain steering authority while overheated.", 1.5f, 1.0f, 1.4f, 10000, DiscoveryType.ROCKET_EXPERIMENTAL);
+
+    val chassisVariants: List<ChassisVariant> by lazy {
+        when (this) {
+            BALANCED -> listOf(
+                ChassisVariant("Pathfinder", 0f, 0f, 0f),
+                ChassisVariant("Nomad", 0.08f, -0.05f, 0.05f),
+                ChassisVariant("Surveyor", -0.05f, 0.08f, -0.05f)
+            )
+            SCOUT -> listOf(
+                ChassisVariant("Interceptor", 0f, 0f, 0f),
+                ChassisVariant("Raptor", 0.10f, -0.10f, 0.08f),
+                ChassisVariant("Phantom", -0.05f, 0.05f, -0.08f)
+            )
+            TANK -> listOf(
+                ChassisVariant("Atlas", 0f, 0f, 0f),
+                ChassisVariant("Bulwark", -0.08f, 0.12f, -0.05f),
+                ChassisVariant("Leviathan", 0.05f, -0.05f, 0.05f)
+            )
+            EXPERIMENTAL -> listOf(
+                ChassisVariant("X-01", 0f, 0f, 0f),
+                ChassisVariant("X-07", 0.12f, -0.05f, 0.10f),
+                ChassisVariant("Singularity", -0.05f, 0.10f, -0.10f)
+            )
+        }
+    }
+
+    fun chassisThrustMult(index: Int): Float = thrustMult * (1f + (chassisVariants.getOrNull(index)?.thrustOffset ?: 0f))
+    fun chassisFuelMult(index: Int): Float = fuelMult * (1f + (chassisVariants.getOrNull(index)?.fuelOffset ?: 0f))
+    fun chassisHeatMult(index: Int): Float = heatMult * (1f + (chassisVariants.getOrNull(index)?.heatOffset ?: 0f))
 }
+
+data class ChassisVariant(
+    val name: String,
+    val thrustOffset: Float,
+    val fuelOffset: Float,
+    val heatOffset: Float
+)
 
 data class Achievement(
     val id: String,
@@ -206,6 +242,8 @@ class Player(
     var fuel by mutableFloatStateOf(100f) // Will be set on restart
     
     var rocketType by mutableStateOf(RocketType.BALANCED)
+    var currentChassisIndex by mutableIntStateOf(0)
+    val chassisName: String get() = rocketType.chassisVariants.getOrNull(currentChassisIndex)?.name ?: rocketType.chassisVariants.first().name
     var maxFuel by mutableFloatStateOf(100f)
     var maxHeat by mutableFloatStateOf(100f) // Sprint E: Dynamic scaling support
 

@@ -1,5 +1,6 @@
 package com.ashwathai.jump_droid
 
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -256,6 +257,7 @@ class RocketRenderer {
     private fun drawRocketBody(drawScope: DrawScope, player: Player, overrideColor: Color? = null) {
         val halfW = ROCKET_WIDTH / 2
         val halfH = ROCKET_HEIGHT / 2
+        val chassis = player.currentChassisIndex
 
         val heatRatio = (player.heat / Constants.MAX_HEAT).coerceIn(0f, 1f)
         val bodyBaseColor = when (player.rocketType) {
@@ -269,22 +271,43 @@ class RocketRenderer {
                           else lerpColor(bodyBaseColor, SciFiRed, heatRatio * 0.7f))
 
         with(drawScope) {
-            val bodyLeft = -halfW + 5f
+            val bodyW = when (chassis) {
+                2 -> ROCKET_WIDTH - 6f
+                else -> ROCKET_WIDTH - 10f
+            }
+            val bodyLeft = -halfW + (ROCKET_WIDTH - bodyW) / 2
             val bodyTop = -halfH + 15f
-            val bodyW = ROCKET_WIDTH - 10f
             val bodyH = ROCKET_HEIGHT - 15f
             val bodyBottom = bodyTop + bodyH
             val bodyRight = bodyLeft + bodyW
 
-            // Main Fuselage
-            drawRect(
-                color = currentColor,
-                topLeft = Offset(bodyLeft, bodyTop),
-                size = Size(bodyW, bodyH)
-            )
+            val accentColor = when (chassis) {
+                1 -> SciFiCyan
+                2 -> SciFiGold
+                else -> currentColor
+            }
 
-            // Engine Nozzle
-            val nozzleW = 14f
+            // Main Fuselage
+            val fuselageShape = when (chassis) {
+                1 -> Path().apply {
+                    moveTo(bodyLeft + 3f, bodyTop)
+                    lineTo(bodyLeft, bodyTop + bodyH * 0.15f)
+                    lineTo(bodyLeft, bodyBottom)
+                    lineTo(bodyRight, bodyBottom)
+                    lineTo(bodyRight, bodyTop + bodyH * 0.15f)
+                    lineTo(bodyRight - 3f, bodyTop)
+                    close()
+                }
+                else -> null
+            }
+            if (fuselageShape != null) {
+                drawPath(fuselageShape, currentColor)
+            } else {
+                drawRect(currentColor, topLeft = Offset(bodyLeft, bodyTop), size = Size(bodyW, bodyH))
+            }
+
+            // Engine Nozzle (wider for chassis 2)
+            val nozzleW = if (chassis == 2) 18f else 14f
             val nozzleH = 6f
             drawRect(
                 color = Color.DarkGray,
@@ -297,23 +320,37 @@ class RocketRenderer {
                 size = Size(nozzleW - 4f, 2f)
             )
 
+            // Chassis 1: lateral vents
+            if (chassis == 1) {
+                drawRect(SciFiCyan.copy(alpha = 0.3f), topLeft = Offset(bodyLeft - 2f, bodyTop + bodyH * 0.4f), size = Size(2f, 8f))
+                drawRect(SciFiCyan.copy(alpha = 0.3f), topLeft = Offset(bodyRight, bodyTop + bodyH * 0.4f), size = Size(2f, 8f))
+            }
+
             // Panel Lines
             val panelColor = Color.Black.copy(alpha = 0.15f)
             drawLine(panelColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.25f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.25f), strokeWidth = 1f)
             drawLine(panelColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.5f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.5f), strokeWidth = 1f)
             drawLine(panelColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.75f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.75f), strokeWidth = 1f)
 
-            // Armor plates for hull modules
+            // Chassis 2: extra armor ridges
+            if (chassis == 2) {
+                val ridgeColor = Color(0xFF546E7A)
+                drawLine(ridgeColor, Offset(bodyLeft, bodyTop + bodyH * 0.2f), Offset(bodyRight, bodyTop + bodyH * 0.2f), strokeWidth = 2f)
+                drawLine(ridgeColor, Offset(bodyLeft, bodyTop + bodyH * 0.7f), Offset(bodyRight, bodyTop + bodyH * 0.7f), strokeWidth = 2f)
+            }
+
+            // Armor plates for hull modules (amplified on chassis 2)
             val hasHullMods = player.activeModules.any { it.category == ModuleCategory.HULL }
             if (hasHullMods) {
-                val armorColor = Color(0xFF37474F)
+                val armorColor = if (chassis == 2) Color(0xFF546E7A) else Color(0xFF37474F)
                 val plateCount = player.activeModules.count { it.category == ModuleCategory.HULL }.coerceAtMost(3)
+                val plateWidth = if (chassis == 2) 5f else 3f
                 repeat(plateCount) { i ->
                     val yo = bodyTop + bodyH * (i + 1) / (plateCount + 1)
-                    drawRect(armorColor, topLeft = Offset(bodyLeft - 3f, yo - 4f), size = Size(3f, 8f))
-                    drawRect(armorColor, topLeft = Offset(bodyRight, yo - 4f), size = Size(3f, 8f))
-                    drawLine(Color.White.copy(alpha = 0.1f), Offset(bodyLeft - 2f, yo - 3f), Offset(bodyLeft - 2f, yo + 3f), strokeWidth = 0.5f)
-                    drawLine(Color.White.copy(alpha = 0.1f), Offset(bodyRight + 1f, yo - 3f), Offset(bodyRight + 1f, yo + 3f), strokeWidth = 0.5f)
+                    drawRect(armorColor, topLeft = Offset(bodyLeft - plateWidth, yo - 4f), size = Size(plateWidth, 8f))
+                    drawRect(armorColor, topLeft = Offset(bodyRight, yo - 4f), size = Size(plateWidth, 8f))
+                    drawLine(Color.White.copy(alpha = 0.1f), Offset(bodyLeft - plateWidth + 1f, yo - 3f), Offset(bodyLeft - plateWidth + 1f, yo + 3f), strokeWidth = 0.5f)
+                    drawLine(Color.White.copy(alpha = 0.1f), Offset(bodyRight + plateWidth - 1f, yo - 3f), Offset(bodyRight + plateWidth - 1f, yo + 3f), strokeWidth = 0.5f)
                 }
             }
 
@@ -325,45 +362,120 @@ class RocketRenderer {
                 strokeWidth = 1.5f
             )
 
-            // Cockpit
-            drawCircle(SciFiCyan.copy(alpha = 0.8f), radius = 7f, center = Offset(0f, -5f))
-            // Cockpit glow
-            drawCircle(SciFiCyan.copy(alpha = 0.15f), radius = 12f, center = Offset(0f, -5f))
+            // Cockpit (differs by chassis)
+            when (chassis) {
+                1 -> {
+                    drawCircle(SciFiCyan.copy(alpha = 0.8f), radius = 5f, center = Offset(0f, -3f))
+                    drawCircle(SciFiCyan.copy(alpha = 0.15f), radius = 9f, center = Offset(0f, -3f))
+                    drawLine(SciFiWhite.copy(alpha = 0.3f), Offset(-2f, -5f), Offset(2f, -3f), strokeWidth = 1f)
+                }
+                2 -> {
+                    drawRoundRect(SciFiCyan.copy(alpha = 0.8f), topLeft = Offset(-5f, -8f), size = Size(10f, 6f), cornerRadius = CornerRadius(2f, 2f))
+                    drawRoundRect(SciFiCyan.copy(alpha = 0.15f), topLeft = Offset(-8f, -10f), size = Size(16f, 10f), cornerRadius = CornerRadius(3f, 3f))
+                }
+                else -> {
+                    drawCircle(SciFiCyan.copy(alpha = 0.8f), radius = 7f, center = Offset(0f, -5f))
+                    drawCircle(SciFiCyan.copy(alpha = 0.15f), radius = 12f, center = Offset(0f, -5f))
+                }
+            }
 
-            // Nose Cone
-            val nosePath = Path().apply {
-                moveTo(bodyLeft, bodyTop)
-                lineTo(0f, -halfH)
-                lineTo(bodyRight, bodyTop)
-                close()
+            // Nose Cone (varies by chassis)
+            when (chassis) {
+                1 -> {
+                    val nosePath = Path().apply {
+                        moveTo(bodyLeft, bodyTop)
+                        lineTo(0f, -halfH - 6f)
+                        lineTo(bodyRight, bodyTop)
+                        close()
+                    }
+                    drawPath(nosePath, Color.DarkGray)
+                    val highlight = Path().apply {
+                        moveTo(0f, -halfH - 3f)
+                        lineTo(bodyLeft + 6f, bodyTop - 2f)
+                        lineTo(bodyLeft + 10f, bodyTop + 4f)
+                        close()
+                    }
+                    drawPath(highlight, Color.White.copy(alpha = 0.15f))
+                }
+                2 -> {
+                    drawRoundRect(Color.DarkGray, topLeft = Offset(bodyLeft, bodyTop - 8f), size = Size(bodyW, bodyH * 0.25f + 8f), cornerRadius = CornerRadius(bodyW / 2, bodyW / 2))
+                    drawCircle(Color.White.copy(alpha = 0.12f), radius = 6f, center = Offset(0f, -halfH + 8f))
+                }
+                else -> {
+                    val nosePath = Path().apply {
+                        moveTo(bodyLeft, bodyTop)
+                        lineTo(0f, -halfH)
+                        lineTo(bodyRight, bodyTop)
+                        close()
+                    }
+                    drawPath(nosePath, Color.DarkGray)
+                    drawLine(Color.White.copy(alpha = 0.2f), Offset(0f, -halfH + 3f), Offset(bodyLeft + 8f, bodyTop - 2f), strokeWidth = 1f)
+                }
             }
-            drawPath(nosePath, Color.DarkGray)
-            // Nose cone highlight
-            drawLine(
-                color = Color.White.copy(alpha = 0.2f),
-                start = Offset(0f, -halfH + 3f),
-                end = Offset(bodyLeft + 8f, bodyTop - 2f),
-                strokeWidth = 1f
-            )
 
-            // Fins
-            val leftFin = Path().apply {
-                moveTo(bodyLeft, 10f)
-                lineTo(-halfW, halfH)
-                lineTo(bodyLeft, halfH)
-                close()
+            // Chassis 1: sensor array stripe
+            if (chassis == 1) {
+                drawLine(SciFiCyan.copy(alpha = 0.2f), Offset(bodyLeft + 2f, bodyTop + 2f), Offset(bodyRight - 2f, bodyTop + 2f), strokeWidth = 1.5f)
             }
-            val rightFin = Path().apply {
-                moveTo(bodyRight, 10f)
-                lineTo(halfW, halfH)
-                lineTo(bodyRight, halfH)
-                close()
+
+            // Fins (varies by chassis)
+            when (chassis) {
+                1 -> {
+                    val leftFin = Path().apply {
+                        moveTo(bodyLeft, 12f)
+                        lineTo(-halfW - 6f, halfH)
+                        lineTo(bodyLeft, halfH)
+                        close()
+                    }
+                    val rightFin = Path().apply {
+                        moveTo(bodyRight, 12f)
+                        lineTo(halfW + 6f, halfH)
+                        lineTo(bodyRight, halfH)
+                        close()
+                    }
+                    drawPath(leftFin, SciFiRed)
+                    drawPath(rightFin, SciFiRed)
+                    drawLine(Color.White.copy(alpha = 0.15f), Offset(-halfW - 4f, halfH - 4f), Offset(bodyLeft + 2f, 16f), strokeWidth = 1f)
+                    drawLine(Color.White.copy(alpha = 0.15f), Offset(halfW + 4f, halfH - 4f), Offset(bodyRight - 2f, 16f), strokeWidth = 1f)
+                }
+                2 -> {
+                    val finColor = SciFiRed.copy(alpha = 0.8f)
+                    val leftFin = Path().apply {
+                        moveTo(bodyLeft, 8f)
+                        lineTo(-halfW - 2f, halfH)
+                        lineTo(bodyLeft + 2f, halfH)
+                        close()
+                    }
+                    val rightFin = Path().apply {
+                        moveTo(bodyRight, 8f)
+                        lineTo(halfW + 2f, halfH)
+                        lineTo(bodyRight - 2f, halfH)
+                        close()
+                    }
+                    drawPath(leftFin, finColor)
+                    drawPath(rightFin, finColor)
+                    drawLine(Color(0xFF546E7A), Offset(bodyLeft, halfH - 6f), Offset(bodyLeft, 12f), strokeWidth = 2f)
+                    drawLine(Color(0xFF546E7A), Offset(bodyRight, halfH - 6f), Offset(bodyRight, 12f), strokeWidth = 2f)
+                }
+                else -> {
+                    val leftFin = Path().apply {
+                        moveTo(bodyLeft, 10f)
+                        lineTo(-halfW, halfH)
+                        lineTo(bodyLeft, halfH)
+                        close()
+                    }
+                    val rightFin = Path().apply {
+                        moveTo(bodyRight, 10f)
+                        lineTo(halfW, halfH)
+                        lineTo(bodyRight, halfH)
+                        close()
+                    }
+                    drawPath(leftFin, SciFiRed)
+                    drawPath(rightFin, SciFiRed)
+                    drawLine(Color.White.copy(alpha = 0.15f), Offset(-halfW + 2f, halfH - 4f), Offset(bodyLeft + 2f, 14f), strokeWidth = 1f)
+                    drawLine(Color.White.copy(alpha = 0.15f), Offset(halfW - 2f, halfH - 4f), Offset(bodyRight - 2f, 14f), strokeWidth = 1f)
+                }
             }
-            drawPath(leftFin, SciFiRed)
-            drawPath(rightFin, SciFiRed)
-            // Fin highlights
-            drawLine(Color.White.copy(alpha = 0.15f), Offset(-halfW + 2f, halfH - 4f), Offset(bodyLeft + 2f, 14f), strokeWidth = 1f)
-            drawLine(Color.White.copy(alpha = 0.15f), Offset(halfW - 2f, halfH - 4f), Offset(bodyRight - 2f, 14f), strokeWidth = 1f)
         }
     }
 

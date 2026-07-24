@@ -242,7 +242,10 @@ private fun RocketsTab(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
-                    .clickable(enabled = unlocked) { player.rocketType = type }
+                    .clickable(enabled = unlocked) {
+                        player.rocketType = type
+                        player.currentChassisIndex = sharedPrefs.getInt("chassis_${type.name}", 0)
+                    }
                     .border(
                         width = 1.dp,
                         color = if (isActive) SciFiCyan else if (unlocked) SciFiBorder else SciFiBorder.copy(alpha = 0.05f),
@@ -278,7 +281,45 @@ private fun RocketsTab(
                             Text("${type.traitName.uppercase()}", color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                             Text(type.traitDescription, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp)
                             Spacer(Modifier.height(6.dp))
-                            Text("THRUST: ${(type.thrustMult * 100).toInt()}%  FUEL: ${(type.fuelMult * 100).toInt()}%  THERMAL: ${(type.heatMult * 100).toInt()}%", color = SciFiCyan.copy(alpha = 0.5f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                            val cIdx = if (isActive) player.currentChassisIndex else 0
+                            Text("THRUST: ${(type.chassisThrustMult(cIdx) * 100).toInt()}%  FUEL: ${(type.chassisFuelMult(cIdx) * 100).toInt()}%  THERMAL: ${(type.chassisHeatMult(cIdx) * 100).toInt()}%", color = SciFiCyan.copy(alpha = 0.5f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+
+            // Chassis picker for the selected (active) class
+            if (isActive && unlocked) {
+                Spacer(Modifier.height(4.dp))
+                Text("CHASSIS VARIANTS", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                Spacer(Modifier.height(4.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    type.chassisVariants.forEachIndexed { idx, variant ->
+                        val isSelected = player.currentChassisIndex == idx
+                        val borderClr = if (isSelected) SciFiCyan else SciFiBorder.copy(alpha = 0.2f)
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    player.currentChassisIndex = idx
+                                    sharedPrefs.edit().putInt("chassis_${type.name}", idx).commit()
+                                }
+                                .border(1.dp, borderClr, RoundedCornerShape(8.dp)),
+                            color = if (isSelected) SciFiCyan.copy(alpha = 0.08f) else SciFiSurface.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(
+                                Modifier.padding(8.dp).fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(variant.name, color = if (isSelected) SciFiCyan else SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                Spacer(Modifier.height(2.dp))
+                                Text("T:${(type.chassisThrustMult(idx) * 100).toInt()}% F:${(type.chassisFuelMult(idx) * 100).toInt()}% H:${(type.chassisHeatMult(idx) * 100).toInt()}%", color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp)
+                                if (isSelected) {
+                                    Spacer(Modifier.height(2.dp))
+                                    Text("EQUIPPED", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black)
+                                }
+                            }
                         }
                     }
                 }
