@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -578,6 +579,68 @@ fun RightGauges(
     ) {
         ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = shield < maxShield * 0.25f, hud = hud)
         IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = integrity < maxIntegrity * 0.25f, hud = hud)
+    }
+}
+
+@Composable
+fun MissionProgressCard(
+    activeMissions: List<Mission>,
+    modifier: Modifier = Modifier
+) {
+    val nearComplete = activeMissions.firstOrNull {
+        !it.isCompleted && it.targetValue > 0 &&
+        it.currentProgress.toFloat() / it.targetValue >= 0.75f
+    } ?: return
+
+    val pct = (nearComplete.currentProgress.toFloat() / nearComplete.targetValue).coerceIn(0f, 1f)
+
+    val rewardText = nearComplete.rewards.firstOrNull { it !is MissionReward.None }?.let { reward ->
+        when (reward) {
+            is MissionReward.Cash -> "${reward.amount} \u0024"
+            is MissionReward.ModuleUnlock -> "MODULE"
+            is MissionReward.Artifact -> "ARTIFACT"
+            is MissionReward.PowerUp -> reward.type.name.replace("_", " ").take(8)
+            is MissionReward.Unlock -> "ROCKET"
+            is MissionReward.Achievement -> "ACHIEVEMENT"
+            is MissionReward.None -> null
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .padding(horizontal = 24.dp)
+            .background(SciFiSurface, RoundedCornerShape(12.dp))
+            .border(0.5.dp, SciFiBorder.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+        color = SciFiSurface,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("MISSION PROGRESS", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                Spacer(Modifier.height(2.dp))
+                Text(nearComplete.name.uppercase(), color = SciFiCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (rewardText != null) {
+                Box(
+                    Modifier.padding(horizontal = 8.dp).background(SciFiGold.copy(alpha = 0.2f), RoundedCornerShape(4.dp)).padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(rewardText, color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                }
+            }
+            Box(
+                Modifier.size(36.dp).padding(4.dp)
+            ) {
+                Canvas(Modifier.fillMaxSize()) {
+                    val sweep = pct * 360f
+                    drawArc(SciFiWhite.copy(alpha = 0.1f), 0f, 360f, false, style = Stroke(width = 3f))
+                    drawArc(SciFiCyan, -90f, sweep, false, style = Stroke(width = 3f))
+                }
+                Text("${(pct * 100).toInt()}%", fontSize = 8.sp, color = SciFiWhite, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.Center))
+            }
+        }
     }
 }
 

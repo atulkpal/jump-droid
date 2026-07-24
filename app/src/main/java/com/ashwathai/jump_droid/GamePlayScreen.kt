@@ -253,6 +253,11 @@ fun HUDLayer(engine: GameEngine) {
             zone = altitudeManager.currentZone
         )
 
+        MissionProgressCard(
+            activeMissions = engine.missionManager.activeMissions,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp)
+        )
+
         if (engine.majorWarningText != null) {
             val warnAlpha = (engine.majorWarningTimer / 2f).coerceIn(0f, 1f)
             Text(
