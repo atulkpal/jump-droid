@@ -206,7 +206,7 @@ fun SettingsScreen(
                         dismissButton = {
                             TextButton(onClick = { showDebugPurchaseDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
                         },
-                        containerColor = Color(0xFF1A1A2E),
+                        containerColor = SciFiSurface,
                         titleContentColor = SciFiWhite,
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
@@ -219,7 +219,7 @@ fun SettingsScreen(
                         confirmButton = {
                             TextButton(onClick = { showStoreDialog = false }) { Text("DISMISS", color = SciFiGold, fontWeight = FontWeight.Bold) }
                         },
-                        containerColor = Color(0xFF1A1A2E),
+                        containerColor = SciFiSurface,
                         titleContentColor = SciFiGold,
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
@@ -255,7 +255,7 @@ fun SettingsScreen(
                         dismissButton = {
                             TextButton(onClick = { showResetDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
                         },
-                        containerColor = Color(0xFF1A1A2E),
+                        containerColor = SciFiSurface,
                         titleContentColor = SciFiGold,
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
@@ -286,7 +286,7 @@ fun SettingsScreen(
                         dismissButton = {
                             TextButton(onClick = { showFactoryResetDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
                         },
-                        containerColor = Color(0xFF1A1A2E),
+                        containerColor = SciFiSurface,
                         titleContentColor = SciFiRed,
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )

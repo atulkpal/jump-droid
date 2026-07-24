@@ -22,6 +22,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.edit
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -209,7 +216,13 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
     }
 
     NavHost(navController = navController, startDestination = "title") {
-        composable("title") {
+        composable(
+            route = "title",
+            enterTransition = { fadeIn(animationSpec = tween(500)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { fadeOut(animationSpec = tween(300)) }
+        ) {
             TitleScreen(
                 onNavigate = { state ->
                     when (state) {
@@ -229,7 +242,13 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                 soundManager = engine.soundManager
             )
         }
-        composable("main_menu") {
+        composable(
+            route = "main_menu",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
             MainMenuScreen(
                 onLaunch = { 
                     engine.gameState = GameState.PLAYING
@@ -259,13 +278,25 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                 progressionManager = engine.progressionManager
             )
         }
-        composable("game") {
+        composable(
+            route = "game",
+            enterTransition = { fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.8f, animationSpec = tween(400)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.8f, animationSpec = tween(300)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.8f, animationSpec = tween(400)) },
+            popExitTransition = { fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.8f, animationSpec = tween(300)) }
+        ) {
             GamePlayScreen(
                 engine = engine, 
                 onMainMenu = { navController.navigate("main_menu") }
             )
         }
-        composable("hangar") {
+        composable(
+            route = "hangar",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
             HangarScreen(
                 player = engine.player,
                 highScore = engine.progressionManager.highScore,
@@ -286,7 +317,13 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                 soundManager = engine.soundManager
             )
         }
-        composable("loadout") {
+        composable(
+            route = "loadout",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
             LoadoutScreen(
                 loadoutManager = engine.loadoutManager,
                 progressionManager = engine.progressionManager,
@@ -294,7 +331,13 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                 onNavigate = { navController.popBackStack() }
             )
         }
-        composable("archive") {
+        composable(
+            route = "archive",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
             ArchiveScreen(
                 sharedPrefs = engine.sharedPrefs,
                 discoveryManager = engine.discoveryManager,
@@ -302,7 +345,13 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                 onNavigate = { navController.popBackStack() }
             )
         }
-        composable("settings") {
+        composable(
+            route = "settings",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
             SettingsScreen(
                 sharedPrefs = engine.sharedPrefs,
                 soundManager = engine.soundManager,
@@ -320,20 +369,44 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                 onReturn = { navController.popBackStack() }
             )
         }
-        composable("about") {
+        composable(
+            route = "about",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
             AboutScreen(onDismiss = { navController.popBackStack() })
         }
-        composable("missions") {
+        composable(
+            route = "missions",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
             MissionScreen(
                 missionManager = engine.missionManager,
                 player = engine.player,
                 onDismiss = { navController.popBackStack() }
             )
         }
-        composable("leaderboard") {
+        composable(
+            route = "leaderboard",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
             LeaderboardScreen(onDismiss = { navController.popBackStack() })
         }
-        composable("shop") {
+        composable(
+            route = "shop",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
             ShopScreen(
                 progressionManager = engine.progressionManager,
                 purchaseManager = engine.purchaseManager,

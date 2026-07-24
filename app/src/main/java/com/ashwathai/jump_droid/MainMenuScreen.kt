@@ -56,11 +56,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ashwathai.jump_droid.ui.theme.SciFiBackground
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
 import com.ashwathai.jump_droid.ui.theme.SciFiGold
 import com.ashwathai.jump_droid.ui.theme.SciFiGreen
 import com.ashwathai.jump_droid.ui.theme.SciFiOrange
 import com.ashwathai.jump_droid.ui.theme.SciFiPurple
+import com.ashwathai.jump_droid.ui.theme.SciFiSurface
 import com.ashwathai.jump_droid.ui.theme.SciFiWhite
 import kotlin.math.PI
 import kotlin.math.cos
@@ -89,7 +91,7 @@ fun MainMenuScreen(
     var showCreditDialog by remember { mutableStateOf(false) }
     val analytics = LocalAnalytics.current
 
-    Box(Modifier.fillMaxSize().background(Color(0xFF0a0a1a))) {
+    Box(Modifier.fillMaxSize().background(SciFiBackground)) {
         StarfieldBackground(Modifier.fillMaxSize(), starCount = 80, alphaRange = 0.15f..0.6f)
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
@@ -169,7 +171,7 @@ fun MainMenuScreen(
             // Top status bar
             Surface(
                 shape = RoundedCornerShape(6.dp),
-                color = Color(0xFF0D0D1A),
+                color = SciFiSurface,
                 border = BorderStroke(0.5.dp, SciFiGold.copy(alpha = 0.25f)),
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             ) {
@@ -408,7 +410,7 @@ private fun AddCreditDialog(
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF0D0D1A),
+        containerColor = SciFiSurface,
         titleContentColor = SciFiGold,
         textContentColor = SciFiWhite,
         shape = RoundedCornerShape(12.dp),
@@ -456,7 +458,7 @@ private fun AddCreditDialog(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = SciFiGold.copy(alpha = 0.15f),
                         contentColor = SciFiGold,
-                        disabledContainerColor = Color(0xFF1A1A1A),
+                        disabledContainerColor = SciFiSurface,
                         disabledContentColor = SciFiGold.copy(alpha = 0.25f)
                     ),
                     border = BorderStroke(1.dp, SciFiGold.copy(alpha = if (canBuy) 0.5f else 0.15f))

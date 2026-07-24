@@ -1,0 +1,86 @@
+
+===== Campaign Run 2026-07-23 14:08:28.009 =====
+[2026-07-23 14:08:28.226] [INFO] Campaign processor started — 4 running campaigns
+[2026-07-23 14:08:28.227] [INFO]   Campaign "1" (jd_camp_20260723_0001) — batchSize=3, delay=5000ms, sender=default
+[2026-07-23 14:08:28.227] [INFO]   Campaign "2" (jd_camp_20260723_0002) — batchSize=3, delay=5000ms, sender=default
+[2026-07-23 14:08:28.228] [INFO]   Campaign "4" (jd_camp_20260723_0004) — batchSize=1, delay=5000ms, sender=default
+[2026-07-23 14:08:28.228] [INFO]   Campaign "3" (jd_camp_20260723_0003) — batchSize=3, delay=5000ms, sender=default
+[2026-07-23 14:08:28.579] [INFO] Campaign jd_camp_20260723_0003 — 4 eligible contacts, batchSize=3, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:08:28.590] [INFO] Campaign jd_camp_20260723_0001 — 10 eligible contacts, batchSize=3, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:08:28.623] [INFO] Campaign jd_camp_20260723_0002 — 4 eligible contacts, batchSize=3, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:08:28.628] [INFO] Campaign jd_camp_20260723_0004 — 3 eligible contacts, batchSize=1, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:08:28.864] [INFO] Sending email — from hi.jumpdroid@gmail.com → blbirc6iabqlq2rdwq@getdeccan.ai — template: outreach-3 [#1]
+[2026-07-23 14:08:28.912] [INFO] Sending email — from hi.jumpdroid@gmail.com → ap8700800@gmail.com — template: outreach-1 [#1]
+[2026-07-23 14:08:28.916] [INFO] Sending email — from hi.jumpdroid@gmail.com → blbirc6iabqlq2rdwq@getdeccan.ai — template: outreach-2 [#1]
+[2026-07-23 14:08:28.956] [INFO] Sending email — from hi.jumpdroid@gmail.com → ap8700800@gmail.com — template: outreach-4 [#1]
+[2026-07-23 14:08:30.328] [INFO] Sleeping 5000ms between sends — 1 sent so far this batch
+[2026-07-23 14:08:30.434] [INFO] Sleeping 5000ms between sends — 1 sent so far this batch
+[2026-07-23 14:08:30.525] [INFO] Sleeping 5000ms between sends — 1 sent so far this batch
+[2026-07-23 14:08:30.600] [INFO] Sleeping 5000ms between sends — 1 sent so far this batch
+[2026-07-23 14:08:35.603] [INFO] Campaign jd_camp_20260723_0004 — batch result: 1 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:08:35.604] [INFO] Campaign "4" — batch done: 1 sent, 0 failed, 0 converted (1 batches so far)
+[2026-07-23 14:08:35.623] [INFO] Sending email — from hi.jumpdroid@gmail.com → boss.studio.care@gmail.com — template: outreach-3 [#1]
+[2026-07-23 14:08:35.778] [INFO] Sending email — from hi.jumpdroid@gmail.com → iiidem.km@gmail.com — template: outreach-2 [#1]
+[2026-07-23 14:08:35.817] [INFO] Sending email — from hi.jumpdroid@gmail.com → ashwathal.dev@gmail.com — template: outreach-1 [#1]
+[2026-07-23 14:08:35.908] [INFO] Campaign jd_camp_20260723_0004 — 2 eligible contacts, batchSize=1, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:08:36.206] [INFO] Sending email — from hi.jumpdroid@gmail.com → ashwathal.dev@gmail.com — template: outreach-4 [#1]
+[2026-07-23 14:08:36.645] [INFO] Sleeping 5000ms between sends — 2 sent so far this batch
+[2026-07-23 14:08:36.871] [INFO] Sleeping 5000ms between sends — 2 sent so far this batch
+[2026-07-23 14:08:36.954] [INFO] Sleeping 5000ms between sends — 2 sent so far this batch
+[2026-07-23 14:08:37.378] [INFO] Sleeping 5000ms between sends — 1 sent so far this batch
+[2026-07-23 14:08:41.944] [INFO] Sending email — from hi.jumpdroid@gmail.com → iiidem.km@gmail.com — template: outreach-3 [#1]
+[2026-07-23 14:08:42.205] [INFO] Sending email — from hi.jumpdroid@gmail.com → paulritu120@gmail.com — template: outreach-2 [#1]
+[2026-07-23 14:08:42.265] [INFO] Sending email — from hi.jumpdroid@gmail.com → atulkpal@gmail.com — template: outreach-1 [#1]
+[2026-07-23 14:08:42.383] [INFO] Campaign jd_camp_20260723_0004 — batch result: 1 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:08:42.384] [INFO] Campaign "4" — batch done: 1 sent, 0 failed, 0 converted (2 batches so far)
+[2026-07-23 14:08:42.698] [INFO] Campaign jd_camp_20260723_0004 — 1 eligible contacts, batchSize=1, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:08:42.927] [INFO] Sleeping 5000ms between sends — 3 sent so far this batch
+[2026-07-23 14:08:42.985] [INFO] Sending email — from hi.jumpdroid@gmail.com → atulkpal@gmail.com — template: outreach-4 [#1]
+[2026-07-23 14:08:43.307] [INFO] Sleeping 5000ms between sends — 3 sent so far this batch
+[2026-07-23 14:08:43.390] [INFO] Sleeping 5000ms between sends — 3 sent so far this batch
+[2026-07-23 14:08:44.320] [INFO] Campaign "4" — batch done: 1 sent, 0 failed, 0 converted (3 batches so far)
+[2026-07-23 14:08:44.319] [INFO] Campaign jd_camp_20260723_0004 — batch result: 1 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:08:44.631] [INFO] Campaign "4" — no more eligible contacts, done
+[2026-07-23 14:08:47.930] [INFO] Campaign jd_camp_20260723_0003 — batch result: 3 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:08:47.932] [INFO] Campaign "3" — batch done: 3 sent, 0 failed, 0 converted (1 batches so far)
+[2026-07-23 14:08:48.247] [INFO] Campaign jd_camp_20260723_0003 — 1 eligible contacts, batchSize=3, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:08:48.321] [INFO] Campaign jd_camp_20260723_0002 — batch result: 3 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:08:48.322] [INFO] Campaign "2" — batch done: 3 sent, 0 failed, 0 converted (1 batches so far)
+[2026-07-23 14:08:48.398] [INFO] Campaign jd_camp_20260723_0001 — batch result: 3 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:08:48.399] [INFO] Campaign "1" — batch done: 3 sent, 0 failed, 0 converted (1 batches so far)
+[2026-07-23 14:08:48.533] [INFO] Sending email — from hi.jumpdroid@gmail.com → paulritu120@gmail.com — template: outreach-3 [#1]
+[2026-07-23 14:08:48.643] [INFO] Campaign jd_camp_20260723_0002 — 1 eligible contacts, batchSize=3, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:08:48.734] [INFO] Campaign jd_camp_20260723_0001 — 7 eligible contacts, batchSize=3, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:08:48.969] [INFO] Sending email — from hi.jumpdroid@gmail.com → promptwala.xyz@gmail.com — template: outreach-2 [#1]
+[2026-07-23 14:08:49.077] [INFO] Sending email — from hi.jumpdroid@gmail.com → blbirc6iabqlq2rdwq@getdeccan.ai — template: outreach-1 [#1]
+[2026-07-23 14:08:49.575] [INFO] Campaign jd_camp_20260723_0003 — batch result: 1 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:08:49.576] [INFO] Campaign "3" — batch done: 1 sent, 0 failed, 0 converted (2 batches so far)
+[2026-07-23 14:08:49.885] [INFO] Campaign "3" — no more eligible contacts, done
+[2026-07-23 14:08:49.985] [INFO] Campaign "3" auto-completed — 4 contacts, all in terminal state
+[2026-07-23 14:08:50.044] [INFO] Campaign jd_camp_20260723_0002 — batch result: 1 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:08:50.045] [INFO] Campaign "2" — batch done: 1 sent, 0 failed, 0 converted (2 batches so far)
+[2026-07-23 14:08:50.224] [INFO] Sleeping 5000ms between sends — 1 sent so far this batch
+[2026-07-23 14:08:50.361] [INFO] Campaign "2" — no more eligible contacts, done
+[2026-07-23 14:08:50.452] [INFO] Campaign "2" auto-completed — 4 contacts, all in terminal state
+[2026-07-23 14:08:55.529] [INFO] Sending email — from hi.jumpdroid@gmail.com → boss.studio.care@gmail.com — template: outreach-1 [#1]
+[2026-07-23 14:08:56.574] [INFO] Sleeping 5000ms between sends — 2 sent so far this batch
+[2026-07-23 14:09:01.992] [INFO] Sending email — from hi.jumpdroid@gmail.com → hi.jumpdroid@gmail.com — template: outreach-1 [#1]
+[2026-07-23 14:09:03.149] [INFO] Sleeping 5000ms between sends — 3 sent so far this batch
+[2026-07-23 14:09:08.157] [INFO] Campaign jd_camp_20260723_0001 — batch result: 3 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:09:08.158] [INFO] Campaign "1" — batch done: 3 sent, 0 failed, 0 converted (2 batches so far)
+[2026-07-23 14:09:08.478] [INFO] Campaign jd_camp_20260723_0001 — 4 eligible contacts, batchSize=3, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:09:08.764] [INFO] Sending email — from hi.jumpdroid@gmail.com → iiidem.km@gmail.com — template: outreach-1 [#1]
+[2026-07-23 14:09:09.763] [INFO] Sleeping 5000ms between sends — 1 sent so far this batch
+[2026-07-23 14:09:15.057] [INFO] Sending email — from hi.jumpdroid@gmail.com → paulritu120@gmail.com — template: outreach-1 [#1]
+[2026-07-23 14:09:16.057] [INFO] Sleeping 5000ms between sends — 2 sent so far this batch
+[2026-07-23 14:09:21.367] [INFO] Sending email — from hi.jumpdroid@gmail.com → promptwala.xyz@gmail.com — template: outreach-1 [#1]
+[2026-07-23 14:09:22.409] [INFO] Sleeping 5000ms between sends — 3 sent so far this batch
+[2026-07-23 14:09:27.423] [INFO] Campaign jd_camp_20260723_0001 — batch result: 3 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:09:27.424] [INFO] Campaign "1" — batch done: 3 sent, 0 failed, 0 converted (3 batches so far)
+[2026-07-23 14:09:27.775] [INFO] Campaign jd_camp_20260723_0001 — 1 eligible contacts, batchSize=3, sender=hi.jumpdroid@gmail.com
+[2026-07-23 14:09:28.090] [INFO] Sending email — from hi.jumpdroid@gmail.com → test@jumpdroid.com — template: outreach-1 [#1]
+[2026-07-23 14:09:29.827] [INFO] Campaign jd_camp_20260723_0001 — batch result: 1 sent, 0 failed, 0 converted, 0 no_response
+[2026-07-23 14:09:29.828] [INFO] Campaign "1" — batch done: 1 sent, 0 failed, 0 converted (4 batches so far)
+[2026-07-23 14:09:30.153] [INFO] Campaign "1" — no more eligible contacts, done
+[2026-07-23 14:09:30.256] [INFO] Campaign "1" auto-completed — 10 contacts, all in terminal state
+[2026-07-23 14:09:30.491] [INFO] Campaign processor finished — 4 campaigns processed, 21 sent, 0 failed, 0 converted, 0 no_response

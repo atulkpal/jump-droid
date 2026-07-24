@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ashwathai.jump_droid.ui.theme.SciFiBackground
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
 import com.ashwathai.jump_droid.ui.theme.SciFiGold
 import com.ashwathai.jump_droid.ui.theme.SciFiGreen
@@ -115,7 +116,7 @@ fun TitleScreen(onNavigate: (GameState) -> Unit, soundManager: SoundManager? = n
 
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
-            drawRect(Color(0xFF0a0a1a))
+            drawRect(SciFiBackground)
             val ft = frameTime.value / 1000f
             val w = size.width
             val h = size.height
