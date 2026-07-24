@@ -36,13 +36,14 @@ class ScoutDroneRenderer : ThreatRenderer {
             }
 
             val flicker = Random(gameTime / 50).nextFloat() * 10f
+            val glowRadius = (30f + flicker).coerceAtLeast(0.01f)
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(stateColor.copy(alpha = 0.4f), Color.Transparent),
                     center = Offset(tx, ty + 20f),
-                    radius = 30f + flicker
+                    radius = glowRadius
                 ),
-                radius = 30f + flicker,
+                radius = glowRadius,
                 center = Offset(tx, ty + 20f)
             )
 

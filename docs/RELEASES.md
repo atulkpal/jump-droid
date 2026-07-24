@@ -4,6 +4,20 @@ All official releases with build artifacts and key changes.
 
 ---
 
+## v1.5.3 — Scout Drone Gradient Crash Fix (Hotfix)
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-24 |
+| **Version Code** | 6 |
+| **Branch** | `hotfix/v1.5.3-scout-drone-gradient-crash` |
+| **Status** | ✅ Hotfix |
+
+### Highlights
+- Fixed `IllegalArgumentException` crash in `ScoutDroneRenderer.render()` — `RadialGradient.nativeCreate` on certain devices when using a `Random`-generated dynamic glow radius. Radius is now clamped to `≥ 0.01f`.
+
+---
+
 ## v1.5.2 — Closed Beta
 
 | Field | Value |
