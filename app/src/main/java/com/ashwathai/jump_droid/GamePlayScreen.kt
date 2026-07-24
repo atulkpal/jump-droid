@@ -237,7 +237,7 @@ fun HUDLayer(engine: GameEngine) {
             zone = altitudeManager.currentZone
         )
 
-        RightGauges(
+        HealthPanel(
             modifier = Modifier.align(Alignment.CenterEnd),
             shield = player.shield, maxShield = player.maxShield,
             integrity = player.integrity, maxIntegrity = player.maxIntegrity,
