@@ -80,8 +80,19 @@ class GameEngine(
     var previousState by mutableStateOf(GameState.MAIN_MENU)
     var preOverlayState by mutableStateOf(GameState.PLAYING)
     var activeDiscovery by mutableStateOf<DiscoveryType?>(null)
-    var unlockedRocket by mutableStateOf<RocketType?>(null)
+    var currentUnlockEvent by mutableStateOf<UnlockEvent?>(null)
     var codexNotification by mutableStateOf<DiscoveryType?>(null)
+
+    fun showUnlockEvent(event: UnlockEvent) {
+        currentUnlockEvent = event
+        soundManager.duck(2000L)
+        soundManager.playSfx("sfx_fanfare_unlock")
+        hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
+        screenShake = 20f
+        spawnBurst(player.x, player.y, 40, event.accentColor, 400f)
+        preOverlayState = gameState
+        gameState = GameState.UNLOCK
+    }
     val isPremiumUser: Boolean get() = purchaseManager.isPremiumUser
     val earnedContinues: Int get() = (runBossesDefeated / 5) + (comboManager.bestComboThisRun / 15)
     val maxContinues: Int get() = (if (isPremiumUser) 5 else 3) + earnedContinues
@@ -139,9 +150,10 @@ class GameEngine(
                 floatingTextManager.add(FloatingText("BOSS DEFEATED", celebrationX, celebrationY - 50f, color = SciFiGold, isCritical = true, life = 2.0f))
             }
         }
-        missionManager.onMissionCompleted = { mission -> 
+        missionManager.onMissionCompleted = { mission ->
             progressionManager.recordMissionCompletion(mission.id)
             analytics.logMissionCompleted(mission)
+            showUnlockEvent(UnlockEvent.Mission(mission))
         }
         missionManager.onMissionStarted = { mission ->
             analytics.logMissionStarted(mission)
@@ -150,49 +162,18 @@ class GameEngine(
             analytics.logModuleEquipped(moduleId, slotIndex)
         }
         missionManager.onHiddenSignalRevealed = { mission ->
-            notificationManager.post("SIGNAL DECODED: ${mission.name.uppercase()}", NotificationPriority.CRITICAL, 4.0f, SciFiCyan)
-            spawnBurst(player.x, player.y, 40, SciFiCyan, 350f)
-            floatingTextManager.add(FloatingText("SIGNAL DECODED", player.x, player.y - 120f, color = SciFiCyan, isCritical = true, life = 2.0f))
+            showUnlockEvent(UnlockEvent.Mission(mission))
         }
         progressionManager.onModuleUnlocked = { module ->
-            floatingTextManager.add(FloatingText(
-                text = "MODULE UNLOCKED: ${module.name.uppercase()}",
-                x = player.x,
-                y = player.y - 100f,
-                color = SciFiGold,
-                isCritical = true
-            ))
-            spawnBurst(player.x, player.y - 100f, 30, SciFiGold, 300f)
-            soundManager.duck(2000L)
-            soundManager.playSfx("sfx_fanfare_unlock")
-            hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
-            screenShake = 15f
+            showUnlockEvent(UnlockEvent.Module(module))
         }
         progressionManager.onLoreLogDiscovered = { log ->
-            floatingTextManager.add(FloatingText(
-                text = "LORE LOG RECOVERED: ${log.title.uppercase()}",
-                x = player.x,
-                y = player.y - 120f,
-                color = SciFiWhite,
-                isCritical = false
-            ))
-            soundManager.duck(2000L)
-            soundManager.playSfx("sfx_data_scan")
-            notificationManager.post("SIGNAL ARCHIVED: ${log.category.name}", NotificationPriority.FLAVOR)
-            screenShake = 8f
+            val discovery = DiscoveryType.entries.find { it.title.equals(log.title, ignoreCase = true) }
+            if (discovery != null) showUnlockEvent(UnlockEvent.Discovery(discovery))
+            else notificationManager.post("SIGNAL ARCHIVED: ${log.category.name}", NotificationPriority.FLAVOR)
         }
         progressionManager.onBlueprintUnlocked = { type ->
-            floatingTextManager.add(FloatingText(
-                text = "BLUEPRINT ACQUIRED: ${type.displayName.uppercase()}",
-                x = player.x,
-                y = player.y - 140f,
-                color = SciFiGold,
-                isCritical = true
-            ))
-            soundManager.duck(2000L)
-            soundManager.playSfx("sfx_fanfare_unlock")
-            hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
-            impactFlashAlpha = 0.4f
+            showUnlockEvent(UnlockEvent.Rocket(RocketType.entries.find { it.title.equals(type.displayName, ignoreCase = true) } ?: RocketType.BALANCED))
         }
     }
 
@@ -301,18 +282,12 @@ class GameEngine(
         progressionManager.checkUnlocks(
             stats = getGameStats(),
             player = player,
-            onRocketUnlock = { type -> 
-                unlockedRocket = type
+            onRocketUnlock = { type ->
+                showUnlockEvent(UnlockEvent.Rocket(type))
                 analytics.logRocketUnlocked(type)
-                soundManager.duck(2000L)
-                soundManager.playSfx("sfx_fanfare_unlock")
-                preOverlayState = gameState
-                gameState = GameState.UNLOCK 
             },
-            onAchievementUnlock = { achievement -> 
-                floatingTextManager.add(FloatingText("ACHIEVEMENT: ${achievement.title}", player.x, player.y - 200f, color = SciFiGold, isCritical = true))
-                soundManager.playSfx("sfx_fanfare_unlock")
-                spawnBurst(player.x, player.y, 30, SciFiGold, 300f)
+            onAchievementUnlock = { achievement ->
+                showUnlockEvent(UnlockEvent.Achievement(achievement))
             },
             onLoreDiscovery = { type -> checkDiscovery(type) }
         )

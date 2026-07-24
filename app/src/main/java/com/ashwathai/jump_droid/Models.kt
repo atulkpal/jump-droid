@@ -2,10 +2,55 @@ package com.ashwathai.jump_droid
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import com.ashwathai.jump_droid.ui.theme.SciFiCyan
+import com.ashwathai.jump_droid.ui.theme.SciFiGold
+import com.ashwathai.jump_droid.ui.theme.SciFiPurple
 import kotlin.math.*
 
 enum class GameState {
     TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS, ASCENSION_PROTOCOL, SHOP, CONTINUE_READY
+}
+
+sealed class UnlockEvent {
+    abstract val title: String
+    abstract val description: String
+    abstract val destinationLabel: String
+    abstract val accentColor: Color
+
+    data class Rocket(val type: RocketType) : UnlockEvent() {
+        override val title get() = type.title.uppercase()
+        override val description get() = "${type.traitName}: ${type.traitDescription}"
+        override val destinationLabel get() = "VIEW IN HANGAR"
+        override val accentColor get() = SciFiCyan
+    }
+
+    data class Module(val module: com.ashwathai.jump_droid.Module) : UnlockEvent() {
+        override val title get() = module.name.uppercase()
+        override val description get() = module.description
+        override val destinationLabel get() = "VIEW IN HANGAR"
+        override val accentColor get() = module.iconColor
+    }
+
+    data class Achievement(val achievement: com.ashwathai.jump_droid.Achievement) : UnlockEvent() {
+        override val title get() = achievement.title.uppercase()
+        override val description get() = achievement.description
+        override val destinationLabel get() = "VIEW IN ARCHIVE"
+        override val accentColor get() = SciFiGold
+    }
+
+    data class Mission(val mission: com.ashwathai.jump_droid.Mission) : UnlockEvent() {
+        override val title get() = mission.name.uppercase()
+        override val description get() = "Mission objective completed."
+        override val destinationLabel get() = "VIEW IN MISSIONS"
+        override val accentColor get() = SciFiCyan
+    }
+
+    data class Discovery(val type: com.ashwathai.jump_droid.DiscoveryType) : UnlockEvent() {
+        override val title get() = type.title.uppercase()
+        override val description get() = "New entry archived."
+        override val destinationLabel get() = "VIEW IN ARCHIVE"
+        override val accentColor get() = SciFiPurple
+    }
 }
 
 enum class PowerUpType {

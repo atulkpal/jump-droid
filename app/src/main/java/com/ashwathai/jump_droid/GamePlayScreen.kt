@@ -167,10 +167,10 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
             HelpOverlay(onDismiss = { engine.gameState = engine.preOverlayState })
         }
 
-        if (gameState == GameState.UNLOCK && engine.unlockedRocket != null) {
+        if (gameState == GameState.UNLOCK && engine.currentUnlockEvent != null) {
             UnlockOverlay(
-                unlockedRocket = engine.unlockedRocket!!,
-                onConfirm = { engine.gameState = engine.preOverlayState; engine.unlockedRocket = null }
+                unlockEvent = engine.currentUnlockEvent!!,
+                onConfirm = { engine.gameState = engine.preOverlayState; engine.currentUnlockEvent = null }
             )
         }
 
