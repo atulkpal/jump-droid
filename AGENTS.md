@@ -37,11 +37,11 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Current Stable Tag**: `v1.5.2`
 *   **Current Version**: v1.5.2 — Closed Beta Release
 *   **Current EPIC**: EPIC 12 — Fleet Ascension: Visual Overhaul & Fleet Expansion — **ACTIVE ✅**
-*   **Current Status**: **EPIC 12 ACTIVE**. Branch `feature/fleet-ascension-visual-overhaul`. Complete review produced — 8-phase execution plan covering Main Menu redesign, Hangar/Missions overhaul, HUD consolidation, Canvas visual upgrade, unlock celebrations, chassis variants, engine trails, paint schemes, monetization surface, online features, and tech debt cleanup. See `docs/roadmap/EPIC_12_FLEET_ASCENSION_VISUAL_OVERHAUL.md`.
+*   **Current Status**: **EPIC 12 Phase 1 COMPLETE**. Branch `feature/fleet-ascension-visual-overhaul`. Phase 1 finished: Main Menu redesigned (hero canvas, LAUNCH pill, collapsible nav drawer, credit/cash bar), NavHost transitions (fade/scale/slide), brand color audit across 4 screens, equipment visual feedback on rocket Canvas (module indicator dots, armor plates, shield amplification, engine flame tint). See `docs/roadmap/EPIC_12_FLEET_ASCENSION_VISUAL_OVERHAUL.md`.
 *   **Known Issues**: 
     *   Visual noise during high-combo streaks (excessive floating text) — deferred to EPIC 12 Phase 3 (notification/tuning).
     *   GameScreen.kt at ~2,080 lines — decomposition targeted in EPIC 12 Phase 8.
-*   **Current Priorities**: EPIC 12 Phase 1 implementation.
+*   **Current Priorities**: EPIC 12 Phase 2 (Hangar, Missions, Fleet) or Phase 3 (Gameplay UX: HUD, Unlocks, Continue Credits).
 *   **Next Planned Work**: EPIC 12 Phase 1 — Visual Identity & Navigation.
 
 ---

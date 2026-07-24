@@ -423,11 +423,11 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 **Execution Plan:** `docs/roadmap/EPIC_12_FLEET_ASCENSION_VISUAL_OVERHAUL.md`
 **Prerequisites:** EPIC 11 ✅
 
-## Phase 1 — Foundation: Visual Identity & Navigation
-- [ ] Main Menu redesign (hero canvas, primary/secondary hierarchy, attention badges)
-- [ ] Navigation architecture pass (transitions, back stack consistency)
-- [ ] Color & typography audit per brand guide
-- [ ] Equipment visual feedback on rocket Canvas rendering
+## Phase 1 — Foundation: Visual Identity & Navigation (COMPLETE ✅)
+- [x] Main Menu redesign (hero canvas, primary/secondary hierarchy, credit/cash bar, nav drawer)
+- [x] Navigation architecture pass (fade/scale/slide transitions on 11 NavHost routes)
+- [x] Color & typography audit per brand guide (SciFiBackground/SciFiSurface across 4 screens)
+- [x] Equipment visual feedback on rocket Canvas rendering (module dots, armor plates, shield boost, flame tint)
 
 ## Phase 2 — Player Experience: Hangar, Loadout & Missions
 - [ ] Hangar tabbed redesign (Overview/Rockets/Modules/Cosmetics)
