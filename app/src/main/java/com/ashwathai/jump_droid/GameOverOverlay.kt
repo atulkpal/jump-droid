@@ -187,75 +187,87 @@ fun GameOverOverlay(
             if (continuesUsed < maxContinues) {
                 val context = LocalContext.current
                 var retryCount by remember { mutableStateOf(0) }
+                val hasCredits = progressionManager.creditBalance > 0
 
-                if (!isFreeContinue) {
+                if (!isFreeContinue && !hasCredits) {
                     LaunchedEffect(retryCount, continuesUsed) { RewardedAdHelper.load(context) }
                 }
 
-                val failureMessage = when (retryCount) {
-                    0 -> null
-                    1 -> "AD UNAVAILABLE — LINK WEAK"
-                    2 -> "ONE ATTEMPT REMAINING"
-                    else -> null
-                }
-
-                // Continue via watch ad (or free for premium)
-                Button(
-                    onClick = {
-                        if (isFreeContinue) {
-                            onContinue()
-                        } else {
-                            analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
-                            RewardedAdHelper.show(context as Activity,
-                                analytics = analytics,
-                                onReward = onContinue,
-                                onFailed = {
-                                    if (retryCount >= 2) {
-                                        onContinue()
-                                    } else {
-                                        retryCount++
-                                    }
-                                }
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFreeContinue) SciFiGold else SciFiCyan
-                    )
-                ) {
-                    if (isFreeContinue) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("FREE CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                        }
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("[AD]", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp)
-                            Spacer(Modifier.padding(start = 8.dp))
-                            Text(if (retryCount >= 2) "FORCED RELINK" else "RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                        }
+                val failureMessage = if (!hasCredits && !isFreeContinue) {
+                    when (retryCount) {
+                        0 -> null
+                        1 -> "AD UNAVAILABLE — LINK WEAK"
+                        2 -> "ONE ATTEMPT REMAINING"
+                        else -> null
                     }
-                }
+                } else null
 
-                // Continue via credit
-                if (progressionManager.creditBalance > 0) {
-                    Spacer(Modifier.height(6.dp))
+                // Continue via credit (PRIMARY path)
+                if (hasCredits) {
                     Button(
                         onClick = {
                             if (progressionManager.spendCredit()) {
                                 onContinue()
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = SciFiGold.copy(alpha = 0.2f),
-                            contentColor = SciFiGold
-                        ),
-                        border = BorderStroke(1.dp, SciFiGold.copy(alpha = 0.5f))
+                            containerColor = SciFiGold,
+                            contentColor = Color.Black
+                        )
                     ) {
-                        Text("USE CREDIT (${progressionManager.creditBalance})", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 12.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("CONTINUE (1 CREDIT)", fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "${progressionManager.creditBalance - 1} left",
+                                color = Color.Black.copy(alpha = 0.5f),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // Continue via watch ad (FALLBACK when no credits)
+                if (!hasCredits) {
+                    Button(
+                        onClick = {
+                            if (isFreeContinue) {
+                                onContinue()
+                            } else {
+                                analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
+                                RewardedAdHelper.show(context as Activity,
+                                    analytics = analytics,
+                                    onReward = onContinue,
+                                    onFailed = {
+                                        if (retryCount >= 2) {
+                                            onContinue()
+                                        } else {
+                                            retryCount++
+                                        }
+                                    }
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isFreeContinue) SciFiGold else SciFiCyan
+                        )
+                    ) {
+                        if (isFreeContinue) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("FREE CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            }
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("[AD]", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp)
+                                Spacer(Modifier.padding(start = 8.dp))
+                                Text(if (retryCount >= 2) "FORCED RELINK" else "WATCH AD TO CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            }
+                        }
                     }
                 }
 

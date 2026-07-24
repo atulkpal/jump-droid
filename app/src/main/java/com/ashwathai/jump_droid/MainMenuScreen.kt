@@ -192,14 +192,21 @@ fun MainMenuScreen(
                             color = SciFiGold.copy(alpha = 0.3f), fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "[+]", color = SciFiGold.copy(alpha = 0.5f), fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace,
+                        Surface(
                             modifier = Modifier.clickable {
                                 soundManager?.playSfx("sfx_ui_click")
                                 showCreditDialog = true
+                            },
+                            color = SciFiCyan.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(4.dp),
+                            border = BorderStroke(0.5.dp, SciFiCyan.copy(alpha = 0.3f))
+                        ) {
+                            Row(Modifier.padding(horizontal = 6.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("+1", color = SciFiGold, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                                Spacer(Modifier.width(2.dp))
+                                Text("\u25B6", color = SciFiCyan.copy(alpha = 0.5f), fontSize = 7.sp)
                             }
-                        )
+                        }
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -361,6 +368,14 @@ fun MainMenuScreen(
                 }
             }
             Spacer(Modifier.height(8.dp))
+
+            StandaloneCreditRow(
+                progressionManager = progressionManager,
+                analytics = analytics,
+                onAdCredit = { progressionManager?.addCredits(1) }
+            )
+
+            Spacer(Modifier.height(4.dp))
         }
 
         if (showCreditDialog && progressionManager != null) {
@@ -369,6 +384,70 @@ fun MainMenuScreen(
                 soundManager = soundManager,
                 analytics = analytics,
                 onDismiss = { showCreditDialog = false }
+            )
+        }
+    }
+}
+
+@Composable
+private fun StandaloneCreditRow(
+    progressionManager: ProgressionManager?,
+    analytics: GameAnalytics,
+    onAdCredit: () -> Unit
+) {
+    if (progressionManager == null) return
+    val canCashBuy = progressionManager.totalCash >= 100 && progressionManager.creditBalance < progressionManager.maxCredits
+    val context = LocalContext.current
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = SciFiSurface.copy(alpha = 0.3f),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(0.5.dp, SciFiGold.copy(alpha = 0.15f))
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = {
+                    analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
+                    RewardedAdHelper.show(context as Activity,
+                        analytics = analytics,
+                        onReward = onAdCredit,
+                        onFailed = {}
+                    )
+                },
+                modifier = Modifier.height(30.dp),
+                shape = RoundedCornerShape(4.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = SciFiCyan.copy(alpha = 0.15f),
+                    contentColor = SciFiCyan
+                ),
+                border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.3f)),
+            ) {
+                Text("\u25B6 WATCH AD  [+1 CR]", fontWeight = FontWeight.Bold, fontSize = 8.sp, letterSpacing = 1.sp)
+            }
+
+            if (canCashBuy) {
+                Button(
+                    onClick = { progressionManager.cashToCredits(100) },
+                    modifier = Modifier.height(30.dp),
+                    shape = RoundedCornerShape(4.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SciFiGold.copy(alpha = 0.12f),
+                        contentColor = SciFiGold
+                    ),
+                    border = BorderStroke(1.dp, SciFiGold.copy(alpha = 0.25f))
+                ) {
+                    Text("100$ \u2192 1 CR", fontWeight = FontWeight.Bold, fontSize = 8.sp, letterSpacing = 1.sp)
+                }
+            }
+
+            Text(
+                "${progressionManager.creditBalance}/${progressionManager.maxCredits}",
+                color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 11.sp, fontFamily = FontFamily.Monospace
             )
         }
     }
