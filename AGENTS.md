@@ -36,13 +36,13 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Current Branch**: `master`
 *   **Current Stable Tag**: `v1.5.2`
 *   **Current Version**: v1.5.2 — Closed Beta Release
-*   **Current EPIC**: EPIC 11 — Ascension (The End) — **COMPLETE ✅**
-*   **Current Status**: **v1.5.2 PUBLISHED**. Closed Beta Release: continue-ready overlay, sharing system, main menu responsiveness, Heat Bat AI overhaul, boss cooldowns, and "NEW" archive badge system. See `docs/RELEASES.md`.
+*   **Current EPIC**: EPIC 12 — Fleet Ascension: Visual Overhaul & Fleet Expansion — **ACTIVE ✅**
+*   **Current Status**: **EPIC 12 ACTIVE**. Branch `feature/fleet-ascension-visual-overhaul`. Complete review produced — 8-phase execution plan covering Main Menu redesign, Hangar/Missions overhaul, HUD consolidation, Canvas visual upgrade, unlock celebrations, chassis variants, engine trails, paint schemes, monetization surface, online features, and tech debt cleanup. See `docs/roadmap/EPIC_12_FLEET_ASCENSION_VISUAL_OVERHAUL.md`.
 *   **Known Issues**: 
-    *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
-    *   GameScreen.kt at ~2,080 lines — extraction continued via GameEngine refactoring into `refactor/cleanup` branch.
-*   **Current Priorities**: Future EPIC planning / EPIC 12.
-*   **Next Planned Work**: EPIC 12 — Fleet Expansion (planned).
+    *   Visual noise during high-combo streaks (excessive floating text) — deferred to EPIC 12 Phase 3 (notification/tuning).
+    *   GameScreen.kt at ~2,080 lines — decomposition targeted in EPIC 12 Phase 8.
+*   **Current Priorities**: EPIC 12 Phase 1 implementation.
+*   **Next Planned Work**: EPIC 12 Phase 1 — Visual Identity & Navigation.
 
 ---
 

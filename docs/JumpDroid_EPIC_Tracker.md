@@ -416,75 +416,78 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 ---
 
-# EPIC 12 - Fleet Expansion
+# EPIC 12 — Fleet Ascension: Visual Overhaul & Fleet Expansion
 
-**Status:** Planned
+**Status:** ACTIVE ✅
+**Branch:** `feature/fleet-ascension-visual-overhaul`
+**Execution Plan:** `docs/roadmap/EPIC_12_FLEET_ASCENSION_VISUAL_OVERHAUL.md`
+**Prerequisites:** EPIC 11 ✅
 
-## Fleet Framework
+## Phase 1 — Foundation: Visual Identity & Navigation
+- [ ] Main Menu redesign (hero canvas, primary/secondary hierarchy, attention badges)
+- [ ] Navigation architecture pass (transitions, back stack consistency)
+- [ ] Color & typography audit per brand guide
+- [ ] Equipment visual feedback on rocket Canvas rendering
 
-- [ ] Rocket Class Framework (Explorer, Striker, Heavy, Prototype)
-- [ ] Multiple Chassis per Class
-- [ ] Chassis Selection System
-- [ ] Chassis Progression System
-- [ ] Fleet Collection System
+## Phase 2 — Player Experience: Hangar, Loadout & Missions
+- [ ] Hangar tabbed redesign (Overview/Rockets/Modules/Cosmetics)
+- [ ] Stat comparison system (radar/bar chart per rocket class)
+- [ ] Missions timeline UI (journey-style presentation per track)
+- [ ] In-run mission progress card on HUD
+- [ ] Loadout merge into Hangar (pre-flight quick equip panel)
+- [ ] Chassis variants per class (12 total — Explorer, Striker, Heavy, Prototype fleets)
+- [ ] Fleet collection UI (grid with locked/unlocked states)
 
-## Explorer Fleet
+## Phase 3 — Gameplay UX: HUD, Feedback & Continue
+- [ ] HUD gauge consolidation (shield+hull combined, zone progress bar)
+- [ ] Heat warning enhancement (visual danger markers, screen-edge glow)
+- [ ] Combo ring explanation text
+- [ ] Unlock celebration system (full-screen glow + preview + action button)
+- [ ] Continue experience redesign (loading modal, internal retry, grace offer)
+- [ ] Boss arrival cinematic (screen dim, warning text, particle burst)
+- [ ] Notification priority tuning
 
-- [ ] Pathfinder
-- [ ] Nomad
-- [ ] Surveyor
+## Phase 4 — Canvas Visual Upgrade
+- [ ] Rocket visual upgrade (thruster flame, body panels, shield bubble, heat glow)
+- [ ] Engine trail customization system (color + particle pattern per trail)
+- [ ] Paint scheme system (base hull color replacement)
+- [ ] Boss visual upgrade pass (all 11 bosses)
+- [ ] Particle system pass (thrust, landing, combo, power-up, hazard effects)
+- [ ] Zone transition animation (fade → name card → fade in)
 
-## Striker Fleet
+## Phase 5 — Systems Integration: Discovery, Lore & Narrative
+- [ ] Lore teasers on zone entry (one-line flavor text per zone)
+- [ ] Artifact discovery lore overlay
+- [ ] Codex HUD quick-access button
+- [ ] Archive badge count retention fix
 
-- [ ] Interceptor
-- [ ] Raptor
-- [ ] Phantom
+## Phase 6 — Monetization Surface
+- [ ] Shop redesign (remove V2 placeholders, show available items)
+- [ ] First cosmetic skins & engine trails (3 skins + 3 trails purchasable)
+- [ ] Premium value display in Settings
+- [ ] Rewarded ad in-game option (watch for refuel)
 
-## Heavy Fleet
+## Phase 7 — Online Features
+- [ ] Optional Google Sign-In
+- [ ] Leaderboard (highest altitude, most bosses, longest run)
+- [ ] Cloud save (Firestore sync)
+- [ ] Google Play Games achievement sync
 
-- [ ] Atlas
-- [ ] Bulwark
-- [ ] Leviathan
-
-## Prototype Fleet
-
-- [ ] X-01
-- [ ] X-07
-- [ ] Singularity
-
-## Progression
-
-- [ ] Chassis Unlock Progression
-- [ ] Fleet Collection Rewards
-- [ ] Fleet Mastery System
-- [ ] Fleet Completion Achievements
-
-## Cosmetics
-
-- [ ] Class-Specific Visual Themes
-- [ ] Alternate Hull Configurations
-- [ ] Engine Trail Customization
-- [ ] Paint Scheme System
-- [ ] Premium Cosmetic Variants
+## Phase 8 — Technical Foundation
+- [ ] GameScreen continued decomposition
+- [ ] ProgressionManager → domain services split
+- [ ] StarfieldBackground extraction (6× duplication → 1 composable)
+- [ ] Navigation migration to full NavHost + deep linking
+- [ ] Performance profiling (frame drops in upper zones / dense threat fields)
 
 ## Design Rules
-
 - [ ] Classes define gameplay identity
-- [ ] Chassis define stat profiles
+- [ ] Chassis define stat profiles (visual variants on Canvas renderer)
 - [ ] Modules define customization
 - [ ] No pay-to-win progression
-- [ ] All gameplay-affecting ships unlockable through play
-
-## Dependencies
-
-Requires:
-- EPIC 7 - Rocket Evolution
-- EPIC 8 - Missions & Progression
-- EPIC 9 - The Archive Expands
-- EPIC 10 - The Outer Reaches
-- EPIC 11 - Ascension
-
-Track only. Do not implement.
+- [ ] All gameplay-affecting content unlockable through play
+- [ ] Canvas identity preserved (all visuals procedural, no static assets)
+- [ ] Anonymous play always supported
 
 ---
 
