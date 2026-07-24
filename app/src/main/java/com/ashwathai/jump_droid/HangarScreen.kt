@@ -284,8 +284,19 @@ private fun RocketsTab(
                 }
             }
         }
-        Spacer(Modifier.height(16.dp))
-        Text("COMPARE STATS WITH PENTAGON CHART", color = SciFiWhite.copy(alpha = 0.2f), fontSize = 8.sp, letterSpacing = 1.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Spacer(Modifier.height(12.dp))
+        Text("STAT COMPARISON", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+        Spacer(Modifier.height(4.dp))
+        PentagonChart(
+            rocketType = player.rocketType,
+            modifier = Modifier.fillMaxWidth().height(180.dp)
+        )
+        Spacer(Modifier.height(8.dp))
+        StatLegend(
+            rocketType = player.rocketType,
+            allTypes = RocketType.entries,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+        )
         Spacer(Modifier.height(8.dp))
         GlobalAdBanner()
     }
