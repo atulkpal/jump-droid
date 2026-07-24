@@ -255,7 +255,8 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                     navController.navigate("title") 
                 },
                 soundManager = engine.soundManager,
-                hasNewEntries = engine.codexNotification != null || engine.discoveryManager.getUnreadCount() > 0
+                hasNewEntries = engine.codexNotification != null || engine.discoveryManager.getUnreadCount() > 0,
+                progressionManager = engine.progressionManager
             )
         }
         composable("game") {

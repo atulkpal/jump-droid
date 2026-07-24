@@ -199,6 +199,7 @@ fun GameOverOverlay(
                     else -> null
                 }
 
+                // Continue via watch ad (or free for premium)
                 Button(
                     onClick = {
                         if (isFreeContinue) {
@@ -218,7 +219,7 @@ fun GameOverOverlay(
                             )
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isFreeContinue) SciFiGold else SciFiCyan
@@ -234,6 +235,27 @@ fun GameOverOverlay(
                             Spacer(Modifier.padding(start = 8.dp))
                             Text(if (retryCount >= 2) "FORCED RELINK" else "RE-ESTABLISH LINK", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         }
+                    }
+                }
+
+                // Continue via credit
+                if (progressionManager.creditBalance > 0) {
+                    Spacer(Modifier.height(6.dp))
+                    Button(
+                        onClick = {
+                            if (progressionManager.spendCredit()) {
+                                onContinue()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = SciFiGold.copy(alpha = 0.2f),
+                            contentColor = SciFiGold
+                        ),
+                        border = BorderStroke(1.dp, SciFiGold.copy(alpha = 0.5f))
+                    ) {
+                        Text("USE CREDIT (${progressionManager.creditBalance})", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 12.sp)
                     }
                 }
 
@@ -271,6 +293,59 @@ fun GameOverOverlay(
                 )
                 Spacer(Modifier.height(12.dp))
             }
+
+            // Credit management row
+            Spacer(Modifier.height(4.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                val creditContext = LocalContext.current
+                Text(
+                    text = "CREDITS: ${progressionManager.creditBalance}",
+                    color = SciFiGold,
+                    fontSize = 11.sp,
+                    letterSpacing = 1.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.width(12.dp))
+                Button(
+                    onClick = {
+                        analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
+                        RewardedAdHelper.show(creditContext as Activity,
+                            analytics = analytics,
+                            onReward = {
+                                progressionManager.addCredits(1)
+                            },
+                            onFailed = {}
+                        )
+                    },
+                    modifier = Modifier.height(32.dp),
+                    shape = RoundedCornerShape(4.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SciFiCyan.copy(alpha = 0.2f),
+                        contentColor = SciFiCyan
+                    ),
+                    border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.4f))
+                ) {
+                    Text("+1 CREDIT [AD]", fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 1.sp)
+                }
+                if (progressionManager.totalCash >= 100 && progressionManager.creditBalance < progressionManager.maxCredits) {
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            progressionManager.cashToCredits(100)
+                        },
+                        modifier = Modifier.height(32.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = SciFiGold.copy(alpha = 0.15f),
+                            contentColor = SciFiGold
+                        ),
+                        border = BorderStroke(1.dp, SciFiGold.copy(alpha = 0.3f))
+                    ) {
+                        Text("100 CASH → 1 CREDIT", fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 1.sp)
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
 
             Button(
                 onClick = onRestart,

@@ -72,9 +72,49 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     var totalCash by mutableIntStateOf(0)
         private set
 
+    var creditBalance by mutableIntStateOf(0)
+        private set
+
+    var maxCredits by mutableIntStateOf(10)
+        private set
+
     val missionsCompleted: Int get() = completedMissionIds.size
 
     fun getCashBalance(): Int = totalCash
+
+    fun addCredits(amount: Int): Int {
+        val added = minOf(amount, maxCredits - creditBalance)
+        if (added > 0) {
+            creditBalance += added
+            sharedPrefs.edit { putInt("credit_balance", creditBalance) }
+        }
+        return added
+    }
+
+    fun spendCredit(): Boolean {
+        if (creditBalance > 0) {
+            creditBalance--
+            sharedPrefs.edit { putInt("credit_balance", creditBalance) }
+            return true
+        }
+        return false
+    }
+
+    fun cashToCredits(cashAmount: Int, cashPerCredit: Int = 100): Int {
+        if (cashAmount < cashPerCredit) return 0
+        val maxBuy = cashAmount / cashPerCredit
+        val available = maxCredits - creditBalance
+        val actualBuy = minOf(maxBuy, available)
+        if (actualBuy > 0) {
+            totalCash -= actualBuy * cashPerCredit
+            creditBalance += actualBuy
+            sharedPrefs.edit {
+                putInt("total_cash", totalCash)
+                putInt("credit_balance", creditBalance)
+            }
+        }
+        return actualBuy
+    }
 
     override var highScore by mutableIntStateOf(0)
         internal set
@@ -116,6 +156,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         lifetimeMissionsCompleted = sharedPrefs.getInt("missions_completed", 0)
         ascensionPrestigeLevel = sharedPrefs.getInt("ascension_prestige", 0)
         totalCash = sharedPrefs.getInt("total_cash", 0)
+        creditBalance = sharedPrefs.getInt("credit_balance", 0)
 
         val artifactTypes = DiscoveryType.values().filter { it.category == "ARTIFACTS" }
         val loadedArtifacts = mutableMapOf<String, ArtifactRecord>()
@@ -414,6 +455,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         permanentMaxIntegrity = Constants.BASE_INTEGRITY
         permanentMaxShield = Constants.BASE_SHIELD
         totalCash = 0
+        creditBalance = 0
     }
 
     /**
