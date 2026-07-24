@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ashwathai.jump_droid.ui.theme.*
@@ -109,7 +110,7 @@ fun HangarScreen(
                     0 -> OverviewTab(player, loadoutManager, progressionManager, accentPulse, borderPulse, onNavigate, soundManager)
                     1 -> RocketsTab(player, highScore, sharedPrefs, borderPulse, onNavigate, soundManager)
                     2 -> ModulesTab(player, loadoutManager, progressionManager, missionManager, soundManager)
-                    3 -> CosmeticsTab()
+                    3 -> CosmeticsTab(player, highScore, sharedPrefs)
                 }
             }
         }
@@ -456,11 +457,155 @@ private fun ModulesTab(
 }
 
 @Composable
-private fun CosmeticsTab() {
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Text("COSMETICS", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 16.sp, letterSpacing = 3.sp)
+private fun CosmeticsTab(
+    player: Player,
+    highScore: Int,
+    sharedPrefs: SharedPreferences
+) {
+    val totalChassis = RocketType.entries.sumOf { it.chassisVariants.size }
+    val unlockedChassis = RocketType.entries.sumOf { cls ->
+        if (highScore >= cls.unlockScore || sharedPrefs.getBoolean("unlock_${cls.name}", false))
+            cls.chassisVariants.size
+        else 0
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Column {
+                Text("FLEET COLLECTION", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 14.sp, letterSpacing = 2.sp)
+                Text("${unlockedChassis}/${totalChassis} — Chassis Mastery", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 9.sp)
+            }
+            Text("${(unlockedChassis.toFloat() / totalChassis * 100).toInt()}%", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 18.sp)
+        }
+
+        // Mastery progress bar
+        Box(
+            Modifier.fillMaxWidth().height(4.dp).background(SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(2.dp))
+        ) {
+            Box(
+                Modifier.fillMaxWidth(fraction = unlockedChassis.toFloat() / totalChassis).fillMaxHeight()
+                    .background(SciFiGold, RoundedCornerShape(2.dp))
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            RocketType.entries.forEach { cls ->
+                val clsUnlocked = highScore >= cls.unlockScore || sharedPrefs.getBoolean("unlock_${cls.name}", false)
+                Spacer(Modifier.height(4.dp))
+                Text(cls.title.uppercase(), color = if (clsUnlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.3f), fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 1.sp)
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    cls.chassisVariants.forEachIndexed { idx, variant ->
+                        val owned = clsUnlocked
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .border(
+                                    1.dp,
+                                    if (owned) SciFiBorder.copy(alpha = 0.3f) else SciFiBorder.copy(alpha = 0.05f),
+                                    RoundedCornerShape(8.dp)
+                                ),
+                            color = if (owned) SciFiSurface else SciFiSurface.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(Modifier.padding(6.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Canvas(Modifier.size(44.dp).padding(2.dp)) {
+                                    val cx = size.width / 2
+                                    val cy = size.height / 2
+                                    val s = 1.2f
+                                    val alpha = if (owned) 1f else 0.3f
+
+                                    val bw = 10f * s
+                                    val bh = 24f * s
+                                    val bodyL = cx - bw / 2
+                                    val bodyT = cy - bh / 2
+
+                                    when (idx) {
+                                        1 -> {
+                                            val nose = Path().apply {
+                                                moveTo(bodyL, bodyT)
+                                                lineTo(cx, bodyT - 12f * s)
+                                                lineTo(bodyL + bw, bodyT)
+                                                close()
+                                            }
+                                            drawPath(nose, Color.DarkGray.copy(alpha = alpha))
+                                            drawRect(SciFiWhite.copy(alpha = 0.6f * alpha), topLeft = Offset(bodyL, bodyT), size = Size(bw, bh))
+                                            val fin = Path().apply {
+                                                moveTo(bodyL, bodyT + 8f * s)
+                                                lineTo(cx - bw / 2 - 4f * s, cy + bh / 2)
+                                                lineTo(bodyL + 2f, cy + bh / 2)
+                                                close()
+                                            }
+                                            drawPath(fin, SciFiRed.copy(alpha = alpha))
+                                            val finR = Path().apply {
+                                                moveTo(bodyL + bw, bodyT + 8f * s)
+                                                lineTo(cx + bw / 2 + 4f * s, cy + bh / 2)
+                                                lineTo(bodyL + bw - 2f, cy + bh / 2)
+                                                close()
+                                            }
+                                            drawPath(finR, SciFiRed.copy(alpha = alpha))
+                                        }
+                                        2 -> {
+                                            drawRoundRect(Color.DarkGray.copy(alpha = alpha), topLeft = Offset(bodyL, bodyT - 4f * s), size = Size(bw, bh * 0.3f + 4f * s), cornerRadius = CornerRadius(bw / 2, bw / 2))
+                                            drawRect(SciFiWhite.copy(alpha = 0.6f * alpha), topLeft = Offset(bodyL, bodyT), size = Size(bw, bh))
+                                            val fin = Path().apply {
+                                                moveTo(bodyL, bodyT + 6f * s)
+                                                lineTo(cx - bw / 2 - 2f * s, cy + bh / 2)
+                                                lineTo(bodyL + 2f, cy + bh / 2)
+                                                close()
+                                            }
+                                            drawPath(fin, SciFiRed.copy(alpha = alpha * 0.8f))
+                                            val finR = Path().apply {
+                                                moveTo(bodyL + bw, bodyT + 6f * s)
+                                                lineTo(cx + bw / 2 + 2f * s, cy + bh / 2)
+                                                lineTo(bodyL + bw - 2f, cy + bh / 2)
+                                                close()
+                                            }
+                                            drawPath(finR, SciFiRed.copy(alpha = alpha * 0.8f))
+                                        }
+                                        else -> {
+                                            drawRect(SciFiWhite.copy(alpha = 0.6f * alpha), topLeft = Offset(bodyL, bodyT), size = Size(bw, bh))
+                                            val nose = Path().apply {
+                                                moveTo(bodyL, bodyT)
+                                                lineTo(cx, bodyT - 10f * s)
+                                                lineTo(bodyL + bw, bodyT)
+                                                close()
+                                            }
+                                            drawPath(nose, Color.DarkGray.copy(alpha = alpha))
+                                            val fin = Path().apply {
+                                                moveTo(bodyL, bodyT + 6f * s)
+                                                lineTo(cx - bw / 2, cy + bh / 2)
+                                                lineTo(bodyL, cy + bh / 2)
+                                                close()
+                                            }
+                                            drawPath(fin, SciFiRed.copy(alpha = alpha))
+                                            val finR = Path().apply {
+                                                moveTo(bodyL + bw, bodyT + 6f * s)
+                                                lineTo(cx + bw / 2, cy + bh / 2)
+                                                lineTo(bodyL + bw, cy + bh / 2)
+                                                close()
+                                            }
+                                            drawPath(finR, SciFiRed.copy(alpha = alpha))
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.height(2.dp))
+                                Text(variant.name, color = if (owned) SciFiWhite else SciFiWhite.copy(alpha = 0.2f), fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(
+                                    if (owned) "OWNED" else "\uD83D\uDD12",
+                                    color = if (owned) SciFiGreen.copy(alpha = 0.6f) else SciFiWhite.copy(alpha = 0.15f),
+                                    fontSize = 6.sp, fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
         Spacer(Modifier.height(8.dp))
-        Text("Skins, engine trails, and paint schemes\ncoming in a future update.", color = SciFiWhite.copy(alpha = 0.3f), textAlign = TextAlign.Center, fontSize = 11.sp, lineHeight = 18.sp)
+        GlobalAdBanner()
     }
 }
 
