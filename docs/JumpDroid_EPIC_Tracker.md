@@ -438,11 +438,14 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 - [ ] Chassis variants per class (12 total — Explorer, Striker, Heavy, Prototype fleets)
 - [ ] Fleet collection UI (grid with locked/unlocked states)
 
-## Phase 3 — Gameplay UX: HUD, Feedback & Continue
+## Phase 3 — Gameplay UX: HUD, Feedback, Continue & Credits
 - [ ] HUD gauge consolidation (shield+hull combined, zone progress bar)
 - [ ] Heat warning enhancement (visual danger markers, screen-edge glow)
 - [ ] Combo ring explanation text
 - [ ] Unlock celebration system (full-screen glow + preview + action button)
+- [ ] Continue credit system (watch ad → bank credit, max 10, spend at game over)
+- [ ] Credit purchase with cash (100 cash = 1 credit)
+- [ ] Server-pushable credit bonuses via remote config
 - [ ] Continue experience redesign (loading modal, internal retry, grace offer)
 - [ ] Boss arrival cinematic (screen dim, warning text, particle burst)
 - [ ] Notification priority tuning
@@ -461,15 +464,20 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 - [ ] Codex HUD quick-access button
 - [ ] Archive badge count retention fix
 
-## Phase 6 — Monetization Surface
-- [ ] Shop redesign (remove V2 placeholders, show available items)
-- [ ] First cosmetic skins & engine trails (3 skins + 3 trails purchasable)
+## Phase 6 — Monetization Surface & Cash Economy
+- [ ] Cash system activation (earnable currency via missions/combo/achievements)
+- [ ] Shop redesign (tabs: Cosmetics / Premium / Credits)
+- [ ] Cash-spendable cosmetics: skins (500-1000 cash), trails (300-500 cash), paints (200-500 cash)
+- [ ] First cosmetic skins & engine trails (3 cash + premium-exclusive variants)
 - [ ] Premium value display in Settings
 - [ ] Rewarded ad in-game option (watch for refuel)
+- [ ] Credit exchange: cash ↔ credits + watch-ad-for-credit
 
 ## Phase 7 — Online Features
 - [ ] Optional Google Sign-In
 - [ ] Leaderboard (highest altitude, most bosses, longest run)
+- [ ] Device notifications via Firebase Cloud Messaging (opt-in, topics-based)
+- [ ] Server-pushable credit bonuses via remote config
 - [ ] Cloud save (Firestore sync)
 - [ ] Google Play Games achievement sync
 

@@ -96,7 +96,7 @@ The plan merges the original EPIC 12 — Fleet Expansion (chassis variants, engi
 | 3.2 | **HUD Heat Warning Enhancement** | `HudWidgets.kt` | Visual danger zone markers on heat gauge. More prominent warning at 70%+ (pulsing border, screen-edge glow tinting orange→red). |
 | 3.3 | **Combo Ring Explanation** | `HudWidgets.kt` | Brief rotating text hint near combo ring: "LAND ON DIFFERENT PLATFORMS TO BUILD COMBO" (shown once at first combo level 3). |
 | 3.4 | **Unlock Celebration System** | `GameEngine.kt`, `ProgressionManager.kt`, `CanvasEffects.kt` | Every unlock (mission, module, rocket, archive entry, achievement) triggers: full-screen brief glow animation → "UNLOCKED: [Name]" with entity preview → "WHAT THIS DOES" summary → "VIEW IN [HANGAR/ARCHIVE/MISSIONS]" action button. Wire into existing `checkUnlock()`, `checkDiscovery()`, `spawnBurst()`. |
-| 3.5 | **Continue Experience Redesign** | `AdComponents.kt`, `GameOverOverlay.kt` | Replace 3-attempt retry with loading modal: "RE-ESTABLISHING LINK..." with animated signal bars. Internal retry loop (attempt ad load, retry every 2s, timeout at 15s). If ad available: show rewarded immediately. If timeout: grace offer "CONTINUE WITHOUT REWARD". Keep one-time-per-run enforcement. Acquire wake lock during ad flow. |
+| 3.5 | **Continue Credit System** | `AdComponents.kt`, `GameOverOverlay.kt`, `ProgressionManager.kt`, `ShopScreen.kt` | Players watch ads proactively to bank continue credits (1 ad = 1 credit, max 10 banked). "WATCH AD → +1 CREDIT" button on Main Menu + pre-flight screen. At game over: if credits > 0, "CONTINUE (1 CREDIT)" button; if 0, fall back to rewarded ad flow. Credit counter badge on Main Menu and Game Over overlay. Credits persist in SharedPreferences. Also allow cash purchase: 100 cash = 1 credit. Server-pushable bonus credits via Firestore remote config. |
 | 3.6 | **Boss Arrival Cinematic** | `ThreatInteractionProcessor.kt`, `CanvasEffects.kt`, `HudWidgets.kt` | Boss arrival: screen dim → "WARNING: [BOSS NAME]" text with boss silhouette → boss enters from top/side with zone-tinted particle burst. Keep existing defeat sequence (Phase 1 item 4) with boss-specific explosion colors + reward burst. |
 | 3.7 | **Notification Priority Tuning** | `NotificationManager.kt` | Audit all notification call sites. Ensure CRITICAL/TACTICAL/FLAVOR priority assignments are correct post all Phase 3 changes. Remove remaining weak notifications. |
 
@@ -126,14 +126,16 @@ The plan merges the original EPIC 12 — Fleet Expansion (chassis variants, engi
 
 ### Phase 6 — Monetization Surface
 
-**Goal:** Make the Shop feel premium. Deliver first cosmetic purchasables per MONETIZATION_VISION.md.
+**Goal:** Make the Shop feel premium. Activate the existing cash system into a meaningful earnable currency. Deliver first cosmetic purchasables per MONETIZATION_VISION.md.
 
 | # | Task | Target File(s) | Description |
 |---|------|----------------|-------------|
-| 6.1 | **Shop Redesign** | `ShopScreen.kt` | Remove V2 placeholder cards (confuse players). Show only available items. Premium card: "REMOVE ADS ($2.99)" with "ADS REMOVED ✓" state. Cash balance display. Cosmetic section: first 2-3 rocket skins + 2-3 engine trails as purchasable. |
-| 6.2 | **First Cosmetic Skins & Trails** | `RocketRenderer.kt`, `Player.kt`, `ShopScreen.kt` | 3 purchasable rocket skins: Chrome (metallic silver), Stealth (matte black with red accents), Prototype-X (glossy purple with cyan conduits). 3 engine trails: Solar Flare (gold/orange), Void Glitch (purple/black static), Plasma Blue (bright cyan). Skin = color transform + minor geometry changes on existing Canvas rocket. Trail = particle color + pattern config. |
-| 6.3 | **Premium Value Display** | `SettingsScreen.kt` | "Go Premium" button shows feature comparison panel: ads removed, early access, profile badge, supporter recognition. |
-| 6.4 | **Rewarded Ad In-Game Option** | `AdComponents.kt`, `GameEngine.kt` | Add "WATCH AD: REFUEL 50%" button that appears when fuel < 20%. One offer per run. Follows existing rewarded continue architecture. |
+| 6.1 | **Cash System Activation** | `ShopScreen.kt`, `ProgressionManager.kt`, `MissionRegistry.kt` | Activate the existing `totalCash` system as the earnable free currency. Cash earned via Missions, combo rewards, achievements. Spendable on: cosmetic skins (500-1000 cash), engine trails (300-800 cash), paint schemes (200-500 cash), continue credits (100 cash = 1 credit). Cash balance displayed on Shop, Main Menu, and Game Over. Ensure `grantReward(Cash)` is wired through all reward sources. |
+| 6.2 | **Shop Redesign** | `ShopScreen.kt` | Remove V2 placeholder cards. Organize into tabs: COSMETICS (cash purchases), PREMIUM (real money), CREDITS (cash ↔ credits exchange). Premium card: "REMOVE ADS ($2.99)" with "ADS REMOVED ✓" state. Cash balance prominent at top. |
+| 6.3 | **First Cosmetic Skins & Trails** | `RocketRenderer.kt`, `Player.kt`, `ShopScreen.kt` | 3 cash-purchasable rocket skins: Chrome (500 cash), Stealth (750 cash), Prototype-X (1000 cash). 3 engine trails: Solar Flare (300 cash), Void Glitch (500 cash), Plasma Blue (400 cash). Skin = color transform + minor geometry changes on existing Canvas rocket. Trail = particle color + pattern config. Optionally premium-exclusive variants for $0.99 each. |
+| 6.4 | **Continue Credit Purchase** | `ShopScreen.kt`, `AdComponents.kt` | Credit exchange card: "BUY CREDITS — 100 cash = 1 credit" + "WATCH AD → +1 CREDIT" button. Shows current credit bank (X/10). |
+| 6.5 | **Premium Value Display** | `SettingsScreen.kt` | "Go Premium" button shows feature comparison panel: ads removed, early access, profile badge, supporter recognition. |
+| 6.6 | **Rewarded Ad In-Game Option** | `AdComponents.kt`, `GameEngine.kt` | Add "WATCH AD: REFUEL 50%" button that appears when fuel < 20%. One offer per run. Follows existing rewarded continue architecture. |
 
 ### Phase 7 — Online Features
 
@@ -143,8 +145,10 @@ The plan merges the original EPIC 12 — Fleet Expansion (chassis variants, engi
 |---|------|----------------|-------------|
 | 7.1 | **Optional Google Sign-In** | `MainActivity.kt`, new `LoginManager.kt` | "Sign in with Google" button on Main Menu. Anonymous play remains default and fully supported. Login unlocks cloud features. |
 | 7.2 | **Leaderboard** | `LeaderboardScreen.kt`, new `LeaderboardManager.kt` | Categories: Highest Altitude, Most Bosses Defeated, Longest Run Time. Firestore-backed. Friend tracking if signed in. |
-| 7.3 | **Cloud Save** | `ProgressionManager.kt`, new `CloudSyncManager.kt` | Sync player stats, progression, unlocks, settings to Firestore. Sync on login. Merge conflicts with "keep highest" strategy. |
-| 7.4 | **Google Play Games Achievements** | `GameAnalytics.kt`, new `AchievementSyncManager.kt` | Map existing 10 achievements (ACHIEVEMENT_LIBRARY.md) to Google Play Games. No new achievements needed. |
+| 7.3 | **Device Notifications (FCM)** | New: `NotificationService.kt`, `SettingsScreen.kt` | Integrate Firebase Cloud Messaging for push notifications. Opt-in via Settings toggle (default off). Use cases: daily bonus reminder, credit bonus grants, new content announcements, re-engagement. Topics-based targeting (all players, beta testers). Standard notification permission flow (API 33+). Tap → opens Main Menu. |
+| 7.4 | **Server-Pushable Credit Bonuses** | New: `RemoteConfigManager.kt`, `ProgressionManager.kt` | Read remote config values from Firestore on app launch. Config key: `credit_bonus_grant` (int, default 0). If > 0, grant that many credits on next sync, then reset to 0. Enables server-side bonus pushes without app update. |
+| 7.5 | **Cloud Save** | `ProgressionManager.kt`, new `CloudSyncManager.kt` | Sync player stats, progression, unlocks, settings to Firestore. Sync on login. Merge conflicts with "keep highest" strategy. |
+| 7.6 | **Google Play Games Achievements** | `GameAnalytics.kt`, new `AchievementSyncManager.kt` | Map existing 10 achievements (ACHIEVEMENT_LIBRARY.md) to Google Play Games. No new achievements needed. |
 
 ### Phase 8 — Technical Foundation
 
@@ -190,14 +194,14 @@ Phase 1: Visual Identity + Navigation
 |-------|-------------|-----------|--------------|
 | 1 | Visual Identity & Navigation | 5-7 | None |
 | 2 | Hangar, Missions, Fleet | 8-12 | Phase 1 |
-| 3 | Gameplay UX (HUD, Unlocks, Continue, Boss) | 6-10 | None (parallel with Phase 1/2) |
+| 3 | Gameplay UX (HUD, Unlocks, Continue, Credits) | 7-12 | None (parallel with Phase 1/2) |
 | 4 | Canvas Visual Upgrade | 8-14 | Phase 3 (coordinate space) |
 | 5 | Discovery & Lore Surface | 3-5 | Phase 2, 3 |
-| 6 | Monetization Surface | 4-6 | Phase 3, 4 |
-| 7 | Online Features | 5-8 | Phase 1-3 (stable UX) |
+| 6 | Monetization Surface + Cash System | 6-10 | Phase 3, 4 |
+| 7 | Online Features (FCM, Remote Config, Login) | 7-12 | Phase 1-3 (stable UX) |
 | 8 | Technical Foundation | 4-8 | Runs parallel |
 
-**Total:** ~43-70 days development
+**Total:** ~48-80 days development
 
 ---
 
@@ -217,6 +221,11 @@ Phase 1: Visual Identity + Navigation
 - Rocket visual upgrades render per equipment state
 - Skins/trails/paints apply and render on rocket
 - Shop shows correct items, purchase flow works (test ads)
+- Continue credits: watch ad → credit banked (max 10), spend at game over, persist across sessions
+- Cash system: earned via missions/combo, displayed on Shop/Menu, spendable on skins/trails/credits
+- Cash ↔ credit exchange works (100 cash → 1 credit)
+- Server-pushable credit bonus via remote config
+- FCM notification received on device, tap opens Main Menu
 - Leaderboard reads/writes to Firestore
 - Cloud save syncs correctly
 
