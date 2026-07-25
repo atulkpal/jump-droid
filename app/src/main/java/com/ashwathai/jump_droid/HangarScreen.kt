@@ -130,11 +130,24 @@ private fun OverviewTab(
     soundManager: SoundManager?
 ) {
     val rocketRenderer = remember { RocketRenderer() }
-    var selectedSlot by remember { mutableIntStateOf(-1) }
     var showDetailsModal by remember { mutableStateOf(false) }
+    var showModulePicker by remember { mutableStateOf(false) }
+    var pickerCategory by remember { mutableStateOf<ModuleCategory?>(null) }
+
+    fun resetPicker() { showModulePicker = false; pickerCategory = null }
+
+    val bobTransition = rememberInfiniteTransition(label = "RocketBob")
+    val bobY by bobTransition.animateFloat(-3f, 3f, infiniteRepeatable(tween(1200), RepeatMode.Reverse), label = "Bob")
+    val currentGameTime = remember { mutableStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentGameTime.value = System.currentTimeMillis()
+            kotlinx.coroutines.delay(50L)
+        }
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-        // Rocket preview
+        // Animated rocket preview
         Box(
             Modifier.fillMaxWidth().height(240.dp).padding(8.dp)
                 .background(SciFiSurface, RoundedCornerShape(16.dp))
@@ -142,9 +155,9 @@ private fun OverviewTab(
             contentAlignment = Alignment.Center
         ) {
             Canvas(Modifier.fillMaxSize()) {
-                translate(size.width / 2, size.height / 2) {
+                translate(size.width / 2, size.height / 2 + bobY) {
                     scale(3f, 3f, pivot = Offset.Zero) {
-                        rocketRenderer.render(this, player, false, Offset.Zero, 0f, 0L, offsetOverride = Offset.Zero)
+                        rocketRenderer.render(this, player, true, Offset.Zero, 0f, currentGameTime.value, offsetOverride = Offset.Zero)
                     }
                 }
             }
@@ -191,79 +204,39 @@ private fun OverviewTab(
 
         Spacer(Modifier.height(6.dp))
 
-        // Module slots + inline picker
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            loadoutManager.equippedModuleIds.forEachIndexed { index, moduleId ->
-                val module = moduleId?.let { ModuleRegistry.getById(it) }
-                val isSelected = selectedSlot == index
-                Box(
-                    modifier = Modifier.weight(1f).height(70.dp)
-                        .background(if (isSelected) SciFiCyan.copy(alpha = 0.1f) else SciFiSurface, RoundedCornerShape(10.dp))
-                        .border(1.dp, if (isSelected) SciFiCyan else if (module != null) module.iconColor.copy(alpha = 0.4f) else SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-                        .clickable { selectedSlot = if (isSelected) -1 else index },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (module != null) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(module.name.uppercase(), color = module.iconColor, fontWeight = FontWeight.Bold, fontSize = 9.sp, textAlign = TextAlign.Center)
-                            Text(module.category.name, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 7.sp)
-                            Spacer(Modifier.height(2.dp))
-                            Text("TAP", color = SciFiCyan.copy(alpha = 0.5f), fontSize = 6.sp)
-                        }
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("SLOT ${index + 1}", color = SciFiWhite.copy(alpha = 0.2f), fontSize = 9.sp)
-                            Text("TAP TO EQUIP", color = SciFiCyan.copy(alpha = 0.3f), fontSize = 7.sp)
-                        }
+        // Single module slot
+        val equippedModule = loadoutManager.equippedModuleIds.firstOrNull()?.let { ModuleRegistry.getById(it) }
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).height(64.dp)
+                .background(SciFiSurface, RoundedCornerShape(10.dp))
+                .border(1.dp, if (equippedModule != null) equippedModule.iconColor.copy(alpha = 0.4f) else SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                .clickable { showModulePicker = true },
+            contentAlignment = Alignment.Center
+        ) {
+            if (equippedModule != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(28.dp).background(equippedModule.iconColor.copy(alpha = 0.2f), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) {
+                        Text(equippedModule.category.name.take(1), color = equippedModule.iconColor, fontWeight = FontWeight.Black, fontSize = 14.sp)
                     }
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(equippedModule.name.uppercase(), color = equippedModule.iconColor, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text(equippedModule.description, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text("\u25C0 TAP", color = SciFiCyan.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black)
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(28.dp).background(SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) {
+                        Text("+", color = SciFiWhite.copy(alpha = 0.2f), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text("EQUIP MODULE", color = SciFiWhite.copy(alpha = 0.3f), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Spacer(Modifier.weight(1f))
+                    Text("\u25C0 TAP", color = SciFiCyan.copy(alpha = 0.3f), fontSize = 8.sp, fontWeight = FontWeight.Black)
                 }
             }
-        }
-
-        // Inline module picker
-        if (selectedSlot >= 0) {
-            Spacer(Modifier.height(6.dp))
-            val allModules = ModuleRegistry.getAll()
-            val equippedIds = loadoutManager.equippedModuleIds
-
-            Text("SELECT MODULE", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 9.sp, letterSpacing = 1.sp)
-            Spacer(Modifier.height(4.dp))
-
-            Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-                allModules.forEach { module ->
-                    val isEquipped = equippedIds.contains(module.id)
-                    val isUnlocked = loadoutManager.isModuleUnlocked(module, progressionManager, missionManager)
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                            .clickable(isUnlocked && !isEquipped) {
-                                loadoutManager.equipModule(module.id, selectedSlot)
-                                selectedSlot = -1
-                            },
-                        color = when {
-                            isEquipped -> SciFiSurface.copy(alpha = 0.3f)
-                            !isUnlocked -> Color.Black.copy(alpha = 0.3f)
-                            else -> SciFiSurface
-                        },
-                        shape = RoundedCornerShape(6.dp),
-                        border = if (isUnlocked && !isEquipped) BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.1f)) else null
-                    ) {
-                        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(22.dp).background(if (isUnlocked) module.iconColor.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(3.dp)), contentAlignment = Alignment.Center) {
-                                Text(if (isUnlocked) module.category.name.take(1) else "\uD83D\uDD12", color = if (isUnlocked) module.iconColor else Color.Gray, fontWeight = FontWeight.Black, fontSize = 10.sp)
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(if (isUnlocked) module.name else "LOCKED MODULE", color = when { isEquipped -> SciFiWhite.copy(alpha = 0.3f); !isUnlocked -> Color.Gray; else -> SciFiWhite }, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                                Text(if (isUnlocked) module.description else formatRequirement(module.unlockRequirement), color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                            if (isEquipped) Text("EQPD", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black)
-                            else if (!isUnlocked) Text("LOCKED", color = SciFiRed.copy(alpha = 0.4f), fontSize = 6.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-            Spacer(Modifier.height(4.dp))
         }
 
         Spacer(Modifier.height(8.dp))
@@ -313,6 +286,129 @@ private fun OverviewTab(
     if (showDetailsModal) {
         RocketDetailsModal(player, sharedPrefs, onDismiss = { showDetailsModal = false })
     }
+
+    // Module picker popup
+    if (showModulePicker) {
+        ModulePickerPopup(
+            loadoutManager = loadoutManager,
+            progressionManager = progressionManager,
+            missionManager = missionManager,
+            selectedCategory = pickerCategory,
+            onSelectCategory = { pickerCategory = it },
+            onSelectModule = { moduleId ->
+                loadoutManager.equipModule(moduleId, 0)
+                resetPicker()
+            },
+            onDismiss = { resetPicker() }
+        )
+    }
+}
+
+@Composable
+private fun ModulePickerPopup(
+    loadoutManager: LoadoutManager,
+    progressionManager: ProgressionManager,
+    missionManager: MissionManager,
+    selectedCategory: ModuleCategory?,
+    onSelectCategory: (ModuleCategory?) -> Unit,
+    onSelectModule: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.8f)).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
+        Surface(
+            Modifier.fillMaxWidth(0.9f).wrapContentHeight().verticalScroll(rememberScrollState()),
+            color = SciFiBackground,
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                // Header
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (selectedCategory == null) "SELECT CATEGORY" else selectedCategory.name, color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp)
+                    Text("\u2715", color = SciFiWhite.copy(alpha = 0.6f), fontSize = 18.sp, modifier = Modifier.clickable(onClick = onDismiss))
+                }
+                Spacer(Modifier.height(12.dp))
+
+                if (selectedCategory == null) {
+                    // Category grid
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        ModuleCategory.entries.forEach { cat ->
+                            Surface(
+                                modifier = Modifier.weight(1f)
+                                    .clickable { onSelectCategory(cat) }
+                                    .border(1.dp, categoryColor(cat).copy(alpha = 0.3f), RoundedCornerShape(10.dp)),
+                                color = categoryColor(cat).copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Column(Modifier.padding(8.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(categoryIcon(cat), fontSize = 20.sp)
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(cat.name, color = categoryColor(cat), fontWeight = FontWeight.Bold, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth().height(40.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface)
+                    ) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f), fontWeight = FontWeight.Bold, fontSize = 10.sp) }
+                } else {
+                    // Module list for selected category
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("\u25C0 BACK", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 9.sp, modifier = Modifier.clickable { onSelectCategory(null) })
+                        Spacer(Modifier.weight(1f))
+                        Text("${selectedCategory.name} MODULES", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black)
+                    }
+                    Spacer(Modifier.height(8.dp))
+
+                    val equippedIds = loadoutManager.equippedModuleIds
+                    ModuleRegistry.getAll().filter { it.category == selectedCategory }.forEach { module ->
+                        val isEquipped = equippedIds.contains(module.id)
+                        val isUnlocked = loadoutManager.isModuleUnlocked(module, progressionManager, missionManager)
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                .clickable(isUnlocked && !isEquipped) { onSelectModule(module.id) },
+                            color = when { isEquipped -> SciFiSurface.copy(alpha = 0.3f); !isUnlocked -> Color.Black.copy(alpha = 0.3f); else -> SciFiSurface },
+                            shape = RoundedCornerShape(8.dp),
+                            border = if (isUnlocked && !isEquipped) BorderStroke(1.dp, categoryColor(selectedCategory).copy(alpha = 0.15f)) else null
+                        ) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(24.dp).background(if (isUnlocked) module.iconColor.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
+                                    Text(if (isUnlocked) module.category.name.take(1) else "\uD83D\uDD12", color = if (isUnlocked) module.iconColor else Color.Gray, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(if (isUnlocked) module.name else "LOCKED MODULE", color = when { isEquipped -> SciFiWhite.copy(alpha = 0.3f); !isUnlocked -> Color.Gray; else -> SciFiWhite }, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                    Text(if (isUnlocked) module.description else formatRequirement(module.unlockRequirement), color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                if (isEquipped) Text("EQPD", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black)
+                                else if (!isUnlocked) Text("LOCKED", color = SciFiRed.copy(alpha = 0.4f), fontSize = 6.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun categoryColor(category: ModuleCategory): Color = when (category) {
+    ModuleCategory.HULL -> Color(0xFF78909C)
+    ModuleCategory.SHIELD -> SciFiCyan
+    ModuleCategory.ENGINE -> SciFiGold
+    ModuleCategory.HEAT -> SciFiRed
+    ModuleCategory.UTILITY -> SciFiPurple
+}
+
+private fun categoryIcon(category: ModuleCategory): String = when (category) {
+    ModuleCategory.HULL -> "\uD83D\uDEE1"
+    ModuleCategory.SHIELD -> "\u26E8"
+    ModuleCategory.ENGINE -> "\uD83D\uDD25"
+    ModuleCategory.HEAT -> "\u2744"
+    ModuleCategory.UTILITY -> "\uD83D\uDD0D"
 }
 
 @Composable
