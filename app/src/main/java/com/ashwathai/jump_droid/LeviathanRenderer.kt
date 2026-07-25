@@ -22,14 +22,17 @@ class LeviathanRenderer : ThreatRenderer {
                 drawRect(Color.Red.copy(alpha = 0.15f), Offset(edgeX - if (nearLeft) 0f else 20f, 0f), Size(if (nearLeft) 20f else 20f, size.height))
             }
 
+            val bioPulse = (sin(gameTime / 400f) * 0.3f + 0.7f)
+            val bioGlowColor = if (phase == 3) Color(0xFFE91E63) else Color(0xFF00E5FF)
             repeat(6) { i ->
                 val ox = sin(gameTime / 1000f - i * 0.5f) * 100f
                 val oy = i * 60f
-                val segmentPulse = (sin(gameTime / 500f + i) * 0.2f + 0.8f)
+                val segmentPulse = (sin(gameTime / 500f + i) * 0.2f + 0.8f) * bioPulse
                 val bodyColor = if (phase == 3) Color(0xFF1A237E) else Color(0xFF01579B)
 
                 drawOval(bodyColor, topLeft = Offset(tx + ox - (60f - i * 8f) * segmentPulse, ty + oy - (45f - i * 6f) * segmentPulse), size = Size((120f - i * 16f) * segmentPulse, (90f - i * 12f) * segmentPulse))
-                drawOval(Color.Cyan.copy(alpha = 0.2f), topLeft = Offset(tx + ox - (60f - i * 8f) * segmentPulse, ty + oy - (45f - i * 6f) * segmentPulse), size = Size((120f - i * 16f) * segmentPulse, (90f - i * 12f) * segmentPulse), style = Stroke(width = 2f))
+                drawOval(bioGlowColor.copy(alpha = 0.15f * bioPulse), topLeft = Offset(tx + ox - (60f - i * 8f + 6f) * segmentPulse, ty + oy - (45f - i * 6f + 6f) * segmentPulse), size = Size((120f - i * 16f + 12f) * segmentPulse, (90f - i * 12f + 12f) * segmentPulse), style = Stroke(width = 4f))
+                drawOval(bioGlowColor.copy(alpha = 0.4f * bioPulse), topLeft = Offset(tx + ox - (60f - i * 8f) * segmentPulse, ty + oy - (45f - i * 6f) * segmentPulse), size = Size((120f - i * 16f) * segmentPulse, (90f - i * 12f) * segmentPulse), style = Stroke(width = 2f))
 
                 drawOval(bodyColor.copy(alpha = 0.5f), topLeft = Offset(tx + ox - (30f - i * 4f) * segmentPulse, ty + oy - (10f - i * 2f) * segmentPulse), size = Size((60f - i * 8f) * segmentPulse, (20f - i * 3f) * segmentPulse))
 

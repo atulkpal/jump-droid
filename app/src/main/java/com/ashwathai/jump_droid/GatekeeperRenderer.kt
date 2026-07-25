@@ -20,11 +20,18 @@ class GatekeeperRenderer : ThreatRenderer {
 
             drawRect(Color.Black.copy(alpha = 0.4f * arrivalProgress), topLeft = Offset(0f, 0f), size = size)
 
-            repeat(2) { g ->
-                val ghostAngle = threat.rotation - 30f - g * 20f
+            // Afterimage ring trails
+            repeat(4) { g ->
+                val ghostAngle = threat.rotation - 20f - g * 15f
+                val ghostAlpha = 0.06f * (1f - g * 0.2f)
+                val ghostWidth = (15f + g * 3f).coerceAtMost(25f)
                 rotate(ghostAngle, pivot = Offset(tx, ty)) {
-                    drawCircle(Color.White.copy(alpha = 0.05f * (1f - g * 0.5f)), radius = 250f, center = Offset(tx, ty), style = Stroke(width = 15f))
+                    drawCircle(Color(0xFF00E5FF).copy(alpha = ghostAlpha), radius = 250f - g * 20f, center = Offset(tx, ty), style = Stroke(width = ghostWidth))
                 }
+            }
+            val trailPulse = (sin(gameTime / 300f) * 0.5f + 0.5f)
+            rotate(threat.rotation - 10f, pivot = Offset(tx, ty)) {
+                drawCircle(Color(0xFF00E5FF).copy(alpha = 0.03f * trailPulse), radius = 300f, center = Offset(tx, ty), style = Stroke(width = 30f))
             }
 
             rotate(threat.rotation, pivot = Offset(tx, ty)) {

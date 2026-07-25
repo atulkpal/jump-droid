@@ -30,19 +30,34 @@ class VoidEngineRenderer : ThreatRenderer {
                 center = Offset(tx, ty)
             )
 
+            val tearJitterPulse = if (phase == 3) 80f else 40f
+            val tearAlpha = if (phase == 3) 0.15f else 0.08f
             val tearPath = Path().apply {
-                val segs = 16
+                val segs = 24
                 moveTo(tx + 500f, ty)
                 repeat(segs) {
                     val ta = ((it + 1) / segs.toFloat()) * 2f * PI.toFloat()
-                    val seed = threat.instanceId.hashCode() + it + (gameTime / 150).toInt()
+                    val seed = threat.instanceId.hashCode() + it + (gameTime / 100).toInt()
                     val rng = Random(seed)
-                    val jitter = 480f + rng.nextFloat() * 40f
+                    val jitter = 460f + rng.nextFloat() * tearJitterPulse
                     lineTo(tx + cos(ta) * jitter, ty + sin(ta) * jitter)
                 }
                 close()
             }
-            drawPath(tearPath, Color(0xFFE91E63).copy(alpha = 0.08f), style = Stroke(width = 2f))
+            drawPath(tearPath, Color(0xFFE91E63).copy(alpha = tearAlpha), style = Stroke(width = (if (phase == 3) 4f else 2f)))
+            val innerTearPath = Path().apply {
+                val segs = 16
+                moveTo(tx + 480f, ty)
+                repeat(segs) {
+                    val ta = ((it + 1) / segs.toFloat()) * 2f * PI.toFloat()
+                    val seed = threat.instanceId.hashCode() + it * 7 + (gameTime / 120).toInt()
+                    val rng = Random(seed)
+                    val jitter = 440f + rng.nextFloat() * 50f
+                    lineTo(tx + cos(ta) * jitter, ty + sin(ta) * jitter)
+                }
+                close()
+            }
+            drawPath(innerTearPath, Color(0xFFFF4081).copy(alpha = tearAlpha * 0.5f), style = Stroke(width = 1f))
 
             rotate(rot, pivot = Offset(tx, ty)) {
                 repeat(2) { g ->

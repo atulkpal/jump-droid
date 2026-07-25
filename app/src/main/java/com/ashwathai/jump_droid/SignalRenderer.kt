@@ -20,24 +20,32 @@ class SignalRenderer : ThreatRenderer {
             drawCircle(Color(0xFF9E9E9E).copy(alpha = 0.04f), radius = 400f, center = Offset(tx, ty), style = Stroke(width = 60f))
 
             if (flicker > 0) {
-                repeat(20) { i ->
-                    val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 50).toInt()
+                val glitchCount = if (phase == 3) 40 else 20
+                val glitchAlpha = if (phase == 3) 0.5f else 0.3f
+                val screenTearCount = if (phase == 3) 10 else 4
+                val screenTearAlpha = if (phase == 3) 0.15f else 0.08f
+                repeat(glitchCount) { i ->
+                    val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 40).toInt()
                     val rng = Random(seed)
-                    val rx = tx + (rng.nextFloat() - 0.5f) * 400f
-                    val ry = ty + (rng.nextFloat() - 0.5f) * 400f
+                    val rx = tx + (rng.nextFloat() - 0.5f) * 420f
+                    val ry = ty + (rng.nextFloat() - 0.5f) * 420f
                     drawRect(
-                        if (phase == 3) Color.Red.copy(alpha = rng.nextFloat() * 0.3f) else Color.White.copy(alpha = rng.nextFloat() * 0.3f),
+                        if (phase == 3) Color.Red.copy(alpha = rng.nextFloat() * glitchAlpha) else Color.White.copy(alpha = rng.nextFloat() * glitchAlpha),
                         topLeft = Offset(rx, ry),
-                        size = Size(rng.nextFloat() * 60f, rng.nextFloat() * 60f)
+                        size = Size(rng.nextFloat() * 70f, rng.nextFloat() * 70f)
                     )
                 }
 
-                repeat(4) { i ->
-                    val seed = threat.instanceId.hashCode() + i * 11 + (gameTime / 80).toInt()
+                repeat(screenTearCount) { i ->
+                    val seed = threat.instanceId.hashCode() + i * 11 + (gameTime / 60).toInt()
                     val rng = Random(seed)
-                    val tearY = ty - 300f + rng.nextFloat() * 600f
-                    val tearW = 20f + rng.nextFloat() * 60f
-                    drawRect(Color(0xFF212121).copy(alpha = 0.08f), Offset(tx - 200f + rng.nextFloat() * 100f, tearY), Size(tearW, 4f))
+                    val tearY = ty - 350f + rng.nextFloat() * 700f
+                    val tearW = 15f + rng.nextFloat() * 80f
+                    val tearColor = if (phase == 3) Color(0xFF212121) else Color(0xFF212121)
+                    drawRect(tearColor.copy(alpha = screenTearAlpha), Offset(tx - 200f + rng.nextFloat() * 150f, tearY), Size(tearW, 6f))
+                    if (phase == 3 && rng.nextFloat() < 0.4f) {
+                        drawRect(Color(0xFFFF1744).copy(alpha = 0.05f), Offset(tx - 180f + rng.nextFloat() * 120f, tearY - 2f), Size(tearW + 10f, 10f))
+                    }
                 }
 
                 repeat(8) { i ->
