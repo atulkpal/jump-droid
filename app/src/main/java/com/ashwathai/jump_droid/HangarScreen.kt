@@ -25,6 +25,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -140,10 +141,10 @@ private fun OverviewTab(
             contentAlignment = Alignment.Center
         ) {
             Canvas(Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                scale(2.8f, 2.8f, pivot = Offset(w / 2, h / 2)) {
-                    rocketRenderer.render(this, player, false, Offset.Zero, 0f, 0L, offsetOverride = Offset.Zero)
+                translate(size.width / 2, size.height / 2) {
+                    scale(2.8f, 2.8f) {
+                        rocketRenderer.render(this, player, false, Offset.Zero, 0f, 0L, offsetOverride = Offset.Zero)
+                    }
                 }
             }
         }

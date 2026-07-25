@@ -58,23 +58,55 @@ fun BossArrivalOverlay(
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dimAlpha)), contentAlignment = Alignment.Center) {
+        // Screen-edge glow
+        Box(Modifier.fillMaxSize().graphicsLayer(alpha = (1f - progress * 0.6f))) {
+            Canvas(Modifier.fillMaxSize()) {
+                val w = size.width; val h = size.height
+                val edgeSize = w * 0.1f
+                drawRect(brush = Brush.verticalGradient(listOf(zoneColor.copy(alpha = 0.08f), Color.Transparent), startY = 0f, endY = edgeSize), topLeft = Offset.Zero, size = Size(w, edgeSize))
+                drawRect(brush = Brush.verticalGradient(listOf(Color.Transparent, zoneColor.copy(alpha = 0.08f)), startY = h - edgeSize, endY = h), topLeft = Offset(0f, h - edgeSize), size = Size(w, edgeSize))
+                drawRect(brush = androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(zoneColor.copy(alpha = 0.08f), Color.Transparent), startX = 0f, endX = edgeSize), size = Size(edgeSize, h))
+                drawRect(brush = androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color.Transparent, zoneColor.copy(alpha = 0.08f)), startX = w - edgeSize, endX = w), topLeft = Offset(w - edgeSize, 0f), size = Size(edgeSize, h))
+            }
+        }
+
         Canvas(Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            val cx = w / 2
-            val cy = h / 2
+            val w = size.width; val h = size.height
+            val cx = w / 2; val cy = h / 2
 
-            val ringRadius = 80f + progress * 200f
-            drawCircle(zoneColor.copy(alpha = 0.15f * (1f - progress)), radius = ringRadius, center = Offset(cx, cy), style = Stroke(width = 2f))
-            drawCircle(zoneColor.copy(alpha = 0.1f * (1f - progress)), radius = ringRadius * 0.7f, center = Offset(cx, cy), style = Stroke(width = 1f))
+            // Expanding targeting rings
+            val ringRadius = 60f + progress * 180f
+            drawCircle(zoneColor.copy(alpha = 0.2f * (1f - progress)), radius = ringRadius, center = Offset(cx, cy), style = Stroke(width = 2f))
+            drawCircle(zoneColor.copy(alpha = 0.1f * (1f - progress)), radius = ringRadius * 0.6f, center = Offset(cx, cy), style = Stroke(width = 1f))
+            drawCircle(zoneColor.copy(alpha = 0.05f), radius = ringRadius * 0.3f, center = Offset(cx, cy), style = Stroke(width = 0.5f))
 
-            repeat(12) { i ->
-                val angle = (i * 30f + gameTime * 0.05f)
-                val r = 120f + progress * 150f
+            // Crosshair reticle
+            val reticleSize = 40f
+            drawLine(zoneColor.copy(alpha = 0.6f * (1f - progress * 0.5f)), Offset(cx - reticleSize, cy), Offset(cx - reticleSize / 3, cy), strokeWidth = 1.5f)
+            drawLine(zoneColor.copy(alpha = 0.6f * (1f - progress * 0.5f)), Offset(cx + reticleSize / 3, cy), Offset(cx + reticleSize, cy), strokeWidth = 1.5f)
+            drawLine(zoneColor.copy(alpha = 0.6f * (1f - progress * 0.5f)), Offset(cx, cy - reticleSize), Offset(cx, cy - reticleSize / 3), strokeWidth = 1.5f)
+            drawLine(zoneColor.copy(alpha = 0.6f * (1f - progress * 0.5f)), Offset(cx, cy + reticleSize / 3), Offset(cx, cy + reticleSize), strokeWidth = 1.5f)
+            drawCircle(zoneColor.copy(alpha = 0.3f), radius = 3f, center = Offset(cx, cy))
+
+            // Scanner sweep line (rotating)
+            val sweepAngle = (gameTime * 0.08f) % 360f
+            drawArc(zoneColor.copy(alpha = 0.15f * (1f - progress * 0.5f)), startAngle = sweepAngle - 5f, sweepAngle = 10f, useCenter = true, topLeft = Offset(cx - ringRadius, cy - ringRadius), size = Size(ringRadius * 2, ringRadius * 2))
+
+            // Orbiting particles
+            repeat(16) { i ->
+                val angle = (i * 22.5f + gameTime * 0.04f)
+                val r = 100f + progress * 160f
                 val px = cx + cos(angle * 0.01745f) * r
                 val py = cy + sin(angle * 0.01745f) * r
-                drawCircle(zoneColor.copy(alpha = 0.2f * (1f - progress) * scalePulse.value), radius = 3f, center = Offset(px, py))
+                drawCircle(zoneColor.copy(alpha = 0.25f * (1f - progress) * scalePulse.value), radius = 2f + scalePulse.value, center = Offset(px, py))
             }
+
+            // Horizontal scanner bars
+            val scanY = ((gameTime * 0.1f) % (h * 2f)) - h * 0.5f
+            val scanAlpha = 0.06f * (1f - progress * 0.5f)
+            drawLine(zoneColor.copy(alpha = scanAlpha), Offset(0f, scanY), Offset(w, scanY), strokeWidth = 1f)
+            drawLine(zoneColor.copy(alpha = scanAlpha * 0.5f), Offset(0f, scanY + 20f), Offset(w, scanY + 20f), strokeWidth = 0.5f)
+            drawLine(zoneColor.copy(alpha = scanAlpha * 0.3f), Offset(0f, scanY + 40f), Offset(w, scanY + 40f), strokeWidth = 0.5f)
         }
 
         Column(
@@ -96,38 +128,14 @@ fun BossArrivalOverlay(
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(Modifier.size(50.dp)) {
-                    val bx = size.width / 2
-                    val by = size.height / 2
-                    val s = 3f
-                    val bodyH = 20f * s
-                    val bodyW = 8f * s
-
-                    drawRoundRect(
-                        zoneColor.copy(alpha = 0.6f),
-                        topLeft = Offset(bx - bodyW / 2, by - bodyH / 2),
-                        size = Size(bodyW, bodyH),
-                        cornerRadius = CornerRadius(3f, 3f)
-                    )
-                    val nose = Path().apply {
-                        moveTo(bx - bodyW / 2, by - bodyH / 2)
-                        lineTo(bx, by - bodyH / 2 - 14f * s)
-                        lineTo(bx + bodyW / 2, by - bodyH / 2)
-                        close()
-                    }
+                    val bx = size.width / 2; val by = size.height / 2
+                    val s = 3f; val bodyH = 20f * s; val bodyW = 8f * s
+                    drawRoundRect(zoneColor.copy(alpha = 0.6f), topLeft = Offset(bx - bodyW / 2, by - bodyH / 2), size = Size(bodyW, bodyH), cornerRadius = CornerRadius(3f, 3f))
+                    val nose = Path().apply { moveTo(bx - bodyW / 2, by - bodyH / 2); lineTo(bx, by - bodyH / 2 - 14f * s); lineTo(bx + bodyW / 2, by - bodyH / 2); close() }
                     drawPath(nose, zoneColor.copy(alpha = 0.6f))
-                    val leftFin = Path().apply {
-                        moveTo(bx - bodyW / 2, by - 10f)
-                        lineTo(bx - bodyW / 2 - 8f * s, by + bodyH / 2)
-                        lineTo(bx - bodyW / 2, by + bodyH / 2)
-                        close()
-                    }
+                    val leftFin = Path().apply { moveTo(bx - bodyW / 2, by - 10f); lineTo(bx - bodyW / 2 - 8f * s, by + bodyH / 2); lineTo(bx - bodyW / 2, by + bodyH / 2); close() }
                     drawPath(leftFin, zoneColor.copy(alpha = 0.5f))
-                    val rightFin = Path().apply {
-                        moveTo(bx + bodyW / 2, by - 10f)
-                        lineTo(bx + bodyW / 2 + 8f * s, by + bodyH / 2)
-                        lineTo(bx + bodyW / 2, by + bodyH / 2)
-                        close()
-                    }
+                    val rightFin = Path().apply { moveTo(bx + bodyW / 2, by - 10f); lineTo(bx + bodyW / 2 + 8f * s, by + bodyH / 2); lineTo(bx + bodyW / 2, by + bodyH / 2); close() }
                     drawPath(rightFin, zoneColor.copy(alpha = 0.5f))
                     drawCircle(Color.White.copy(alpha = 0.4f), radius = 3f, center = Offset(bx, by - 5f))
                 }

@@ -583,12 +583,8 @@ fun LeftGauges(
     modifier: Modifier = Modifier,
     fuel: Float, maxFuel: Float,
     heat: Float, maxHeat: Float, isOverheated: Boolean,
-    shield: Float, maxShield: Float,
-    integrity: Float, maxIntegrity: Float,
     hud: HudContext
 ) {
-    val isShieldCritical = shield < maxShield * 0.25f
-    val isHullCritical = integrity < maxIntegrity * 0.25f
     Column(
         modifier = modifier
             .padding(start = 16.dp)
@@ -597,12 +593,34 @@ fun LeftGauges(
                 translationX = (120.dp * hud.hudPullFactor).toPx()
             },
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        FuelGauge(fuel = fuel, maxFuel = maxFuel, hud = hud)
+        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, hud = hud)
+    }
+}
+
+@Composable
+fun RightGauges(
+    modifier: Modifier = Modifier,
+    shield: Float, maxShield: Float,
+    integrity: Float, maxIntegrity: Float,
+    hud: HudContext
+) {
+    val isShieldCritical = shield < maxShield * 0.25f
+    val isHullCritical = integrity < maxIntegrity * 0.25f
+    Column(
+        modifier = modifier
+            .padding(end = 16.dp)
+            .graphicsLayer {
+                alpha = 0.85f
+                translationX = (-120.dp * hud.hudPullFactor).toPx()
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = isShieldCritical, hud = hud)
         IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = isHullCritical, hud = hud)
-        FuelGauge(fuel = fuel, maxFuel = maxFuel, hud = hud)
-        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, hud = hud)
     }
 }
 

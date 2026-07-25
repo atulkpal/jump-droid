@@ -258,6 +258,10 @@ fun HUDLayer(engine: GameEngine) {
             fuel = player.fuel, maxFuel = player.maxFuel,
             heat = player.heat, maxHeat = player.maxHeat,
             isOverheated = player.isOverheated,
+            hud = hud
+        )
+        RightGauges(
+            modifier = Modifier.align(Alignment.CenterEnd),
             shield = player.shield, maxShield = player.maxShield,
             integrity = player.integrity, maxIntegrity = player.maxIntegrity,
             hud = hud
@@ -301,7 +305,7 @@ fun HUDLayer(engine: GameEngine) {
         FloatingTextsLayer(texts = engine.floatingTextManager.texts, cameraY = engine.cameraY)
 
         val activeEvent = engine.discoveryManager.activeEvent
-        if (activeEvent is DiscoveryEvent.Zone) {
+        if (activeEvent is DiscoveryEvent.Zone && engine.zoneTransitionTimer <= 0) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ZoneDiscoveryCard(activeEvent = activeEvent, score = engine.score)
             }
