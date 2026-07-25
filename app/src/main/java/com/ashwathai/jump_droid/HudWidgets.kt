@@ -583,142 +583,26 @@ fun LeftGauges(
     modifier: Modifier = Modifier,
     fuel: Float, maxFuel: Float,
     heat: Float, maxHeat: Float, isOverheated: Boolean,
+    shield: Float, maxShield: Float,
+    integrity: Float, maxIntegrity: Float,
     hud: HudContext
 ) {
+    val isShieldCritical = shield < maxShield * 0.25f
+    val isHullCritical = integrity < maxIntegrity * 0.25f
     Column(
         modifier = modifier
             .padding(start = 16.dp)
             .graphicsLayer {
                 alpha = 0.85f
-                // EPIC 11: Singularity Pull
                 translationX = (120.dp * hud.hudPullFactor).toPx()
             },
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        ShieldGauge(shield = shield, maxShield = maxShield, isShieldCritical = isShieldCritical, hud = hud)
+        IntegrityGauge(integrity = integrity, maxIntegrity = maxIntegrity, isHullCritical = isHullCritical, hud = hud)
         FuelGauge(fuel = fuel, maxFuel = maxFuel, hud = hud)
         HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, hud = hud)
-    }
-}
-
-@Composable
-fun HealthPanel(
-    modifier: Modifier = Modifier,
-    shield: Float, maxShield: Float,
-    integrity: Float, maxIntegrity: Float,
-    hud: HudContext
-) {
-    val isInterfered = hud.interferenceTimer > 0f
-    val noiseVal = if (isInterfered) ((sin(hud.gameTime / 100.0 + 3.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
-    val panelWidth = 44.dp
-    val isShieldCritical = shield < maxShield * 0.25f
-    val isHullCritical = integrity < maxIntegrity * 0.25f
-    val shieldRatio = (shield / maxShield).coerceIn(0f, 1f)
-    val integRatio = (integrity / maxIntegrity).coerceIn(0f, 1f)
-
-    Column(
-        modifier = modifier
-            .padding(end = 16.dp)
-            .graphicsLayer {
-                alpha = 0.85f
-                translationX = (-120.dp * hud.hudPullFactor).toPx()
-            },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Combined health panel card
-        Surface(
-            modifier = Modifier.width(panelWidth),
-            color = SciFiSurface.copy(alpha = 0.3f),
-            shape = RoundedCornerShape(10.dp),
-            border = BorderStroke(0.5.dp, SciFiBorder.copy(alpha = 0.15f))
-        ) {
-            Column(
-                Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Shield section
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "\uD83D\uDEE1\uFE0F", fontSize = 9.sp,
-                        modifier = Modifier.graphicsLayer {
-                            alpha = if (isShieldCritical) ((hud.gameTime / 200) % 2).toFloat() else 0.7f
-                        },
-                        color = if (isShieldCritical) SciFiRed else SciFiCyan,
-                        style = MaterialTheme.typography.labelSmall.copy(shadow = Shadow(
-                            if (isShieldCritical) SciFiRed.copy(alpha = 0.6f) else SciFiCyan.copy(alpha = 0.3f), blurRadius = 6f
-                        ))
-                    )
-                    Spacer(Modifier.width(2.dp))
-                    Text("${shield.toInt()}", color = if (isShieldCritical) SciFiRed else SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.height(2.dp))
-                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(SciFiWhite.copy(alpha = 0.1f))) {
-                    Box(Modifier.fillMaxWidth(shieldRatio).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(
-                        if (isShieldCritical) SciFiRed else SciFiCyan
-                    ))
-                }
-
-                Spacer(Modifier.height(6.dp))
-
-                // Hull section
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "\u2764\uFE0F", fontSize = 9.sp,
-                        modifier = Modifier.graphicsLayer {
-                            alpha = if (isHullCritical) ((hud.gameTime / 200) % 2).toFloat() else 0.7f
-                            val beat = sin(hud.gameTime / 500f).toFloat().coerceAtLeast(0f) * 0.1f
-                            scaleX = 1f + beat
-                            scaleY = 1f + beat
-                        },
-                        color = if (isHullCritical) SciFiRed else SciFiGreen,
-                        style = MaterialTheme.typography.labelSmall.copy(shadow = Shadow(
-                            if (isHullCritical) SciFiRed.copy(alpha = 0.6f) else SciFiGreen.copy(alpha = 0.3f), blurRadius = 6f
-                        ))
-                    )
-                    Spacer(Modifier.width(2.dp))
-                    Text("${integrity.toInt()}", color = if (isHullCritical) SciFiRed else SciFiGreen, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.height(2.dp))
-                Box(Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(SciFiWhite.copy(alpha = 0.1f))) {
-                    Box(Modifier.fillMaxWidth(integRatio).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(
-                        if (isHullCritical) SciFiRed else SciFiGreen
-                    ))
-                }
-            }
-        }
-
-        // Zone progress indicator (thin vertical bar)
-        val currentZone = hud.zone
-        val zoneProgress = hud.gameTime * 0.02f % 100f
-        Surface(
-            modifier = Modifier.width(10.dp),
-            color = SciFiSurface.copy(alpha = 0.3f),
-            shape = RoundedCornerShape(4.dp),
-            border = BorderStroke(0.5.dp, SciFiBorder.copy(alpha = 0.1f))
-        ) {
-            val zoneColor = when (currentZone) {
-                AltitudeZone.CLOUD_LAYER -> SciFiWhite
-                AltitudeZone.UPPER_ATMOSPHERE -> SciFiPurple
-                AltitudeZone.ORBIT -> SciFiGold
-                AltitudeZone.THE_FOUNDRY -> SciFiRed
-                AltitudeZone.DEEP_SPACE -> SciFiRed.copy(alpha = 0.5f)
-                AltitudeZone.CHRONO_RIFT -> SciFiPurple.copy(alpha = 0.7f)
-                AltitudeZone.VOID -> SciFiPurple
-                AltitudeZone.THE_BEYOND -> SciFiGold.copy(alpha = 0.7f)
-                AltitudeZone.STELLAR_GATE -> SciFiCyan
-                AltitudeZone.ANCIENT_CONSTRUCT -> SciFiGold
-                AltitudeZone.SINGULARITY -> SciFiRed
-                else -> SciFiCyan
-            }
-            Box(Modifier.fillMaxSize().padding(2.dp)) {
-                Box(
-                    Modifier.fillMaxWidth().fillMaxHeight(fraction = zoneProgress / 100f)
-                        .align(Alignment.BottomCenter)
-                        .background(zoneColor.copy(alpha = 0.5f), RoundedCornerShape(2.dp))
-                )
-            }
-        }
     }
 }
 

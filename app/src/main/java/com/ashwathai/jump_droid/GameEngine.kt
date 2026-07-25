@@ -144,7 +144,6 @@ class GameEngine(
             zoneTransitionTimer = 3.0f
             zoneTransitionFrom = currentTransitionZone
             zoneTransitionTo = zone
-            notificationManager.showImmediately("ZONE: ${zone.zoneName}", priority = NotificationPriority.TACTICAL, duration = 3.0f)
             impactFlashAlpha = 0.3f
             analytics.logZoneChanged(zone)
         }

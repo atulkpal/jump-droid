@@ -188,7 +188,11 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
         if (gameState == GameState.UNLOCK && engine.currentUnlockEvent != null) {
             UnlockOverlay(
                 unlockEvent = engine.currentUnlockEvent!!,
-                onConfirm = { engine.gameState = engine.preOverlayState; engine.currentUnlockEvent = null }
+                onConfirm = {
+                    val target = if (engine.preOverlayState == GameState.UNLOCK || engine.preOverlayState == GameState.GAMEOVER) GameState.PLAYING else engine.preOverlayState
+                    engine.gameState = target
+                    engine.currentUnlockEvent = null
+                }
             )
         }
 
@@ -252,7 +256,10 @@ fun HUDLayer(engine: GameEngine) {
         LeftGauges(
             modifier = Modifier.align(Alignment.CenterStart),
             fuel = player.fuel, maxFuel = player.maxFuel,
-            heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated,
+            heat = player.heat, maxHeat = player.maxHeat,
+            isOverheated = player.isOverheated,
+            shield = player.shield, maxShield = player.maxShield,
+            integrity = player.integrity, maxIntegrity = player.maxIntegrity,
             hud = hud
         )
 
@@ -262,13 +269,6 @@ fun HUDLayer(engine: GameEngine) {
             comboTimeRemaining = comboManager.comboTimeRemaining,
             getWindowForCombo = { comboManager.getWindowForCombo(it) },
             zone = altitudeManager.currentZone
-        )
-
-        HealthPanel(
-            modifier = Modifier.align(Alignment.CenterEnd),
-            shield = player.shield, maxShield = player.maxShield,
-            integrity = player.integrity, maxIntegrity = player.maxIntegrity,
-            hud = hud
         )
 
         HeatEdgeGlow(heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated)
