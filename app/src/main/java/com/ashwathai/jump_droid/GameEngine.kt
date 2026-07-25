@@ -257,7 +257,7 @@ class GameEngine(
         }
         floatingTextManager.add(FloatingText(rewardName, player.x, player.y - 100f, color = rewardColor, isCritical = reward is ComboReward.Artifact))
         when (reward) {
-            is ComboReward.Artifact -> notificationManager.post(rewardName, NotificationPriority.FLAVOR)
+            is ComboReward.Artifact -> notificationManager.post(rewardName, NotificationPriority.TACTICAL)
             is ComboReward.AltitudeBoost -> notificationManager.post(rewardName, NotificationPriority.TACTICAL)
             else -> {}
         }
@@ -844,7 +844,7 @@ class GameEngine(
             threatManager.activeThreats.toList().forEach { threat ->
                 threat.processInteraction(player, sdt, effectiveThrust, platforms, powerUpManager.powerUps, gameTime, screenWidth, screenHeight, cameraY, 
                     onVisualFeedback = { s, f -> screenShake = max(screenShake, s); impactFlashAlpha = max(impactFlashAlpha, f) },
-                    onNotification = { m, a -> notificationManager.showImmediately(m, priority = NotificationPriority.CRITICAL, duration = a ?: 2.0f) },
+                    onNotification = { m, a -> notificationManager.showImmediately(m, priority = NotificationPriority.TACTICAL, duration = a ?: 2.0f) },
                     onMajorWarning = { m, d -> majorWarningText = m; majorWarningTimer = d },
                     onFloatingText = { m, x, y, c, cr, l -> floatingTextManager.add(FloatingText(m, x, y, life = l, color = c, isCritical = cr)) },
                     onDiscovery = { checkDiscovery(it) },
