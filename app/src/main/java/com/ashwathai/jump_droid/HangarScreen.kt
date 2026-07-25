@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ashwathai.jump_droid.ui.theme.*
 import kotlin.math.roundToInt
+import kotlin.math.sin
 
 @Composable
 fun HangarScreen(
@@ -133,6 +134,7 @@ private fun OverviewTab(
     var showDetailsModal by remember { mutableStateOf(false) }
     var showModulePicker by remember { mutableStateOf(false) }
     var pickerCategory by remember { mutableStateOf<ModuleCategory?>(null) }
+    var pickerSlotIndex by remember { mutableIntStateOf(0) }
 
     fun resetPicker() { showModulePicker = false; pickerCategory = null }
 
@@ -146,8 +148,18 @@ private fun OverviewTab(
         }
     }
 
+    data class StarPos(val x: Float, val y: Float, val r: Float, val seed: Float)
+    val stars = remember {
+        List(60) { StarPos(
+            x = kotlin.random.Random.nextFloat() * 800f - 400f,
+            y = kotlin.random.Random.nextFloat() * 600f - 300f,
+            r = 0.3f + kotlin.random.Random.nextFloat() * 1.7f,
+            seed = kotlin.random.Random.nextFloat() * 100f
+        ) }
+    }
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-        // Animated rocket preview
+        // Premium animated rocket preview
         Box(
             Modifier.fillMaxWidth().height(240.dp).padding(8.dp)
                 .background(SciFiSurface, RoundedCornerShape(16.dp))
@@ -155,15 +167,46 @@ private fun OverviewTab(
             contentAlignment = Alignment.Center
         ) {
             Canvas(Modifier.fillMaxSize()) {
+                val gt = currentGameTime.value
+                val driftX = sin(gt / 3000f * 6.283185f) * 25f
+
                 translate(size.width / 2, size.height / 2 + bobY) {
-                    scale(3f, 3f, pivot = Offset.Zero) {
-                        rocketRenderer.render(this, player, true, Offset.Zero, 0f, currentGameTime.value, offsetOverride = Offset.Zero)
+                    // Starfield with parallax
+                    stars.forEach { s ->
+                        val twinkle = (sin(gt / 800f + s.seed) * 0.3f + 0.7f)
+                        drawCircle(Color.White.copy(alpha = 0.3f * twinkle), radius = s.r, center = Offset(s.x + driftX * 0.3f, s.y))
+                    }
+
+                    // Pulsing glow halo
+                    val haloPulse = (sin(gt / 1500f) * 0.3f + 0.7f)
+                    drawCircle(SciFiCyan.copy(alpha = 0.04f * haloPulse), radius = 90f)
+                    drawCircle(SciFiGold.copy(alpha = 0.02f * haloPulse), radius = 130f)
+
+                    // Engine particles
+                    repeat(10) { i ->
+                        val seed = i * 137L + gt / 60
+                        val rng = kotlin.random.Random(seed)
+                        val progress = ((gt / 60f + i * 12f) % 100f) / 100f
+                        val px = sin(gt / 400f + i * 1.7f) * 10f
+                        val py = 28f + progress * 90f
+                        val alpha = (1f - progress * progress) * 0.8f
+                        val size = 1.5f + rng.nextFloat() * 3f * (1f - progress)
+                        val color = listOf(SciFiCyan, SciFiGold, SciFiRed)[i % 3]
+                        drawCircle(color.copy(alpha = alpha), radius = size, center = Offset(px, py))
+                        drawCircle(SciFiWhite.copy(alpha = alpha * 0.3f), radius = size * 0.4f, center = Offset(px - 1f, py))
+                    }
+
+                    // Rocket with horizontal drift
+                    translate(driftX, 0f) {
+                        scale(3f, 3f, pivot = Offset.Zero) {
+                            rocketRenderer.render(this, player, true, Offset.Zero, 0f, gt, offsetOverride = Offset.Zero)
+                        }
                     }
                 }
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
 
         // Rocket type selector
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -199,51 +242,75 @@ private fun OverviewTab(
 
         Spacer(Modifier.height(6.dp))
 
-        // Live Pentagon radar chart
-        PentagonChart(rocketType = player.rocketType, modifier = Modifier.fillMaxWidth().height(160.dp))
+        // Split layout: left info + right PentagonChart
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.Top) {
+            Surface(Modifier.weight(0.58f), color = SciFiSurface.copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp)) {
+                Column(Modifier.padding(10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(player.rocketType.title.uppercase(), color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Spacer(Modifier.width(6.dp))
+                        Text("ACTIVE", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 7.sp, letterSpacing = 2.sp)
+                    }
+                    Divider(color = SciFiBorder.copy(alpha = 0.2f), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 4.dp))
+                    Text(player.rocketType.traitName.uppercase(), color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(player.rocketType.traitDescription, color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                    Spacer(Modifier.height(4.dp))
+                    val chassis = player.rocketType.chassisVariants.getOrNull(player.currentChassisIndex)
+                    if (chassis != null) {
+                        Text("CHASSIS: ${chassis.name}", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        Text("T:${(player.rocketType.chassisThrustMult(player.currentChassisIndex) * 100).toInt()}%  F:${(player.rocketType.chassisFuelMult(player.currentChassisIndex) * 100).toInt()}%  H:${(player.rocketType.chassisHeatMult(player.currentChassisIndex) * 100).toInt()}%", color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp)
+                    }
+                }
+            }
+            Spacer(Modifier.width(6.dp))
+            PentagonChart(rocketType = player.rocketType, modifier = Modifier.weight(0.42f).height(120.dp))
+        }
 
         Spacer(Modifier.height(6.dp))
 
-        // Single module slot
-        val equippedModule = loadoutManager.equippedModuleIds.firstOrNull()?.let { ModuleRegistry.getById(it) }
-        Box(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp).height(64.dp)
-                .background(SciFiSurface, RoundedCornerShape(10.dp))
-                .border(1.dp, if (equippedModule != null) equippedModule.iconColor.copy(alpha = 0.4f) else SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
-                .clickable { showModulePicker = true },
-            contentAlignment = Alignment.Center
-        ) {
-            if (equippedModule != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(28.dp).background(equippedModule.iconColor.copy(alpha = 0.2f), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) {
-                        Text(equippedModule.category.name.take(1), color = equippedModule.iconColor, fontWeight = FontWeight.Black, fontSize = 14.sp)
+        // 2 module slots
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            loadoutManager.equippedModuleIds.forEachIndexed { index, moduleId ->
+                val module = moduleId?.let { ModuleRegistry.getById(it) }
+                Box(
+                    modifier = Modifier.weight(1f).height(58.dp)
+                        .background(SciFiSurface, RoundedCornerShape(10.dp))
+                        .border(1.dp, if (module != null) module.iconColor.copy(alpha = 0.4f) else SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                        .clickable { showModulePicker = true; pickerSlotIndex = index },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (module != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
+                            Box(Modifier.size(22.dp).background(module.iconColor.copy(alpha = 0.2f), RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
+                                Text(module.category.name.take(1), color = module.iconColor, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(module.name.uppercase(), color = module.iconColor, fontWeight = FontWeight.Bold, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(module.category.name, color = SciFiWhite.copy(alpha = 0.3f), fontSize = 7.sp)
+                            }
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
+                            Box(Modifier.size(22.dp).background(SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
+                                Text("+", color = SciFiWhite.copy(alpha = 0.2f), fontWeight = FontWeight.Black, fontSize = 15.sp)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text("SLOT ${index + 1}", color = SciFiWhite.copy(alpha = 0.2f), fontSize = 9.sp)
+                                Text("TAP TO EQUIP", color = SciFiCyan.copy(alpha = 0.3f), fontSize = 7.sp)
+                            }
+                        }
                     }
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(equippedModule.name.uppercase(), color = equippedModule.iconColor, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                        Text(equippedModule.description, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                    Spacer(Modifier.weight(1f))
-                    Text("\u25C0 TAP", color = SciFiCyan.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black)
-                }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(28.dp).background(SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) {
-                        Text("+", color = SciFiWhite.copy(alpha = 0.2f), fontWeight = FontWeight.Black, fontSize = 18.sp)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Text("EQUIP MODULE", color = SciFiWhite.copy(alpha = 0.3f), fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                    Spacer(Modifier.weight(1f))
-                    Text("\u25C0 TAP", color = SciFiCyan.copy(alpha = 0.3f), fontSize = 8.sp, fontWeight = FontWeight.Black)
                 }
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
 
         // Stats strip + DETAILS link
         Surface(Modifier.fillMaxWidth(), color = SciFiSurface.copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp)) {
-            Row(Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(10.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly) {
                     val stats = listOf(
                         "HULL" to "${progressionManager.permanentMaxIntegrity.toInt()}",
@@ -294,9 +361,10 @@ private fun OverviewTab(
             progressionManager = progressionManager,
             missionManager = missionManager,
             selectedCategory = pickerCategory,
+            slotIndex = pickerSlotIndex,
             onSelectCategory = { pickerCategory = it },
             onSelectModule = { moduleId ->
-                loadoutManager.equipModule(moduleId, 0)
+                loadoutManager.equipModule(moduleId, pickerSlotIndex)
                 resetPicker()
             },
             onDismiss = { resetPicker() }
@@ -310,6 +378,7 @@ private fun ModulePickerPopup(
     progressionManager: ProgressionManager,
     missionManager: MissionManager,
     selectedCategory: ModuleCategory?,
+    slotIndex: Int,
     onSelectCategory: (ModuleCategory?) -> Unit,
     onSelectModule: (String) -> Unit,
     onDismiss: () -> Unit
@@ -323,7 +392,7 @@ private fun ModulePickerPopup(
             Column(Modifier.padding(16.dp)) {
                 // Header
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (selectedCategory == null) "SELECT CATEGORY" else selectedCategory.name, color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp)
+                    Text(if (selectedCategory == null) "SLOT ${slotIndex + 1} — SELECT CATEGORY" else selectedCategory.name, color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp)
                     Text("\u2715", color = SciFiWhite.copy(alpha = 0.6f), fontSize = 18.sp, modifier = Modifier.clickable(onClick = onDismiss))
                 }
                 Spacer(Modifier.height(12.dp))
