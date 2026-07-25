@@ -147,63 +147,48 @@ private fun OverviewTab(
         }
     }
 
-    data class StarPos(val x: Float, val y: Float, val r: Float, val seed: Float)
-    val stars = remember {
-        List(60) { StarPos(
-            x = kotlin.random.Random.nextFloat() * 800f - 400f,
-            y = kotlin.random.Random.nextFloat() * 600f - 300f,
-            r = 0.3f + kotlin.random.Random.nextFloat() * 1.7f,
-            seed = kotlin.random.Random.nextFloat() * 100f
-        ) }
-    }
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+            // Large detailed rocket preview
+            Box(
+                Modifier.fillMaxWidth().height(300.dp).padding(8.dp)
+                    .background(SciFiSurface, RoundedCornerShape(16.dp))
+                    .border(1.dp, SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(Modifier.fillMaxSize()) {
+                    val gt = currentGameTime.value
+                    val driftX = sin(gt / 3000f * 6.283185f) * 25f
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-        // Premium animated rocket preview
-        Box(
-            Modifier.fillMaxWidth().height(240.dp).padding(8.dp)
-                .background(SciFiSurface, RoundedCornerShape(16.dp))
-                .border(1.dp, SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Canvas(Modifier.fillMaxSize()) {
-                val gt = currentGameTime.value
-                val driftX = sin(gt / 3000f * 6.283185f) * 25f
+                    translate(size.width / 2, size.height / 2 + bobY) {
+                        // Pulsing glow halo
+                        val haloPulse = (sin(gt / 1500f) * 0.3f + 0.7f)
+                        drawCircle(SciFiCyan.copy(alpha = 0.05f * haloPulse), radius = 120f)
+                        drawCircle(SciFiGold.copy(alpha = 0.03f * haloPulse), radius = 170f)
 
-                translate(size.width / 2, size.height / 2 + bobY) {
-                    // Starfield with parallax
-                    stars.forEach { s ->
-                        val twinkle = (sin(gt / 800f + s.seed) * 0.3f + 0.7f)
-                        drawCircle(Color.White.copy(alpha = 0.3f * twinkle), radius = s.r, center = Offset(s.x + driftX * 0.3f, s.y))
-                    }
+                        // Engine particles
+                        repeat(12) { i ->
+                            val seed = i * 137L + gt / 50
+                            val rng = kotlin.random.Random(seed)
+                            val progress = ((gt / 50f + i * 10f) % 100f) / 100f
+                            val px = sin(gt / 350f + i * 1.7f) * 14f
+                            val py = 28f + progress * 100f
+                            val alpha = (1f - progress * progress) * 0.8f
+                            val size = 2f + rng.nextFloat() * 4f * (1f - progress)
+                            val color = listOf(SciFiCyan, SciFiGold, SciFiRed)[i % 3]
+                            drawCircle(color.copy(alpha = alpha), radius = size, center = Offset(px, py))
+                            drawCircle(SciFiWhite.copy(alpha = alpha * 0.3f), radius = size * 0.4f, center = Offset(px - 1f, py))
+                        }
 
-                    // Pulsing glow halo
-                    val haloPulse = (sin(gt / 1500f) * 0.3f + 0.7f)
-                    drawCircle(SciFiCyan.copy(alpha = 0.04f * haloPulse), radius = 90f)
-                    drawCircle(SciFiGold.copy(alpha = 0.02f * haloPulse), radius = 130f)
-
-                    // Engine particles
-                    repeat(10) { i ->
-                        val seed = i * 137L + gt / 60
-                        val rng = kotlin.random.Random(seed)
-                        val progress = ((gt / 60f + i * 12f) % 100f) / 100f
-                        val px = sin(gt / 400f + i * 1.7f) * 10f
-                        val py = 28f + progress * 90f
-                        val alpha = (1f - progress * progress) * 0.8f
-                        val size = 1.5f + rng.nextFloat() * 3f * (1f - progress)
-                        val color = listOf(SciFiCyan, SciFiGold, SciFiRed)[i % 3]
-                        drawCircle(color.copy(alpha = alpha), radius = size, center = Offset(px, py))
-                        drawCircle(SciFiWhite.copy(alpha = alpha * 0.3f), radius = size * 0.4f, center = Offset(px - 1f, py))
-                    }
-
-                    // Rocket with horizontal drift
-                    translate(driftX, 0f) {
-                        scale(3f, 3f, pivot = Offset.Zero) {
-                            rocketRenderer.render(this, player, true, Offset.Zero, 0f, gt, offsetOverride = Offset.Zero)
+                        // Rocket with horizontal drift at 4.5x for visible details
+                        translate(driftX, 0f) {
+                            scale(4.5f, 4.5f, pivot = Offset.Zero) {
+                                rocketRenderer.render(this, player, true, Offset.Zero, 0f, gt, offsetOverride = Offset.Zero)
+                            }
                         }
                     }
                 }
             }
-        }
 
         Spacer(Modifier.height(6.dp))
 
@@ -380,6 +365,7 @@ private fun OverviewTab(
             },
             onDismiss = { resetPicker() }
         )
+    }
     }
 }
 
