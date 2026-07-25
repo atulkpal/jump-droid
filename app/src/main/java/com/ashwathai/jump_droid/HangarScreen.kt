@@ -47,7 +47,7 @@ fun HangarScreen(
     soundManager: SoundManager? = null
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("OVERVIEW", "ROCKETS", "MODULES", "COSMETICS")
+    val tabs = listOf("OVERVIEW", "COSMETICS")
     val infiniteTransition = rememberInfiniteTransition(label = "HangarTransition")
 
     LaunchedEffect(loadoutManager.equippedModuleIds.toList()) {
@@ -108,10 +108,8 @@ fun HangarScreen(
                 Spacer(Modifier.height(12.dp))
 
                 when (selectedTab) {
-                    0 -> OverviewTab(player, loadoutManager, progressionManager, accentPulse, borderPulse, onNavigate, soundManager)
-                    1 -> RocketsTab(player, highScore, sharedPrefs, borderPulse, onNavigate, soundManager)
-                    2 -> ModulesTab(player, loadoutManager, progressionManager, missionManager, soundManager)
-                    3 -> CosmeticsTab(player, highScore, sharedPrefs)
+                    0 -> OverviewTab(player, loadoutManager, progressionManager, missionManager, highScore, sharedPrefs, accentPulse, borderPulse, onNavigate, soundManager)
+                    1 -> CosmeticsTab(player, highScore, sharedPrefs)
                 }
             }
         }
@@ -123,26 +121,29 @@ private fun OverviewTab(
     player: Player,
     loadoutManager: LoadoutManager,
     progressionManager: ProgressionManager,
+    missionManager: MissionManager,
+    highScore: Int,
+    sharedPrefs: SharedPreferences,
     accentPulse: Float,
     borderPulse: Float,
     onNavigate: (GameState) -> Unit,
     soundManager: SoundManager?
 ) {
     val rocketRenderer = remember { RocketRenderer() }
+    var selectedSlot by remember { mutableIntStateOf(-1) }
+    var showDetailsModal by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+        // Rocket preview
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(8.dp)
+            Modifier.fillMaxWidth().height(240.dp).padding(8.dp)
                 .background(SciFiSurface, RoundedCornerShape(16.dp))
                 .border(1.dp, SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
             Canvas(Modifier.fillMaxSize()) {
                 translate(size.width / 2, size.height / 2) {
-                    scale(2.8f, 2.8f) {
+                    scale(3f, 3f, pivot = Offset.Zero) {
                         rocketRenderer.render(this, player, false, Offset.Zero, 0f, 0L, offsetOverride = Offset.Zero)
                     }
                 }
@@ -151,60 +152,141 @@ private fun OverviewTab(
 
         Spacer(Modifier.height(8.dp))
 
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = SciFiSurface.copy(alpha = 0.5f),
-            shape = RoundedCornerShape(10.dp)
-        ) {
-            Column(Modifier.padding(12.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(player.rocketType.title.uppercase(), color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("ACTIVE", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 9.sp, letterSpacing = 2.sp)
+        // Rocket type selector
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            RocketType.entries.forEach { type ->
+                val unlocked = highScore >= type.unlockScore || sharedPrefs.getBoolean("unlock_${type.name}", false)
+                val isActive = player.rocketType == type
+                Surface(
+                    modifier = Modifier.weight(1f)
+                        .clickable(enabled = unlocked) {
+                            if (isActive) return@clickable
+                            player.rocketType = type
+                            player.currentChassisIndex = 0
+                        }
+                        .border(1.dp, if (isActive) SciFiCyan else if (unlocked) SciFiBorder.copy(alpha = 0.2f) else SciFiBorder.copy(alpha = 0.05f), RoundedCornerShape(8.dp)),
+                    color = if (isActive) SciFiCyan.copy(alpha = 0.08f) else if (unlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(Modifier.padding(6.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Canvas(Modifier.size(24.dp)) {
+                            val cx = size.width / 2; val cy = size.height / 2
+                            val bw = 8f; val bh = 16f
+                            val alpha = if (unlocked) 1f else 0.3f
+                            drawRoundRect(SciFiWhite.copy(alpha = alpha), topLeft = Offset(cx - bw / 2, cy - bh / 2), size = Size(bw, bh), cornerRadius = CornerRadius(2f))
+                            drawPath(Path().apply { moveTo(cx - bw / 2, cy - bh / 2); lineTo(cx, cy - bh / 2 - 8f); lineTo(cx + bw / 2, cy - bh / 2); close() }, SciFiRed.copy(alpha = alpha))
+                        }
+                        Text(type.title, color = if (unlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.3f), fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (!unlocked) Text("${type.unlockScore}m", color = SciFiRed, fontSize = 6.sp, fontWeight = FontWeight.Bold)
+                        else if (isActive) Text("ACTIVE", color = SciFiCyan, fontSize = 6.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                    }
                 }
-                Text(player.rocketType.traitName.uppercase(), color = SciFiGold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                Text(player.rocketType.traitDescription, color = SciFiWhite.copy(alpha = 0.5f), fontSize = 9.sp)
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Live Pentagon radar chart
+        PentagonChart(rocketType = player.rocketType, modifier = Modifier.fillMaxWidth().height(160.dp))
+
+        Spacer(Modifier.height(6.dp))
+
+        // Module slots + inline picker
+        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             loadoutManager.equippedModuleIds.forEachIndexed { index, moduleId ->
                 val module = moduleId?.let { ModuleRegistry.getById(it) }
+                val isSelected = selectedSlot == index
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(80.dp)
-                        .background(SciFiSurface, RoundedCornerShape(10.dp))
-                        .border(1.dp, if (module != null) module.iconColor.copy(alpha = 0.4f) else SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(10.dp)),
+                    modifier = Modifier.weight(1f).height(70.dp)
+                        .background(if (isSelected) SciFiCyan.copy(alpha = 0.1f) else SciFiSurface, RoundedCornerShape(10.dp))
+                        .border(1.dp, if (isSelected) SciFiCyan else if (module != null) module.iconColor.copy(alpha = 0.4f) else SciFiBorder.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                        .clickable { selectedSlot = if (isSelected) -1 else index },
                     contentAlignment = Alignment.Center
                 ) {
                     if (module != null) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(module.name.uppercase(), color = module.iconColor, fontWeight = FontWeight.Bold, fontSize = 9.sp, textAlign = TextAlign.Center)
                             Text(module.category.name, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 7.sp)
+                            Spacer(Modifier.height(2.dp))
+                            Text("TAP", color = SciFiCyan.copy(alpha = 0.5f), fontSize = 6.sp)
                         }
                     } else {
-                        Text("SLOT ${index + 1}\nEMPTY", color = SciFiWhite.copy(alpha = 0.2f), textAlign = TextAlign.Center, fontSize = 9.sp, lineHeight = 13.sp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("SLOT ${index + 1}", color = SciFiWhite.copy(alpha = 0.2f), fontSize = 9.sp)
+                            Text("TAP TO EQUIP", color = SciFiCyan.copy(alpha = 0.3f), fontSize = 7.sp)
+                        }
                     }
                 }
             }
         }
 
+        // Inline module picker
+        if (selectedSlot >= 0) {
+            Spacer(Modifier.height(6.dp))
+            val allModules = ModuleRegistry.getAll()
+            val equippedIds = loadoutManager.equippedModuleIds
+
+            Text("SELECT MODULE", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 9.sp, letterSpacing = 1.sp)
+            Spacer(Modifier.height(4.dp))
+
+            Column(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+                allModules.forEach { module ->
+                    val isEquipped = equippedIds.contains(module.id)
+                    val isUnlocked = loadoutManager.isModuleUnlocked(module, progressionManager, missionManager)
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                            .clickable(isUnlocked && !isEquipped) {
+                                loadoutManager.equipModule(module.id, selectedSlot)
+                                selectedSlot = -1
+                            },
+                        color = when {
+                            isEquipped -> SciFiSurface.copy(alpha = 0.3f)
+                            !isUnlocked -> Color.Black.copy(alpha = 0.3f)
+                            else -> SciFiSurface
+                        },
+                        shape = RoundedCornerShape(6.dp),
+                        border = if (isUnlocked && !isEquipped) BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.1f)) else null
+                    ) {
+                        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(22.dp).background(if (isUnlocked) module.iconColor.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(3.dp)), contentAlignment = Alignment.Center) {
+                                Text(if (isUnlocked) module.category.name.take(1) else "\uD83D\uDD12", color = if (isUnlocked) module.iconColor else Color.Gray, fontWeight = FontWeight.Black, fontSize = 10.sp)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(if (isUnlocked) module.name else "LOCKED MODULE", color = when { isEquipped -> SciFiWhite.copy(alpha = 0.3f); !isUnlocked -> Color.Gray; else -> SciFiWhite }, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                Text(if (isUnlocked) module.description else formatRequirement(module.unlockRequirement), color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            if (isEquipped) Text("EQPD", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black)
+                            else if (!isUnlocked) Text("LOCKED", color = SciFiRed.copy(alpha = 0.4f), fontSize = 6.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+        }
+
         Spacer(Modifier.height(8.dp))
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val stats = listOf(
-                "HULL" to "${progressionManager.permanentMaxIntegrity.toInt()}",
-                "SHIELD" to "${progressionManager.permanentMaxShield.toInt()}",
-                "FUEL" to "${player.rocketType.fuelMult.times(100).toInt()}%",
-                "HEAT" to "${player.rocketType.heatMult.times(100).toInt()}%"
-            )
-            stats.forEach { (label, value) ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                    Text(label, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                    Text(value, color = SciFiWhite, fontSize = 13.sp, fontWeight = FontWeight.Black)
+        // Stats strip + DETAILS link
+        Surface(Modifier.fillMaxWidth(), color = SciFiSurface.copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp)) {
+            Row(Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    val stats = listOf(
+                        "HULL" to "${progressionManager.permanentMaxIntegrity.toInt()}",
+                        "SHIELD" to "${progressionManager.permanentMaxShield.toInt()}",
+                        "FUEL" to "${player.rocketType.fuelMult.times(100).toInt()}%",
+                        "HEAT" to "${player.rocketType.heatMult.times(100).toInt()}%"
+                    )
+                    stats.forEach { (label, value) ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(label, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                            Text(value, color = SciFiWhite, fontSize = 13.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
                 }
+                Spacer(Modifier.width(8.dp))
+                Text("\u25B8 DETAILS", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 9.sp, letterSpacing = 1.sp, modifier = Modifier.clickable { showDetailsModal = true })
             }
         }
 
@@ -215,7 +297,7 @@ private fun OverviewTab(
                 soundManager?.playSfx("sfx_ui_confirm")
                 onNavigate(GameState.MAIN_MENU)
             },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier.fillMaxWidth().height(48.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
             border = BorderStroke(1.dp, SciFiCyan.copy(alpha = borderPulse))
@@ -224,99 +306,79 @@ private fun OverviewTab(
         }
         Spacer(Modifier.height(4.dp))
         GlobalAdBanner()
+        Spacer(Modifier.height(8.dp))
+    }
+
+    // Details Modal
+    if (showDetailsModal) {
+        RocketDetailsModal(player, sharedPrefs, onDismiss = { showDetailsModal = false })
     }
 }
 
 @Composable
-private fun RocketsTab(
+private fun RocketDetailsModal(
     player: Player,
-    highScore: Int,
     sharedPrefs: SharedPreferences,
-    borderPulse: Float,
-    onNavigate: (GameState) -> Unit,
-    soundManager: SoundManager?
+    onDismiss: () -> Unit
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        RocketType.entries.forEach { type ->
-            val unlocked = highScore >= type.unlockScore || sharedPrefs.getBoolean("unlock_${type.name}", false)
-            val isActive = player.rocketType == type
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .clickable(enabled = unlocked) {
-                        player.rocketType = type
-                        player.currentChassisIndex = sharedPrefs.getInt("chassis_${type.name}", 0)
-                    }
-                    .border(
-                        width = 1.dp,
-                        color = if (isActive) SciFiCyan else if (unlocked) SciFiBorder else SciFiBorder.copy(alpha = 0.05f),
-                        shape = RoundedCornerShape(12.dp)
-                    ),
-                color = if (isActive) SciFiCyan.copy(alpha = 0.1f) else if (unlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Canvas(Modifier.size(44.dp).padding(end = 12.dp)) {
-                        val cx = size.width / 2
-                        val cy = size.height / 2
-                        val bodyW = 12f
-                        val bodyH = 28f
-                        drawRoundRect(
-                            if (unlocked) SciFiWhite.copy(alpha = 0.8f) else SciFiWhite.copy(alpha = 0.3f),
-                            topLeft = Offset(cx - bodyW / 2, cy - bodyH / 2),
-                            size = Size(bodyW, bodyH),
-                            cornerRadius = CornerRadius(3f, 3f)
-                        )
-                        drawPath(
-                            Path().apply { moveTo(cx - bodyW / 2, cy - bodyH / 2); lineTo(cx, cy - bodyH / 2 - 12f); lineTo(cx + bodyW / 2, cy - bodyH / 2); close() },
-                            if (unlocked) SciFiRed else SciFiRed.copy(alpha = 0.3f)
-                        )
-                    }
-                    Column(Modifier.weight(1f)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(type.title.uppercase(), style = MaterialTheme.typography.titleLarge, color = if (unlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.3f), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                            if (!unlocked) Text("${type.unlockScore}m", color = SciFiRed, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
-                            else if (isActive) Text("ACTIVE", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 9.sp, letterSpacing = 2.sp)
-                        }
-                        if (unlocked) {
-                            Text("${type.traitName.uppercase()}", color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text(type.traitDescription, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp)
-                            Spacer(Modifier.height(6.dp))
-                            val cIdx = if (isActive) player.currentChassisIndex else 0
-                            Text("THRUST: ${(type.chassisThrustMult(cIdx) * 100).toInt()}%  FUEL: ${(type.chassisFuelMult(cIdx) * 100).toInt()}%  THERMAL: ${(type.chassisHeatMult(cIdx) * 100).toInt()}%", color = SciFiCyan.copy(alpha = 0.5f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+    val rocketRenderer = remember { RocketRenderer() }
+    val chassisVariants = player.rocketType.chassisVariants
+
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
+        Surface(
+            Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.9f).verticalScroll(rememberScrollState()),
+            color = SciFiBackground,
+            shape = RoundedCornerShape(20.dp)
+        ) {
+            Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                // Header
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("ROCKET DETAILS", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 14.sp, letterSpacing = 2.sp)
+                    Text("\u2715", color = SciFiWhite.copy(alpha = 0.6f), fontSize = 20.sp, modifier = Modifier.clickable(onClick = onDismiss))
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Larger rocket render
+                Box(Modifier.fillMaxWidth().height(280.dp).background(SciFiSurface, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+                    Canvas(Modifier.fillMaxSize()) {
+                        translate(size.width / 2, size.height / 2) {
+                            scale(3.2f, 3.2f, pivot = Offset.Zero) {
+                                rocketRenderer.render(this, player, false, Offset.Zero, 0f, 0L, offsetOverride = Offset.Zero)
+                            }
                         }
                     }
                 }
-            }
 
-            // Chassis picker for the selected (active) class
-            if (isActive && unlocked) {
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(12.dp))
+
+                // Rocket info
+                Text(player.rocketType.title.uppercase(), color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(player.rocketType.traitName.uppercase(), color = SciFiGold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text(player.rocketType.traitDescription, color = SciFiWhite.copy(alpha = 0.5f), fontSize = 9.sp)
+
+                Spacer(Modifier.height(12.dp))
+
+                // Chassis variants picker
                 Text("CHASSIS VARIANTS", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                 Spacer(Modifier.height(4.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    type.chassisVariants.forEachIndexed { idx, variant ->
+                    chassisVariants.forEachIndexed { idx, variant ->
                         val isSelected = player.currentChassisIndex == idx
                         val borderClr = if (isSelected) SciFiCyan else SciFiBorder.copy(alpha = 0.2f)
                         Surface(
-                            modifier = Modifier
-                                .weight(1f)
+                            modifier = Modifier.weight(1f)
                                 .clickable {
                                     player.currentChassisIndex = idx
-                                    sharedPrefs.edit().putInt("chassis_${type.name}", idx).commit()
+                                    sharedPrefs.edit().putInt("chassis_${player.rocketType.name}", idx).commit()
                                 }
                                 .border(1.dp, borderClr, RoundedCornerShape(8.dp)),
                             color = if (isSelected) SciFiCyan.copy(alpha = 0.08f) else SciFiSurface.copy(alpha = 0.5f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Column(
-                                Modifier.padding(8.dp).fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
+                            Column(Modifier.padding(8.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(variant.name, color = if (isSelected) SciFiCyan else SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                                Spacer(Modifier.height(2.dp))
-                                Text("T:${(type.chassisThrustMult(idx) * 100).toInt()}% F:${(type.chassisFuelMult(idx) * 100).toInt()}% H:${(type.chassisHeatMult(idx) * 100).toInt()}%", color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp)
+                                Text("T:${(player.rocketType.chassisThrustMult(idx) * 100).toInt()}% F:${(player.rocketType.chassisFuelMult(idx) * 100).toInt()}% H:${(player.rocketType.chassisHeatMult(idx) * 100).toInt()}%", color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp)
                                 if (isSelected) {
                                     Spacer(Modifier.height(2.dp))
                                     Text("EQUIPPED", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black)
@@ -325,135 +387,36 @@ private fun RocketsTab(
                         }
                     }
                 }
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        Text("STAT COMPARISON", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-        Spacer(Modifier.height(4.dp))
-        PentagonChart(
-            rocketType = player.rocketType,
-            modifier = Modifier.fillMaxWidth().height(180.dp)
-        )
-        Spacer(Modifier.height(8.dp))
-        StatLegend(
-            rocketType = player.rocketType,
-            allTypes = RocketType.entries,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-        )
-        Spacer(Modifier.height(8.dp))
-        GlobalAdBanner()
-    }
-}
 
-@Composable
-private fun ModulesTab(
-    player: Player,
-    loadoutManager: LoadoutManager,
-    progressionManager: ProgressionManager,
-    missionManager: MissionManager,
-    soundManager: SoundManager?
-) {
-    var selectedSlot by remember { mutableIntStateOf(0) }
-    val equippedIds = loadoutManager.equippedModuleIds
-    val allModules = ModuleRegistry.getAll()
+                Spacer(Modifier.height(16.dp))
 
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            equippedIds.forEachIndexed { index, moduleId ->
-                val module = moduleId?.let { ModuleRegistry.getById(it) }
-                val isSelected = selectedSlot == index
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(90.dp)
-                        .background(if (isSelected) SciFiCyan.copy(alpha = 0.1f) else SciFiSurface, RoundedCornerShape(10.dp))
-                        .border(
-                            width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) SciFiCyan else SciFiBorder.copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        .clickable { selectedSlot = index },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (module != null) {
+                // Stats with chassis multipliers
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    listOf(
+                        "THRUST" to "${(player.rocketType.chassisThrustMult(player.currentChassisIndex) * 100).toInt()}%",
+                        "FUEL" to "${(player.rocketType.chassisFuelMult(player.currentChassisIndex) * 100).toInt()}%",
+                        "THERMAL" to "${(player.rocketType.chassisHeatMult(player.currentChassisIndex) * 100).toInt()}%"
+                    ).forEach { (label, value) ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(module.name.uppercase(), color = module.iconColor, fontWeight = FontWeight.Bold, fontSize = 9.sp, textAlign = TextAlign.Center)
-                            Text(module.category.name, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 7.sp)
-                            Spacer(Modifier.height(6.dp))
-                            Text("UNEQUIP", color = SciFiRed, fontSize = 7.sp, modifier = Modifier.clickable {
-                                loadoutManager.unequipModule(index)
-                            })
+                            Text(label, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black)
+                            Text(value, color = SciFiCyan, fontSize = 16.sp, fontWeight = FontWeight.Black)
                         }
-                    } else {
-                        Text("SLOT ${index + 1}\nEMPTY", color = SciFiWhite.copy(alpha = 0.2f), textAlign = TextAlign.Center, fontSize = 9.sp, lineHeight = 13.sp)
                     }
                 }
-            }
-        }
 
-        Spacer(Modifier.height(16.dp))
-        Text("MODULE LIBRARY", color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-        Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(16.dp))
 
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            allModules.forEach { module ->
-                val isEquipped = equippedIds.contains(module.id)
-                val isUnlocked = loadoutManager.isModuleUnlocked(module, progressionManager, missionManager)
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 3.dp)
-                        .clickable(isUnlocked && !isEquipped) {
-                            loadoutManager.equipModule(module.id, selectedSlot)
-                        },
-                    color = when {
-                        isEquipped -> SciFiSurface.copy(alpha = 0.5f)
-                        !isUnlocked -> Color.Black.copy(alpha = 0.3f)
-                        else -> SciFiSurface
-                    },
-                    shape = RoundedCornerShape(8.dp),
-                    border = if (isUnlocked && !isEquipped) BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.1f)) else null
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f))
                 ) {
-                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(28.dp).background(
-                            if (isUnlocked) module.iconColor.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f),
-                            RoundedCornerShape(4.dp)
-                        ), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = if (isUnlocked) module.category.name.take(1) else "\uD83D\uDD12",
-                                color = if (isUnlocked) module.iconColor else Color.Gray,
-                                fontWeight = FontWeight.Black, fontSize = 12.sp
-                            )
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = if (isUnlocked) module.name else "LOCKED MODULE",
-                                color = when {
-                                    isEquipped -> SciFiWhite.copy(alpha = 0.3f)
-                                    !isUnlocked -> Color.Gray
-                                    else -> SciFiWhite
-                                },
-                                fontWeight = FontWeight.Bold, fontSize = 11.sp
-                            )
-                            Text(
-                                text = if (isUnlocked) module.description else formatRequirement(module.unlockRequirement),
-                                color = SciFiWhite.copy(alpha = 0.5f),
-                                fontSize = 9.sp
-                            )
-                        }
-                        if (isEquipped) {
-                            Text("EQUIPPED", color = SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
-                        } else if (!isUnlocked) {
-                            Text("LOCKED", color = SciFiRed.copy(alpha = 0.5f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    Text("CLOSE", color = SciFiCyan, fontWeight = FontWeight.Bold)
                 }
+                Spacer(Modifier.height(8.dp))
             }
         }
-        Spacer(Modifier.height(8.dp))
-        GlobalAdBanner()
     }
 }
 
