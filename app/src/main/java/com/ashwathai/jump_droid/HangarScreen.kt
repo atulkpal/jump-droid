@@ -131,7 +131,6 @@ private fun OverviewTab(
     soundManager: SoundManager?
 ) {
     val rocketRenderer = remember { RocketRenderer() }
-    var showDetailsModal by remember { mutableStateOf(false) }
     var showModulePicker by remember { mutableStateOf(false) }
     var pickerCategory by remember { mutableStateOf<ModuleCategory?>(null) }
     var pickerSlotIndex by remember { mutableIntStateOf(0) }
@@ -242,7 +241,7 @@ private fun OverviewTab(
 
         Spacer(Modifier.height(6.dp))
 
-        // Split layout: left info + right PentagonChart
+        // Split layout: left info card + right PentagonChart
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.Top) {
             Surface(Modifier.weight(0.58f), color = SciFiSurface.copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp)) {
                 Column(Modifier.padding(10.dp)) {
@@ -254,11 +253,46 @@ private fun OverviewTab(
                     Divider(color = SciFiBorder.copy(alpha = 0.2f), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 4.dp))
                     Text(player.rocketType.traitName.uppercase(), color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     Text(player.rocketType.traitDescription, color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+
+                    // Chassis variants picker
+                    Spacer(Modifier.height(6.dp))
+                    Text("CHASSIS", color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                    Spacer(Modifier.height(3.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        player.rocketType.chassisVariants.forEachIndexed { idx, variant ->
+                            val isSelected = player.currentChassisIndex == idx
+                            Surface(
+                                modifier = Modifier.weight(1f)
+                                    .clickable { player.currentChassisIndex = idx }
+                                    .border(1.dp, if (isSelected) SciFiCyan else SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(6.dp)),
+                                color = if (isSelected) SciFiCyan.copy(alpha = 0.08f) else SciFiSurface.copy(alpha = 0.3f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Column(Modifier.padding(vertical = 4.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(variant.name, color = if (isSelected) SciFiCyan else SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 7.sp)
+                                    Text("T:${(player.rocketType.chassisThrustMult(idx) * 100).toInt()}% F:${(player.rocketType.chassisFuelMult(idx) * 100).toInt()}%", color = SciFiWhite.copy(alpha = 0.3f), fontSize = 6.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    // Inline core stats
+                    Spacer(Modifier.height(6.dp))
+                    Divider(color = SciFiBorder.copy(alpha = 0.15f), thickness = 0.5.dp)
                     Spacer(Modifier.height(4.dp))
-                    val chassis = player.rocketType.chassisVariants.getOrNull(player.currentChassisIndex)
-                    if (chassis != null) {
-                        Text("CHASSIS: ${chassis.name}", color = SciFiCyan.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                        Text("T:${(player.rocketType.chassisThrustMult(player.currentChassisIndex) * 100).toInt()}%  F:${(player.rocketType.chassisFuelMult(player.currentChassisIndex) * 100).toInt()}%  H:${(player.rocketType.chassisHeatMult(player.currentChassisIndex) * 100).toInt()}%", color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        val coreStats = listOf(
+                            "HULL" to "${progressionManager.permanentMaxIntegrity.toInt()}",
+                            "SHIELD" to "${progressionManager.permanentMaxShield.toInt()}",
+                            "FE" to "${player.rocketType.fuelMult.times(100).toInt()}%",
+                            "HE" to "${player.rocketType.heatMult.times(100).toInt()}%"
+                        )
+                        coreStats.forEach { (label, value) ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(label, color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                                Text(value, color = if (label == "HE") SciFiRed else SciFiWhite, fontSize = 12.sp, fontWeight = FontWeight.Black)
+                            }
+                        }
                     }
                 }
             }
@@ -308,25 +342,19 @@ private fun OverviewTab(
 
         Spacer(Modifier.height(6.dp))
 
-        // Stats strip + DETAILS link
+        // Chassis-adjusted performance strip
         Surface(Modifier.fillMaxWidth(), color = SciFiSurface.copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp)) {
-            Row(Modifier.padding(10.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    val stats = listOf(
-                        "HULL" to "${progressionManager.permanentMaxIntegrity.toInt()}",
-                        "SHIELD" to "${progressionManager.permanentMaxShield.toInt()}",
-                        "FUEL" to "${player.rocketType.fuelMult.times(100).toInt()}%",
-                        "HEAT" to "${player.rocketType.heatMult.times(100).toInt()}%"
-                    )
-                    stats.forEach { (label, value) ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(label, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                            Text(value, color = SciFiWhite, fontSize = 13.sp, fontWeight = FontWeight.Black)
-                        }
+            Row(Modifier.padding(8.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                listOf(
+                    "THRUST" to "${(player.rocketType.chassisThrustMult(player.currentChassisIndex) * 100).toInt()}%",
+                    "FUEL" to "${(player.rocketType.chassisFuelMult(player.currentChassisIndex) * 100).toInt()}%",
+                    "THERMAL" to "${(player.rocketType.chassisHeatMult(player.currentChassisIndex) * 100).toInt()}%"
+                ).forEach { (label, value) ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(label, color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                        Text(value, color = SciFiCyan, fontSize = 14.sp, fontWeight = FontWeight.Black)
                     }
                 }
-                Spacer(Modifier.width(8.dp))
-                Text("\u25B8 DETAILS", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 9.sp, letterSpacing = 1.sp, modifier = Modifier.clickable { showDetailsModal = true })
             }
         }
 
@@ -347,11 +375,6 @@ private fun OverviewTab(
         Spacer(Modifier.height(4.dp))
         GlobalAdBanner()
         Spacer(Modifier.height(8.dp))
-    }
-
-    // Details Modal
-    if (showDetailsModal) {
-        RocketDetailsModal(player, sharedPrefs, onDismiss = { showDetailsModal = false })
     }
 
     // Module picker popup
@@ -478,111 +501,6 @@ private fun categoryIcon(category: ModuleCategory): String = when (category) {
     ModuleCategory.ENGINE -> "\uD83D\uDD25"
     ModuleCategory.HEAT -> "\u2744"
     ModuleCategory.UTILITY -> "\uD83D\uDD0D"
-}
-
-@Composable
-private fun RocketDetailsModal(
-    player: Player,
-    sharedPrefs: SharedPreferences,
-    onDismiss: () -> Unit
-) {
-    val rocketRenderer = remember { RocketRenderer() }
-    val chassisVariants = player.rocketType.chassisVariants
-
-    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
-        Surface(
-            Modifier.fillMaxWidth(0.92f).fillMaxHeight(0.9f).verticalScroll(rememberScrollState()),
-            color = SciFiBackground,
-            shape = RoundedCornerShape(20.dp)
-        ) {
-            Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                // Header
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("ROCKET DETAILS", color = SciFiCyan, fontWeight = FontWeight.Black, fontSize = 14.sp, letterSpacing = 2.sp)
-                    Text("\u2715", color = SciFiWhite.copy(alpha = 0.6f), fontSize = 20.sp, modifier = Modifier.clickable(onClick = onDismiss))
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                // Larger rocket render
-                Box(Modifier.fillMaxWidth().height(280.dp).background(SciFiSurface, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                    Canvas(Modifier.fillMaxSize()) {
-                        translate(size.width / 2, size.height / 2) {
-                            scale(3.2f, 3.2f, pivot = Offset.Zero) {
-                                rocketRenderer.render(this, player, false, Offset.Zero, 0f, 0L, offsetOverride = Offset.Zero)
-                            }
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                // Rocket info
-                Text(player.rocketType.title.uppercase(), color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(player.rocketType.traitName.uppercase(), color = SciFiGold, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                Text(player.rocketType.traitDescription, color = SciFiWhite.copy(alpha = 0.5f), fontSize = 9.sp)
-
-                Spacer(Modifier.height(12.dp))
-
-                // Chassis variants picker
-                Text("CHASSIS VARIANTS", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                Spacer(Modifier.height(4.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    chassisVariants.forEachIndexed { idx, variant ->
-                        val isSelected = player.currentChassisIndex == idx
-                        val borderClr = if (isSelected) SciFiCyan else SciFiBorder.copy(alpha = 0.2f)
-                        Surface(
-                            modifier = Modifier.weight(1f)
-                                .clickable {
-                                    player.currentChassisIndex = idx
-                                    sharedPrefs.edit().putInt("chassis_${player.rocketType.name}", idx).commit()
-                                }
-                                .border(1.dp, borderClr, RoundedCornerShape(8.dp)),
-                            color = if (isSelected) SciFiCyan.copy(alpha = 0.08f) else SciFiSurface.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Column(Modifier.padding(8.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(variant.name, color = if (isSelected) SciFiCyan else SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                                Text("T:${(player.rocketType.chassisThrustMult(idx) * 100).toInt()}% F:${(player.rocketType.chassisFuelMult(idx) * 100).toInt()}% H:${(player.rocketType.chassisHeatMult(idx) * 100).toInt()}%", color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp)
-                                if (isSelected) {
-                                    Spacer(Modifier.height(2.dp))
-                                    Text("EQUIPPED", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // Stats with chassis multipliers
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    listOf(
-                        "THRUST" to "${(player.rocketType.chassisThrustMult(player.currentChassisIndex) * 100).toInt()}%",
-                        "FUEL" to "${(player.rocketType.chassisFuelMult(player.currentChassisIndex) * 100).toInt()}%",
-                        "THERMAL" to "${(player.rocketType.chassisHeatMult(player.currentChassisIndex) * 100).toInt()}%"
-                    ).forEach { (label, value) ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(label, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black)
-                            Text(value, color = SciFiCyan, fontSize = 16.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth().height(44.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f))
-                ) {
-                    Text("CLOSE", color = SciFiCyan, fontWeight = FontWeight.Bold)
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-        }
-    }
 }
 
 @Composable
