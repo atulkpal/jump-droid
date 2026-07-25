@@ -176,6 +176,14 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
             HelpOverlay(onDismiss = { engine.gameState = engine.preOverlayState })
         }
 
+        if (engine.bossArrivalEvent != null && engine.bossArrivalTimer > 0) {
+            BossArrivalOverlay(
+                event = engine.bossArrivalEvent!!,
+                timer = engine.bossArrivalTimer,
+                gameTime = engine.gameTime
+            )
+        }
+
         if (gameState == GameState.UNLOCK && engine.currentUnlockEvent != null) {
             UnlockOverlay(
                 unlockEvent = engine.currentUnlockEvent!!,

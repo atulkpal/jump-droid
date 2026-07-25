@@ -227,6 +227,12 @@ data class ChassisVariant(
     val heatOffset: Float
 )
 
+data class BossArrivalEvent(
+    val bossName: String,
+    val bossId: String,
+    val zone: AltitudeZone
+)
+
 data class Achievement(
     val id: String,
     val title: String,

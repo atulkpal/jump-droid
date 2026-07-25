@@ -99,6 +99,8 @@ class GameEngine(
     val needsAdForNextContinue: Boolean get() = !(isPremiumUser && continuesUsed == 0)
     var signalDecodedMissionName by mutableStateOf<String?>(null)
     var showAscensionCredits by mutableStateOf(false)
+    var bossArrivalEvent by mutableStateOf<BossArrivalEvent?>(null)
+    var bossArrivalTimer by mutableFloatStateOf(0f)
     var screenWidth by mutableFloatStateOf(0f)
     var screenHeight by mutableFloatStateOf(0f)
     var groundY by mutableFloatStateOf(0f)
@@ -638,6 +640,11 @@ class GameEngine(
             })
         }
 
+        if (bossArrivalTimer > 0f) {
+            bossArrivalTimer -= dt
+            if (bossArrivalTimer <= 0f) bossArrivalEvent = null
+        }
+
         player.updateTimers(dt)
         discoveryManager.update(dt)
         threatManager.update(dt, cameraY, screenHeight, screenWidth, player, powerUpManager.powerUps)
@@ -920,7 +927,12 @@ class GameEngine(
             dt, score, altitudeManager.currentZone, screenWidth, screenHeight, cameraY, player.x, player.y, bossesSpawned, threatManager, notificationManager, 
             onDiscovery = { checkDiscovery(it) }, 
             onVisualFeedback = { s, f -> screenShake = max(screenShake, s); impactFlashAlpha = max(impactFlashAlpha, f) },
-            onBossSpawned = { analytics.logBossSpawned(it, altitudeManager.currentZone) }
+            onBossSpawned = {
+                analytics.logBossSpawned(it, altitudeManager.currentZone)
+                bossArrivalEvent = BossArrivalEvent(it.name, it.id, altitudeManager.currentZone)
+                bossArrivalTimer = 4f
+                preOverlayState = gameState
+            }
         )
 
         // Camera
