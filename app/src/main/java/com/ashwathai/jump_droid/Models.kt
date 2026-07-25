@@ -326,6 +326,7 @@ class Player(
 
     // Visual Feedback State
     var squashStretch by mutableFloatStateOf(1.0f)
+    var shieldHitTimer by mutableFloatStateOf(0f)
     var invulnerabilityTimer by mutableFloatStateOf(0f)
     var wpInvulnerabilityTimer by mutableFloatStateOf(0f)
     var isOnPlatform by mutableStateOf(false)
@@ -358,5 +359,6 @@ class Player(
         if (comboFreezeTimer > 0) comboFreezeTimer = max(0f, comboFreezeTimer - dt)
         if (controlInversionTimer > 0) controlInversionTimer = max(0f, controlInversionTimer - dt)
         if (hudInterferenceTimer > 0) hudInterferenceTimer = max(0f, hudInterferenceTimer - dt)
+        if (shieldHitTimer > 0) shieldHitTimer = max(0f, shieldHitTimer - dt)
     }
 }

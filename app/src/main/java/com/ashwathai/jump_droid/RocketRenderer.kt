@@ -164,8 +164,23 @@ class RocketRenderer {
         val flickerInner = random.nextFloat() * 8f
         val nozzleY = ROCKET_HEIGHT / 2
 
-        val outerLength = 50f + flicker
-        val innerLength = 30f + flickerInner
+        val heatRatio = (player.heat / Constants.MAX_HEAT).coerceIn(0f, 1f)
+
+        val outerFlameColor = when {
+            heatRatio > 0.8f -> SciFiRed
+            heatRatio > 0.5f -> SciFiGold
+            heatRatio > 0.2f -> Color(0xFFFF9800)
+            else -> SciFiCyan
+        }
+        val innerFlameColor = when {
+            heatRatio > 0.8f -> Color(0xFFFFEB3B)
+            heatRatio > 0.5f -> Color.White
+            heatRatio > 0.2f -> Color(0xFFB2EBF2)
+            else -> Color.White
+        }
+
+        val outerLength = 50f + flicker + heatRatio * 20f
+        val innerLength = 30f + flickerInner + heatRatio * 10f
 
         val outerFlame = Path().apply {
             moveTo(-14f, nozzleY - 2f)
@@ -176,7 +191,7 @@ class RocketRenderer {
         drawScope.drawPath(
             path = outerFlame,
             brush = Brush.verticalGradient(
-                colors = listOf(SciFiGold, SciFiRed.copy(alpha = 0.0f)),
+                colors = listOf(outerFlameColor, SciFiRed.copy(alpha = 0.0f)),
                 startY = nozzleY - 2f,
                 endY = nozzleY + outerLength + 10f
             )
@@ -191,7 +206,7 @@ class RocketRenderer {
         drawScope.drawPath(
             path = innerFlame,
             brush = Brush.verticalGradient(
-                colors = listOf(Color.White, Color(0xFF80DEEA).copy(alpha = 0.0f)),
+                colors = listOf(innerFlameColor, innerFlameColor.copy(alpha = 0.0f)),
                 startY = nozzleY - 2f,
                 endY = nozzleY + innerLength + 5f
             )
@@ -326,11 +341,15 @@ class RocketRenderer {
                 drawRect(SciFiCyan.copy(alpha = 0.3f), topLeft = Offset(bodyRight, bodyTop + bodyH * 0.4f), size = Size(2f, 8f))
             }
 
-            // Panel Lines
+            // Panel Lines with glow highlights
             val panelColor = Color.Black.copy(alpha = 0.15f)
+            val energyLineColor = currentColor.copy(alpha = 0.08f)
             drawLine(panelColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.25f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.25f), strokeWidth = 1f)
+            drawLine(energyLineColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.25f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.25f), strokeWidth = 2f)
             drawLine(panelColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.5f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.5f), strokeWidth = 1f)
+            drawLine(energyLineColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.5f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.5f), strokeWidth = 2f)
             drawLine(panelColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.75f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.75f), strokeWidth = 1f)
+            drawLine(energyLineColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.75f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.75f), strokeWidth = 2f)
 
             // Chassis 2: extra armor ridges
             if (chassis == 2) {
@@ -491,6 +510,23 @@ class RocketRenderer {
 
     private fun drawSurvivalLayers(drawScope: DrawScope, player: Player, gameTime: Long) {
         with(drawScope) {
+
+            // Shield hit flash: expanding white ring with fade
+            if (player.shieldHitTimer > 0) {
+                val hitProgress = 1f - (player.shieldHitTimer / 0.3f)
+                val hitAlpha = (1f - hitProgress) * 0.5f
+                drawCircle(
+                    color = Color.White.copy(alpha = hitAlpha),
+                    radius = 50f + hitProgress * 30f,
+                    style = Stroke(width = 3f * (1f - hitProgress) + 1f)
+                )
+                drawCircle(
+                    color = SciFiCyan.copy(alpha = hitAlpha * 0.3f),
+                    radius = 60f + hitProgress * 40f,
+                    style = Stroke(width = 2f)
+                )
+            }
+
             if (player.shield > 0) {
                 val shieldRatio = (player.shield / player.maxShield).coerceIn(0f, 1f)
 
@@ -558,21 +594,39 @@ class RocketRenderer {
             if (player.integrity < player.maxIntegrity) {
                 val damageRatio = 1f - (player.integrity / player.maxIntegrity)
 
-                repeat((damageRatio * 4).toInt().coerceAtLeast(1)) { i ->
-                    val r = Random(i.toLong() * 500)
-                    drawCircle(
-                        color = Color.Black.copy(alpha = 0.4f),
-                        radius = 4f + r.nextFloat() * 6f,
-                        center = Offset((r.nextFloat() - 0.5f) * 20f, (r.nextFloat() - 0.5f) * 40f)
-                    )
+                if (damageRatio > 0.5f) {
+                    repeat((damageRatio * 3 + 1).toInt()) { i ->
+                        val r = Random(i.toLong() * 500 + gameTime / 200)
+                        val cx = (r.nextFloat() - 0.5f) * 22f
+                        val cy = (r.nextFloat() - 0.5f) * 45f
+                        val scorchSize = 4f + r.nextFloat() * 6f
+                        drawCircle(
+                            color = Color(0xFF3E2723).copy(alpha = 0.5f),
+                            radius = scorchSize,
+                            center = Offset(cx, cy)
+                        )
+                        drawCircle(
+                            color = Color(0xFF1A1A1A).copy(alpha = 0.3f),
+                            radius = scorchSize * 0.6f,
+                            center = Offset(cx + 1f, cy - 1f)
+                        )
+                    }
                 }
 
-                if (damageRatio > 0.5f && (gameTime / 100 % 3 == 0L)) {
-                    val r = Random(gameTime)
+                if (damageRatio > 0.75f && gameTime % 4 == 0L) {
+                    val r = Random(gameTime / 2)
+                    val sparkX = (r.nextFloat() - 0.5f) * 26f
+                    val sparkY = (r.nextFloat() - 0.5f) * 50f
+                    drawLine(
+                        color = SciFiWhite,
+                        start = Offset(sparkX, sparkY),
+                        end = Offset(sparkX + (r.nextFloat() - 0.5f) * 8f, sparkY + (r.nextFloat() - 0.5f) * 8f),
+                        strokeWidth = 1.5f
+                    )
                     drawCircle(
                         color = SciFiGold,
                         radius = 2f,
-                        center = Offset((r.nextFloat() - 0.5f) * 25f, (r.nextFloat() - 0.5f) * 50f)
+                        center = Offset(sparkX, sparkY)
                     )
                 }
             }
