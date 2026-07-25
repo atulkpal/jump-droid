@@ -24,6 +24,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ashwathai.jump_droid.ui.theme.*
+import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -161,28 +163,51 @@ private fun OverviewTab(
                     val driftX = sin(gt / 3000f * 6.283185f) * 25f
 
                     translate(size.width / 2, size.height / 2 + bobY) {
-                        // Pulsing glow halo
+                        // Orbital tech rings
+                        val arcAngle = (gt / 80f) % 360f
+                        drawArc(SciFiCyan.copy(alpha = 0.3f), startAngle = arcAngle, sweepAngle = 270f, useCenter = false,
+                            topLeft = Offset(-65f, -45f), size = Size(130f, 90f), style = Stroke(width = 1f))
+                        drawArc(SciFiGold.copy(alpha = 0.18f), startAngle = arcAngle + 180f, sweepAngle = 180f, useCenter = false,
+                            topLeft = Offset(-75f, -55f), size = Size(150f, 110f), style = Stroke(width = 0.5f))
+
+                        // Scanning line (full cycle every ~3s)
+                        val scanY = ((gt / 130f) % 280f) - 140f
+                        drawLine(SciFiCyan.copy(alpha = 0.25f), Offset(-100f, scanY), Offset(100f, scanY), strokeWidth = 1f)
+                        drawLine(SciFiCyan.copy(alpha = 0.08f), Offset(-100f, scanY + 3f), Offset(100f, scanY + 3f), strokeWidth = 4f)
+
+                        // Orbiting sparkle highlights
+                        repeat(5) { i ->
+                            val angle = gt / 800f + i * 1.256f
+                            val dist = 32f + sin(gt / 1000f + i) * 6f
+                            val sx = cos(angle) * dist
+                            val sy = sin(angle) * dist * 0.6f
+                            val sparkle = (sin(gt / 200f + i * 2.3f) * 0.4f + 0.6f)
+                            drawCircle(SciFiGold.copy(alpha = 0.6f * sparkle), radius = 2f, center = Offset(sx, sy))
+                            drawCircle(SciFiWhite.copy(alpha = 0.35f * sparkle), radius = 3.5f, center = Offset(sx, sy))
+                        }
+
+                        // Pulsing glow halos
                         val haloPulse = (sin(gt / 1500f) * 0.3f + 0.7f)
-                        drawCircle(SciFiCyan.copy(alpha = 0.05f * haloPulse), radius = 120f)
-                        drawCircle(SciFiGold.copy(alpha = 0.03f * haloPulse), radius = 170f)
+                        drawCircle(SciFiCyan.copy(alpha = 0.12f * haloPulse), radius = 100f)
+                        drawCircle(SciFiGold.copy(alpha = 0.06f * haloPulse), radius = 140f)
 
                         // Engine particles
-                        repeat(12) { i ->
+                        repeat(10) { i ->
                             val seed = i * 137L + gt / 50
                             val rng = kotlin.random.Random(seed)
                             val progress = ((gt / 50f + i * 10f) % 100f) / 100f
-                            val px = sin(gt / 350f + i * 1.7f) * 14f
-                            val py = 28f + progress * 100f
+                            val px = sin(gt / 350f + i * 1.7f) * 12f
+                            val py = 28f + progress * 90f
                             val alpha = (1f - progress * progress) * 0.8f
-                            val size = 2f + rng.nextFloat() * 4f * (1f - progress)
+                            val size = 1.5f + rng.nextFloat() * 3f * (1f - progress)
                             val color = listOf(SciFiCyan, SciFiGold, SciFiRed)[i % 3]
                             drawCircle(color.copy(alpha = alpha), radius = size, center = Offset(px, py))
                             drawCircle(SciFiWhite.copy(alpha = alpha * 0.3f), radius = size * 0.4f, center = Offset(px - 1f, py))
                         }
 
-                        // Rocket with horizontal drift at 4.5x for visible details
+                        // Rocket with horizontal drift
                         translate(driftX, 0f) {
-                            scale(4.5f, 4.5f, pivot = Offset.Zero) {
+                            scale(3f, 3f, pivot = Offset.Zero) {
                                 rocketRenderer.render(this, player, true, Offset.Zero, 0f, gt, offsetOverride = Offset.Zero)
                             }
                         }
@@ -209,13 +234,7 @@ private fun OverviewTab(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Column(Modifier.padding(6.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Canvas(Modifier.size(24.dp)) {
-                            val cx = size.width / 2; val cy = size.height / 2
-                            val bw = 8f; val bh = 16f
-                            val alpha = if (unlocked) 1f else 0.3f
-                            drawRoundRect(SciFiWhite.copy(alpha = alpha), topLeft = Offset(cx - bw / 2, cy - bh / 2), size = Size(bw, bh), cornerRadius = CornerRadius(2f))
-                            drawPath(Path().apply { moveTo(cx - bw / 2, cy - bh / 2); lineTo(cx, cy - bh / 2 - 8f); lineTo(cx + bw / 2, cy - bh / 2); close() }, SciFiRed.copy(alpha = alpha))
-                        }
+                        Spacer(Modifier.height(4.dp))
                         Text(type.title, color = if (unlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.3f), fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         if (!unlocked) Text("${type.unlockScore}m", color = SciFiRed, fontSize = 6.sp, fontWeight = FontWeight.Bold)
                         else if (isActive) Text("ACTIVE", color = SciFiCyan, fontSize = 6.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
