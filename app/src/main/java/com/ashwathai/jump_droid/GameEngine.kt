@@ -120,6 +120,11 @@ class GameEngine(
     var majorWarningText by mutableStateOf<String?>(null)
     var majorWarningTimer by mutableFloatStateOf(0f)
     var hazardEdgeGlow by mutableFloatStateOf(0f)
+    var zoneTransitionTimer by mutableFloatStateOf(0f)
+    var zoneTransitionFrom by mutableStateOf(AltitudeZone.EARTH)
+    var zoneTransitionTo by mutableStateOf(AltitudeZone.EARTH)
+    val currentTransitionZone: AltitudeZone
+        get() = if (zoneTransitionTimer > 0) zoneTransitionTo else altitudeManager.currentZone
     var escalationSpawnId by mutableStateOf<String?>(null)
     var escalationSpawnX by mutableFloatStateOf(0f)
     var escalationSpawnY by mutableFloatStateOf(0f)
@@ -136,6 +141,9 @@ class GameEngine(
         altitudeManager.onZoneChanged = { zone ->
             soundManager.handleZoneChange(zone)
             discoveryManager.discoverZone(zone)
+            zoneTransitionTimer = 3.0f
+            zoneTransitionFrom = currentTransitionZone
+            zoneTransitionTo = zone
             notificationManager.showImmediately("ZONE: ${zone.zoneName}", priority = NotificationPriority.TACTICAL, duration = 3.0f)
             impactFlashAlpha = 0.3f
             analytics.logZoneChanged(zone)
@@ -778,6 +786,9 @@ class GameEngine(
             player.overheatTimer = Constants.OVERHEAT_COOLDOWN_TIME
             soundManager.playSfx("sfx_overheat_alarm")
         }
+
+        // Zone transition timer
+        if (zoneTransitionTimer > 0) zoneTransitionTimer = max(0f, zoneTransitionTimer - dt)
 
         // Particles & Effects
         landingEffects.removeAll { it.life <= 0 }; landingEffects.forEach { it.life -= dt }

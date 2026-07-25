@@ -3,6 +3,7 @@ package com.ashwathai.jump_droid
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
@@ -198,6 +199,15 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
             })
         }
         
+        // Zone Transition Overlay
+        if (engine.zoneTransitionTimer > 0) {
+            ZoneTransitionOverlay(
+                zone = engine.zoneTransitionTo,
+                timer = engine.zoneTransitionTimer,
+                gameTime = engine.gameTime
+            )
+        }
+
         engine.signalDecodedMissionName?.let { name ->
             // Replaced by notification + burst in GameEngine init callback
         }
@@ -295,6 +305,64 @@ fun HUDLayer(engine: GameEngine) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ZoneDiscoveryCard(activeEvent = activeEvent, score = engine.score)
             }
+        }
+    }
+}
+
+@Composable
+private fun ZoneTransitionOverlay(
+    zone: AltitudeZone,
+    timer: Float,
+    gameTime: Long
+) {
+    val totalDuration = 3f
+    val progress = ((totalDuration - timer) / totalDuration).coerceIn(0f, 1f)
+    val fadeIn = (progress / 0.2f).coerceIn(0f, 1f)
+    val holdStart = 0.2f
+    val holdEnd = 0.8f
+    val fadeOut = ((progress - holdEnd) / 0.2f).coerceIn(0f, 1f)
+    val alpha = when {
+        progress < holdStart -> fadeIn
+        progress > holdEnd -> 1f - fadeOut
+        else -> 1f
+    }.coerceIn(0f, 1f)
+
+    val zoneAccent = when (zone) {
+        AltitudeZone.EARTH, AltitudeZone.CLOUD_LAYER -> SciFiCyan
+        AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT -> Color(0xFF00BFFF)
+        AltitudeZone.THE_FOUNDRY -> SciFiOrange
+        AltitudeZone.DEEP_SPACE, AltitudeZone.CHRONO_RIFT -> SciFiPurple
+        AltitudeZone.VOID, AltitudeZone.THE_BEYOND -> Color(0xFFE91E63)
+        AltitudeZone.STELLAR_GATE, AltitudeZone.ANCIENT_CONSTRUCT -> SciFiGold
+        AltitudeZone.SINGULARITY -> SciFiRed
+    }
+    val textPulse = (kotlin.math.sin(gameTime / 200f) * 0.1f + 0.9f)
+
+    Box(Modifier.fillMaxSize().graphicsLayer(alpha = alpha).background(Color.Black.copy(alpha = 0.5f * alpha)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                zone.zoneName.uppercase(),
+                color = zoneAccent.copy(alpha = textPulse),
+                fontSize = 24.sp,
+                letterSpacing = 6.sp,
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                zone.subtitle,
+                color = SciFiWhite.copy(alpha = 0.6f * textPulse),
+                fontSize = 12.sp,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(16.dp))
+            Box(
+                Modifier.width(120.dp).height(2.dp).background(zoneAccent.copy(alpha = 0.4f * textPulse))
+            )
         }
     }
 }
