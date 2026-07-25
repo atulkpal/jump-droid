@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
 import com.ashwathai.jump_droid.ui.theme.SciFiGold
 import com.ashwathai.jump_droid.ui.theme.SciFiPurple
+import com.ashwathai.jump_droid.ui.theme.SciFiRed
 import kotlin.math.*
 
 enum class GameState {
@@ -339,6 +340,10 @@ class Player(
     var magneticSiphonTimer by mutableFloatStateOf(0f) // EPIC 10
     var overdriveTimer by mutableFloatStateOf(0f) // EPIC 10
 
+    // EPIC 12: Cosmetic Customization
+    var equippedTrailIndex by mutableIntStateOf(0)
+    var equippedPaintIndex by mutableIntStateOf(0)
+
     // EPIC 7: Module System
     val activeModules = mutableStateListOf<Module>()
     val moduleCooldowns = mutableStateMapOf<String, Float>()
@@ -361,4 +366,42 @@ class Player(
         if (hudInterferenceTimer > 0) hudInterferenceTimer = max(0f, hudInterferenceTimer - dt)
         if (shieldHitTimer > 0) shieldHitTimer = max(0f, shieldHitTimer - dt)
     }
+}
+
+data class EngineTrail(
+    val id: String,
+    val name: String,
+    val trailColor: Color,
+    val glowColor: Color,
+    val description: String,
+    val isDefault: Boolean = false
+)
+
+object EngineTrailRegistry {
+    val trails = listOf(
+        EngineTrail("plasma_cyan", "Plasma Cyan", Color(0xFF00E5FF), Color(0xFF80DEEA), "Standard cyan plasma exhaust.", isDefault = true),
+        EngineTrail("solar_flare", "Solar Flare", Color(0xFFFF6D00), Color(0xFFFFD700), "Burning orange-gold wake."),
+        EngineTrail("void_glitch", "Void Glitch", Color(0xFF9C27B0), Color(0xFFE040FB), "Unstable purple distortion trail."),
+        EngineTrail("plasma_blue", "Plasma Blue", Color(0xFF2196F3), Color(0xFF64B5F6), "Bright blue energy exhaust."),
+    )
+    val default: EngineTrail get() = trails.first { it.isDefault }
+}
+
+data class PaintScheme(
+    val id: String,
+    val name: String,
+    val hullColor: Color,
+    val accentColor: Color,
+    val description: String,
+    val isDefault: Boolean = false
+)
+
+object PaintRegistry {
+    val paints = listOf(
+        PaintScheme("stock", "Stock", Color.White, Color.White, "Standard factory finish.", isDefault = true),
+        PaintScheme("chrome", "Chrome", Color(0xFFB0BEC5), Color(0xFF78909C), "Sleek metallic chrome."),
+        PaintScheme("stealth", "Stealth", Color(0xFF263238), Color(0xFF37474F), "Dark matte stealth coating."),
+        PaintScheme("prototype_x", "Prototype-X", Color(0xFF880E4F), Color(0xFFAD1457), "Experimental prototype finish."),
+    )
+    val default: PaintScheme get() = paints.first { it.isDefault }
 }

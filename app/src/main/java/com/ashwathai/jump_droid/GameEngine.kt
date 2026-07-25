@@ -907,8 +907,10 @@ class GameEngine(
 
         if (!effectiveThrust) player.fuel = min(player.maxFuel, player.fuel + Constants.FUEL_RECHARGE_RATE * dt)
 
-        // Thrust trail particles (orange bubbles)
+        // Thrust trail particles (customizable)
         if (effectiveThrust) {
+            val trail = EngineTrailRegistry.trails.getOrElse(player.equippedTrailIndex) { EngineTrailRegistry.default }
+            val trailColor = if (player.turboTimer > 0) Color.Cyan else trail.trailColor
             if (Random.nextFloat() < 0.4f) {
                 particles.add(Particle(
                     x = player.x + (Random.nextFloat() - 0.5f) * 15f,
@@ -916,8 +918,19 @@ class GameEngine(
                     vx = (Random.nextFloat() - 0.5f) * 40f,
                     vy = 100f + Random.nextFloat() * 150f,
                     life = 0.3f + Random.nextFloat() * 0.3f,
-                    color = if (player.turboTimer > 0) Color.Cyan else Color(0xFFFF9800),
+                    color = trailColor,
                     size = 3f + Random.nextFloat() * 5f
+                ))
+            }
+            if (Random.nextFloat() < 0.15f) {
+                particles.add(Particle(
+                    x = player.x + (Random.nextFloat() - 0.5f) * 8f,
+                    y = player.y + ROCKET_HEIGHT / 2 + 10f,
+                    vx = (Random.nextFloat() - 0.5f) * 20f,
+                    vy = 60f + Random.nextFloat() * 80f,
+                    life = 0.4f + Random.nextFloat() * 0.4f,
+                    color = trail.glowColor.copy(alpha = 0.4f),
+                    size = 5f + Random.nextFloat() * 6f
                 ))
             }
         }

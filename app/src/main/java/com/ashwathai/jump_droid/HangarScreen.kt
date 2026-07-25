@@ -462,6 +462,10 @@ private fun CosmeticsTab(
     highScore: Int,
     sharedPrefs: SharedPreferences
 ) {
+    LaunchedEffect(Unit) {
+        player.equippedTrailIndex = sharedPrefs.getInt("equipped_trail", 0)
+    }
+
     val totalChassis = RocketType.entries.sumOf { it.chassisVariants.size }
     val unlockedChassis = RocketType.entries.sumOf { cls ->
         if (highScore >= cls.unlockScore || sharedPrefs.getBoolean("unlock_${cls.name}", false))
@@ -489,6 +493,40 @@ private fun CosmeticsTab(
         }
 
         Spacer(Modifier.height(12.dp))
+
+        // Engine Trails
+        Text("ENGINE TRAILS", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp)
+        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            EngineTrailRegistry.trails.forEachIndexed { idx, trail ->
+                val isSelected = player.equippedTrailIndex == idx
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .border(1.dp, if (isSelected) trail.trailColor else SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                        .clickable {
+                            player.equippedTrailIndex = idx
+                            sharedPrefs.edit().putInt("equipped_trail", idx).commit()
+                        },
+                    color = if (isSelected) trail.trailColor.copy(alpha = 0.1f) else SciFiSurface,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(Modifier.padding(6.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Canvas(Modifier.size(20.dp)) {
+                            val cx = size.width / 2
+                            val cy = size.height / 2
+                            drawCircle(trail.glowColor.copy(alpha = 0.2f), radius = size.minDimension / 2)
+                            drawCircle(trail.trailColor, radius = 4f, center = Offset(cx, cy))
+                        }
+                        Spacer(Modifier.height(2.dp))
+                        Text(trail.name, color = if (isSelected) trail.trailColor else SciFiWhite, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(if (isSelected) "ACTIVE" else "SELECT", color = if (isSelected) trail.trailColor.copy(alpha = 0.6f) else SciFiWhite.copy(alpha = 0.2f), fontSize = 6.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
 
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             RocketType.entries.forEach { cls ->
