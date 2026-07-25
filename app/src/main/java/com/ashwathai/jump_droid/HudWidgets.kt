@@ -186,27 +186,39 @@ fun HeatGauge(
     val noiseVal = if (isInterfered) ((sin(hud.gameTime / 100.0 + 2.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     val heatFlicker = rememberInfiniteTransition(label = "HeatFlicker").animateFloat(0.88f, 1.12f, infiniteRepeatable(tween(120, easing = LinearEasing), RepeatMode.Reverse), label = "HeatFlickerVal")
     val heatRatio = (heat / maxHeat).coerceIn(0f, 1f)
+    val isWarning = heatRatio > 0.7f
+    val warningPulse = rememberInfiniteTransition(label = "HeatWarningPulse").animateFloat(0.5f, 1f, infiniteRepeatable(tween(400), RepeatMode.Reverse), label = "HeatWarningPulseVal")
     val heatColor = when {
         isOverheated -> SciFiRed
         heatRatio > 0.8f -> SciFiRed
         heatRatio > 0.5f -> SciFiGold
         else -> SciFiCyan
     }
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    val dangerMarks = if (heatRatio > 0.5f) listOf(0.7f, 0.9f) else emptyList()
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .background(
+                if (isWarning && !isOverheated) SciFiRed.copy(alpha = warningPulse.value * 0.06f)
+                else Color.Transparent,
+                RoundedCornerShape(8.dp)
+            )
+            .padding(4.dp)
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = if (isOverheated) "\u26A0\uFE0F" else "\uD83D\uDD25",
                 fontSize = if (isOverheated) 12.sp else 10.sp,
                 modifier = Modifier.graphicsLayer {
                     alpha = if (isOverheated) ((hud.gameTime / 150) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
-                    scaleX = heatFlicker.value
-                    scaleY = heatFlicker.value
+                    scaleX = if (isWarning) heatFlicker.value * (1f + warningPulse.value * 0.1f) else heatFlicker.value
+                    scaleY = if (isWarning) heatFlicker.value * (1f + warningPulse.value * 0.1f) else heatFlicker.value
                 },
-                color = if (isOverheated) SciFiRed else SciFiGold,
+                color = if (isOverheated) SciFiRed else if (isWarning) SciFiRed else SciFiGold,
                 style = MaterialTheme.typography.labelSmall.copy(
                     shadow = Shadow(
-                        if (isOverheated) SciFiRed.copy(alpha = 0.6f) else SciFiGold.copy(alpha = 0.4f),
-                        blurRadius = 10f
+                        if (isOverheated) SciFiRed.copy(alpha = 0.6f) else if (isWarning) SciFiRed.copy(alpha = warningPulse.value * 0.5f) else SciFiGold.copy(alpha = 0.4f),
+                        blurRadius = if (isWarning) 14f else 10f
                     )
                 )
             )
@@ -226,6 +238,7 @@ fun HeatGauge(
             noiseVal = noiseVal,
             gaugeHeight = gaugeHeight,
             interferencePhase = 1f,
+            dangerThresholds = dangerMarks,
             onDrawFill = { fillAlpha, fillHeight ->
                 val gradientBrush = Brush.verticalGradient(
                     (size.height - fillHeight) to heatColor.copy(alpha = fillAlpha),
@@ -236,7 +249,7 @@ fun HeatGauge(
         )
         Text(
             text = "${(heatRatio * 100).toInt()}%",
-            color = heatColor,
+            color = if (isWarning) SciFiRed else heatColor,
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 2.dp)

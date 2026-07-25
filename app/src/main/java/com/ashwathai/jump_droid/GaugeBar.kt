@@ -37,6 +37,7 @@ fun GaugeBar(
     noiseVal: Float,
     gaugeHeight: Dp,
     interferencePhase: Float = 0f,
+    dangerThresholds: List<Float> = emptyList(),
     onDrawFill: DrawScope.(fillAlpha: Float, fillHeight: Float) -> Unit,
     onDrawExtra: DrawScope.() -> Unit = {}
 ) {
@@ -63,6 +64,11 @@ fun GaugeBar(
                     }
                 }
                 onDrawExtra()
+                dangerThresholds.forEach { threshold ->
+                    val dy = size.height * (1f - (threshold.coerceIn(0f, 1f)))
+                    drawLine(Color.Red.copy(alpha = 0.6f), Offset(1f, dy), Offset(size.width - 1f, dy), strokeWidth = 2f)
+                    drawLine(Color.White.copy(alpha = 0.4f), Offset(1f, dy - 1f), Offset(size.width - 1f, dy - 1f), strokeWidth = 0.5f)
+                }
                 val segCount = 10
                 for (i in 1 until segCount) {
                     val sy = size.height * (i.toFloat() / segCount)

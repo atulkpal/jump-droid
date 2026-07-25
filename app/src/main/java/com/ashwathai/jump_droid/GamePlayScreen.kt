@@ -11,6 +11,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -244,6 +253,8 @@ fun HUDLayer(engine: GameEngine) {
             hud = hud
         )
 
+        HeatEdgeGlow(heat = player.heat, maxHeat = player.maxHeat, isOverheated = player.isOverheated)
+
         NotificationLayer(
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 180.dp),
             activeNotification = notificationManager.active,
@@ -276,6 +287,54 @@ fun HUDLayer(engine: GameEngine) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 ZoneDiscoveryCard(activeEvent = activeEvent, score = engine.score)
             }
+        }
+    }
+}
+
+@Composable
+private fun HeatEdgeGlow(heat: Float, maxHeat: Float, isOverheated: Boolean) {
+    val heatRatio = (heat / maxHeat).coerceIn(0f, 1f)
+    if (heatRatio < 0.7f && !isOverheated) return
+
+    val pulse = rememberInfiniteTransition(label = "HeatGlowPulse").animateFloat(0.3f, 0.7f, infiniteRepeatable(tween(600), RepeatMode.Reverse), label = "HeatGlowPulseVal")
+    val glowAlpha = if (isOverheated) 0.5f else (heatRatio - 0.7f) / 0.3f * pulse.value
+    val glowColor = if (isOverheated || heatRatio > 0.9f) SciFiRed else SciFiRed.copy(green = 0.3f)
+
+    Box(Modifier.fillMaxSize().pointerInput(Unit) {}) {
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val edgeSize = w * 0.15f
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(glowColor.copy(alpha = glowAlpha * 0.4f), Color.Transparent),
+                    startY = 0f, endY = edgeSize
+                ),
+                size = Size(w, edgeSize)
+            )
+            drawRect(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, glowColor.copy(alpha = glowAlpha * 0.4f)),
+                    startY = h - edgeSize, endY = h
+                ),
+                topLeft = Offset(0f, h - edgeSize),
+                size = Size(w, edgeSize)
+            )
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(glowColor.copy(alpha = glowAlpha), Color.Transparent),
+                    startX = 0f, endX = edgeSize
+                ),
+                size = Size(edgeSize, h)
+            )
+            drawRect(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(Color.Transparent, glowColor.copy(alpha = glowAlpha)),
+                    startX = w - edgeSize, endX = w
+                ),
+                topLeft = Offset(w - edgeSize, 0f),
+                size = Size(edgeSize, h)
+            )
         }
     }
 }
