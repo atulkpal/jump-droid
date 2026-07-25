@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -413,6 +415,7 @@ fun ComboDisplay(
     if (currentCombo <= 0) return
 
     val timerRatio = (comboTimeRemaining.toFloat() / getWindowForCombo(currentCombo)).coerceIn(0f, 1f)
+    val zoneAccent = zoneGaugeAccents[zone] ?: SciFiCyan
     
     val ringColor = when {
         timerRatio > 0.6f -> SciFiGreen
@@ -424,10 +427,17 @@ fun ComboDisplay(
     // Pulse animation on combo increase
     val ringScale = remember { Animatable(1f) }
     var prevCombo by remember { mutableIntStateOf(0) }
+    var hasShownHint by remember { mutableStateOf(false) }
+    val hintAlpha = remember { Animatable(0f) }
     LaunchedEffect(currentCombo) {
         if (currentCombo > prevCombo && prevCombo > 0) {
             ringScale.snapTo(1.35f)
             ringScale.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+        }
+        if (currentCombo >= 3 && !hasShownHint) {
+            hasShownHint = true
+            hintAlpha.snapTo(1f)
+            hintAlpha.animateTo(0f, tween(4000, easing = FastOutSlowInEasing))
         }
         prevCombo = currentCombo
     }
@@ -492,6 +502,21 @@ fun ComboDisplay(
                 ),
                 color = SciFiWhite,
                 fontSize = 16.sp
+            )
+        }
+
+        if (hintAlpha.value > 0.01f) {
+            Text(
+                text = "LAND ON DIFFERENT PLATFORMS TO BUILD COMBO",
+                color = zoneAccent.copy(alpha = hintAlpha.value * 0.8f),
+                fontSize = 7.sp,
+                letterSpacing = 1.5.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .offset(x = 62.dp, y = (-4).dp)
+                    .graphicsLayer(alpha = hintAlpha.value)
+                    .widthIn(max = 110.dp),
+                textAlign = TextAlign.Start
             )
         }
     }
