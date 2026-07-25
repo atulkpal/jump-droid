@@ -275,12 +275,16 @@ class RocketRenderer {
         val chassis = player.currentChassisIndex
 
         val heatRatio = (player.heat / Constants.MAX_HEAT).coerceIn(0f, 1f)
-        val bodyBaseColor = when (player.rocketType) {
-            RocketType.BALANCED -> SciFiWhite
-            RocketType.SCOUT -> SciFiGold
-            RocketType.TANK -> Color(0xFF455A64)
-            RocketType.EXPERIMENTAL -> SciFiPurple
-        }
+
+        val paint = PaintRegistry.paints.getOrElse(player.equippedPaintIndex) { PaintRegistry.default }
+        val bodyBaseColor = if (paint.isDefault) {
+            when (player.rocketType) {
+                RocketType.BALANCED -> SciFiWhite
+                RocketType.SCOUT -> SciFiGold
+                RocketType.TANK -> Color(0xFF455A64)
+                RocketType.EXPERIMENTAL -> SciFiPurple
+            }
+        } else paint.hullColor
 
         val currentColor = overrideColor ?: (if (player.isOverheated) SciFiRed
                           else lerpColor(bodyBaseColor, SciFiRed, heatRatio * 0.7f))
@@ -296,7 +300,7 @@ class RocketRenderer {
             val bodyBottom = bodyTop + bodyH
             val bodyRight = bodyLeft + bodyW
 
-            val accentColor = when (chassis) {
+            val accentColor = if (!paint.isDefault) paint.accentColor else when (chassis) {
                 1 -> SciFiCyan
                 2 -> SciFiGold
                 else -> currentColor

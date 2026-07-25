@@ -464,6 +464,7 @@ private fun CosmeticsTab(
 ) {
     LaunchedEffect(Unit) {
         player.equippedTrailIndex = sharedPrefs.getInt("equipped_trail", 0)
+        player.equippedPaintIndex = sharedPrefs.getInt("equipped_paint", 0)
     }
 
     val totalChassis = RocketType.entries.sumOf { it.chassisVariants.size }
@@ -521,6 +522,36 @@ private fun CosmeticsTab(
                         Spacer(Modifier.height(2.dp))
                         Text(trail.name, color = if (isSelected) trail.trailColor else SciFiWhite, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(if (isSelected) "ACTIVE" else "SELECT", color = if (isSelected) trail.trailColor.copy(alpha = 0.6f) else SciFiWhite.copy(alpha = 0.2f), fontSize = 6.sp, fontWeight = FontWeight.Black)
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Text("PAINT SCHEMES", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp)
+        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            PaintRegistry.paints.forEachIndexed { idx, paint ->
+                val isSelected = player.equippedPaintIndex == idx
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .border(1.dp, if (isSelected) paint.accentColor else SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                        .clickable {
+                            player.equippedPaintIndex = idx
+                            sharedPrefs.edit().putInt("equipped_paint", idx).commit()
+                        },
+                    color = if (isSelected) paint.hullColor.copy(alpha = 0.15f) else SciFiSurface,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(Modifier.padding(6.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            Modifier.size(20.dp).background(paint.hullColor, RoundedCornerShape(4.dp))
+                                .border(1.dp, paint.accentColor.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(paint.name, color = if (isSelected) paint.accentColor else SciFiWhite, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(if (isSelected) "ACTIVE" else "SELECT", color = if (isSelected) paint.accentColor.copy(alpha = 0.6f) else SciFiWhite.copy(alpha = 0.2f), fontSize = 6.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
