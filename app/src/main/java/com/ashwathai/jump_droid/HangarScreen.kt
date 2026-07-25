@@ -245,6 +245,7 @@ private fun OverviewTab(
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.Top) {
             Surface(Modifier.weight(0.58f), color = SciFiSurface.copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp)) {
                 Column(Modifier.padding(10.dp)) {
+                    // Header
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(player.rocketType.title.uppercase(), color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         Spacer(Modifier.width(6.dp))
@@ -254,8 +255,17 @@ private fun OverviewTab(
                     Text(player.rocketType.traitName.uppercase(), color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     Text(player.rocketType.traitDescription, color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
 
-                    // Chassis variants picker
+                    // ⚔ PERFORMANCE (chassis-adjusted)
                     Spacer(Modifier.height(6.dp))
+                    Text("\u2694 PERFORMANCE", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                    Spacer(Modifier.height(3.dp))
+                    val maxPerf = 1.5f
+                    StatBar("THRUST", "${(player.rocketType.chassisThrustMult(player.currentChassisIndex) * 100).toInt()}%", player.rocketType.chassisThrustMult(player.currentChassisIndex) / maxPerf, SciFiGold)
+                    StatBar("FUEL", "${(player.rocketType.chassisFuelMult(player.currentChassisIndex) * 100).toInt()}%", player.rocketType.chassisFuelMult(player.currentChassisIndex) / maxPerf, SciFiGreen)
+                    StatBar("THERMAL", "${(player.rocketType.chassisHeatMult(player.currentChassisIndex) * 100).toInt()}%", player.rocketType.chassisHeatMult(player.currentChassisIndex) / maxPerf, SciFiRed)
+
+                    // CHASSIS picker
+                    Spacer(Modifier.height(4.dp))
                     Text("CHASSIS", color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                     Spacer(Modifier.height(3.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -270,30 +280,26 @@ private fun OverviewTab(
                             ) {
                                 Column(Modifier.padding(vertical = 4.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(variant.name, color = if (isSelected) SciFiCyan else SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 7.sp)
-                                    Text("T:${(player.rocketType.chassisThrustMult(idx) * 100).toInt()}% F:${(player.rocketType.chassisFuelMult(idx) * 100).toInt()}%", color = SciFiWhite.copy(alpha = 0.3f), fontSize = 6.sp)
+                                    val offsets = listOf(
+                                        if (variant.thrustOffset != 0f) "T${if (variant.thrustOffset > 0) "+" else ""}${(variant.thrustOffset * 100).toInt()}%" else "",
+                                        if (variant.fuelOffset != 0f) "F${if (variant.fuelOffset > 0) "+" else ""}${(variant.fuelOffset * 100).toInt()}%" else "",
+                                        if (variant.heatOffset != 0f) "H${if (variant.heatOffset > 0) "+" else ""}${(variant.heatOffset * 100).toInt()}%" else ""
+                                    ).filter { it.isNotEmpty() }.joinToString(" ")
+                                    Text(offsets.ifEmpty { "baseline" }, color = SciFiWhite.copy(alpha = 0.3f), fontSize = 6.sp)
                                 }
                             }
                         }
                     }
 
-                    // Inline core stats
+                    // 🛡 DURATIONALS (permanent)
                     Spacer(Modifier.height(6.dp))
                     Divider(color = SciFiBorder.copy(alpha = 0.15f), thickness = 0.5.dp)
                     Spacer(Modifier.height(4.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        val coreStats = listOf(
-                            "HULL" to "${progressionManager.permanentMaxIntegrity.toInt()}",
-                            "SHIELD" to "${progressionManager.permanentMaxShield.toInt()}",
-                            "FE" to "${player.rocketType.fuelMult.times(100).toInt()}%",
-                            "HE" to "${player.rocketType.heatMult.times(100).toInt()}%"
-                        )
-                        coreStats.forEach { (label, value) ->
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(label, color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                                Text(value, color = if (label == "HE") SciFiRed else SciFiWhite, fontSize = 12.sp, fontWeight = FontWeight.Black)
-                            }
-                        }
-                    }
+                    Text("\uD83D\uDEE1 DURATIONALS", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                    Spacer(Modifier.height(3.dp))
+                    val maxInt = 800f
+                    StatBar("HULL", "${progressionManager.permanentMaxIntegrity.toInt()}", progressionManager.permanentMaxIntegrity / maxInt, SciFiGold)
+                    StatBar("SHIELD", "${progressionManager.permanentMaxShield.toInt()}", progressionManager.permanentMaxShield / maxInt, SciFiCyan)
                 }
             }
             Spacer(Modifier.width(6.dp))
@@ -335,24 +341,6 @@ private fun OverviewTab(
                                 Text("TAP TO EQUIP", color = SciFiCyan.copy(alpha = 0.3f), fontSize = 7.sp)
                             }
                         }
-                    }
-                }
-            }
-        }
-
-        Spacer(Modifier.height(6.dp))
-
-        // Chassis-adjusted performance strip
-        Surface(Modifier.fillMaxWidth(), color = SciFiSurface.copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp)) {
-            Row(Modifier.padding(8.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                listOf(
-                    "THRUST" to "${(player.rocketType.chassisThrustMult(player.currentChassisIndex) * 100).toInt()}%",
-                    "FUEL" to "${(player.rocketType.chassisFuelMult(player.currentChassisIndex) * 100).toInt()}%",
-                    "THERMAL" to "${(player.rocketType.chassisHeatMult(player.currentChassisIndex) * 100).toInt()}%"
-                ).forEach { (label, value) ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(label, color = SciFiWhite.copy(alpha = 0.35f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                        Text(value, color = SciFiCyan, fontSize = 14.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -722,6 +710,18 @@ private fun CosmeticsTab(
         }
         Spacer(Modifier.height(8.dp))
         GlobalAdBanner()
+    }
+}
+
+@Composable
+private fun StatBar(label: String, value: String, fraction: Float, color: Color) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.width(48.dp))
+        Box(Modifier.weight(1f).height(6.dp).background(SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(3.dp))) {
+            Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().background(color, RoundedCornerShape(3.dp)))
+        }
+        Spacer(Modifier.width(6.dp))
+        Text(value, color = color, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.width(32.dp))
     }
 }
 
