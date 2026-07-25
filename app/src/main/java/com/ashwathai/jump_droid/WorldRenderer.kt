@@ -99,5 +99,17 @@ class WorldRenderer {
         if (impactFlashAlpha > 0f) {
             drawScope.drawRect(Color.White.copy(alpha = impactFlashAlpha.coerceIn(0f, 1f)), size = drawScope.size)
         }
+
+        // 15. Hazard proximity screen-edge glow
+        val hazardGlow = engine.hazardEdgeGlow
+        if (hazardGlow > 0.01f) {
+            val edgeColor = Color(0xFFE91E63).copy(alpha = hazardGlow.coerceIn(0f, 1f))
+            with(drawScope) {
+                drawRect(edgeColor, topLeft = androidx.compose.ui.geometry.Offset.Zero, size = androidx.compose.ui.geometry.Size(size.width, 8f))
+                drawRect(edgeColor, topLeft = androidx.compose.ui.geometry.Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(8f, size.height))
+                drawRect(edgeColor, topLeft = androidx.compose.ui.geometry.Offset(size.width - 8f, 0f), size = androidx.compose.ui.geometry.Size(8f, size.height))
+                drawRect(edgeColor, topLeft = androidx.compose.ui.geometry.Offset(0f, size.height - 8f), size = androidx.compose.ui.geometry.Size(size.width, 8f))
+            }
+        }
     }
 }

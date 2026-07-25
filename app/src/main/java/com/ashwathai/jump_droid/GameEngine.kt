@@ -119,6 +119,7 @@ class GameEngine(
     val bossesSpawned = mutableStateSetOf<String>()
     var majorWarningText by mutableStateOf<String?>(null)
     var majorWarningTimer by mutableFloatStateOf(0f)
+    var hazardEdgeGlow by mutableFloatStateOf(0f)
     var escalationSpawnId by mutableStateOf<String?>(null)
     var escalationSpawnX by mutableFloatStateOf(0f)
     var escalationSpawnY by mutableFloatStateOf(0f)
@@ -248,6 +249,18 @@ class GameEngine(
             is ComboReward.PowerUp -> if (reward.type == PowerUpType.HULL_REPAIR) SciFiGreen else SciFiCyan
             is ComboReward.AltitudeBoost -> SciFiWhite
             is ComboReward.Artifact -> SciFiPurple
+        }
+        // Combo reward flight path trail: particles cascade from above toward player
+        repeat(8) {
+            particles.add(Particle(
+                x = player.x + (Random.nextFloat() - 0.5f) * 60f,
+                y = player.y - 200f - Random.nextFloat() * 150f,
+                vx = (player.x - (player.x + (Random.nextFloat() - 0.5f) * 60f)) / 20f,
+                vy = 100f + Random.nextFloat() * 100f,
+                life = 0.6f + Random.nextFloat() * 0.3f,
+                color = rewardColor.copy(alpha = 0.5f),
+                size = 3f + Random.nextFloat() * 4f
+            ))
         }
         val rewardName = when (reward) {
             is ComboReward.Fuel -> "FUEL RECOVERED"
@@ -906,6 +919,27 @@ class GameEngine(
         if (!player.isOnPlatform) airborneTimer += dt
 
         if (!effectiveThrust) player.fuel = min(player.maxFuel, player.fuel + Constants.FUEL_RECHARGE_RATE * dt)
+
+        // Heat shimmer particles during thrust (visible when heat > 50%)
+        if (effectiveThrust && player.heat > Constants.MAX_HEAT * 0.5f) {
+            if (Random.nextFloat() < 0.3f) {
+                particles.add(Particle(
+                    x = player.x + (Random.nextFloat() - 0.5f) * 6f,
+                    y = player.y + ROCKET_HEIGHT * 0.3f,
+                    vx = (Random.nextFloat() - 0.5f) * 10f,
+                    vy = -20f - Random.nextFloat() * 30f,
+                    life = 0.2f + Random.nextFloat() * 0.2f,
+                    color = Color(0xFFFF9800).copy(alpha = 0.2f),
+                    size = 8f + Random.nextFloat() * 10f
+                ))
+            }
+        }
+
+        // Hazard proximity: subtle screen-edge glow tint
+        val nearestHazard = threatManager.activeThreats.minByOrNull { abs(it.x - player.x) + abs((it.y - cameraY) - player.y) * 0.5f }
+        val hazardDist = nearestHazard?.let { abs(it.x - player.x) + abs((it.y - cameraY) - player.y) * 0.5f } ?: Float.MAX_VALUE
+        val hazardIntensity = (1f - (hazardDist / 400f).coerceIn(0f, 1f))
+        hazardEdgeGlow += (hazardIntensity * 0.15f - hazardEdgeGlow) * (dt * 3f).coerceIn(0f, 1f)
 
         // Thrust trail particles (customizable)
         if (effectiveThrust) {
