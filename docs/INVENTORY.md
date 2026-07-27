@@ -1,4 +1,4 @@
-# Documentation Inventory — Milestone: v1.5.2 — Community Platform & Hero Redesign
+# Documentation Inventory — Milestone: v2.0.0 — Production Ascension
 
 ## Root
 *   `AGENTS.md`: Authoritative governance, memory, and onboarding manual.
@@ -10,6 +10,7 @@
 *   `docs/PRODUCTION_CHECKLIST.md`: Pre/post release tasks for new versions.
 *   `docs/README.md`: High-level technical overview of the codebase.
 *   `docs/RELEASES.md`: Release history — version table, key changes, artifact links.
+*   `docs/RELEASE_NOTES_v2.0.0.md`: Production release notes for the v2.0.0 milestone.
 *   `docs/VISION.md`: The creative and gameplay goal for Jump Droid.
 *   `docs/COMMUNITY_PLATFORM.md`: Portable website Community & Growth Platform — routing, components, Firestore data model, Gmail OAuth, campaign automation, reuse checklist, setup guide.
 *   `docs/CRM_SYSTEM.md`: Full CRM & Campaign System reference — data model, types, email system, campaign engine, detection, API, UI, whitelabel catalog, file layout.

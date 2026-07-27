@@ -517,6 +517,32 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 ---
 
+# EPIC 13 — Production Deployment & Store Listing
+
+**Status: IN PROGRESS 🚀**
+
+## Phase 1 — Production Readiness
+- [x] Version Bump (v2.0.0, Code 7)
+- [x] Play Billing Library Upgrade (v9.1.0)
+- [x] Protocol Screen Overhaul (AboutScreen.kt)
+- [x] Build Signed Release AAB
+- [x] Build Signed Release APK
+- [x] Generate Production Release Notes
+
+## Phase 2 — Asset Generation
+- [ ] Store Screenshots (Phone/Tablet)
+- [ ] Feature Graphic (1024x500)
+- [ ] App Icon Finalization
+- [ ] Promo Video / Trailer
+
+## Phase 3 — Store Submission
+- [ ] Internal Testing Track
+- [ ] Closed Beta Feedback Analysis
+- [ ] Production Track Rollout
+- [ ] Store Description & Metadata Localization
+
+---
+
 # Tasks Discovered During Development (Sprint C Archive)
 
 - [x] **Structural AI Fix**: Decoupled Boss update loops from Enemy loops to allow complex AI to run.
