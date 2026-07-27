@@ -418,8 +418,8 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 # EPIC 12 — Fleet Ascension: Visual Overhaul & Fleet Expansion
 
-**Status:** ACTIVE ✅
-**Branch:** `feature/fleet-ascension-visual-overhaul`
+**Status:** COMPLETE ✅ (Milestone v1.6.0)
+**Branch:** `master`
 **Execution Plan:** `docs/roadmap/EPIC_12_FLEET_ASCENSION_VISUAL_OVERHAUL.md`
 **Prerequisites:** EPIC 11 ✅
 
@@ -429,64 +429,82 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 - [x] Color & typography audit per brand guide (SciFiBackground/SciFiSurface across 4 screens)
 - [x] Equipment visual feedback on rocket Canvas rendering (module dots, armor plates, shield boost, flame tint)
 
-## Phase 2 — Player Experience: Hangar, Loadout & Missions
-- [ ] Hangar tabbed redesign (Overview/Rockets/Modules/Cosmetics)
-- [ ] Stat comparison system (radar/bar chart per rocket class)
-- [ ] Missions timeline UI (journey-style presentation per track)
-- [ ] In-run mission progress card on HUD
-- [ ] Loadout merge into Hangar (pre-flight quick equip panel)
-- [ ] Chassis variants per class (12 total — Explorer, Striker, Heavy, Prototype fleets)
-- [ ] Fleet collection UI (grid with locked/unlocked states)
+## Phase 2 — Player Experience: Hangar, Loadout & Missions (COMPLETE ✅)
+- [x] 2.1 Hangar tabbed redesign (Overview/Cosmetics)
+- [x] 2.2 Stat comparison system (PentagonChart/Radar)
+- [x] 2.3 Missions timeline UI (Journey-style presentation)
+- [x] 2.4 In-run mission progress card on HUD
+- [x] 2.5 Loadout merge into Hangar
+- [x] 2.6 Chassis variants per class (12 total fleets)
+- [x] 2.7 Fleet collection UI (Cosmetics mastery)
 
-## Phase 3 — Gameplay UX: HUD, Feedback, Continue & Credits
-- [ ] HUD gauge consolidation (shield+hull combined, zone progress bar)
-- [ ] Heat warning enhancement (visual danger markers, screen-edge glow)
-- [ ] Combo ring explanation text
-- [ ] Unlock celebration system (full-screen glow + preview + action button)
-- [ ] Continue credit system (watch ad → bank credit, max 10, spend at game over)
-- [ ] Credit purchase with cash (100 cash = 1 credit)
-- [ ] Server-pushable credit bonuses via remote config
-- [ ] Continue experience redesign (loading modal, internal retry, grace offer)
-- [ ] Boss arrival cinematic (screen dim, warning text, particle burst)
-- [ ] Notification priority tuning
+## Phase 3 — Gameplay UX: HUD, Feedback, Continue & Credits (COMPLETE ✅)
+- [!] 3.1 HUD gauge consolidation — SCRAPPED
+- [x] 3.2 Heat warning enhancement (visual danger markers, screen-edge glow)
+- [x] 3.3 Combo ring explanation text
+- [x] 3.4 Unlock celebration system (non-blocking "Flight Log" variant)
+- [x] 3.5 Continue credit system (watch ad → bank credit, max 10, spend at game over)
+- [x] 3.6 Boss arrival cinematic (screen dim, warning text, particle burst)
+- [x] 3.7 Notification priority tuning
 
-## Phase 4 — Canvas Visual Upgrade
-- [ ] Rocket visual upgrade (thruster flame, body panels, shield bubble, heat glow)
-- [ ] Engine trail customization system (color + particle pattern per trail)
-- [ ] Paint scheme system (base hull color replacement)
-- [ ] Boss visual upgrade pass (all 11 bosses)
-- [ ] Particle system pass (thrust, landing, combo, power-up, hazard effects)
-- [ ] Zone transition animation (fade → name card → fade in)
+## Phase 4 — Canvas Visual Upgrade (COMPLETE ✅)
+- [x] 4.1 Rocket visual upgrade (thruster flame, body panels, shield bubble, heat glow)
+- [x] 4.2 Engine trail customization system (color + particle pattern per trail)
+- [x] 4.3 Paint scheme system (base hull color replacement)
+- [x] 4.4 Boss visual upgrade pass (all 12 bosses)
+- [x] 4.5 Particle system pass (thrust, landing, combo, power-up, hazard effects)
+- [x] 4.6 Zone transition animation (fade → name card → fade in with transition mist)
 
-## Phase 5 — Systems Integration: Discovery, Lore & Narrative
-- [ ] Lore teasers on zone entry (one-line flavor text per zone)
-- [ ] Artifact discovery lore overlay
-- [ ] Codex HUD quick-access button
-- [ ] Archive badge count retention fix
+## Phase 5 — Systems Integration: Discovery, Lore & Narrative (COMPLETE ✅)
+- [x] 5.1 Lore teasers on zone entry (one-line flavor text per zone)
+- [x] 5.2 Artifact discovery lore overlay
+- [x] 5.3 Codex HUD quick-access button
+- [x] 5.4 Archive badge count retention fix
 
-## Phase 6 — Monetization Surface & Cash Economy
-- [ ] Cash system activation (earnable currency via missions/combo/achievements)
-- [ ] Shop redesign (tabs: Cosmetics / Premium / Credits)
-- [ ] Cash-spendable cosmetics: skins (500-1000 cash), trails (300-500 cash), paints (200-500 cash)
-- [ ] First cosmetic skins & engine trails (3 cash + premium-exclusive variants)
-- [ ] Premium value display in Settings
-- [ ] Rewarded ad in-game option (watch for refuel)
-- [ ] Credit exchange: cash ↔ credits + watch-ad-for-credit
+## Phase 6 — Monetization Surface & Cash Economy (COMPLETE ✅)
+- [x] 6.1 Cash system activation (earnable currency via missions/combo/achievements)
+- [x] 6.2 Shop redesign (vectorized storefront, colorful category icons)
+- [x] 6.3 Integrated 34 colorful vector icons across all UI surfaces
+- [x] 6.4 Living HUD implementation (animated, state-responsive vector indicators)
+- [x] 6.5 Asset suite unification (Removal of PNG tray icons in favor of multi-color vectors)
+- [x] 6.6 Premium value display in Settings
+- [x] 6.7 Rewarded ad in-game option (watch for refuel/continue)
+- [x] 6.8 Credit exchange: cash ↔ credits + watch-ad-for-credit (Fixed: findActivity crash)
 
-## Phase 7 — Online Features
-- [ ] Optional Google Sign-In
-- [ ] Leaderboard (highest altitude, most bosses, longest run)
-- [ ] Device notifications via Firebase Cloud Messaging (opt-in, topics-based)
-- [ ] Server-pushable credit bonuses via remote config
-- [ ] Cloud save (Firestore sync)
-- [ ] Google Play Games achievement sync
+## Phase 7 — Online Features (COMPLETE ✅)
+- [x] Optional Google Sign-In (Fixed: result parsing + SDK init)
+- [x] Leaderboard (highest altitude, most bosses, longest run)
+- [x] Device notifications via Firebase Cloud Messaging (opt-in, topics-based)
+- [x] Server-pushable credit bonuses via remote config
+- [x] Cloud save (Firestore sync)
+- [x] Google Play Games achievement sync
+- [x] Firebase Authentication bridge (Fixed: PERMISSION_DENIED crash)
 
-## Phase 8 — Technical Foundation
-- [ ] GameScreen continued decomposition
-- [ ] ProgressionManager → domain services split
-- [ ] StarfieldBackground extraction (6× duplication → 1 composable)
-- [ ] Navigation migration to full NavHost + deep linking
-- [ ] Performance profiling (frame drops in upper zones / dense threat fields)
+## Phase 8 — Technical Foundation (COMPLETE ✅)
+- [x] GameScreen continued decomposition
+- [x] ProgressionManager → domain services split
+- [x] StarfieldBackground extraction (6× duplication → 1 composable)
+- [x] Navigation migration (migrated 10+ overlays to NavHost routes)
+- [x] Performance profiling & optimization (Path/Point caching for low-end hardware)
+- [x] Visual priority logic (sequential playback for Zone/Boss/Lore events)
+
+## Phase 9 — Scoring & Mastery (COMPLETE ✅)
+- [x] 9.1 Decoupled Scoring Engine (Meters vs Points separation)
+- [x] 9.2 Boss Mastery Rewards (Unique point values for all 12 bosses)
+- [x] 9.3 Exploration Bonus (Unique platform landing rewards)
+- [x] 9.4 Cyber-Packet Visuals (Digital bracket text, neon trails, rolling counter)
+- [x] 9.5 Frame Skip Optimization (Staggered particles, overdraw reduction)
+- [x] 9.6 Dynamic Stats split (highScore vs highAltitude persistence)
+
+## Phase 10 — Fleet Mastery & Integrity (COMPLETE ✅)
+- [x] 10.1 Visible Mastery Points (MP) across all major UI screens
+- [x] 10.2 Procedural Rank Insignias (Canvas-drawn medallions)
+- [x] 10.3 Rank Recalibration (Rank V @ 500 MP)
+- [x] 10.4 Robust Reset Protocols (Reset Progress vs Factory Reset)
+- [x] 10.5 High-Impact Reveal (Centered 2.5x scaled rocket preview)
+- [x] 10.6 Mastery Readout in Archive (Formula transparency)
+- [x] 10.7 Earth Zone High-Fidelity Finish (Ice caps, planes, city life, traffic)
+- [x] 10.8 Global Parallax Direction Fix (Reverse movement bug resolved)
 
 ## Design Rules
 - [ ] Classes define gameplay identity

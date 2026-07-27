@@ -305,7 +305,7 @@ Since Jump Droid does not currently feature a dedicated weapon system, **weak po
 Boss health, damage, and attack speed scale with:
 
 1. **Altitude** — higher zones apply a difficulty multiplier to boss base health.
-2. **Score integrity** — No score reward for boss kills. Score is purely altitude-based. Boss kills removed all 3 `onScoreUpdate(1000)` calls in ThreatInteractionProcessor (WP phase transition, WP auto-collapse, full defeat).
+2. **Mastery Rewards** — Every boss kill awards a significant, data-driven "Score" bonus (250 - 5,000 points) proportional to the difficulty.
 3. **Player progress** — Codex completion increases challenge. *(Planned)*
 4. **Combo streaks** — longer combos may trigger harder boss phases. *(Planned)*
 5. **Rocket class** — Tank receives less speed penalty; Scout deals more weak-point damage. *(Planned)*
@@ -385,12 +385,12 @@ Purpose: Record concepts that may overlap thematically and could require future 
 
 | Name | Type | Status | Zone | Notes | Visual Appearance |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Command Cruiser** | Mini-Boss | **Complete** | Cloud Layer, Upper Atmosphere, Orbit, Deep Space, Void | Platform Jamming + projectile bursts + gravity pulse + drone spawning | Large dark cruiser with bridge, antennae, radar dish, hull lights, engine glows, scanning beams, weak point squares |
-| **The Gatekeeper** | Boss | **Complete** | Orbit, Deep Space, Void | Rotating barriers + 3-way projectiles (P2 BOLT / P3 BEAM) + Scout Drone spawning (P3) | Massive rotating ring with 4 cyan/red barrier arcs, magenta weak point nodes, central pulsing eye |
-| **Star-Eater** | Boss | **Partial** | Deep Space, Void | Power-Up suction + P2 Hunger Wave (WAVE 12dmg/4s) / P3 Cosmic Spores (MISSILE 15dmg/2.5s); missing full phase rewrite | Black/purple suction aura, spiraling magenta particles, dark core with eye weak point, 12 tendrils |
-| **The Leviathan** | Boss | **Complete** | Deep Space, Void | Tail 3× damage + P2 screen shrink + P3 maw core + slipstream + P2 Spike Bolt / P3 Maw Beam | 6 connected blue segments with cyan outlines, slipstream lines, 3 magenta weak points |
-| **Void Engine** | Boss | **Complete** | Void | P1 anomalies + P2 downward wells + P3 control inversion + gravity shifts + P2 Reality Ripple / P3 3-way Shards | Pink radial aura, 3 rotating arms with weak point tips, white energy arcs, shift direction arrows |
-| **The Signal** | Boss | **Complete** | Void | P1 HUD flicker scaling + P2 velocity drain/heal + P3 downward pulse + ghost platforms + P2 Glitch Bolt / P3 Static Beam | Flickering visibility, red/white glitch rectangles, magenta weak point, large scanning pulse ring |
+| **Command Cruiser** | Mini-Boss | **Complete** | Cloud Layer, Upper Atmosphere, Orbit, Deep Space, Void | Platform Jamming + projectile bursts + gravity pulse + drone spawning + **250pt Reward** | Large dark cruiser with bridge, antennae, radar dish, hull lights, engine glows, scanning beams, weak point squares |
+| **The Gatekeeper** | Boss | **Complete** | Orbit, Deep Space, Void | Rotating barriers + 3-way projectiles (P2 BOLT / P3 BEAM) + Scout Drone spawning (P3) + **1,000pt Reward** | Massive rotating ring with 4 cyan/red barrier arcs, magenta weak point nodes, central pulsing eye |
+| **Star-Eater** | Boss | **Partial** | Deep Space, Void | Power-Up suction + P2 Hunger Wave (WAVE 12dmg/4s) / P3 Cosmic Spores (MISSILE 15dmg/2.5s) + **1,500pt Reward** | Black/purple suction aura, spiraling magenta particles, dark core with eye weak point, 12 tendrils |
+| **The Leviathan** | Boss | **Complete** | Deep Space, Void | Tail 3× damage + P2 screen shrink + P3 maw core + slipstream + P2 Spike Bolt / P3 Maw Beam + **1,200pt Reward** | 6 connected blue segments with cyan outlines, slipstream lines, 3 magenta weak points |
+| **Void Engine** | Boss | **Complete** | Void | P1 anomalies + P2 downward wells + P3 control inversion + gravity shifts + P2 Reality Ripple / P3 3-way Shards + **2,000pt Reward** | Pink radial aura, 3 rotating arms with weak point tips, white energy arcs, shift direction arrows |
+| **The Signal** | Boss | **Complete** | Void | P1 HUD flicker scaling + P2 velocity drain/heal + P3 downward pulse + ghost platforms + P2 Glitch Bolt / P3 Static Beam + **2,500pt Reward** | Flickering visibility, red/white glitch rectangles, magenta weak point, large scanning pulse ring |
 | **Chrono Warden** | Boss | **Planned** | Chrono-Rift | Design concept only |
 | **Magma-Core Titan** | Boss | **Planned** | Subterranean | Design concept only |
 | **Frost Wyrmling** | Mini-Boss | **Planned** | Ice Fields | Design concept only |
@@ -404,6 +404,7 @@ Purpose: Record concepts that may overlap thematically and could require future 
 | Version | Changes |
 | :--- | :--- |
 | **v1.3** | **Sprint C Completion**: Structural fix — boss update code moved outside ENEMY-only `when` block. Boss projectile systems added to all 6 bosses (Commander 3-way BOLT P3+, Gatekeeper BOLT P2/BEAM P3, Star-Eater WAVE P2/MISSILE P3, Leviathan BOLT P2/BEAM P3, Void Engine WAVE P2/3-way BOLT P3, Signal BOLT P2/BEAM P3). Enemy projectiles: Defense Node (orange BOLT) + Void Tracker (red BOLT). Zone redistribution: Earth boss-free, Commander spans Cloud–Void, all bosses expanded to native zone + above. Difficulty + threat density scaling finalized. |
+| **v1.5.3** | **Scoring Mastery**: Decoupled physical altitude from performance score. Bosses now award data-driven score values (250 - 5,000 pts). Added unique platform bonuses and combo point injection. Implemented Cyber-Packet visual identity for score rewards. |
 | **v1.2** | **Sprint C Mechanics**: Gatekeeper → Implemented (P2 projectiles, P3 drone spawning). Commander → projectile bursts in P3+. Leviathan → tail 3× damage, P2 screen shrink, P3 maw core heat. Void Engine → P1 anomaly summoning, P2 downward gravity wells (was lateral). Signal → P1 flicker duration scaling, P2 velocity drain/heal, P3 downward pulse. Difficulty Scaling → zone-based HP multiplier implemented (×1.0–×3.0). `onSpawnThreat` callback added for boss minion spawning. Documentation updated for all changes. |
 | **v1.1** | **Visual Overhaul v1.0**: Complete rework of all boss/mini-boss visual appearances to communicate abilities at a glance. Gatekeeper: green/red safe-gap coloring, solid barrier walls, iris-tracking eye. Star-Eater: dentition ring, power-up suction streams, hunger-meter. Leviathan: organic ellipse segments, directional slipstream arrows, wall-pressure glow. Void Engine: reality-tear rim, arm afterimages, inversion buildup tint. Signal: screen-tear bands, binary rain, decoy copies, static-noise ring. Commander: phase-color shift hull, shield bubble, rotating beacon weak points, jam-wave ring. |
 | **v1.0** | Added Visual Appearance field to all implemented bosses, mini-bosses, and standard enemies. Updated statuses: Sky Ray → Complete, Gravity Distortion → Complete, Void Anomaly → Complete. Documented 3 invisible enemies (STALKER, VOID_WHALE, VOID_WRAITH) as known rendering gaps. |

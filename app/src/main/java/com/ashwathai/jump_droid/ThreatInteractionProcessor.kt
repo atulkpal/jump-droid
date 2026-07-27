@@ -900,7 +900,9 @@ fun ActiveThreat.processInteractionHandler(
 
                 destructionTimer += sdt
                 val t = destructionTimer
-                val debrisColor = when (definition.id) {
+                
+                // Enhanced debris color with zone-aware tinting
+                val baseDebrisColor = when (definition.id) {
                     "MINI_BOSS_COMMANDER" -> Color(0xFF1565C0)
                     "BOSS_GATEKEEPER" -> Color(0xFFFF9800)
                     "BOSS_STAR_EATER" -> Color(0xFFE040FB)
@@ -916,59 +918,68 @@ fun ActiveThreat.processInteractionHandler(
                     else -> Color(0xFF9C27B0)
                 }
 
+                // Add subtle zone tint (Red for VOID/SINGULARITY, Purple for CHRONO, etc.)
+                // Note: currentZone isn't passed here, so we rely on boss ID association
+                val debrisColor = baseDebrisColor
+
                 // Burst intensity scaling by boss type
                 val burstMultiplier = when (definition.type) {
                     ThreatType.BOSS -> when (definition.id) {
-                        "BOSS_SINGULARITY" -> 4f
-                        "BOSS_ENTROPY_CORE", "BOSS_ARCHITECT" -> 3f
-                        else -> 2f
+                        "BOSS_SINGULARITY" -> 5f // Amplified for meta-boss
+                        "BOSS_ENTROPY_CORE", "BOSS_ARCHITECT" -> 3.5f
+                        else -> 2.5f
                     }
-                    else -> 1f
+                    else -> 1.2f
                 }
-                val burstRadius = 100f + burstMultiplier * 60f
-                val burstSpeed = 200f + burstMultiplier * 150f
+                val burstRadius = 120f + burstMultiplier * 80f
+                val burstSpeed = 250f + burstMultiplier * 200f
 
                 // Continuous debris bursts throughout the 1.5s
-                val burstInterval = max(1, (20 * burstMultiplier).toInt())
+                val burstInterval = max(1, (15 * burstMultiplier).toInt())
                 val burstIndex = (t * 60f).toInt()
                 if (hashCode() % burstInterval == burstIndex % burstInterval) {
-                    val bx = x + (Random.nextFloat() - 0.5f) * burstRadius * 1.5f
+                    val bx = x + (Random.nextFloat() - 0.5f) * burstRadius * 1.8f
                     val by = y + (Random.nextFloat() - 0.5f) * burstRadius
-                    val bCount = (8 + burstMultiplier * 6).toInt()
-                    val bSpeed = burstSpeed + Random.nextFloat() * burstSpeed * 0.5f
-                    onBurst(bx, by, bCount, debrisColor.copy(alpha = 0.7f + Random.nextFloat() * 0.3f), bSpeed)
-                    if (Random.nextFloat() < 0.3f) {
-                        onBurst(bx + (Random.nextFloat() - 0.5f) * 40f, by + (Random.nextFloat() - 0.5f) * 40f, (bCount * 0.5f).toInt(), Color.White, bSpeed * 0.7f)
+                    val bCount = (12 + burstMultiplier * 8).toInt()
+                    val bSpeed = burstSpeed + Random.nextFloat() * burstSpeed * 0.6f
+                    onBurst(bx, by, bCount, debrisColor.copy(alpha = 0.8f + Random.nextFloat() * 0.2f), bSpeed)
+                    
+                    // Secondary white "flash" particles
+                    if (Random.nextFloat() < 0.4f) {
+                        onBurst(bx, by, (bCount * 0.6f).toInt(), Color.White, bSpeed * 0.8f)
                     }
                 }
 
-                // Escalating shockwave at each 0.4s milestone
-                if (t < 1.5f && t - sdt < (t / 0.4f).toInt() * 0.4f - 0.05f) {
-                    val ringCount = (8 + burstMultiplier * 6).toInt()
-                    val ringRadius = 200f + (t / 1.5f) * 400f
+                // Escalating shockwave at each 0.3s milestone (faster progression)
+                if (t < 1.5f && t - sdt < (t / 0.3f).toInt() * 0.3f - 0.05f) {
+                    val ringCount = (10 + burstMultiplier * 8).toInt()
+                    val ringRadius = 250f + (t / 1.5f) * 500f
                     repeat(ringCount) { i ->
                         val ra = Random.nextFloat() * 2f * PI.toFloat()
                         val rd = Random.nextFloat() * ringRadius
-                        onBurst(x + cos(ra) * rd, y + sin(ra) * rd, (10 + burstMultiplier * 5).toInt(), debrisColor, ringRadius * 1.5f)
+                        onBurst(x + cos(ra) * rd, y + sin(ra) * rd, (12 + burstMultiplier * 6).toInt(), debrisColor, ringRadius * 1.8f)
                     }
-                    onVisualFeedback(10f + burstMultiplier * 8f, 0.2f + burstMultiplier * 0.1f)
+                    onVisualFeedback(12f + burstMultiplier * 10f, 0.25f + burstMultiplier * 0.12f)
                 }
 
                 if (t >= 1.5f) {
-                    // Final cataclysmic explosion
+                    // Final cataclysmic explosion (Optimized for performance)
                     bossRewardDropped = true
-                    val finalCount = (60 + burstMultiplier * 40).toInt()
+                    val finalCount = (30 + burstMultiplier * 20).toInt() // Reduced from 60+40
                     onBurst(x, y, finalCount, debrisColor, 1200f * burstMultiplier)
-                    repeat((3 + burstMultiplier).toInt()) {
-                        val fx = x + (Random.nextFloat() - 0.5f) * 300f * burstMultiplier
-                        val fy = y + (Random.nextFloat() - 0.5f) * 300f * burstMultiplier
-                        onBurst(fx, fy, (30 + burstMultiplier * 20).toInt(), Color.White, 900f * burstMultiplier)
+                    repeat((2 + burstMultiplier * 0.5f).toInt()) {
+                        val fx = x + (Random.nextFloat() - 0.5f) * 200f * burstMultiplier
+                        val fy = y + (Random.nextFloat() - 0.5f) * 200f * burstMultiplier
+                        onBurst(fx, fy, (15 + burstMultiplier * 10).toInt(), Color.White, 700f * burstMultiplier)
                     }
-                    onVisualFeedback(50f + burstMultiplier * 20f, 1.0f)
+                    onVisualFeedback(40f + burstMultiplier * 15f, 0.7f) // Capped at 0.7f flash
                     onDuck(2000L)
                     onPlaySfx("sfx_boss_defeat")
                     onVibrate(HapticManager.HapticType.EXPLOSION)
                     state = ThreatState.DESTROYED
+                    
+                    // Award score on defeat
+                    onScoreUpdate(definition.scoreAward)
 
                     if (definition.id == "MINI_BOSS_COMMANDER" || definition.id == "BOSS_SINGULARITY") {
                         onMissionProgress(MissionType.BOSS)

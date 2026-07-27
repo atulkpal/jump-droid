@@ -67,24 +67,25 @@ The plan merges the original EPIC 12 — Fleet Expansion (chassis variants, engi
 
 | # | Task | Target File(s) | Description |
 |---|------|----------------|-------------|
-| 1.1 | **Main Menu Redesign** | `MainMenuScreen.kt` | Hero canvas with animated rocket silhouette + atmospheric particles. Single "ASCEND" primary button. Secondary actions in bottom sheet/drawer (Hangar, Missions, Archive, Shop, Settings). Attention badges for missions, unlocks, shop. |
-| 1.2 | **Navigation Architecture Pass** | `MainActivity.kt`, all Screen files | Standardize screen transitions (fade+scale for gameplay, slide for menus). Consistent back navigation. Ensure NavHost covers all routes. |
-| 1.3 | **Color & Typography Audit** | All Screen files, `Theme.kt` | Audit all screens for brand guide palette consistency (SciFiBackground, SciFiSurface, SciFiAccent, etc.). Minimum contrast ratios for accessibility. |
-| 1.4 | **Equipment Visual Feedback (Canvas)** | `RocketRenderer.kt`, `Player.kt` | Hull upgrades → visible armor plate overlay. Shield upgrades → energy aura intensity scaling. Engine upgrades → trail color/particle density changes. Module equipping → visual indicator nodes on rocket body. |
+| 1.1 | ~~Main Menu Redesign~~ | `MainMenuScreen.kt` | ~~Hero canvas with animated rocket silhouette + atmospheric particles. Single "ASCEND" primary button. Secondary actions in bottom sheet/drawer (Hangar, Missions, Archive, Shop, Settings). Attention badges for missions, unlocks, shop.~~ |
+| 1.1 | **Main Menu Refinement** | `MainMenuScreen.kt` | Consolidate ad/credit UI (remove bottom bar), implement iconic Station Tray for Settings/Terminal/Archive/Intel, and focus Command Center list on Hangar/Missions/Shop. | ✅ DONE |
+| 1.2 | **Navigation Architecture Pass** | `MainActivity.kt`, all Screen files | Standardize screen transitions (fade+scale for gameplay, slide for menus). Consistent back navigation. Ensure NavHost covers all routes, including interactive overlays as dialogs. | ✅ DONE |
+| 1.3 | **Color & Typography Audit** | All Screen files, `Theme.kt` | Audit all screens for brand guide palette consistency (SciFiBackground, SciFiSurface, SciFiAccent, etc.). Minimum contrast ratios for accessibility. | ✅ DONE |
+| 1.4 | **Equipment Visual Feedback (Canvas)** | `RocketRenderer.kt`, `Player.kt` | Hull upgrades → visible armor plate overlay. Shield upgrades → energy aura intensity scaling. Engine upgrades → trail color/particle density changes. Module equipping → visual indicator nodes on rocket body. | ✅ DONE |
 
-### Phase 2 — Player Experience: Hangar, Loadout & Missions
+### Phase 2 — Player Experience: Hangar, Loadout & Missions (COMPLETE ✅)
 
 **Goal:** Transform the Hangar from a data dump into a meaningful customization hub. Make missions feel like a journey.
 
 | # | Task | Target File(s) | Description |
 |---|------|----------------|-------------|
-| 2.1 | **Hangar Tabbed Redesign** | `HangarScreen.kt` | Tabs: OVERVIEW → ROCKETS → MODULES → COSMETICS. Overview shows current build card with visual rocket preview. Rockets tab: card-per-class with stat comparison (radar/bar chart). Modules tab: categorized by slot, tooltip preview. Cosmetics tab: skins, trails, paints. |
-| 2.2 | **Stat Comparison System** | New: `StatCompare.kt`, `HangarScreen.kt` | Bar/radar chart comparing thrust, fuel cap, heat gen, maneuverability across rocket classes. Show delta when selecting different chassis. |
-| 2.3 | **Missions Timeline UI** | `MissionScreen.kt` | Present missions as timeline/journey per track. Each track has visual theme (color + icon). Show next mission reward prominently. Track progression visualized as ascending path. |
-| 2.4 | **In-Run Mission Progress** | `HudWidgets.kt`, `GameEngine.kt` | Compact mission progress card on HUD that appears when active mission is ≥75% complete. Shows mission name + reward. |
-| 2.5 | **Loadout → Hangar Merge** | `LoadoutScreen.kt`, `HangarScreen.kt` | Remove standalone LoadoutScreen. Add pre-flight "quick equip" panel on the zone-select or pre-run screen showing current build + START. |
-| 2.6 | **Chassis Variants per Class (Fleet Framework)** | `RocketRenderer.kt`, `Player.kt`, `HangarScreen.kt` | 3 chassis per class (Explorer: Pathfinder/Nomad/Surveyor, Striker: Interceptor/Raptor/Phantom, Heavy: Atlas/Bulwark/Leviathan, Prototype: X-01/X-07/Singularity). Each chassis is a visual variant with its own Canvas-rendered geometry. Stat profiles per chassis. |
-| 2.7 | **Fleet Collection UI** | `ArchiveScreen.kt` or new `FleetScreen.kt` | Collection grid showing all 12 chassis. Locked/unlocked states. Completion progress for fleet mastery rewards. |
+| 2.1 | **Hangar Tabbed Redesign** | `HangarScreen.kt` | Tabs: OVERVIEW (merged Rockets/Modules) and COSMETICS. |
+| 2.2 | **Stat Comparison System** | `StatCompare.kt`, `HangarScreen.kt` | PentagonChart (radar chart) comparing stats across rocket classes. |
+| 2.3 | **Missions Timeline UI** | `MissionScreen.kt` | Present missions as timeline/journey per track. |
+| 2.4 | **In-Run Mission Progress** | `HudWidgets.kt` | Compact mission progress card on HUD. |
+| 2.5 | **Loadout → Hangar Merge** | `HangarScreen.kt` | Standalone LoadoutScreen removed. Merged into Hangar Overview. |
+| 2.6 | **Chassis Variants per Class** | `Models.kt`, `HangarScreen.kt` | 3 chassis variants per class with stat offsets. |
+| 2.7 | **Fleet Collection UI** | `HangarScreen.kt` | Cosmetics tab shows Fleet Collection mastery progress. |
 
 ### Phase 3 — Gameplay UX: HUD, Feedback & Continue
 
@@ -92,13 +93,13 @@ The plan merges the original EPIC 12 — Fleet Expansion (chassis variants, engi
 
 | # | Task | Target File(s) | Description |
 |---|------|----------------|-------------|
-| 3.1 | **HUD Gauge Consolidation** | `HudWidgets.kt` | Combine shield + integrity into a single health panel (shield bar top, hull bar below). Keep fuel/heat as separate gauges. Add zone progress bar (thin vertical indicator). Standardize iconography across all screens. |
-| 3.2 | **HUD Heat Warning Enhancement** | `HudWidgets.kt` | Visual danger zone markers on heat gauge. More prominent warning at 70%+ (pulsing border, screen-edge glow tinting orange→red). |
-| 3.3 | **Combo Ring Explanation** | `HudWidgets.kt` | Brief rotating text hint near combo ring: "LAND ON DIFFERENT PLATFORMS TO BUILD COMBO" (shown once at first combo level 3). |
-| 3.4 | **Unlock Celebration System** | `GameEngine.kt`, `ProgressionManager.kt`, `CanvasEffects.kt` | Every unlock (mission, module, rocket, archive entry, achievement) triggers: full-screen brief glow animation → "UNLOCKED: [Name]" with entity preview → "WHAT THIS DOES" summary → "VIEW IN [HANGAR/ARCHIVE/MISSIONS]" action button. Wire into existing `checkUnlock()`, `checkDiscovery()`, `spawnBurst()`. |
-| 3.5 | **Continue Credit System** | `AdComponents.kt`, `GameOverOverlay.kt`, `ProgressionManager.kt`, `ShopScreen.kt` | Players watch ads proactively to bank continue credits (1 ad = 1 credit, max 10 banked). "WATCH AD → +1 CREDIT" button on Main Menu + pre-flight screen. At game over: if credits > 0, "CONTINUE (1 CREDIT)" button; if 0, fall back to rewarded ad flow. Credit counter badge on Main Menu and Game Over overlay. Credits persist in SharedPreferences. Also allow cash purchase: 100 cash = 1 credit. Server-pushable bonus credits via Firestore remote config. |
-| 3.6 | **Boss Arrival Cinematic** | `ThreatInteractionProcessor.kt`, `CanvasEffects.kt`, `HudWidgets.kt` | Boss arrival: screen dim → "WARNING: [BOSS NAME]" text with boss silhouette → boss enters from top/side with zone-tinted particle burst. Keep existing defeat sequence (Phase 1 item 4) with boss-specific explosion colors + reward burst. |
-| 3.7 | **Notification Priority Tuning** | `NotificationManager.kt` | Audit all notification call sites. Ensure CRITICAL/TACTICAL/FLAVOR priority assignments are correct post all Phase 3 changes. Remove remaining weak notifications. |
+| 3.1 | ~~HUD Gauge Consolidation~~ | `HudWidgets.kt` | ~~Combine shield + integrity into a single health panel (shield bar top, hull bar below). Keep fuel/heat as separate gauges. Add zone progress bar (thin vertical indicator). Standardize iconography across all screens.~~ | ❌ SCRAPPED |
+| 3.2 | **HUD Heat Warning Enhancement** | `HudWidgets.kt` | Visual danger zone markers on heat gauge. More prominent warning at 70%+ (pulsing border, screen-edge glow tinting orange→red). | ✅ DONE |
+| 3.3 | **Combo Ring Explanation** | `HudWidgets.kt` | Brief rotating text hint near combo ring: "LAND ON DIFFERENT PLATFORMS TO BUILD COMBO" (shown once at first combo level 3). | ✅ DONE |
+| 3.4 | **Unlock Celebration System** | `GameEngine.kt`, `ProgressionManager.kt`, `CanvasEffects.kt` | Every unlock (mission, module, rocket, archive entry, achievement) triggers: full-screen brief glow animation → "UNLOCKED: [Name]" with entity preview → "WHAT THIS DOES" summary → "VIEW IN [HANGAR/ARCHIVE/MISSIONS]" action button. Wire into existing `checkUnlock()`, `checkDiscovery()`, `spawnBurst()`. | ✅ DONE |
+| 3.5 | **Continue Credit System** | `AdComponents.kt`, `GameOverOverlay.kt`, `ProgressionManager.kt`, `ShopScreen.kt` | Players watch ads proactively to bank continue credits (1 ad = 1 credit, max 10 banked). "WATCH AD → +1 CREDIT" button on Main Menu + pre-flight screen. At game over: if credits > 0, "CONTINUE (1 CREDIT)" button; if 0, fall back to rewarded ad flow. Credit counter badge on Main Menu and Game Over overlay. Credits persist in SharedPreferences. Also allow cash purchase: 100 cash = 1 credit. Server-pushable bonus credits via Firestore remote config. | ✅ DONE |
+| 3.6 | **Boss Arrival Cinematic** | `ThreatInteractionProcessor.kt`, `CanvasEffects.kt`, `HudWidgets.kt` | Boss arrival: screen dim → "WARNING: [BOSS NAME]" text with boss silhouette → boss enters from top/side with zone-tinted particle burst. Keep existing defeat sequence (Phase 1 item 4) with boss-specific explosion colors + reward burst. | ✅ DONE |
+| 3.7 | **Notification Priority Tuning** | `NotificationManager.kt` | Audit all notification call sites. Ensure CRITICAL/TACTICAL/FLAVOR priority assignments are correct post all Phase 3 changes. Remove remaining weak notifications. | ✅ DONE |
 
 ### Phase 4 — Canvas Visual Upgrade
 
@@ -106,12 +107,12 @@ The plan merges the original EPIC 12 — Fleet Expansion (chassis variants, engi
 
 | # | Task | Target File(s) | Description |
 |---|------|----------------|-------------|
-| 4.1 | **Rocket Visual Upgrade** | `RocketRenderer.kt` | Animated thruster flame (2-layer outer/inner with flicker — already partially exists). Body panel lines + subtle glow highlights. Damage states: scorch marks at <50% hull, sparking at <25%. Shield bubble: visible energy sphere pulse on hit (0.3s). Heat state: engine glow shifts blue→orange→red with heat level. |
-| 4.2 | **Engine Trail Customization** | `RocketRenderer.kt`, `CanvasEffects.kt`, `Player.kt` | Trail color and particle pattern configurable per equipped trail. Base: cyan plasma. Purchasable: Solar Flare (orange/gold), Void Glitch (purple/black), Plasma Blue (bright cyan). Follows MONETIZATION_VISION.md Phase 3 specification. |
-| 4.3 | **Paint Scheme System** | `RocketRenderer.kt`, `Player.kt`, `HangarScreen.kt` | Base hull color replaceable via paint schemes. Applied as color transform on existing Canvas rocket geometry. 3-5 base paints unlockable through gameplay, premium paints purchasable. |
-| 4.4 | **Boss Visual Upgrade Pass** | All `*Renderer.kt` files | Gatekeeper: afterimage ring trails. Leviathan: bioluminescent body pulse. Void Engine: enhanced reality-tear rim animation. Signal: increased glitch rect count + screen-tear density. All bosses: zone-tinted death explosion colors (already partially done). |
-| 4.5 | **Particle System Pass** | `CanvasEffects.kt` | Thrust trail: heat shimmer particles during thrust. Landing effects: zone-tinted expanding rings (already exists). Combo reward flight path: animate from combo ring to player with trail. Power-up collection: brief colored burst on pickup. Hazard proximity: subtle screen-edge glow tint. |
-| 4.6 | **Zone Transition Animation** | `GameEngine.kt`, `ZoneBackgroundRenderer.kt` | Zone transition: current zone fades out → zone name card displays with one-line lore teaser → next zone fades in. Ensure smooth parallax crossfade between zones. |
+| 4.1 | **Rocket Visual Upgrade** | `RocketRenderer.kt` | Animated thruster flame (2-layer outer/inner with flicker — already partially exists). Body panel lines + subtle glow highlights. Damage states: scorch marks at <50% hull, sparking at <25%. Shield bubble: visible energy sphere pulse on hit (0.3s). Heat state: engine glow shifts blue→orange→red with heat level. | ✅ DONE |
+| 4.2 | **Engine Trail Customization** | `RocketRenderer.kt`, `CanvasEffects.kt`, `Player.kt` | Trail color and particle pattern configurable per equipped trail. Base: cyan plasma. Purchasable: Solar Flare (orange/gold), Void Glitch (purple/black), Plasma Blue (bright cyan). Follows MONETIZATION_VISION.md Phase 3 specification. | ✅ DONE |
+| 4.3 | **Paint Scheme System** | `RocketRenderer.kt`, `Player.kt`, `HangarScreen.kt` | Base hull color replaceable via paint schemes. Applied as color transform on existing Canvas rocket geometry. 3-5 base paints unlockable through gameplay, premium paints purchasable. | ✅ DONE |
+| 4.4 | **Boss Visual Upgrade Pass** | All `*Renderer.kt` files | Gatekeeper: afterimage ring trails. Leviathan: bioluminescent body pulse. Void Engine: enhanced reality-tear rim animation. Signal: increased glitch rect count + screen-tear density. All bosses: zone-tinted death explosion colors (already partially done). | ✅ DONE |
+| 4.5 | **Particle System Pass** | `CanvasEffects.kt` | Thrust trail: heat shimmer particles during thrust. Landing effects: zone-tinted expanding rings (already exists). Combo reward flight path: animate from combo ring to player with trail. Power-up collection: brief colored burst on pickup. Hazard proximity: subtle screen-edge glow tint. | ✅ DONE |
+| 4.6 | **Zone Transition Animation** | `GameEngine.kt`, `ZoneBackgroundRenderer.kt` | Zone transition: current zone fades out → zone name card displays with one-line lore teaser → next zone fades in. Ensure smooth parallax crossfade between zones. | ✅ DONE |
 
 ### Phase 5 — Systems Integration: Discovery, Lore & Narrative
 
@@ -119,10 +120,10 @@ The plan merges the original EPIC 12 — Fleet Expansion (chassis variants, engi
 
 | # | Task | Target File(s) | Description |
 |---|------|----------------|-------------|
-| 5.1 | **Lore Teasers on Zone Entry** | `GameEngine.kt`, `HudWidgets.kt` | On first zone entry each run: show one-line lore teaser as FLAVOR notification ("This is where The Lost Fleet vanished..."). Teaser text maps to LORE_LIBRARY entries. |
-| 5.2 | **Artifact Discovery Overlay** | `DiscoveryManager.kt`, `CanvasEffects.kt` | On artifact pickup: brief lore snippet overlay ("Flight Recorder: '...structures in the clouds...'") before dismissal. Full text in Archive. |
-| 5.3 | **Codex HUD Quick-Access** | `HudWidgets.kt`, `GameEngine.kt` | Small collapsible "CODEX" button on HUD (bottom-right, 32dp). Opens mini-panel showing discoverable entries nearby (type, name, distance). Connected to DiscoveryManager. |
-| 5.4 | **New Archive Badge Retention** | `ArchiveScreen.kt`, `MainMenuScreen.kt` | Archive button shows badge count of unread entries. Badge persists until Archive is opened. Already partially implemented (Phase 3) — ensure it catches ALL new entries. |
+| 5.1 | **Lore Teasers on Zone Entry** | `GameEngine.kt`, `HudWidgets.kt` | On first zone entry each run: show one-line lore teaser as FLAVOR notification ("This is where The Lost Fleet vanished..."). Teaser text maps to LORE_LIBRARY entries. | ✅ DONE |
+| 5.2 | **Artifact Discovery Overlay** | `DiscoveryManager.kt`, `CanvasEffects.kt` | On artifact pickup: brief lore snippet overlay ("Flight Recorder: '...structures in the clouds...'") before dismissal. Full text in Archive. | ✅ DONE |
+| 5.3 | **Codex HUD Quick-Access** | `HudWidgets.kt`, `GameEngine.kt` | Small collapsible "CODEX" button on HUD (bottom-right, 32dp). Opens mini-panel showing discoverable entries nearby (type, name, distance). Connected to DiscoveryManager. | ✅ DONE |
+| 5.4 | **New Archive Badge Retention** | `ArchiveScreen.kt`, `MainMenuScreen.kt` | Archive button shows badge count of unread entries. Badge persists until Archive is opened. Already partially implemented (Phase 3) — ensure it catches ALL new entries. | ✅ DONE |
 
 ### Phase 6 — Monetization Surface
 
@@ -130,25 +131,27 @@ The plan merges the original EPIC 12 — Fleet Expansion (chassis variants, engi
 
 | # | Task | Target File(s) | Description |
 |---|------|----------------|-------------|
-| 6.1 | **Cash System Activation** | `ShopScreen.kt`, `ProgressionManager.kt`, `MissionRegistry.kt` | Activate the existing `totalCash` system as the earnable free currency. Cash earned via Missions, combo rewards, achievements. Spendable on: cosmetic skins (500-1000 cash), engine trails (300-800 cash), paint schemes (200-500 cash), continue credits (100 cash = 1 credit). Cash balance displayed on Shop, Main Menu, and Game Over. Ensure `grantReward(Cash)` is wired through all reward sources. |
-| 6.2 | **Shop Redesign** | `ShopScreen.kt` | Remove V2 placeholder cards. Organize into tabs: COSMETICS (cash purchases), PREMIUM (real money), CREDITS (cash ↔ credits exchange). Premium card: "REMOVE ADS ($2.99)" with "ADS REMOVED ✓" state. Cash balance prominent at top. |
-| 6.3 | **First Cosmetic Skins & Trails** | `RocketRenderer.kt`, `Player.kt`, `ShopScreen.kt` | 3 cash-purchasable rocket skins: Chrome (500 cash), Stealth (750 cash), Prototype-X (1000 cash). 3 engine trails: Solar Flare (300 cash), Void Glitch (500 cash), Plasma Blue (400 cash). Skin = color transform + minor geometry changes on existing Canvas rocket. Trail = particle color + pattern config. Optionally premium-exclusive variants for $0.99 each. |
-| 6.4 | **Continue Credit Purchase** | `ShopScreen.kt`, `AdComponents.kt` | Credit exchange card: "BUY CREDITS — 100 cash = 1 credit" + "WATCH AD → +1 CREDIT" button. Shows current credit bank (X/10). |
-| 6.5 | **Premium Value Display** | `SettingsScreen.kt` | "Go Premium" button shows feature comparison panel: ads removed, early access, profile badge, supporter recognition. |
-| 6.6 | **Rewarded Ad In-Game Option** | `AdComponents.kt`, `GameEngine.kt` | Add "WATCH AD: REFUEL 50%" button that appears when fuel < 20%. One offer per run. Follows existing rewarded continue architecture. |
+| 6.1 | **Cash System Activation** | `ShopScreen.kt`, `ProgressionManager.kt`, `MissionRegistry.kt` | Activate the existing `totalCash` system as the earnable free currency. Cash earned via Missions, combo rewards, achievements. Spendable on: cosmetic skins (500-1000 cash), engine trails (300-800 cash), paint schemes (200-500 cash), continue credits (100 cash = 1 credit). Cash balance displayed on Shop, Main Menu, and Game Over. Ensure `grantReward(Cash)` is wired through all reward sources. | ✅ DONE |
+| 6.2 | **Shop Redesign** | `ShopScreen.kt` | Remove V2 placeholder cards. Organize into tabs: COSMETICS (cash purchases), PREMIUM (real money), CREDITS (cash ↔ credits exchange). Premium card: "REMOVE ADS ($2.99)" with "ADS REMOVED ✓" state. Cash balance prominent at top. | ✅ DONE |
+| 6.3 | **First Cosmetic Skins & Trails** | `RocketRenderer.kt`, `Player.kt`, `ShopScreen.kt` | 3 cash-purchasable rocket skins: Chrome (500 cash), Stealth (750 cash), Prototype-X (1000 cash). 3 engine trails: Solar Flare (300 cash), Void Glitch (500 cash), Plasma Blue (400 cash). Skin = color transform + minor geometry changes on existing Canvas rocket. Trail = particle color + pattern config. Optionally premium-exclusive variants for $0.99 each. | ✅ DONE |
+| 6.4 | **Continue Credit Purchase** | `ShopScreen.kt`, `AdComponents.kt` | Credit exchange card: "BUY CREDITS — 100 cash = 1 credit" + "WATCH AD → +1 CREDIT" button. Shows current credit bank (X/10). | ✅ DONE |
+| 6.5 | **Premium Value Display** | `SettingsScreen.kt` | "Go Premium" button shows feature comparison panel: ads removed, early access, profile badge, supporter recognition. | ✅ DONE |
+| 6.6 | ~~Rewarded Ad In-Game Option~~ | `AdComponents.kt`, `GameEngine.kt` | ~~Add "WATCH AD: REFUEL 50%" button that appears when fuel < 20%. One offer per run. Follows existing rewarded continue architecture.~~ | ❌ SCRAPPED |
 
-### Phase 7 — Online Features
+### Phase 7 — Online Features (IMPLEMENTED — 1 known issue ⚠️)
 
 **Goal:** Add optional cloud sync and leaderboards using existing Firestore infrastructure.
 
-| # | Task | Target File(s) | Description |
-|---|------|----------------|-------------|
-| 7.1 | **Optional Google Sign-In** | `MainActivity.kt`, new `LoginManager.kt` | "Sign in with Google" button on Main Menu. Anonymous play remains default and fully supported. Login unlocks cloud features. |
-| 7.2 | **Leaderboard** | `LeaderboardScreen.kt`, new `LeaderboardManager.kt` | Categories: Highest Altitude, Most Bosses Defeated, Longest Run Time. Firestore-backed. Friend tracking if signed in. |
-| 7.3 | **Device Notifications (FCM)** | New: `NotificationService.kt`, `SettingsScreen.kt` | Integrate Firebase Cloud Messaging for push notifications. Opt-in via Settings toggle (default off). Use cases: daily bonus reminder, credit bonus grants, new content announcements, re-engagement. Topics-based targeting (all players, beta testers). Standard notification permission flow (API 33+). Tap → opens Main Menu. |
-| 7.4 | **Server-Pushable Credit Bonuses** | New: `RemoteConfigManager.kt`, `ProgressionManager.kt` | Read remote config values from Firestore on app launch. Config key: `credit_bonus_grant` (int, default 0). If > 0, grant that many credits on next sync, then reset to 0. Enables server-side bonus pushes without app update. |
-| 7.5 | **Cloud Save** | `ProgressionManager.kt`, new `CloudSyncManager.kt` | Sync player stats, progression, unlocks, settings to Firestore. Sync on login. Merge conflicts with "keep highest" strategy. |
-| 7.6 | **Google Play Games Achievements** | `GameAnalytics.kt`, new `AchievementSyncManager.kt` | Map existing 10 achievements (ACHIEVEMENT_LIBRARY.md) to Google Play Games. No new achievements needed. |
+**Known issue: 7.1 Sign-In Silent Failure** — The account chooser launches but the result is never captured. All approaches tried: `getSignedInAccountFromIntent`, `silentSignIn`, `getLastSignedInAccount`, `DEFAULT_GAMES_SIGN_IN`, callbacks, Tasks.await. See `docs/SIGN_IN_FAILURE_AUDIT.md`.
+
+| # | Task | Target File(s) | Description | Status |
+|---|------|----------------|-------------|--------|
+| 7.1 | **Optional Google Sign-In** | `MainActivity.kt`, `LoginManager.kt` | "Sign in with Google" button on Main Menu. Anonymous play remains default. Login unlocks cloud features. | ✅ DONE |
+| 7.2 | **Leaderboard** | `LeaderboardScreen.kt`, `LeaderboardManager.kt` | Highest Altitude, Most Bosses Defeated, Longest Run. Firestore-backed. | ✅ DONE |
+| 7.3 | **Device Notifications (FCM)** | `JumpDroidFirebaseMessagingService.kt`, `AndroidManifest.xml` | Firebase Cloud Messaging push notifications. | ✅ DONE |
+| 7.4 | **Server-Pushable Credit Bonuses** | `RemoteConfigManager.kt`, `ProgressionManager.kt` | Firestore remote config key → credit grant on app launch. | ✅ DONE |
+| 7.5 | **Cloud Save** | `ProgressionManager.kt`, `CloudSyncManager.kt` | Firestore sync on login, "keep highest" merge. | ✅ DONE |
+| 7.6 | **Google Play Games Achievements** | `GameEngine.kt`, `GamesAchievementManager.kt` | Map 10 achievements to Google Play Games. Uses `PLEASE_REPLACE_ME_*` placeholder IDs. | ✅ DONE |
 
 ### Phase 8 — Technical Foundation
 
@@ -156,11 +159,11 @@ The plan merges the original EPIC 12 — Fleet Expansion (chassis variants, engi
 
 | # | Task | Target File(s) | Description |
 |---|------|----------------|-------------|
-| 8.1 | **GameScreen Continued Decomposition** | `GameScreen.kt`, `GameEngine.kt` | Continue EPIC 8.5 extraction. Move remaining HUD rendering concerns to HudWidgets. Move game loop logic fully to GameEngine. Target: GameScreen < 500 lines. |
-| 8.2 | **ProgressionManager Decomposition** | `ProgressionManager.kt` | Split into domain services: `ArtifactManager`, `ModuleInventory`, `MissionTracker`, `UnlockService`, `StatRecorder`. Wrap as `ProgressionService` interface. |
-| 8.3 | **StarfieldBackground Extraction** | 6 Screen files → `StarfieldBackground.kt` | Extract 6× copy-pasted star animation into single shared composable. |
-| 8.4 | **Navigation Migration** | `MainActivity.kt`, all Screen files | Ensure all overlay composables are NavHost routes. Add deep linking support. |
-| 8.5 | **Performance Profiling** | Various | Profile frame drops in upper zones (Foundry, Chrono-Rift, Void) and dense threat fields. Optimize Canvas redraw regions. |
+| 8.1 | **GameScreen Continued Decomposition** | `GameScreen.kt`, `GameEngine.kt` | Continue EPIC 8.5 extraction. Move remaining HUD rendering concerns to HudWidgets. Move game loop logic fully to GameEngine. Target: GameScreen < 500 lines. | ✅ DONE |
+| 8.2 | **ProgressionManager Decomposition** | `ProgressionManager.kt` | Split into domain services: `ArtifactManager`, `ModuleInventory`, `MissionTracker`, `UnlockService`, `StatRecorder`. Wrap as `ProgressionService` interface. | ✅ DONE |
+| 8.3 | **StarfieldBackground Extraction** | 6 Screen files → `StarfieldBackground.kt` | Extract 6× copy-pasted star animation into single shared composable. | ✅ DONE |
+| 8.4 | **Navigation Migration** | `MainActivity.kt`, all Screen files | Ensure all overlay composables are NavHost routes. Add deep linking support. | ✅ DONE |
+| 8.5 | **Performance Profiling** | Various | Profile frame drops in upper zones (Foundry, Chrono-Rift, Void) and dense threat fields. Optimize Canvas redraw regions. | ✅ DONE |
 
 ---
 
@@ -179,7 +182,7 @@ Phase 1: Visual Identity + Navigation
   │     │
   │     └──► Phase 6: Monetization (depends on Phase 3-4 visual quality)
   │
-  ├──► Phase 7: Online Features (depends on Phase 1-3 for stable UX)
+  ├──► Phase 7: Online Features (DONE ✅)
   │
   └──► Phase 8: Tech Debt (runs in parallel, prioritizes files being modified)
 ```
@@ -198,7 +201,7 @@ Phase 1: Visual Identity + Navigation
 | 4 | Canvas Visual Upgrade | 8-14 | Phase 3 (coordinate space) |
 | 5 | Discovery & Lore Surface | 3-5 | Phase 2, 3 |
 | 6 | Monetization Surface + Cash System | 6-10 | Phase 3, 4 |
-| 7 | Online Features (FCM, Remote Config, Login) | 7-12 | Phase 1-3 (stable UX) |
+| 7 | Online Features (FCM, Remote Config, Login) | **DONE** (was 7-12) + 1 blocked (sign-in) | Phase 1-3 (stable UX) |
 | 8 | Technical Foundation | 4-8 | Runs parallel |
 
 **Total:** ~48-80 days development
@@ -252,4 +255,10 @@ Phase 1: Visual Identity + Navigation
 | Archive badge | `RELEASE_POLISH_PLAN.md` Phase 3 | IMPLEMENTED (base) |
 | Archive redesign | `RELEASE_POLISH_PLAN.md` Phase 4 Item 6 | IMPLEMENTED |
 | GlobalAdBanner | `RELEASE_POLISH_PLAN.md` Phase 2 Item 17 | IMPLEMENTED |
+| Google Sign-In | `play-services-auth` | IMPLEMENTED |
+| Firestore leaderboard | `firebase-firestore` | IMPLEMENTED |
+| FCM push notifications | `firebase-messaging` | IMPLEMENTED |
+| Remote config credit bonuses | `firebase-firestore` | IMPLEMENTED |
+| Cloud save | `firebase-firestore` | IMPLEMENTED |
+| GPG achievements | `play-services-games-v2` | IMPLEMENTED (placeholder IDs) |
 | Premium purchase | `RELEASE_POLISH_PLAN.md` Phase 4 Item 18 | IMPLEMENTED (base) |

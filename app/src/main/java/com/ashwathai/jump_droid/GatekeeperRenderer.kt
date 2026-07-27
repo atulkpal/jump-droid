@@ -12,7 +12,15 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 class GatekeeperRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         with(drawScope) {
             val tx = threat.x; val ty = threat.y - cameraY
             val arrivalProgress = (threat.arrivalTimer / threat.arrivalDuration).coerceIn(0f, 1f)
@@ -20,18 +28,38 @@ class GatekeeperRenderer : ThreatRenderer {
 
             drawRect(Color.Black.copy(alpha = 0.4f * arrivalProgress), topLeft = Offset(0f, 0f), size = size)
 
-            // Afterimage ring trails
-            repeat(4) { g ->
-                val ghostAngle = threat.rotation - 20f - g * 15f
-                val ghostAlpha = 0.06f * (1f - g * 0.2f)
-                val ghostWidth = (15f + g * 3f).coerceAtMost(25f)
+            // D1: Enhanced Afterimage ring trails
+            repeat(6) { g ->
+                val ghostAngle = threat.rotation - 15f - g * 12f
+                val ghostAlpha = 0.08f * (1f - g * 0.15f) * arrivalProgress
+                val ghostWidth = (18f + g * 4f).coerceAtMost(30f)
+                val pulse = sin((gameTime / 250f + g).toDouble()).toFloat() * 0.2f + 0.8f
+                
                 rotate(ghostAngle, pivot = Offset(tx, ty)) {
-                    drawCircle(Color(0xFF00E5FF).copy(alpha = ghostAlpha), radius = 250f - g * 20f, center = Offset(tx, ty), style = Stroke(width = ghostWidth))
+                    drawCircle(
+                        color = Color(0xFF00E5FF).copy(alpha = ghostAlpha * pulse),
+                        radius = 250f - g * 15f,
+                        center = Offset(tx, ty),
+                        style = Stroke(width = ghostWidth)
+                    )
+                    // Inner glowing rim for each ghost
+                    drawCircle(
+                        color = Color.White.copy(alpha = ghostAlpha * 0.3f),
+                        radius = 250f - g * 15f,
+                        center = Offset(tx, ty),
+                        style = Stroke(width = 2f)
+                    )
                 }
             }
-            val trailPulse = (sin(gameTime / 300f) * 0.5f + 0.5f)
-            rotate(threat.rotation - 10f, pivot = Offset(tx, ty)) {
-                drawCircle(Color(0xFF00E5FF).copy(alpha = 0.03f * trailPulse), radius = 300f, center = Offset(tx, ty), style = Stroke(width = 30f))
+            
+            val outerHaloPulse = (sin((gameTime / 400f).toDouble()).toFloat() * 0.5f + 0.5f)
+            rotate(threat.rotation - 8f, pivot = Offset(tx, ty)) {
+                drawCircle(
+                    color = Color(0xFF00E5FF).copy(alpha = 0.05f * outerHaloPulse * arrivalProgress),
+                    radius = 320f,
+                    center = Offset(tx, ty),
+                    style = Stroke(width = 40f)
+                )
             }
 
             rotate(threat.rotation, pivot = Offset(tx, ty)) {

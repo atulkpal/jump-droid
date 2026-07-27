@@ -11,7 +11,15 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 class SignalRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         with(drawScope) {
             val tx = threat.x; val ty = threat.y - cameraY
             val phase = threat.phase
@@ -20,40 +28,49 @@ class SignalRenderer : ThreatRenderer {
             drawCircle(Color(0xFF9E9E9E).copy(alpha = 0.04f), radius = 400f, center = Offset(tx, ty), style = Stroke(width = 60f))
 
             if (flicker > 0) {
-                val glitchCount = if (phase == 3) 40 else 20
-                val glitchAlpha = if (phase == 3) 0.5f else 0.3f
-                val screenTearCount = if (phase == 3) 10 else 4
-                val screenTearAlpha = if (phase == 3) 0.15f else 0.08f
+                val glitchCount = if (phase == 3) 60 else 30
+                val glitchAlpha = if (phase == 3) 0.6f else 0.4f
+                val screenTearCount = if (phase == 3) 15 else 6
+                val screenTearAlpha = if (phase == 3) 0.25f else 0.12f
+                
                 repeat(glitchCount) { i ->
-                    val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 40).toInt()
+                    val seed = threat.instanceId.hashCode() + i * 3 + (gameTime / 35).toInt()
                     val rng = Random(seed)
-                    val rx = tx + (rng.nextFloat() - 0.5f) * 420f
-                    val ry = ty + (rng.nextFloat() - 0.5f) * 420f
+                    val rx = tx + (rng.nextFloat() - 0.5f) * 450f
+                    val ry = ty + (rng.nextFloat() - 0.5f) * 450f
+                    val rectColor = if (phase == 3) {
+                        if (rng.nextBoolean()) Color.Red else Color.White
+                    } else Color.White
+                    
                     drawRect(
-                        if (phase == 3) Color.Red.copy(alpha = rng.nextFloat() * glitchAlpha) else Color.White.copy(alpha = rng.nextFloat() * glitchAlpha),
+                        rectColor.copy(alpha = rng.nextFloat() * glitchAlpha),
                         topLeft = Offset(rx, ry),
-                        size = Size(rng.nextFloat() * 70f, rng.nextFloat() * 70f)
+                        size = Size(rng.nextFloat() * 80f, rng.nextFloat() * 80f)
                     )
                 }
 
                 repeat(screenTearCount) { i ->
-                    val seed = threat.instanceId.hashCode() + i * 11 + (gameTime / 60).toInt()
+                    val seed = threat.instanceId.hashCode() + i * 13 + (gameTime / 50).toInt()
                     val rng = Random(seed)
-                    val tearY = ty - 350f + rng.nextFloat() * 700f
-                    val tearW = 15f + rng.nextFloat() * 80f
-                    val tearColor = if (phase == 3) Color(0xFF212121) else Color(0xFF212121)
-                    drawRect(tearColor.copy(alpha = screenTearAlpha), Offset(tx - 200f + rng.nextFloat() * 150f, tearY), Size(tearW, 6f))
-                    if (phase == 3 && rng.nextFloat() < 0.4f) {
-                        drawRect(Color(0xFFFF1744).copy(alpha = 0.05f), Offset(tx - 180f + rng.nextFloat() * 120f, tearY - 2f), Size(tearW + 10f, 10f))
+                    val tearY = ty - 400f + rng.nextFloat() * 800f
+                    val tearW = 20f + rng.nextFloat() * 120f
+                    val tearX = tx - 250f + rng.nextFloat() * 200f
+                    
+                    drawRect(Color(0xFF212121).copy(alpha = screenTearAlpha), Offset(tearX, tearY), Size(tearW, 8f))
+                    if (phase == 3 && rng.nextFloat() < 0.5f) {
+                        // Color fringe on tears
+                        drawRect(Color(0xFFFF1744).copy(alpha = 0.1f), Offset(tearX - 5f, tearY - 2f), Size(tearW + 10f, 12f))
+                        drawRect(Color(0xFF00E5FF).copy(alpha = 0.1f), Offset(tearX + 5f, tearY + 2f), Size(tearW + 10f, 12f))
                     }
                 }
 
-                repeat(8) { i ->
-                    val seed = threat.instanceId.hashCode() + i * 13 + (gameTime / 60).toInt()
+                // D3: Vertical Scanning Lines (Artifacting)
+                repeat(12) { i ->
+                    val seed = threat.instanceId.hashCode() + i * 17 + (gameTime / 55).toInt()
                     val rng = Random(seed)
-                    val bx = tx + (rng.nextFloat() - 0.5f) * 300f
-                    val by = ty - 300f + ((gameTime / 40f + i * 80f) % 600f)
-                    drawRect(Color(0xFF00E676).copy(alpha = 0.1f), Offset(bx, by), Size(3f, 5f))
+                    val bx = tx + (rng.nextFloat() - 0.5f) * 350f
+                    val by = ty - 350f + ((gameTime / 35f + i * 70f) % 700f)
+                    drawRect(Color(0xFF00E676).copy(alpha = 0.15f), Offset(bx, by), Size(4f, 8f))
                 }
 
                 val ghostRng = Random(threat.instanceId.hashCode() + gameTime.toInt() / 100)

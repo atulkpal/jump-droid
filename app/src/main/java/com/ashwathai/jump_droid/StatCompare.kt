@@ -28,27 +28,17 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
-private val AXIS_LABELS = listOf("THRUST", "FUEL", "HEAT TOL", "INTEGRITY", "MANEUVER")
 private val AXIS_COUNT = 5
 
 data class RocketStats(
     val thrust: Float,
     val fuel: Float,
-    val heatTolerance: Float,
+    val thermal: Float,
     val integrity: Float,
     val maneuverability: Float
 )
 
-private fun getStats(type: RocketType): RocketStats {
-    return when (type) {
-        RocketType.BALANCED -> RocketStats(1.0f, 1.0f, 1.0f, 1.0f, 0.8f)
-        RocketType.SCOUT -> RocketStats(1.25f, 0.7f, 1.1f, 0.9f, 1.0f)
-        RocketType.TANK -> RocketStats(0.85f, 1.5f, 1.25f, 1.2f, 0.5f)
-        RocketType.EXPERIMENTAL -> RocketStats(1.5f, 1.0f, 0.7f, 0.8f, 1.3f)
-    }
-}
-
-private fun typeColor(type: RocketType): Color {
+fun typeColor(type: RocketType): Color {
     return when (type) {
         RocketType.BALANCED -> SciFiWhite
         RocketType.SCOUT -> SciFiGold
@@ -80,13 +70,12 @@ private fun DrawScope.drawPentagon(
 
 @Composable
 fun PentagonChart(
-    rocketType: RocketType,
+    stats: RocketStats,
+    color: Color,
     modifier: Modifier = Modifier
 ) {
-    val stats = getStats(rocketType)
-    val values = listOf(stats.thrust, stats.fuel, stats.heatTolerance, stats.integrity, stats.maneuverability)
-    val maxVal = values.max()
-    val color = typeColor(rocketType)
+    val values = listOf(stats.thrust, stats.fuel, stats.thermal, stats.integrity, stats.maneuverability)
+    val maxVal = 2.0f // Scale normalization
 
     Canvas(modifier = modifier) {
         val cx = size.width / 2f
@@ -116,15 +105,9 @@ fun PentagonChart(
 
         // Data pentagon
         val dataValues = values.mapIndexed { i, value ->
-            val r = radius * (value / maxVal).coerceIn(0.05f, 1f)
+            val r = radius * (value / maxVal).coerceIn(0.1f, 1f)
             Offset(cx + r * cos(angles[i]), cy + r * sin(angles[i]))
         }
-        drawPentagon(
-            cx, cy, 0f, angles,
-            outlineColor = color,
-            fillColor = color.copy(alpha = 0.2f),
-            strokeWidth = 2f
-        )
 
         // Draw data polygon manually for fill
         val dataPath = Path()
@@ -151,7 +134,6 @@ fun StatLegend(
 ) {
     Column(modifier = modifier) {
         allTypes.forEach { type ->
-            val stats = getStats(type)
             val isActive = type == rocketType
             val legendColor = typeColor(type)
 
@@ -171,7 +153,7 @@ fun StatLegend(
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = "${(stats.thrust * 100).toInt()}% / ${(stats.fuel * 100).toInt()}% / ${(stats.heatTolerance * 100).toInt()}%",
+                    text = "${(type.thrustMult * 100).toInt()}% / ${(type.fuelMult * 100).toInt()}% / ${(type.heatMult * 100).toInt()}%",
                     color = SciFiWhite.copy(alpha = 0.25f),
                     fontSize = 7.sp
                 )

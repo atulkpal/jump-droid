@@ -10,7 +10,9 @@ navigationCompose = "2.9.8"
 kotlin = "2.2.10"
 composeBom = "2026.05.01"
 playServicesAds = "23.6.0"
-billing = "7.1.0"
+playServicesAuth = "21.3.0"
+playServicesGames = "21.0.0"
+billing = "9.1.0"
 googleServices = "4.4.2"
 firebaseCrashlyticsPlugin = "3.0.3"
 firebaseBom = "33.10.0"
@@ -32,11 +34,15 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 google-play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
+google-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
+google-play-services-games = { group = "com.google.android.gms", name = "play-services-games-v2", version.ref = "playServicesGames" }
 google-play-services-billing = { group = "com.android.billingclient", name = "billing", version.ref = "billing" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

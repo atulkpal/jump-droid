@@ -5,14 +5,44 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import com.ashwathai.jump_droid.ui.theme.SciFiCyan
+import com.ashwathai.jump_droid.ui.theme.SciFiGold
+import com.ashwathai.jump_droid.ui.theme.SciFiOrange
+import com.ashwathai.jump_droid.ui.theme.SciFiPurple
+import com.ashwathai.jump_droid.ui.theme.SciFiRed
 import kotlin.math.*
 import kotlin.random.Random
 
 class ZoneBackgroundRenderer {
 
     private val parallaxManager = ParallaxManager()
+    private var assetLayersInitialized = false
+    private var lastRenderedZone: AltitudeZone? = null
+
+    // Multipliers for the 6-layer parallax system
+    private val verticalMultipliers = listOf(0.02f, 0.05f, 0.12f, 0.25f, 0.45f, 0.75f)
+    private val horizontalMultipliers = listOf(0.01f, 0.03f, 0.08f, 0.15f, 0.30f, 0.50f)
+
+    // Performance Optimization: Pre-allocated noise for Singularity
+    private val noiseRandom = Random(999)
+    private val noisePoints = List(60) { Offset(noiseRandom.nextFloat(), noiseRandom.nextFloat()) }
+    private val noiseSizes = List(60) { Size(4f + noiseRandom.nextFloat() * 8f, 2f + noiseRandom.nextFloat() * 4f) }
+    private val noiseAlphas = List(60) { noiseRandom.nextFloat() * 0.08f }
+
+    private val fragRandom = Random(1001)
+    private val fragPoints = List(4) { Offset(fragRandom.nextFloat(), fragRandom.nextFloat()) }
+    private val fragSizes = List(4) { 20f + fragRandom.nextFloat() * 30f }
+    private val fragAlphas = List(4) { 0.2f + fragRandom.nextFloat() * 0.15f }
+
+    // Aurora Path Caching
+    private val auroraBands = List(5) { Path() }
+    private var lastAuroraWidth = 0f
+    private var lastAuroraHeight = 0f
+    private var lastAuroraGameTimeStep = -1L
 
     init {
         setupEarthLayers()
@@ -25,90 +55,301 @@ class ZoneBackgroundRenderer {
         setupChronoRiftLayers()
     }
 
+    private fun ensureAssetLayers(context: android.content.Context) {
+        if (assetLayersInitialized) return
+        
+        AltitudeZone.entries.forEach { zone ->
+            // Clear default procedural layers (stars, silhouettes, etc.)
+            // so they don't overlap with the new asset packs.
+            parallaxManager.clearLayers(zone)
+
+            // Use specific multipliers for Earth (Zone 1) from the design pack
+            val vSpeeds = if (zone == AltitudeZone.EARTH) {
+                listOf(0.02f, 0.05f, 0.25f, 0.45f, 0.75f, 0.95f)
+            } else {
+                verticalMultipliers
+            }
+
+            val hSpeeds = if (zone == AltitudeZone.EARTH) {
+                listOf(0.01f, 0.03f, 0.15f, 0.30f, 0.50f, 0.70f)
+            } else {
+                horizontalMultipliers
+            }
+
+            // Start from Layer 2 (index 1) as Layer 1 is the procedural gradient
+            for (i in 1..5) {
+                val resId = getAssetForZoneLayer(context, zone, i + 1)
+                val bitmap = AssetManager.getBitmap(context, resId)
+                
+                parallaxManager.registerLayer(zone, BitmapParallaxLayer(
+                    parallaxFactor = vSpeeds[i],
+                    horizontalSpeedMultiplier = hSpeeds[i],
+                    zIndex = -20 + i,
+                    bitmap = bitmap
+                ))
+            }
+        }
+        assetLayersInitialized = true
+    }
+
+    private fun getAssetForZoneLayer(context: android.content.Context, zone: AltitudeZone, layerIndex: Int): Int {
+        val zonePrefix = when(zone) {
+            AltitudeZone.EARTH -> "bg_z1"
+            AltitudeZone.CLOUD_LAYER -> "bg_z2"
+            AltitudeZone.UPPER_ATMOSPHERE -> "bg_z3"
+            AltitudeZone.ORBIT -> "bg_z4"
+            AltitudeZone.THE_FOUNDRY -> "bg_z5"
+            AltitudeZone.DEEP_SPACE -> "bg_z6"
+            AltitudeZone.CHRONO_RIFT -> "bg_z7"
+            AltitudeZone.VOID -> "bg_z8"
+            AltitudeZone.THE_BEYOND -> "bg_z9"
+            AltitudeZone.STELLAR_GATE -> "bg_z10"
+            AltitudeZone.ANCIENT_CONSTRUCT -> "bg_z11"
+            AltitudeZone.SINGULARITY -> "bg_z12"
+        }
+
+        // Specific suffixes from the Earth pack design
+        val suffix = when(layerIndex) {
+            1 -> "sky"
+            2 -> "mountains"
+            3 -> "clouds_mid"
+            4 -> "islands"
+            5 -> "clouds_near"
+            6 -> "particles"
+            else -> "layer_$layerIndex"
+        }
+
+        val resName = "${zonePrefix}_layer_${layerIndex}_$suffix"
+        val resId = context.resources.getIdentifier(resName, "drawable", context.packageName)
+        
+        // Fallback to game_icon if the specific asset is not yet added to the project
+        return if (resId != 0) resId else R.drawable.game_icon
+    }
+
     private fun setupEarthLayers() {
-        // Stars (night sky)
-        parallaxManager.registerLayer(AltitudeZone.EARTH, RepeatingParallaxLayer(
-            parallaxFactor = 0.03f,
-            zIndex = 0,
-            density = 30,
-            seed = 999,
-            renderElement = { x, y, opacity, random, gameTime ->
-                val twinkle = (sin(gameTime / 600f + random.nextInt(100)) * 0.4f + 0.6f)
-                val brightness = (0.3f + random.nextFloat() * 0.7f) * opacity * twinkle
-                drawCircle(
-                    color = Color.White.copy(alpha = brightness),
-                    radius = 0.8f + random.nextFloat() * 1.5f,
-                    center = Offset(x, y)
-                )
-            }
-        ))
-
-        parallaxManager.registerLayer(AltitudeZone.EARTH, SilhouetteParallaxLayer(
-            parallaxFactor = 0.10f,
-            zIndex = 1,
-            color = Color(0xFF0D0020).copy(alpha = 0.6f),
-            pathPoints = listOf(
-                Offset(0f, 0.85f), Offset(0.25f, 0.7f), Offset(0.5f, 0.9f),
-                Offset(0.75f, 0.65f), Offset(1f, 0.95f)
-            ),
-            baseHeightPercent = 0.85f
-        ))
-
-        parallaxManager.registerLayer(AltitudeZone.EARTH, SilhouetteParallaxLayer(
-            parallaxFactor = 0.25f,
-            zIndex = 2,
-            color = Color(0xFF0A1A0A).copy(alpha = 0.5f),
-            pathPoints = listOf(
-                Offset(0f, 0.92f), Offset(0.2f, 0.88f), Offset(0.4f, 0.95f),
-                Offset(0.6f, 0.9f), Offset(0.8f, 0.94f), Offset(1f, 0.9f)
-            ),
-            baseHeightPercent = 0.92f
-        ))
-
-        parallaxManager.registerLayer(AltitudeZone.EARTH, RepeatingParallaxLayer(
-            parallaxFactor = 0.45f,
-            zIndex = 3,
-            density = 4,
-            seed = 42,
-            renderElement = { x, y, opacity, random, gameTime ->
-                val drift = sin(gameTime / 2000f + random.nextInt(100)) * 50f
-                drawCircle(
-                    color = Color(0xFF90CAF9).copy(alpha = 0.10f * opacity),
-                    radius = 100f + random.nextFloat() * 150f,
-                    center = Offset(x + drift, y)
-                )
-            }
-        ))
-
+        // 1. Distant Morning Bloom
         parallaxManager.registerLayer(AltitudeZone.EARTH, SingleObjectParallaxLayer(
             parallaxFactor = 0.0f,
+            zIndex = -5,
+            renderElement = { opacity, gameTime ->
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        0.7f to Color.Transparent,
+                        1.0f to Color.White.copy(alpha = 0.15f * opacity)
+                    ),
+                    size = size
+                )
+            }
+        ))
+
+        // 2. Rugged Distant Mountains (Depth: 0.02)
+        val mountainPathPoints = listOf(
+            Offset(0f, 0.82f), Offset(0.08f, 0.78f), Offset(0.15f, 0.72f),
+            Offset(0.22f, 0.76f), Offset(0.30f, 0.81f), Offset(0.38f, 0.74f),
+            Offset(0.45f, 0.78f), Offset(0.52f, 0.68f), Offset(0.60f, 0.76f),
+            Offset(0.68f, 0.82f), Offset(0.78f, 0.65f), Offset(0.85f, 0.77f),
+            Offset(0.92f, 0.72f), Offset(0.98f, 0.78f), Offset(1f, 0.82f)
+        )
+        
+        parallaxManager.registerLayer(AltitudeZone.EARTH, SilhouetteParallaxLayer(
+            parallaxFactor = 0.02f,
+            zIndex = 1,
+            brush = Brush.linearGradient(
+                0.0f to Color(0xFF78909C).copy(alpha = 0.5f),
+                1.0f to Color(0xFF455A64).copy(alpha = 0.5f),
+                start = Offset(0f, 0f),
+                end = Offset(400f, 400f)
+            ),
+            pathPoints = mountainPathPoints,
+            baseHeightPercent = 0.82f
+        ))
+
+        // 2.1 Ice Caps (Secondary pass on mountains)
+        if (!DevConfig.QUALITY_LOW_END) {
+            parallaxManager.registerLayer(AltitudeZone.EARTH, SingleObjectParallaxLayer(
+                parallaxFactor = 0.02f,
+                zIndex = 2,
+                renderElement = { opacity, gameTime ->
+                    val w = size.width
+                    val h = size.height
+                    mountainPathPoints.filter { it.y < 0.75f }.forEach { p ->
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                listOf(Color.White.copy(alpha = 0.8f * opacity), Color.Transparent),
+                                center = Offset(p.x * w, h * p.y),
+                                radius = 15f
+                            ),
+                            radius = 15f, center = Offset(p.x * w, h * p.y)
+                        )
+                    }
+                }
+            ))
+        }
+
+        // 3. Flying Plane silhouette (Very slow horizontal drift)
+        parallaxManager.registerLayer(AltitudeZone.EARTH, SingleObjectParallaxLayer(
+            parallaxFactor = 0.04f,
+            zIndex = 2,
+            renderElement = { opacity, gameTime ->
+                val planeX = (gameTime * 0.015f) % (size.width + 1000f) - 500f
+                val planeY = size.height * 0.45f
+                val planeColor = Color(0xFFECEFF1).copy(alpha = 0.3f * opacity)
+                
+                // Wing
+                drawRect(planeColor, Offset(planeX - 15f, planeY), Size(30f, 4f))
+                // Body
+                drawRect(planeColor, Offset(planeX - 25f, planeY - 2f), Size(50f, 8f))
+                // Tail
+                drawRect(planeColor, Offset(planeX - 25f, planeY - 10f), Size(6f, 10f))
+            }
+        ))
+
+        // 4. Distant City Skyline (Depth: 0.05)
+        parallaxManager.registerLayer(AltitudeZone.EARTH, SingleObjectParallaxLayer(
+            parallaxFactor = 0.05f,
+            zIndex = 3,
+            renderElement = { opacity, gameTime ->
+                val w = size.width
+                val h = size.height
+                val baseY = h * 0.88f
+                
+                val cityLayout = listOf(
+                    Triple(0.04f, 35f, 50f), Triple(0.08f, 40f, 90f), Triple(0.12f, 30f, 60f),
+                    Triple(0.25f, 50f, 110f), Triple(0.32f, 45f, 80f), Triple(0.38f, 40f, 65f),
+                    Triple(0.55f, 55f, 100f), Triple(0.62f, 40f, 120f), Triple(0.68f, 35f, 55f),
+                    Triple(0.85f, 50f, 90f), Triple(0.92f, 30f, 70f)
+                )
+                
+                cityLayout.forEachIndexed { i, (xPct, bW, bH) ->
+                    val bx = w * xPct
+                    val by = baseY - bH
+                    val buildingColor = when (i % 3) {
+                        0 -> Color(0xFF37474F) // Slate
+                        1 -> Color(0xFF4E342E) // Brick
+                        else -> Color(0xFF263238) // Steel
+                    }.copy(alpha = 0.95f * opacity)
+                    
+                    // Main Building
+                    drawRect(color = buildingColor, topLeft = Offset(bx, by), size = Size(bW, bH + 2000f))
+                    
+                    // Roof Detail (Antenna/Box)
+                    if (bH > 80f) {
+                        drawRect(buildingColor, Offset(bx + bW * 0.3f, by - 15f), Size(4f, 15f))
+                        // Pulsing Aviation Light
+                        val pulse = (sin(gameTime / 400f) * 0.5f + 0.5f)
+                        drawCircle(Color.Red.copy(alpha = pulse * opacity), radius = 2.5f, center = Offset(bx + bW * 0.3f, by - 15f))
+                    }
+                    
+                    // Windows
+                    if (!DevConfig.QUALITY_LOW_END) {
+                        val rows = (bH / 20f).toInt().coerceAtMost(6)
+                        val cols = (bW / 15f).toInt().coerceAtMost(2)
+                        for (r in 0 until rows) {
+                            for (c in 0 until cols) {
+                                if ((bx.toInt() + r + c) % 5 == 0) {
+                                    drawRect(
+                                        color = Color(0xFFFFD54F).copy(alpha = 0.25f * opacity),
+                                        topLeft = Offset(bx + 8f + c * 14f, by + 15f + r * 20f),
+                                        size = Size(3f, 4f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ))
+
+        // 5. Rural Hills (Depth: 0.15)
+        parallaxManager.registerLayer(AltitudeZone.EARTH, SilhouetteParallaxLayer(
+            parallaxFactor = 0.15f,
+            zIndex = 4,
+            brush = Brush.verticalGradient(
+                0.85f to Color(0xFF388E3C),
+                1.0f to Color(0xFF1B5E20)
+            ),
+            pathPoints = listOf(
+                Offset(0f, 0.93f), Offset(0.15f, 0.90f), Offset(0.3f, 0.85f),
+                Offset(0.45f, 0.92f), Offset(0.6f, 0.95f), Offset(0.75f, 0.89f),
+                Offset(0.88f, 0.94f), Offset(1f, 0.93f)
+            ),
+            baseHeightPercent = 0.93f
+        ))
+
+        // 5.1 Homesteads (Tiny rural life)
+        if (!DevConfig.QUALITY_LOW_END) {
+            parallaxManager.registerLayer(AltitudeZone.EARTH, SingleObjectParallaxLayer(
+                parallaxFactor = 0.15f,
+                zIndex = 4,
+                renderElement = { opacity, gameTime ->
+                    val w = size.width
+                    val h = size.height
+                    val baseY = h * 0.93f
+                    listOf(0.2f, 0.55f, 0.85f).forEach { xPct ->
+                        val bx = w * xPct
+                        val houseColor = Color(0xFF5D4037).copy(alpha = 0.8f * opacity)
+                        drawRect(houseColor, Offset(bx, baseY - 8f), Size(12f, 8f))
+                        val roofPath = Path().apply {
+                            moveTo(bx - 2f, baseY - 8f)
+                            lineTo(bx + 6f, baseY - 14f)
+                            lineTo(bx + 14f, baseY - 8f)
+                            close()
+                        }
+                        drawPath(roofPath, Color(0xFF3E2723).copy(alpha = 0.9f * opacity))
+                    }
+                }
+            ))
+        }
+
+        // 6. Road Traffic (Depth: 0.30)
+        parallaxManager.registerLayer(AltitudeZone.EARTH, SingleObjectParallaxLayer(
+            parallaxFactor = 0.30f,
             zIndex = 5,
             renderElement = { opacity, gameTime ->
-                val fade = (1f - opacity).coerceIn(0f, 1f)
-                val moonAlpha = (1f - fade).coerceIn(0f, 1f) * 0.5f
-                // Moon glow
-                drawCircle(
-                    color = Color(0xFFB0BEC5).copy(alpha = moonAlpha * 0.2f),
-                    radius = 80f,
-                    center = Offset(size.width - 100f, 80f)
-                )
-                // Moon body
-                drawCircle(
-                    color = Color(0xFFE0E0E0).copy(alpha = moonAlpha),
-                    radius = 30f,
-                    center = Offset(size.width - 100f, 80f)
-                )
-                // Moon crater detail
-                drawCircle(
-                    color = Color(0xFF9E9E9E).copy(alpha = moonAlpha * 0.5f),
-                    radius = 6f,
-                    center = Offset(size.width - 110f, 75f)
-                )
-                drawCircle(
-                    color = Color(0xFF9E9E9E).copy(alpha = moonAlpha * 0.4f),
-                    radius = 4f,
-                    center = Offset(size.width - 90f, 85f)
-                )
+                val roadY = size.height * 0.97f
+                drawRect(color = Color(0xFF1A1A1A).copy(alpha = opacity), topLeft = Offset(0f, roadY), size = Size(size.width, 1000f))
+                
+                if (!DevConfig.QUALITY_LOW_END) {
+                    val dashW = 30f; val dashG = 60f
+                    val dashOff = (gameTime * 0.04f) % (dashW + dashG)
+                    var x = -dashOff
+                    while (x < size.width) {
+                        drawRect(color = Color.White.copy(alpha = 0.12f * opacity), topLeft = Offset(x, roadY + 8f), size = Size(dashW, 1.2f))
+                        x += dashW + dashG
+                    }
+                }
+                
+                repeat(if (DevConfig.QUALITY_LOW_END) 2 else 4) { i ->
+                    val speed = 0.10f + (i * 0.05f)
+                    val dir = if (i % 2 == 0) 1f else -1f
+                    val laneY = if (dir > 0) 6f else 14f
+                    
+                    val cx = (gameTime * speed * dir + (i * 300f)) % (size.width + 200f)
+                    val fx = if (cx < -100f) cx + size.width + 200f else cx
+                    val color = if (dir > 0) Color(0xFFFFECB3) else Color(0xFFFF8A80)
+                    
+                    if (!DevConfig.QUALITY_LOW_END) {
+                        // Bloom
+                        drawCircle(
+                            brush = Brush.radialGradient(listOf(color.copy(alpha = 0.3f * opacity), Color.Transparent), center = Offset(fx, roadY + laneY), radius = 8f),
+                            radius = 8f, center = Offset(fx, roadY + laneY)
+                        )
+                    }
+                    // Core
+                    drawCircle(color = color.copy(alpha = 0.7f * opacity), radius = 2f, center = Offset(fx, roadY + laneY))
+                }
+            }
+        ))
+
+        // 7. Morning Air Particles
+        parallaxManager.registerLayer(AltitudeZone.EARTH, RepeatingParallaxLayer(
+            parallaxFactor = 0.50f,
+            zIndex = 6,
+            density = 3,
+            seed = 999,
+            renderElement = { x, y, opacity, random, gameTime ->
+                val drift = sin(gameTime / 3000f + random.nextInt(100)) * 20f
+                drawCircle(color = Color.White.copy(alpha = 0.06f * opacity), radius = 1.5f + random.nextFloat() * 1.5f, center = Offset(x + drift, y))
             }
         ))
     }
@@ -124,11 +365,17 @@ class ZoneBackgroundRenderer {
                 val cx = x + drift
                 val cy = y
                 val baseR = 150f + random.nextFloat() * 200f
-                val c = Color(0xFF4A148C).copy(alpha = 0.25f * opacity)
-                drawOval(c, Offset(cx - baseR * 0.6f, cy - baseR * 0.2f), Size(baseR * 1.2f, baseR * 0.8f))
-                drawOval(c, Offset(cx - baseR * 0.8f, cy - baseR * 0.3f), Size(baseR * 0.8f, baseR * 0.7f))
-                drawOval(c, Offset(cx + baseR * 0.4f, cy - baseR * 0.25f), Size(baseR * 0.9f, baseR * 0.75f))
-                drawOval(c, Offset(cx - baseR * 0.1f, cy - baseR * 0.5f), Size(baseR * 0.7f, baseR * 0.6f))
+                
+                // Fluffy Cloud (Volumetric Pass)
+                val c = Color(0xFF4A148C).copy(alpha = 0.20f * opacity)
+                drawCircle(
+                    brush = Brush.radialGradient(listOf(c, Color.Transparent), center = Offset(cx, cy), radius = baseR),
+                    radius = baseR, center = Offset(cx, cy)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(listOf(c, Color.Transparent), center = Offset(cx - baseR * 0.4f, cy + baseR * 0.1f), radius = baseR * 0.7f),
+                    radius = baseR * 0.7f, center = Offset(cx - baseR * 0.4f, cy + baseR * 0.1f)
+                )
             }
         ))
 
@@ -142,11 +389,18 @@ class ZoneBackgroundRenderer {
                 val cx = x + drift
                 val cy = y
                 val baseR = 100f + random.nextFloat() * 150f
-                val c = Color(0xFF6A1B9A).copy(alpha = 0.35f * opacity)
-                drawOval(c, Offset(cx - baseR * 0.6f, cy - baseR * 0.2f), Size(baseR * 1.2f, baseR * 0.8f))
-                drawOval(c, Offset(cx - baseR * 0.8f, cy - baseR * 0.3f), Size(baseR * 0.8f, baseR * 0.7f))
-                drawOval(c, Offset(cx + baseR * 0.4f, cy - baseR * 0.25f), Size(baseR * 0.9f, baseR * 0.75f))
-                drawOval(c, Offset(cx - baseR * 0.1f, cy - baseR * 0.5f), Size(baseR * 0.7f, baseR * 0.6f))
+                val c = Color(0xFF6A1B9A).copy(alpha = 0.30f * opacity)
+                
+                // Cloud Body
+                drawCircle(
+                    brush = Brush.radialGradient(listOf(c, Color.Transparent), center = Offset(cx, cy), radius = baseR),
+                    radius = baseR, center = Offset(cx, cy)
+                )
+                
+                // Internal Lightning Flash
+                if (random.nextFloat() > 0.98f && (gameTime / 100) % 5 == 0L) {
+                    drawCircle(Color.White.copy(alpha = 0.15f * opacity), radius = baseR * 0.8f, center = Offset(cx, cy))
+                }
             }
         ))
 
@@ -160,11 +414,11 @@ class ZoneBackgroundRenderer {
                 val cx = x + drift
                 val cy = y
                 val baseR = 80f + random.nextFloat() * 100f
-                val c = Color(0xFF8E24AA).copy(alpha = 0.5f * opacity)
-                drawOval(c, Offset(cx - baseR * 0.6f, cy - baseR * 0.2f), Size(baseR * 1.2f, baseR * 0.8f))
-                drawOval(c, Offset(cx - baseR * 0.8f, cy - baseR * 0.3f), Size(baseR * 0.8f, baseR * 0.7f))
-                drawOval(c, Offset(cx + baseR * 0.4f, cy - baseR * 0.25f), Size(baseR * 0.9f, baseR * 0.75f))
-                drawOval(c, Offset(cx - baseR * 0.1f, cy - baseR * 0.5f), Size(baseR * 0.7f, baseR * 0.6f))
+                val c = Color(0xFF8E24AA).copy(alpha = 0.40f * opacity)
+                drawCircle(
+                    brush = Brush.radialGradient(listOf(c, Color.Transparent), center = Offset(cx, cy), radius = baseR),
+                    radius = baseR, center = Offset(cx, cy)
+                )
             }
         ))
 
@@ -228,6 +482,17 @@ class ZoneBackgroundRenderer {
 
                     drawCircle(starColor.copy(alpha = brightness), radius = 0.8f + random.nextFloat() * 1.2f, center = Offset(x, y))
 
+                    // Iridescent Dust in Upper Atmos
+                    if (zone == AltitudeZone.UPPER_ATMOSPHERE && random.nextFloat() > 0.92f) {
+                        val seedIdx = random.nextInt(100)
+                        val dustPulse = (sin(gameTime / 400f + seedIdx) * 0.5f + 0.5f) * opacity
+                        drawCircle(
+                            color = if (seedIdx % 2 == 0) SciFiCyan.copy(alpha = dustPulse * 0.4f) else SciFiPurple.copy(alpha = dustPulse * 0.4f),
+                            radius = 1.5f + random.nextFloat() * 2f,
+                            center = Offset(x, y)
+                        )
+                    }
+
                     if (zone == AltitudeZone.ORBIT && brightness > 0.6f && random.nextFloat() > 0.85f) {
                         val flareAlpha = brightness * 0.3f
                         drawLine(starColor.copy(alpha = flareAlpha), Offset(x - 6f, y), Offset(x + 6f, y), strokeWidth = 1.5f)
@@ -254,10 +519,14 @@ class ZoneBackgroundRenderer {
                 renderElement = { x, y, opacity, random, gameTime ->
                     val radius = 400f + random.nextFloat() * 400f
                     val pulse = sin(gameTime / 4000f + random.nextInt(1000)) * 0.1f + 1.0f
+                    
+                    // Textured Nebula pass
+                    val colorBase = if (random.nextBoolean()) Color(0xFF4A00E0) else Color(0xFF8E2DE2)
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                if (random.nextBoolean()) Color(0xFF4A00E0).copy(alpha = nebOpacity * opacity) else Color(0xFF8E2DE2).copy(alpha = nebOpacity * 0.8f * opacity),
+                                colorBase.copy(alpha = nebOpacity * opacity),
+                                colorBase.copy(alpha = nebOpacity * 0.4f * opacity),
                                 Color.Transparent
                             ),
                             center = Offset(x, y),
@@ -294,11 +563,21 @@ class ZoneBackgroundRenderer {
             }
         ))
 
-        // Orbit Curve
+        // Orbit Curve (Sunlight Rim pass)
         parallaxManager.registerLayer(AltitudeZone.ORBIT, SingleObjectParallaxLayer(
             parallaxFactor = 0.02f,
             zIndex = -2,
             renderElement = { opacity, gameTime ->
+                val glowAlpha = (sin(gameTime / 1000f) * 0.05f + 0.15f) * opacity
+                
+                // Rim Light
+                drawCircle(
+                    color = Color.White.copy(alpha = glowAlpha),
+                    radius = size.width * 2f + 10f,
+                    center = Offset(size.width / 2, size.height + size.width * 1.8f),
+                    style = Stroke(width = 15f)
+                )
+                
                 drawCircle(
                     color = Color(0xFFFFD700).copy(alpha = 0.12f * opacity),
                     radius = size.width * 2f,
@@ -394,7 +673,7 @@ class ZoneBackgroundRenderer {
     }
 
     private fun setupFoundryLayers() {
-        // Industrial machinery silhouettes
+        // Industrial machinery silhouettes (rim lit pass)
         parallaxManager.registerLayer(AltitudeZone.THE_FOUNDRY, RepeatingParallaxLayer(
             parallaxFactor = 0.15f,
             zIndex = 1,
@@ -404,25 +683,39 @@ class ZoneBackgroundRenderer {
                 val w = 80f + random.nextFloat() * 120f
                 val h = 200f + random.nextFloat() * 300f
                 val col = Color(0xFF1A0A00).copy(alpha = 0.7f * opacity)
+                
+                // Main Shape
                 drawRect(col, topLeft = Offset(x - w / 2, y - h / 2), size = Size(w, h))
+                
+                // Forge Glow (Internal)
+                if (random.nextFloat() > 0.5f) {
+                    val pulse = (sin(gameTime / 600f + random.nextInt(100)) * 0.3f + 0.7f)
+                    drawRect(
+                        color = SciFiOrange.copy(alpha = 0.4f * opacity * pulse),
+                        topLeft = Offset(x - w / 4, y - h / 4),
+                        size = Size(w / 2, h / 2)
+                    )
+                }
+                
                 val armW = w * 0.15f
                 drawRect(col, topLeft = Offset(x - w / 2 - armW, y - h / 4), size = Size(armW, h / 2))
                 drawRect(col, topLeft = Offset(x + w / 2, y - h / 4), size = Size(armW, h / 2))
             }
         ))
 
-        // Spark particles
+        // Spark particles (Heat Haze pass)
         parallaxManager.registerLayer(AltitudeZone.THE_FOUNDRY, RepeatingParallaxLayer(
             parallaxFactor = 0.3f,
             zIndex = 2,
             density = 5,
             seed = 707,
             renderElement = { x, y, opacity, random, gameTime ->
+                val hazeX = x + sin(gameTime / 400f + y / 50f) * 20f // Horizontal displacement
                 val sparkAlpha = (sin(gameTime / 100f + random.nextInt(100)) * 0.5f + 0.5f) * opacity
                 drawCircle(
                     color = Color(0xFFFF6D00).copy(alpha = sparkAlpha * 0.6f),
                     radius = 2f + random.nextFloat() * 3f,
-                    center = Offset(x + (gameTime % 5000) / 50f, y)
+                    center = Offset(hazeX + (gameTime % 5000) / 50f, y)
                 )
             }
         ))
@@ -445,6 +738,7 @@ class ZoneBackgroundRenderer {
     }
 
     private fun setupBeyondLayers() {
+        // Quantum Blur background
         parallaxManager.registerLayer(AltitudeZone.THE_BEYOND, RepeatingParallaxLayer(
             parallaxFactor = 0.05f,
             zIndex = -1,
@@ -453,50 +747,48 @@ class ZoneBackgroundRenderer {
             renderElement = { x, y, opacity, random, gameTime ->
                 val radius = 300f + random.nextFloat() * 500f
                 val pulse = sin(gameTime / 2000f + random.nextFloat()) * 0.2f + 1f
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF00E5FF).copy(alpha = 0.15f * opacity),
-                            Color(0xFFD500F9).copy(alpha = 0.1f * opacity),
-                            Color.Transparent
+                
+                // Motion Blurred pass (drawn twice)
+                repeat(2) { i ->
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF00E5FF).copy(alpha = 0.15f * opacity / (i+1)),
+                                Color(0xFFD500F9).copy(alpha = 0.1f * opacity / (i+1)),
+                                Color.Transparent
+                            ),
+                            center = Offset(x + (i * 20f * sin(gameTime/500f)), y),
+                            radius = radius * pulse
                         ),
-                        center = Offset(x, y),
-                        radius = radius * pulse
-                    ),
-                    radius = radius * pulse,
-                    center = Offset(x, y)
-                )
+                        radius = radius * pulse,
+                        center = Offset(x + (i * 20f * sin(gameTime/500f)), y)
+                    )
+                }
             }
         ))
 
-        // P1: Floating platform silhouettes
-        parallaxManager.registerLayer(AltitudeZone.THE_BEYOND, RepeatingParallaxLayer(
-            parallaxFactor = 0.15f,
-            zIndex = 1,
-            density = 4,
-            seed = 809,
-            renderElement = { x, y, opacity, random, gameTime ->
-                val w = 80f + random.nextFloat() * 100f
-                val h = 12f + random.nextFloat() * 8f
-                val col = Color(0xFF0A0020).copy(alpha = 0.6f * opacity)
-                drawRect(col, topLeft = Offset(x - w / 2, y - h / 2), size = Size(w, h))
-                drawRect(col.copy(alpha = 0.15f * opacity), topLeft = Offset(x - w / 2, y - h / 2 - 2f), size = Size(w, 2f))
-            }
-        ))
-
-        // P1: Cyan energy stream particles
+        // Energy Streams (flow pass)
         parallaxManager.registerLayer(AltitudeZone.THE_BEYOND, RepeatingParallaxLayer(
             parallaxFactor = 0.3f,
             zIndex = 2,
             density = 8,
             seed = 810,
             renderElement = { x, y, opacity, random, gameTime ->
-                val driftX = (gameTime / 2000f * 100f + x) % size.width
+                val driftX = (gameTime / 2000f * 200f + x) % size.width
                 val streamAlpha = (sin(gameTime / 800f + random.nextFloat() * 6f) * 0.3f + 0.5f) * opacity
+                
+                // Pulsing Energy Core
                 drawCircle(
-                    color = Color(0xFF00E5FF).copy(alpha = streamAlpha * 0.4f),
-                    radius = 2f + random.nextFloat() * 2f,
+                    color = Color(0xFF00E5FF).copy(alpha = streamAlpha * 0.6f),
+                    radius = 3f + random.nextFloat() * 2f,
                     center = Offset(driftX, y)
+                )
+                // Flow Trail
+                drawLine(
+                    color = Color(0xFF00E5FF).copy(alpha = streamAlpha * 0.2f),
+                    start = Offset(driftX - 40f, y),
+                    end = Offset(driftX, y),
+                    strokeWidth = 2f
                 )
             }
         ))
@@ -530,7 +822,7 @@ class ZoneBackgroundRenderer {
         parallaxManager.registerLayer(AltitudeZone.STELLAR_GATE, SilhouetteParallaxLayer(
             parallaxFactor = 0.15f,
             zIndex = 1,
-            color = Color.Black.copy(alpha = 0.6f),
+            brush = SolidColor(Color.Black.copy(alpha = 0.6f)),
             pathPoints = listOf(
                 Offset(0f, 0.4f), Offset(0.3f, 0.4f), Offset(0.3f, 0.1f),
                 Offset(0.7f, 0.1f), Offset(0.7f, 0.4f), Offset(1f, 0.4f)
@@ -555,7 +847,7 @@ class ZoneBackgroundRenderer {
             }
         ))
 
-        // P2: Rotating gate arm silhouettes
+        // P2: Rotating gate arm silhouettes (rim lit pass)
         parallaxManager.registerLayer(AltitudeZone.STELLAR_GATE, RepeatingParallaxLayer(
             parallaxFactor = 0.1f,
             zIndex = 3,
@@ -563,19 +855,44 @@ class ZoneBackgroundRenderer {
             seed = 910,
             renderElement = { x, y, opacity, random, gameTime ->
                 val armAngle = (gameTime / 5000f * 360f + random.nextFloat() * 180f) % 360f
-                val armLen = 60f + random.nextFloat() * 40f
-                val armW = 12f
+                val armLen = 80f + random.nextFloat() * 40f
+                val armW = 14f
                 val cx = x
                 val cy = y
                 val rad = armAngle * (kotlin.math.PI.toFloat() / 180f)
                 val ex = cx + cos(rad) * armLen
                 val ey = cy + sin(rad) * armLen
+                
+                // Main Arm
                 drawLine(
-                    color = Color(0xFFFFD700).copy(alpha = 0.15f * opacity),
+                    color = Color.Black.copy(alpha = 0.7f * opacity),
                     start = Offset(cx, cy),
                     end = Offset(ex, ey),
                     strokeWidth = armW
                 )
+                // Prismatic Rim
+                drawLine(
+                    color = Color(0xFFFFD700).copy(alpha = 0.3f * opacity),
+                    start = Offset(cx, cy),
+                    end = Offset(ex, ey),
+                    strokeWidth = 2f
+                )
+            }
+        ))
+
+        // P2: Holographic Grid pass
+        parallaxManager.registerLayer(AltitudeZone.STELLAR_GATE, SingleObjectParallaxLayer(
+            parallaxFactor = 0.0f,
+            zIndex = -3,
+            renderElement = { opacity, gameTime ->
+                val gridAlpha = (sin(gameTime / 1500f) * 0.05f + 0.1f) * opacity
+                val spacing = 80f
+                for (i in 0..(size.width / spacing).toInt()) {
+                    drawLine(SciFiCyan.copy(alpha = gridAlpha), Offset(i * spacing, 0f), Offset(i * spacing, size.height), strokeWidth = 1f)
+                }
+                for (j in 0..(size.height / spacing).toInt()) {
+                    drawLine(SciFiCyan.copy(alpha = gridAlpha), Offset(0f, j * spacing), Offset(size.width, j * spacing), strokeWidth = 1f)
+                }
             }
         ))
 
@@ -612,34 +929,27 @@ class ZoneBackgroundRenderer {
     }
 
     private fun setupConstructLayers() {
-        // P3: Distant block structures on horizon
-        parallaxManager.registerLayer(AltitudeZone.ANCIENT_CONSTRUCT, RepeatingParallaxLayer(
-            parallaxFactor = 0.05f,
-            zIndex = 0,
-            density = 2,
-            seed = 1011,
-            renderElement = { x, y, opacity, random, gameTime ->
-                val w = 200f + random.nextFloat() * 200f
-                val h = 40f + random.nextFloat() * 60f
-                drawRect(
-                    color = Color(0xFF0A0A0A).copy(alpha = 0.5f * opacity),
-                    topLeft = Offset(x - w / 2, y - h / 2),
-                    size = Size(w, h)
-                )
-            }
-        ))
-
+        // P3: Distant block structures (rim lit pass)
         parallaxManager.registerLayer(AltitudeZone.ANCIENT_CONSTRUCT, RepeatingParallaxLayer(
             parallaxFactor = 0.1f,
             zIndex = 1,
             density = 5,
             seed = 1010,
             renderElement = { x, y, opacity, random, gameTime ->
-                val size = 150f + random.nextFloat() * 200f
+                val s = 150f + random.nextFloat() * 200f
+                
+                // Black Monolith
                 drawRect(
-                    color = Color.Black.copy(alpha = 0.8f * opacity),
-                    topLeft = Offset(x - size / 2, y - size / 2),
-                    size = Size(size, size)
+                    color = Color.Black.copy(alpha = 0.9f * opacity),
+                    topLeft = Offset(x - s / 2, y - s / 2),
+                    size = Size(s, s)
+                )
+                // Cyan Circuit Line
+                val lineY = y - s / 2 + (gameTime / 10f % s)
+                drawRect(
+                    color = SciFiCyan.copy(alpha = 0.4f * opacity),
+                    topLeft = Offset(x - s / 2, lineY),
+                    size = Size(s, 2f)
                 )
             }
         ))
@@ -677,7 +987,7 @@ class ZoneBackgroundRenderer {
     }
 
     private fun setupChronoRiftLayers() {
-        // Time-dilation visual distortion
+        // Time-dilation visual distortion (Pinch pass)
         parallaxManager.registerLayer(AltitudeZone.CHRONO_RIFT, RepeatingParallaxLayer(
             parallaxFactor = 0.0f,
             zIndex = 3,
@@ -687,30 +997,42 @@ class ZoneBackgroundRenderer {
                 val phase = (gameTime / 2000f + random.nextFloat() * 6.28f) % 6.28f
                 val waveX = x + sin(gameTime / 500f + y / 100f) * 50f
                 val waveY = y + cos(gameTime / 600f + x / 80f) * 50f
+                
+                // Ripples with prismatic rim
                 drawCircle(
-                    color = Color(0xFF00E5FF).copy(alpha = 0.08f * opacity),
+                    color = Color(0xFF00E5FF).copy(alpha = 0.12f * opacity),
                     radius = 60f + phase * 30f,
+                    center = Offset(waveX, waveY),
+                    style = Stroke(width = 2f)
+                )
+                drawCircle(
+                    color = Color(0xFFD500F9).copy(alpha = 0.06f * opacity),
+                    radius = 50f + phase * 30f,
                     center = Offset(waveX, waveY),
                     style = Stroke(width = 1f)
                 )
             }
         ))
 
-        // Ghost echoes
+        // Ghost echoes (Previous silhouettes)
         parallaxManager.registerLayer(AltitudeZone.CHRONO_RIFT, RepeatingParallaxLayer(
-            parallaxFactor = 0.2f,
+            parallaxFactor = 0.15f,
             zIndex = 2,
-            density = 2,
+            density = 3,
             seed = 1212,
             renderElement = { x, y, opacity, random, gameTime ->
                 val ghostAlpha = (sin(gameTime / 300f + random.nextInt(100)) * 0.3f + 0.3f) * opacity
                 val ghostW = 30f + random.nextFloat() * 40f
                 val ghostH = 50f + random.nextFloat() * 60f
-                drawRect(
-                    color = Color(0xFFCE93D8).copy(alpha = ghostAlpha * 0.2f),
-                    topLeft = Offset(x - ghostW / 2, y - ghostH / 2),
-                    size = Size(ghostW, ghostH)
-                )
+                
+                // Rendered offset to simulate time trail
+                repeat(2) { i ->
+                    drawRect(
+                        color = Color(0xFFCE93D8).copy(alpha = ghostAlpha * 0.1f / (i+1)),
+                        topLeft = Offset(x - ghostW / 2 + (i * 10f), y - ghostH / 2 + (i * 5f)),
+                        size = Size(ghostW, ghostH)
+                    )
+                }
             }
         ))
     }
@@ -720,12 +1042,23 @@ class ZoneBackgroundRenderer {
         altitude: Int,
         currentZone: AltitudeZone,
         cameraY: Float,
-        gameTime: Long
+        gameTime: Long,
+        context: android.content.Context? = null
     ) {
         with(drawScope) {
             val width = size.width
             val height = size.height
             if (width <= 1f || height <= 1f) return
+
+            if (DevConfig.RENDER_MODE_ASSETS && context != null) {
+                ensureAssetLayers(context)
+                
+                // Memory Management: Flush asset cache on major zone change
+                if (lastRenderedZone != null && lastRenderedZone != currentZone) {
+                    AssetManager.clearCache()
+                }
+                lastRenderedZone = currentZone
+            }
 
             val progress = calculateZoneProgress(altitude, currentZone)
 
@@ -734,12 +1067,12 @@ class ZoneBackgroundRenderer {
                 AltitudeZone.EARTH -> {
                     drawInterpolatedBackground(
                         progress = progress,
-                        topStart = Color(0xFF1A0033),
-                        middleStart = Color(0xFFBF360C),
-                        bottomStart = Color(0xFF33691E),
-                        topEnd = Color(0xFF1A0033),
-                        middleEnd = Color(0xFF0D001A),
-                        bottomEnd = Color(0xFF0D3311)
+                        topStart = Color(0xFF0288D1), // Deep Sky Blue
+                        middleStart = Color(0xFF4FC3F7), // Saturated Sky
+                        bottomStart = Color(0xFF81D4FA), // Light Blue Horizon (No white)
+                        topEnd = Color(0xFF0D47A1),
+                        middleEnd = Color(0xFF1976D2),
+                        bottomEnd = Color(0xFF42A5F5)
                     )
                 }
                 AltitudeZone.CLOUD_LAYER -> {
@@ -853,50 +1186,60 @@ class ZoneBackgroundRenderer {
                     )
                 }
                 AltitudeZone.SINGULARITY -> {
-                    // P4: Composed white-noise background
+                    // P4: Composed white-noise background (Event Horizon pass)
                     val cx = size.width / 2f
                     val cy = size.height / 2f
                     val maxDim = maxOf(size.width, size.height)
-                    drawRect(
+                    
+                    // Event Horizon Halo
+                    drawCircle(
                         brush = Brush.radialGradient(
-                            colors = listOf(Color.White, Color(0xFFE0E0E0), Color(0xFFB0B0B0)),
+                            0.0f to Color.Black,
+                            0.3f to Color.DarkGray,
+                            1.0f to Color.White,
                             center = Offset(cx, cy),
                             radius = maxDim * 0.8f
-                        )
+                        ),
+                        radius = maxDim * 0.8f, center = Offset(cx, cy)
                     )
-                    // Static noise overlay (subtle grid)
-                    val noiseSeed = Random(999)
-                    repeat(60) {
-                        val nx = noiseSeed.nextFloat() * size.width
-                        val ny = (noiseSeed.nextFloat() * size.height + gameTime / 200f) % size.height
+                    
+                    // Static noise overlay (subtle grid) - OPTIMIZED: Using pre-calculated points
+                    repeat(60) { i ->
+                        val pt = noisePoints[i]
+                        val nx = pt.x * size.width
+                        val ny = (pt.y * size.height + gameTime / 200f) % size.height
                         drawRect(
-                            color = Color(0xFF808080).copy(alpha = noiseSeed.nextFloat() * 0.08f),
+                            color = Color(0xFF808080).copy(alpha = noiseAlphas[i]),
                             topLeft = Offset(nx, ny),
-                            size = Size(4f + noiseSeed.nextFloat() * 8f, 2f + noiseSeed.nextFloat() * 4f)
+                            size = noiseSizes[i]
                         )
                     }
-                    // Geometric fragment debris
-                    val fragSeed = Random(1001)
-                    repeat(4) {
-                        val fx = (fragSeed.nextFloat() * size.width * 0.8f + size.width * 0.1f + sin(gameTime / 2000f + it * 2f) * 50f)
-                        val fy = (fragSeed.nextFloat() * size.height * 0.6f + size.height * 0.1f + cos(gameTime / 2500f + it * 3f) * 30f)
-                        val fSize = 20f + fragSeed.nextFloat() * 30f
-                        val angle = (gameTime / (3000f + it * 500f) * 60f) % 360f
-                        drawRect(
-                            color = Color.White.copy(alpha = 0.2f + fragSeed.nextFloat() * 0.15f),
-                            topLeft = Offset(fx - fSize / 2, fy - fSize / 2),
-                            size = Size(fSize, fSize * 0.3f)
-                        )
+                    
+                    // Geometric fragment debris (Reality Shatter pass)
+                    repeat(4) { i ->
+                        val pt = fragPoints[i]
+                        val fx = (pt.x * size.width * 0.8f + size.width * 0.1f + sin(gameTime / 2000f + i * 2f) * 50f)
+                        val fy = (pt.y * size.height * 0.6f + size.height * 0.1f + cos(gameTime / 2500f + i * 3f) * 30f)
+                        val fSize = fragSizes[i]
+                        
+                        // Shatter Rotation
+                        rotate(gameTime / 10f + i * 90f, pivot = Offset(fx, fy)) {
+                            drawRect(
+                                color = Color.White.copy(alpha = fragAlphas[i]),
+                                topLeft = Offset(fx - fSize / 2, fy - fSize / 2),
+                                size = Size(fSize, fSize * 0.3f)
+                            )
+                        }
                     }
                     // Intense radial center glow
                     val glowPulse = sin(gameTime / 800f) * 0.1f + 0.9f
                     drawCircle(
                         brush = Brush.radialGradient(
-                            colors = listOf(Color.White.copy(alpha = 0.4f * glowPulse), Color.Transparent),
+                            colors = listOf(Color.White.copy(alpha = 0.5f * glowPulse), Color.Transparent),
                             center = Offset(cx, cy),
-                            radius = 100f
+                            radius = 150f
                         ),
-                        radius = 100f,
+                        radius = 150f,
                         center = Offset(cx, cy)
                     )
                 }
@@ -941,6 +1284,15 @@ class ZoneBackgroundRenderer {
 
             parallaxManager.render(this, cameraY, currentZone, progress, gameTime)
 
+            // Transition Mist (Cross-fade between zones)
+            if (progress > 0.01f && progress < 0.99f) {
+                val mistAlpha = (0.3f * sin(progress * PI.toFloat())).coerceIn(0f, 1f)
+                drawRect(
+                    color = Color.White.copy(alpha = mistAlpha),
+                    size = size
+                )
+            }
+
             if (currentZone == AltitudeZone.UPPER_ATMOSPHERE) {
                 drawAtmosphericDust(this, width, height, gameTime, progress)
             }
@@ -951,11 +1303,19 @@ class ZoneBackgroundRenderer {
         val auroraAlpha = 0.08f * (1f - zoneProgress)
         if (auroraAlpha <= 0.001f) return
 
-        drawScope.apply {
-            val bands = 5
+        // Optimization: Only update paths if resolution or time step changes significantly
+        val currentTimeStep = gameTime / 16L // Roughly every frame at 60fps
+        val needsUpdate = width != lastAuroraWidth || height != lastAuroraHeight || currentTimeStep != lastAuroraGameTimeStep
+        
+        if (needsUpdate) {
+            lastAuroraWidth = width
+            lastAuroraHeight = height
+            lastAuroraGameTimeStep = currentTimeStep
+
             var bandY = height * 0.15f
-            for (b in 0 until bands) {
-                val path = Path()
+            for (b in 0 until 5) {
+                val path = auroraBands[b]
+                path.reset()
                 val phase = gameTime / 3000f + b * 1.2f
                 val freq = 0.01f + b * 0.002f
                 val amp = 30f + b * 10f
@@ -975,13 +1335,15 @@ class ZoneBackgroundRenderer {
                     path.lineTo(px, py)
                 }
                 path.close()
-
-                val alpha = auroraAlpha * (1f - b.toFloat() / bands)
-
-                drawPath(path, Color(0xFFD500F9).copy(alpha = alpha))
-                drawPath(path, Color(0xFF00E5FF).copy(alpha = alpha * 0.5f))
-
                 bandY += bandHeight * 0.6f
+            }
+        }
+
+        drawScope.apply {
+            for (b in 0 until 5) {
+                val alpha = auroraAlpha * (1f - b.toFloat() / 5)
+                drawPath(auroraBands[b], Color(0xFFD500F9).copy(alpha = alpha))
+                drawPath(auroraBands[b], Color(0xFF00E5FF).copy(alpha = alpha * 0.5f))
             }
         }
     }
@@ -1065,6 +1427,7 @@ class ZoneBackgroundRenderer {
         }
     }
 
+
     private fun calculateZoneProgress(altitude: Int, currentZone: AltitudeZone): Float {
         val nextZoneOrdinal = currentZone.ordinal + 1
         if (nextZoneOrdinal >= AltitudeZone.entries.size) return 0f
@@ -1073,7 +1436,9 @@ class ZoneBackgroundRenderer {
         val range = nextThreshold - currentZone.threshold
         if (range <= 0) return 0f
 
-        val transitionWindow = (range * 0.4f).coerceAtMost(300f)
+        // Increased window for smoother early transitions (Earth -> Cloud)
+        val maxWindow = if (currentZone == AltitudeZone.EARTH) 800f else 400f
+        val transitionWindow = (range * 0.4f).coerceAtMost(maxWindow)
         val transitionStart = nextThreshold - transitionWindow
 
         if (altitude < transitionStart) return 0f

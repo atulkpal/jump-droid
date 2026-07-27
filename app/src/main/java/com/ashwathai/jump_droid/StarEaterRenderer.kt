@@ -14,12 +14,23 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 class StarEaterRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         with(drawScope) {
             val tx = threat.x; val ty = threat.y - cameraY
             val pulse = (sin(gameTime / 400f) * 0.1f + 0.9f)
             val phase = threat.phase
             val auraRadius = if (phase == 3) 1000f else 800f
+            
+            val pDist = sqrt(((player.x - tx) * (player.x - tx) + (player.y - cameraY - ty) * (player.y - cameraY - ty)).toDouble()).toFloat()
+            val tendrilGlow = if (pDist < 400f) 1.0f else 0.5f
 
             drawCircle(
                 brush = Brush.radialGradient(
@@ -40,68 +51,73 @@ class StarEaterRenderer : ThreatRenderer {
                 drawCircle(Color.Magenta.copy(alpha = 0.4f), radius = 5f, center = Offset(px, py))
             }
 
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF6A1B9A).copy(alpha = 0.15f), Color.Transparent),
-                    center = Offset(tx - 50f, ty + 30f),
-                    radius = auraRadius * 0.8f
-                ),
-                radius = auraRadius * 0.8f,
-                center = Offset(tx - 50f, ty + 30f)
-            )
-
-            repeat(4) { i ->
-                val seed = threat.instanceId.hashCode() + i * 7 + (gameTime / 80).toInt()
-                val rng = Random(seed)
-                val sx = tx + (rng.nextFloat() - 0.5f) * 600f
-                val sy = ty + (rng.nextFloat() - 0.5f) * 600f
-                val streamPath = Path().apply {
-                    moveTo(sx, sy)
-                    cubicTo(sx, (sy + ty) * 0.5f, (sx + tx) * 0.5f, ty, tx, ty)
+            // D1: Swirling Accretion Disk (High density light and shadow)
+            val diskAngle = (gameTime / 15f) % 360f
+            rotate(diskAngle, pivot = Offset(tx, ty)) {
+                repeat(4) { i ->
+                    val dRadius = auraRadius * (0.4f + i * 0.15f)
+                    drawCircle(
+                        color = Color(0xFF9C27B0).copy(alpha = 0.08f * (1f - i * 0.2f)),
+                        radius = dRadius,
+                        center = Offset(tx, ty),
+                        style = Stroke(width = 40f + i * 20f)
+                    )
                 }
-                drawPath(streamPath, Color(0xFFBA68C8).copy(alpha = 0.15f), style = Stroke(width = 2f))
-            }
-
-            drawCircle(Color.Black, radius = 120f * pulse, center = Offset(tx, ty))
-
-            val toothCount = 16
-            repeat(toothCount) { i ->
-                val ta = (i / toothCount.toFloat()) * 2f * PI.toFloat() + (gameTime / 2000f)
-                val innerR = 100f
-                val outerR = 120f + pulse * 10f
-                val tx1 = tx + cos(ta) * innerR
-                val ty1 = ty + sin(ta) * innerR
-                val tx2 = tx + cos(ta) * outerR
-                val ty2 = ty + sin(ta) * outerR
-                drawLine(Color(0xFFCE93D8).copy(alpha = 0.5f * pulse), Offset(tx1, ty1), Offset(tx2, ty2), strokeWidth = 4f * pulse)
-            }
-
-            if (threat.activeWeakPoints > 0) {
-                val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
-                val wpPulse = (sin(gameTime / 300f) * 0.3f + 0.7f)
-                repeat(threat.maxWeakPoints) { i ->
-                    if ((threat.wpDestroyedMask and (1 shl i)) == 0) {
-                        val wx = tx + cos(threat.lifetime * 2f + i) * 100f
-                        val wy = ty + sin(threat.lifetime * 2f + i) * 100f
-                        drawCircle(Color.Magenta.copy(alpha = 0.9f * wpGlow), radius = 15f * wpPulse * wpGlow, center = Offset(wx, wy))
-                        drawCircle(Color.White.copy(alpha = 0.6f * wpGlow), radius = 5f, center = Offset(wx, wy))
-                    }
-                }
-            }
-
-            val pDist = sqrt((player.x - tx) * (player.x - tx) + (player.y - cameraY - ty) * (player.y - cameraY - ty))
-            val tendrilGlow = if (pDist < 400f) 1.0f else 0.5f
-            repeat(12) { i ->
-                val angle = i * 30f + sin(gameTime / 300f + i) * 40f
-                rotate(angle, pivot = Offset(tx, ty)) {
-                    drawLine(
-                        if (phase == 3) Color.Red else Color(0xFFBA68C8).copy(alpha = tendrilGlow),
-                        Offset(tx + 80f, ty),
-                        Offset(tx + 400f, ty),
-                        strokeWidth = 15f * pulse * tendrilGlow
+                
+                // Orbiting light motes in the disk
+                repeat(25) { i ->
+                    val r = Random(threat.instanceId.hashCode() + i)
+                    val ang = (gameTime / 8f + i * 14.4f) * (PI.toFloat() / 180f)
+                    val dist = (auraRadius * 0.3f) + (r.nextFloat() * auraRadius * 0.6f)
+                    drawCircle(
+                        color = if (i % 2 == 0) Color.White.copy(alpha = 0.6f) else Color.Magenta.copy(alpha = 0.4f),
+                        radius = 2f + r.nextFloat() * 4f,
+                        center = Offset(tx + cos(ang) * dist, ty + sin(ang) * dist)
                     )
                 }
             }
+
+            // D2: Gravity Lens Distortion (Central warp)
+            val lensPulse = (sin((gameTime / 250f).toDouble()).toFloat() * 0.1f + 0.9f)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    0.0f to Color.Black,
+                    0.5f to Color.Black.copy(alpha = 0.9f),
+                    0.8f to Color(0xFF4A148C).copy(alpha = 0.3f),
+                    1.0f to Color.Transparent,
+                    center = Offset(tx, ty),
+                    radius = 150f * lensPulse
+                ),
+                radius = 150f * lensPulse,
+                center = Offset(tx, ty)
+            )
+
+            // D3: Liquid Hunger Tendrils (reaching shadow threads)
+            repeat(14) { i ->
+                val baseAngle = i * (360f / 14f) + (sin((gameTime / 800f + i).toDouble()).toFloat() * 20f)
+                val tLen = 350f + (sin((gameTime / 300f + i).toDouble()).toFloat() * 60f)
+                val tThickness = 12f * pulse * tendrilGlow
+                
+                rotate(baseAngle, pivot = Offset(tx, ty)) {
+                    val tPath = Path().apply {
+                        moveTo(tx + 80f, ty)
+                        quadraticTo(tx + 200f + sin((gameTime / 150f).toDouble()).toFloat() * 30f, ty + cos((gameTime / 150f).toDouble()).toFloat() * 40f, tx + tLen, ty)
+                    }
+                    drawPath(
+                        path = tPath,
+                        color = if (phase == 3) Color.Red.copy(alpha = 0.7f) else Color(0xFF6A1B9A).copy(alpha = tendrilGlow * 0.8f),
+                        style = Stroke(width = tThickness, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    )
+                    // Tendril tip glow
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.3f * tendrilGlow),
+                        radius = 6f,
+                        center = Offset(tx + tLen, ty)
+                    )
+                }
+            }
+
+            drawCircle(Color.Black, radius = 120f * pulse, center = Offset(tx, ty))
 
             val hungerRate = 1f + (1f - pDist / 1000f).coerceIn(0f, 0.5f)
             drawCircle(Color(0xFFFF4081).copy(alpha = 0.1f * hungerRate), radius = 80f + pulse * 20f, center = Offset(tx, ty), style = Stroke(width = 3f))

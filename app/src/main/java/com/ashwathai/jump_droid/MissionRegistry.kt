@@ -9,12 +9,12 @@ object MissionRegistry {
 
     init {
         // --- FLIGHT TIME (SURVIVAL) ---
-        register(Mission("flight_time_1", "Sky Explorer", "Spend 5 minutes total in the air",
-            MissionType.SURVIVAL, MissionCategory.FLIGHT_TIME, MissionTier.TIER_1, 300,
-            listOf(MissionReward.Cash(100), MissionReward.Artifact(DiscoveryType.LORE_ASCENSION)), icon = "\uD83D\uDE80"))
-        register(Mission("flight_time_2", "Sky Wanderer", "Spend 12 minutes total in the air",
-            MissionType.SURVIVAL, MissionCategory.FLIGHT_TIME, MissionTier.TIER_2, 720,
-            listOf(MissionReward.Cash(250), MissionReward.PowerUp(PowerUpType.FUEL_TANK)),
+        register(Mission("flight_time_1", "Sky Explorer", "Spend 10 minutes total in the air",
+            MissionType.SURVIVAL, MissionCategory.FLIGHT_TIME, MissionTier.TIER_1, 600,
+            listOf(MissionReward.Cash(150), MissionReward.Artifact(DiscoveryType.LORE_ASCENSION)), icon = "\uD83D\uDE80"))
+        register(Mission("flight_time_2", "Sky Wanderer", "Spend 25 minutes total in the air",
+            MissionType.SURVIVAL, MissionCategory.FLIGHT_TIME, MissionTier.TIER_2, 1500,
+            listOf(MissionReward.Cash(350), MissionReward.PowerUp(PowerUpType.FUEL_TANK)),
             MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "flight_time_1"), icon = "\uD83D\uDE80"))
         register(Mission("flight_time_3", "Sky Champion", "Spend 30 minutes total in the air",
             MissionType.SURVIVAL, MissionCategory.FLIGHT_TIME, MissionTier.TIER_3, 1800,
@@ -26,9 +26,9 @@ object MissionRegistry {
             MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "flight_time_3"), icon = "\uD83D\uDE80"))
 
         // --- PLATFORM STAY (PLATFORMING) ---
-        register(Mission("platform_stay_1", "Platform Dweller", "Spend 5 minutes on platforms",
-            MissionType.PLATFORMING, MissionCategory.PLATFORM_STAY, MissionTier.TIER_1, 300,
-            listOf(MissionReward.Cash(80), MissionReward.Artifact(DiscoveryType.NORMAL_PLATFORM)), icon = "\uD83C\uDFD7\uFE0F"))
+        register(Mission("platform_stay_1", "Platform Dweller", "Spend 10 minutes on platforms",
+            MissionType.PLATFORMING, MissionCategory.PLATFORM_STAY, MissionTier.TIER_1, 600,
+            listOf(MissionReward.Cash(120), MissionReward.Artifact(DiscoveryType.NORMAL_PLATFORM)), icon = "\uD83C\uDFD7\uFE0F"))
         register(Mission("platform_stay_2", "Platform Guardian", "Spend 15 minutes on platforms",
             MissionType.PLATFORMING, MissionCategory.PLATFORM_STAY, MissionTier.TIER_2, 900,
             listOf(MissionReward.Cash(200), MissionReward.PowerUp(PowerUpType.TURBO_BOOSTER)),
@@ -43,9 +43,9 @@ object MissionRegistry {
             MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "platform_stay_3"), icon = "\uD83C\uDFD7\uFE0F"))
 
         // --- PLATFORM LANDINGS (PLATFORMING) ---
-        register(Mission("plat_land_1", "Touchdown", "Land on 50 platforms total",
-            MissionType.PLATFORMING, MissionCategory.LANDINGS, MissionTier.TIER_1, 50,
-            listOf(MissionReward.Cash(100), MissionReward.Artifact(DiscoveryType.NORMAL_PLATFORM)), icon = "\uD83D\uDEEB"))
+        register(Mission("plat_land_1", "Touchdown", "Land on 150 platforms total",
+            MissionType.PLATFORMING, MissionCategory.LANDINGS, MissionTier.TIER_1, 150,
+            listOf(MissionReward.Cash(150), MissionReward.Artifact(DiscoveryType.NORMAL_PLATFORM)), icon = "\uD83D\uDEEB"))
         register(Mission("plat_land_2", "Precision Pilot", "Land on 200 platforms total",
             MissionType.PLATFORMING, MissionCategory.LANDINGS, MissionTier.TIER_2, 200,
             listOf(MissionReward.Cash(300), MissionReward.PowerUp(PowerUpType.TURBO_BOOSTER)),
@@ -82,9 +82,9 @@ object MissionRegistry {
             MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "fuel_efficiency_2"), icon = "\u26FD"))
 
         // --- COMBO STREAK (PLATFORMING) ---
-        register(Mission("combo_streak_1", "Combo Starter", "Reach 20x combo",
-            MissionType.PLATFORMING, MissionCategory.COMBO_STREAK, MissionTier.TIER_1, 20,
-            listOf(MissionReward.Cash(100), MissionReward.Artifact(DiscoveryType.EFFICIENCY_SURVIVAL)), icon = "\uD83D\uDCA5"))
+        register(Mission("combo_streak_1", "Combo Starter", "Reach 35x combo",
+            MissionType.PLATFORMING, MissionCategory.COMBO_STREAK, MissionTier.TIER_1, 35,
+            listOf(MissionReward.Cash(150), MissionReward.Artifact(DiscoveryType.EFFICIENCY_SURVIVAL)), icon = "\uD83D\uDCA5"))
         register(Mission("combo_streak_2", "Combo Specialist", "Reach 50x combo",
             MissionType.PLATFORMING, MissionCategory.COMBO_STREAK, MissionTier.TIER_2, 50,
             listOf(MissionReward.Cash(250), MissionReward.PowerUp(PowerUpType.TURBO_BOOSTER)),
@@ -121,9 +121,9 @@ object MissionRegistry {
             MissionUnlockCondition(MissionUnlockType.COMPLETE_MISSION, 0f, "discovery_hunter_2"), icon = "\uD83D\uDD0D"))
 
         // --- ALTITUDE CLIMBER (EXPLORATION) ---
-        register(Mission("altitude_climber_1", "Altitude Rookie", "Reach 500m altitude",
-            MissionType.EXPLORATION, MissionCategory.ALTITUDE_CLIMBER, MissionTier.TIER_1, 500,
-            listOf(MissionReward.Cash(100), MissionReward.Artifact(DiscoveryType.AREA_CLOUDS)), icon = "\u26F0\uFE0F"))
+        register(Mission("altitude_climber_1", "Altitude Rookie", "Reach 1200m altitude",
+            MissionType.EXPLORATION, MissionCategory.ALTITUDE_CLIMBER, MissionTier.TIER_1, 1200,
+            listOf(MissionReward.Cash(150), MissionReward.Artifact(DiscoveryType.AREA_CLOUDS)), icon = "\u26F0\uFE0F"))
         register(Mission("altitude_climber_2", "Altitude Challenger", "Reach 1500m altitude",
             MissionType.EXPLORATION, MissionCategory.ALTITUDE_CLIMBER, MissionTier.TIER_2, 1500,
             listOf(MissionReward.Cash(250), MissionReward.PowerUp(PowerUpType.ALTITUDE_BOOSTER)),
@@ -220,8 +220,8 @@ object MissionRegistry {
         register(Mission("hidden_near_death", "Near-Death Experience", "Complete a run below 10% health",
             MissionType.SURVIVAL, MissionCategory.PERFECT_RUN, MissionTier.TIER_2, 1,
             listOf(MissionReward.Cash(400), MissionReward.Artifact(DiscoveryType.LORE_LOGS)),
-            MissionUnlockCondition(MissionUnlockType.REACH_ALTITUDE, 1000f), icon = "\uD83C\uDFC6", isHidden = true,
-            crypticHint = "The edge of destruction... — Test fate below 1,000m"))
+            MissionUnlockCondition(MissionUnlockType.REACH_ALTITUDE, 2500f), icon = "\uD83C\uDFC6", isHidden = true,
+            crypticHint = "The edge of destruction... — Test fate below 2,500m"))
         register(Mission("hidden_void_walker", "Void Walker", "Reach the Void biome",
             MissionType.EXPLORATION, MissionCategory.ALTITUDE_CLIMBER, MissionTier.TIER_3, 5000,
             listOf(MissionReward.Cash(600), MissionReward.Artifact(DiscoveryType.AREA_VOID)),

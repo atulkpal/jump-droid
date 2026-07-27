@@ -2,6 +2,7 @@ package com.ashwathai.jump_droid
 
 interface ProgressionService {
     val highScore: Int
+    val highAltitude: Int
     val lifetimeBossesDefeated: Int
     val artifactsCollected: Map<String, ArtifactRecord>
     val completedMissionIds: Set<String>

@@ -11,10 +11,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -46,9 +49,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,16 +82,33 @@ private val zoneGaugeAccents = mapOf(
 @Composable
 fun AltitudeDisplay(
     modifier: Modifier = Modifier,
-    score: Int, highScore: Int,
+    score: Int, 
+    altitude: Int,
+    highScore: Int,
     zone: AltitudeZone = AltitudeZone.EARTH
 ) {
     val zoneAccent = zoneGaugeAccents[zone] ?: SciFiCyan
+    
+    // Pulse animation on score change
+    val scoreScale = remember { Animatable(1f) }
+    var prevScore by remember { mutableIntStateOf(score) }
+    
+    LaunchedEffect(score) {
+        if (score > prevScore) {
+            scoreScale.snapTo(1.2f)
+            scoreScale.animateTo(1f, tween(300, easing = FastOutSlowInEasing))
+        }
+        prevScore = score
+    }
+
     Column(
         modifier = modifier
             .statusBarsPadding()
-            .padding(top = 8.dp),
+            .padding(top = 8.dp)
+            .graphicsLayer(scaleX = scoreScale.value, scaleY = scoreScale.value),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Main Total Score
         Text(
             text = score.toString(),
             style = MaterialTheme.typography.displaySmall.copy(
@@ -96,13 +118,25 @@ fun AltitudeDisplay(
             ),
             color = SciFiWhite
         )
-        Text(
-            text = "ASCENSION DATA: BEST $highScore",
-            style = MaterialTheme.typography.labelSmall,
-            color = SciFiWhite.copy(alpha = 0.5f),
-            fontSize = 10.sp,
-            letterSpacing = 2.sp
-        )
+        
+        // Physical Altitude
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "${altitude}m",
+                style = MaterialTheme.typography.labelSmall,
+                color = zoneAccent,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "BEST: $highScore",
+                style = MaterialTheme.typography.labelSmall,
+                color = SciFiWhite.copy(alpha = 0.5f),
+                fontSize = 10.sp,
+                letterSpacing = 1.sp
+            )
+        }
     }
 }
 
@@ -121,24 +155,26 @@ fun FuelGauge(
     val ratio = (fuel / maxFuel).coerceIn(0f, 1f)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_hud_fuel),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(13.dp)
+                    .graphicsLayer {
+                        alpha = if (isLow) ((hud.gameTime / 200) % 2).toFloat() else 0.85f
+                        translationY = fuelBounce.value
+                    }
+            )
+            Spacer(Modifier.width(4.dp))
             Text(
-                text = "\u26FD",
-                fontSize = 10.sp,
-                modifier = Modifier.graphicsLayer {
-                    alpha = if (isLow) ((hud.gameTime / 200) % 2).toFloat() else 0.8f
-                    translationY = fuelBounce.value
-                },
+                text = "${fuel.toInt()}",
                 color = dropColor,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Black,
                 style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                     shadow = Shadow(dropColor.copy(alpha = 0.4f), blurRadius = 8f)
                 )
-            )
-            Spacer(Modifier.width(3.dp))
-            Text(
-                text = "${fuel.toInt()}".padStart(3, ' '),
-                color = dropColor,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
             )
         }
         GaugeBar(
@@ -201,35 +237,37 @@ fun HeatGauge(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .background(
-                if (isWarning && !isOverheated) SciFiRed.copy(alpha = warningPulse.value * 0.06f)
+                if (isWarning && !isOverheated) SciFiRed.copy(alpha = warningPulse.value * 0.08f)
                 else Color.Transparent,
-                RoundedCornerShape(8.dp)
+                RoundedCornerShape(6.dp)
             )
-            .padding(4.dp)
+            .padding(2.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = if (isOverheated) "\u26A0\uFE0F" else "\uD83D\uDD25",
-                fontSize = if (isOverheated) 12.sp else 10.sp,
-                modifier = Modifier.graphicsLayer {
-                    alpha = if (isOverheated) ((hud.gameTime / 150) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
-                    scaleX = if (isWarning) heatFlicker.value * (1f + warningPulse.value * 0.1f) else heatFlicker.value
-                    scaleY = if (isWarning) heatFlicker.value * (1f + warningPulse.value * 0.1f) else heatFlicker.value
-                },
-                color = if (isOverheated) SciFiRed else if (isWarning) SciFiRed else SciFiGold,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    shadow = Shadow(
-                        if (isOverheated) SciFiRed.copy(alpha = 0.6f) else if (isWarning) SciFiRed.copy(alpha = warningPulse.value * 0.5f) else SciFiGold.copy(alpha = 0.4f),
-                        blurRadius = if (isWarning) 14f else 10f
-                    )
-                )
+            Image(
+                painter = painterResource(id = R.drawable.ic_hud_heat),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(14.dp)
+                    .graphicsLayer {
+                        alpha = if (isOverheated) ((hud.gameTime / 150) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.85f
+                        scaleX = if (isWarning) heatFlicker.value * (1f + warningPulse.value * 0.12f) else heatFlicker.value
+                        scaleY = if (isWarning) heatFlicker.value * (1f + warningPulse.value * 0.12f) else heatFlicker.value
+                    }
             )
-            Spacer(Modifier.width(3.dp))
+            Spacer(Modifier.width(4.dp))
             Text(
-                text = "${heat.toInt()}".padStart(3, ' '),
+                text = "${heat.toInt()}",
                 color = heatColor,
                 fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    shadow = Shadow(
+                        if (isOverheated) SciFiRed.copy(alpha = 0.5f) else if (isWarning) SciFiRed.copy(alpha = warningPulse.value * 0.4f) else SciFiGold.copy(alpha = 0.3f),
+                        blurRadius = if (isWarning) 12f else 8f
+                    )
+                )
             )
         }
         GaugeBar(
@@ -269,31 +307,33 @@ fun ShieldGauge(
     val gaugeHeight = (120f + (maxShield - 50f) * 1.2f).coerceIn(100f, 250f).dp
     val isInterfered = hud.interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(hud.gameTime / 100.0 + 3.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
-    val shieldSway = rememberInfiniteTransition(label = "ShieldSway").animateFloat(-4f, 4f, infiniteRepeatable(tween(1200, easing = androidx.compose.animation.core.FastOutSlowInEasing), RepeatMode.Reverse), label = "ShieldSwayVal")
+    val shieldSway = rememberInfiniteTransition(label = "ShieldSway").animateFloat(-6f, 6f, infiniteRepeatable(tween(1500, easing = androidx.compose.animation.core.FastOutSlowInEasing), RepeatMode.Reverse), label = "ShieldSwayVal")
     val shieldRatio = (shield / maxShield).coerceIn(0f, 1f)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "\uD83D\uDEE1\uFE0F",
-                fontSize = 12.sp,
-                modifier = Modifier.graphicsLayer {
-                    alpha = if (isShieldCritical) ((hud.gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
-                    rotationZ = shieldSway.value
-                },
-                color = if (isShieldCritical) SciFiRed else SciFiCyan,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    shadow = Shadow(
-                        if (isShieldCritical) SciFiRed.copy(alpha = 0.6f) else SciFiCyan.copy(alpha = 0.4f),
-                        blurRadius = 10f
-                    )
-                )
+            Image(
+                painter = painterResource(id = R.drawable.ic_hud_shield),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(14.dp)
+                    .graphicsLayer {
+                        alpha = if (isShieldCritical) ((hud.gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.85f
+                        rotationZ = shieldSway.value
+                    }
             )
-            Spacer(Modifier.width(3.dp))
+            Spacer(Modifier.width(4.dp))
             Text(
                 text = "${shield.toInt()}",
                 color = if (isShieldCritical) SciFiRed else SciFiCyan,
                 fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    shadow = Shadow(
+                        if (isShieldCritical) SciFiRed.copy(alpha = 0.5f) else SciFiCyan.copy(alpha = 0.3f),
+                        blurRadius = 8f
+                    )
+                )
             )
         }
         val shieldColor = if (isShieldCritical) SciFiRed else SciFiCyan
@@ -336,32 +376,34 @@ fun IntegrityGauge(
     val isInterfered = hud.interferenceTimer > 0f
     val noiseVal = if (isInterfered) ((sin(hud.gameTime / 100.0 + 4.0) * 0.5 + 0.5) * 0.8).toFloat() else 1f
     val heartBeat = rememberInfiniteTransition(label = "HeartBeat").animateFloat(0f, 1f, infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Restart), label = "HeartBeatVal")
-    val heartScale = 1f + 0.15f * sin(heartBeat.value * 2f * PI.toFloat()).toFloat().coerceAtLeast(0f) * (1f - (heartBeat.value % 0.3f / 0.3f).coerceIn(0f, 1f))
+    val heartScale = 1f + 0.2f * sin(heartBeat.value * 2f * PI.toFloat()).toFloat().coerceAtLeast(0f) * (1f - (heartBeat.value % 0.3f / 0.3f).coerceIn(0f, 1f))
     val integrityRatio = (integrity / maxIntegrity).coerceIn(0f, 1f)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "\u2764\uFE0F",
-                fontSize = 12.sp,
-                modifier = Modifier.graphicsLayer {
-                    alpha = if (isHullCritical) ((hud.gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.8f
-                    scaleX = heartScale
-                    scaleY = heartScale
-                },
-                color = if (isHullCritical) SciFiRed else SciFiGreen,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    shadow = Shadow(
-                        if (isHullCritical) SciFiRed.copy(alpha = 0.6f) else SciFiGreen.copy(alpha = 0.4f),
-                        blurRadius = 10f
-                    )
-                )
+            Image(
+                painter = painterResource(id = R.drawable.ic_hud_hull),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(14.dp)
+                    .graphicsLayer {
+                        alpha = if (isHullCritical) ((hud.gameTime / 200) % 2).toFloat() else if (isInterfered && noiseVal < 0.2f) 0f else 0.85f
+                        scaleX = heartScale
+                        scaleY = heartScale
+                    }
             )
-            Spacer(Modifier.width(3.dp))
+            Spacer(Modifier.width(4.dp))
             Text(
                 text = "${integrity.toInt()}",
                 color = if (isHullCritical) SciFiRed else SciFiGreen,
                 fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    shadow = Shadow(
+                        if (isHullCritical) SciFiRed.copy(alpha = 0.5f) else SciFiGreen.copy(alpha = 0.3f),
+                        blurRadius = 8f
+                    )
+                )
             )
         }
         val integrityColor = if (isHullCritical) SciFiRed else SciFiGreen
@@ -394,13 +436,87 @@ fun IntegrityGauge(
                 }
             }
         )
-        Text(
-            text = "${(integrityRatio * 100).toInt()}%",
-            color = if (isHullCritical) SciFiRed else SciFiGreen,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 2.dp)
-        )
+    }
+}
+
+@Composable
+fun CodexQuickAccess(
+    discoveryManager: DiscoveryManager,
+    onNavigateArchive: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier.padding(8.dp),
+        horizontalAlignment = Alignment.End
+    ) {
+        Box(
+            Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(SciFiSurface.copy(alpha = 0.85f))
+                .border(1.dp, SciFiBorder.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                .clickable { expanded = !expanded },
+            contentAlignment = Alignment.Center
+        ) {
+            Text("C", color = SciFiCyan, fontSize = 14.sp, fontWeight = FontWeight.Black)
+        }
+
+        if (expanded) {
+            val totalEntries = DiscoveryType.entries.size
+            val discoveredCount = DiscoveryType.entries.count { discoveryManager.isDiscovered(it) }
+            val unviewedCount = DiscoveryType.entries.count { discoveryManager.isDiscovered(it) && !discoveryManager.isViewed(it) }
+
+            val categories = DiscoveryType.entries.map { it.category }.distinct()
+
+            Column(
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .widthIn(max = 240.dp)
+                    .background(SciFiSurface.copy(alpha = 0.95f), RoundedCornerShape(8.dp))
+                    .border(1.dp, SciFiBorder.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                    .padding(12.dp)
+            ) {
+                Text("CODEX", color = SciFiCyan, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                Text("$discoveredCount / $totalEntries discovered", color = SciFiWhite.copy(alpha = 0.6f), fontSize = 9.sp)
+                if (unviewedCount > 0) {
+                    Text("$unviewedCount NEW", color = SciFiGold, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(Modifier.height(6.dp))
+
+                categories.forEach { cat ->
+                    val catEntries = DiscoveryType.entries.filter { it.category == cat }
+                    val catDiscovered = catEntries.count { discoveryManager.isDiscovered(it) }
+                    val catNew = catEntries.count { discoveryManager.isDiscovered(it) && !discoveryManager.isViewed(it) }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(cat, color = SciFiWhite.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Medium)
+                        Row {
+                            Text("$catDiscovered/${catEntries.size}", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 8.sp)
+                            if (catNew > 0) {
+                                Spacer(Modifier.width(4.dp))
+                                Text("NEW", color = SciFiGold, fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "ARCHIVE >",
+                    color = SciFiPurple.copy(alpha = 0.8f),
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .clickable { onNavigateArchive() }
+                )
+            }
+        }
     }
 }
 
@@ -631,7 +747,7 @@ fun MissionProgressCard(
 ) {
     val nearComplete = activeMissions.firstOrNull {
         !it.isCompleted && it.targetValue > 0 &&
-        it.currentProgress.toFloat() / it.targetValue >= 0.75f
+        it.currentProgress.toFloat() / it.targetValue >= 0.95f
     } ?: return
 
     val pct = (nearComplete.currentProgress.toFloat() / nearComplete.targetValue).coerceIn(0f, 1f)
@@ -687,50 +803,61 @@ fun MissionProgressCard(
 }
 
 @Composable
-fun ZoneDiscoveryCard(
-    activeEvent: DiscoveryEvent?,
-    score: Int
+fun AchievementDeck(
+    pendingUnlocks: List<UnlockEvent>,
+    modifier: Modifier = Modifier
 ) {
-    if (activeEvent !is DiscoveryEvent.Zone) return
-    val zone = activeEvent.zone
-    val titleText = when (zone) {
-        AltitudeZone.CLOUD_LAYER -> "CLOUD LAYER REACHED"
-        AltitudeZone.ORBIT -> "SPACE REACHED"
-        AltitudeZone.VOID -> "VOID ENTERED"
-        else -> zone.zoneName.uppercase()
-    }
+    if (pendingUnlocks.isEmpty()) return
 
-    val accentColor = when (zone) {
-        AltitudeZone.ORBIT -> SciFiGold
-        AltitudeZone.VOID -> SciFiRed
-        AltitudeZone.DEEP_SPACE -> SciFiPurple
-        else -> SciFiCyan
-    }
+    val infiniteTransition = rememberInfiniteTransition(label = "DeckPulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "PulseAlpha"
+    )
 
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .background(SciFiSurface, RoundedCornerShape(16.dp))
-            .padding(horizontal = 32.dp, vertical = 24.dp)
-            .border(0.5.dp, SciFiBorder.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+        modifier = modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy((-24).dp) // Stacked effect
     ) {
-        Text(
-            text = titleText,
-            style = MaterialTheme.typography.headlineMedium.copy(
-                shadow = Shadow(accentColor.copy(alpha = 0.5f), blurRadius = 20f),
-                letterSpacing = 4.sp
-            ),
-            color = SciFiWhite,
-            fontWeight = FontWeight.Black,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = zone.subtitle.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            color = accentColor.copy(alpha = 0.8f),
-            letterSpacing = 6.sp,
-            fontWeight = FontWeight.Bold
-        )
+        pendingUnlocks.takeLast(3).forEachIndexed { i, event ->
+            val scale = 1f - (2 - i) * 0.05f
+            Surface(
+                color = SciFiSurface.copy(alpha = 0.9f),
+                shape = RoundedCornerShape(4.dp),
+                border = BorderStroke(1.dp, event.accentColor.copy(alpha = pulseAlpha)),
+                modifier = Modifier
+                    .width(120.dp)
+                    .height(40.dp)
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        alpha = if (i == pendingUnlocks.takeLast(3).lastIndex) 1f else 0.7f
+                    )
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        Modifier.size(6.dp).background(event.accentColor, CircleShape)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = event.title,
+                        color = SciFiWhite,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Black,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
     }
 }
+

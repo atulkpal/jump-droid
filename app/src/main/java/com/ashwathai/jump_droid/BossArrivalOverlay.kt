@@ -38,7 +38,7 @@ fun BossArrivalOverlay(
     gameTime: Long
 ) {
     val progress = (1f - timer / 4f).coerceIn(0f, 1f)
-    val dimAlpha = (0.6f * (1f - progress * 0.5f)).coerceIn(0f, 1f)
+    val dimAlpha = (0.4f * (1f - progress)).coerceIn(0f, 1f)
     val textAlpha = (progress * 3f).coerceIn(0f, 1f)
     val scalePulse = rememberInfiniteTransition(label = "BossScalePulse").animateFloat(0.95f, 1.05f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "BossScalePulseVal")
 

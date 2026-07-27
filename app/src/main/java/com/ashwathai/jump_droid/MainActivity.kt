@@ -1,10 +1,14 @@
 package com.ashwathai.jump_droid
 
+import android.app.Activity
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +25,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.edit
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -29,14 +34,23 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.tween
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.games.PlayGamesSdk
 import com.google.firebase.FirebaseApp
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
 import com.ashwathai.jump_droid.ui.theme.SciFiSurface
 import com.ashwathai.jump_droid.ui.theme.SciFiWhite
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlin.math.sin
+import kotlin.random.Random
 
 val LocalAnalytics = staticCompositionLocalOf<GameAnalytics> { error("No Analytics provided") }
 
@@ -44,19 +58,27 @@ class MainActivity : ComponentActivity() {
     private var gameEngine: GameEngine? = null
     private lateinit var analytics: GameAnalytics
     private lateinit var playerAnalytics: PlayerAnalyticsManager
+    private val lifecycleScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
+        PlayGamesSdk.initialize(this)
         val firebaseAnalytics = FirebaseGameAnalytics(this)
         playerAnalytics = PlayerAnalyticsManager(this, firebaseAnalytics)
         analytics = playerAnalytics
         MobileAds.initialize(this) {}
+        
+        // Experimental: Asset Rendering Init
+        val sharedPrefs = getSharedPreferences("jump_droid_prefs", MODE_PRIVATE)
+        DevConfig.RENDER_MODE_ASSETS = sharedPrefs.getBoolean("render_mode_assets", false)
+
         enableEdgeToEdge()
         setContent {
             val engine = remember { GameEngine(this, analytics) }
             gameEngine = engine
             var showRegistration by remember { mutableStateOf(!playerAnalytics.isConsented) }
+            LaunchedEffect(Unit) { engine.loginManager.restoreSession() }
             if (showRegistration) {
                 BetaRegistrationDialog(
                     onRegister = { email, name, phone ->
@@ -70,7 +92,35 @@ class MainActivity : ComponentActivity() {
                 )
             }
             CompositionLocalProvider(LocalAnalytics provides analytics) {
-                JumpDroidApp(engine, onExit = { finish() })
+                JumpDroidApp(
+                    engine = engine,
+                    onWipeData = {
+                        engine.progressionManager.wipeData(isFactoryReset = false)
+                        engine.restartGame()
+                    },
+                    onFactoryReset = {
+                        // 1. Sign out
+                        engine.loginManager.signOut()
+                        
+                        // 2. Wipe main progression
+                        engine.progressionManager.wipeData(isFactoryReset = true)
+                        
+                        // 3. Clear all secondary pref files
+                        listOf(
+                            "LoginPrefs",
+                            "jump_droid_prefs",
+                            "PlayerAnalyticsPrefs",
+                            "RemoteConfigPrefs",
+                            "fcm_prefs"
+                        ).forEach { prefName ->
+                            getSharedPreferences(prefName, MODE_PRIVATE).edit().clear().apply()
+                        }
+                        
+                        // 4. Reset engine and go home
+                        engine.restartGame()
+                    },
+                    onExit = { finish() }
+                )
             }
         }
     }
@@ -78,7 +128,13 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         playerAnalytics.onAppBackground()
-        gameEngine?.soundManager?.pauseAll()
+        gameEngine?.let { engine ->
+            engine.soundManager.pauseAll()
+            lifecycleScope.launch {
+                engine.cloudSyncManager.saveToCloud()
+                engine.leaderboardManager.submitScore(engine.progressionManager.highScore, engine.progressionManager.highScore)
+            }
+        }
     }
 
     override fun onResume() {
@@ -197,9 +253,20 @@ fun BetaRegistrationDialog(
 }
 
 @Composable
-fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
+fun JumpDroidApp(
+    engine: GameEngine,
+    onWipeData: () -> Unit,
+    onFactoryReset: () -> Unit,
+    onExit: () -> Unit
+) {
     val navController = rememberNavController()
     val analytics = LocalAnalytics.current
+
+    val signInLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            engine.loginManager.onSignInResult(result.data)
+        }
+    }
 
     // --- Audio: Menu Music Management ---
     LaunchedEffect(navController) {
@@ -274,8 +341,11 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                     navController.navigate("title") 
                 },
                 soundManager = engine.soundManager,
+                archiveUnreadCount = engine.discoveryManager.getUnreadCount(),
                 hasNewEntries = engine.codexNotification != null || engine.discoveryManager.getUnreadCount() > 0,
-                progressionManager = engine.progressionManager
+                progressionManager = engine.progressionManager,
+                loginManager = engine.loginManager,
+                onSignIn = { signInLauncher.launch(engine.loginManager.getSignInIntent()) }
             )
         }
         composable(
@@ -287,8 +357,152 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
         ) {
             GamePlayScreen(
                 engine = engine, 
-                onMainMenu = { navController.navigate("main_menu") }
+                onMainMenu = { 
+                    navController.navigate("main_menu") {
+                        popUpTo("title") { inclusive = false }
+                    }
+                },
+                navController = navController
             )
+        }
+        dialog(
+            route = "pause",
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            PauseOverlay(
+                showDevMenu = engine.showDevMenu,
+                infiniteFuel = engine.infiniteFuel,
+                disableHeat = engine.disableHeat,
+                infiniteShield = engine.player.infiniteShield,
+                invincibleHull = engine.player.invincibleHull,
+                cheatsEnabled = BuildConfig.DEBUG,
+                onToggleDevMenu = { engine.showDevMenu = !engine.showDevMenu },
+                onJumpToZone = { engine.jumpToZone(it); navController.popBackStack() },
+                onSpawnDevThreat = { engine.spawnDevThreat(it); navController.popBackStack() },
+                onSpawnDevPowerUp = { engine.spawnDevPowerUp(it); navController.popBackStack() },
+                onSpawnDevPlatform = { engine.spawnDevPlatform(it); navController.popBackStack() },
+                onToggleInfiniteFuel = { engine.infiniteFuel = !engine.infiniteFuel },
+                onToggleDisableHeat = { engine.disableHeat = !engine.disableHeat },
+                onToggleInfiniteShield = { engine.player.infiniteShield = !engine.player.infiniteShield },
+                onToggleInvincibleHull = { engine.player.invincibleHull = !engine.player.invincibleHull },
+                onUnlockAll = { engine.unlockAll(); navController.popBackStack() },
+                onResume = { 
+                    engine.gameState = engine.preOverlayState
+                    navController.popBackStack() 
+                },
+                onRestart = { 
+                    engine.restartGame()
+                    navController.popBackStack() 
+                },
+                onMainMenu = {
+                    navController.navigate("main_menu") {
+                        popUpTo("title") { inclusive = false }
+                    }
+                },
+                zone = engine.altitudeManager.currentZone,
+                soundManager = engine.soundManager,
+                hapticManager = engine.hapticManager,
+                sharedPrefs = engine.sharedPrefs
+            )
+        }
+        dialog(
+            route = "game_over",
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            GameOverOverlay(
+                score = engine.score,
+                highScore = engine.progressionManager.highScore,
+                altitude = engine.runAltitude,
+                altitudePoints = engine.altitudePoints,
+                platformPoints = engine.platformPoints,
+                bossPoints = engine.bossPoints,
+                comboPoints = engine.comboPoints,
+                progressionManager = engine.progressionManager,
+                continuesUsed = engine.continuesUsed,
+                isPremiumUser = engine.isPremiumUser,
+                runBossesDefeated = engine.runBossesDefeated,
+                bestComboThisRun = engine.comboManager.bestComboThisRun,
+                pendingUnlocks = engine.pendingUnlocks,
+                onContinue = { 
+                    engine.continueRun()
+                    navController.popBackStack()
+                },
+                onRestart = { 
+                    engine.restartGame()
+                    navController.popBackStack()
+                },
+                onMainMenu = {
+                    navController.navigate("main_menu") {
+                        popUpTo("title") { inclusive = false }
+                    }
+                },
+                onClaimRewards = {
+                    engine.pendingUnlocks.filterIsInstance<UnlockEvent.Mission>().forEach { event ->
+                        engine.missionManager.claimMissionRewards(event.mission.id, engine.player)
+                    }
+                    engine.pendingUnlocks.clear()
+                    engine.soundManager.playSfx("sfx_collect_item")
+                }
+            )
+        }
+        dialog(
+            route = "tutorial",
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            engine.activeDiscovery?.let { discovery ->
+                TutorialOverlay(
+                    activeDiscovery = discovery,
+                    onAcknowledge = { 
+                        engine.gameState = engine.preOverlayState
+                        engine.activeDiscovery = null
+                        navController.popBackStack()
+                    }
+                )
+            }
+        }
+        dialog(
+            route = "help",
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            HelpOverlay(onDismiss = { 
+                engine.gameState = engine.preOverlayState
+                navController.popBackStack() 
+            })
+        }
+        dialog(
+            route = "unlock",
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            engine.currentUnlockEvent?.let { event ->
+                UnlockOverlay(
+                    unlockEvent = event,
+                    onConfirm = {
+                        val target = if (engine.preOverlayState == GameState.UNLOCK || engine.preOverlayState == GameState.GAMEOVER) GameState.PLAYING else engine.preOverlayState
+                        engine.gameState = target
+                        engine.currentUnlockEvent = null
+                        navController.popBackStack()
+                    }
+                )
+            }
+        }
+        dialog(
+            route = "continue_ready",
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            ContinueReadyOverlay(
+                onTap = { 
+                    engine.gameState = GameState.PLAYING
+                    navController.popBackStack() 
+                }
+            )
+        }
+        dialog("ascension_credits") {
+            AscensionOverlay(onComplete = {
+                engine.showAscensionCredits = false
+                navController.navigate("main_menu") {
+                    popUpTo("title") { inclusive = false }
+                }
+            })
         }
         composable(
             route = "hangar",
@@ -344,14 +558,17 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
                 soundManager = engine.soundManager,
                 hapticManager = engine.hapticManager,
                 purchaseManager = engine.purchaseManager,
-                onWipeData = { 
-                    engine.restartGame()
-                    navController.navigate("title") 
+                onWipeData = {
+                    onWipeData()
+                    navController.navigate("title") {
+                        popUpTo("title") { inclusive = true }
+                    }
                 },
                 onFactoryReset = {
-                    engine.sharedPrefs.edit { clear() }
-                    engine.restartGame()
-                    navController.navigate("title")
+                    onFactoryReset()
+                    navController.navigate("title") {
+                        popUpTo("title") { inclusive = true }
+                    }
                 },
                 onReturn = { navController.popBackStack() }
             )
@@ -385,7 +602,12 @@ fun JumpDroidApp(engine: GameEngine, onExit: () -> Unit) {
             popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
             popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
         ) {
-            LeaderboardScreen(onDismiss = { navController.popBackStack() })
+            LeaderboardScreen(
+                leaderboardManager = engine.leaderboardManager,
+                progressionManager = engine.progressionManager,
+                cloudSyncManager = engine.cloudSyncManager,
+                onDismiss = { navController.popBackStack() }
+            )
         }
         composable(
             route = "shop",

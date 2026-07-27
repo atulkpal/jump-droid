@@ -12,10 +12,24 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 class ScoutDroneRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         with(drawScope) {
             val tx = threat.x
             val ty = threat.y - cameraY
+
+            if (DevConfig.RENDER_MODE_ASSETS && context != null) {
+                drawAssetScoutDrone(this, threat, ty, gameTime, context)
+                return@with
+            }
+            
             val isTracking = threat.isTracking
             val isFleeing = threat.fleeTimer > 0f
             val transmitting = threat.transmissionProgress > 0f && threat.transmissionProgress < 1f
@@ -26,13 +40,6 @@ class ScoutDroneRenderer : ThreatRenderer {
                 isTracking -> Color(0xFFD32F2F)
                 threat.firstDetectionShown -> Color(0xFFFDD835)
                 else -> Color(0xFF1976D2)
-            }
-            val stateName = when {
-                isFleeing -> "FLEE"
-                transmitting -> "TRANSMIT"
-                isTracking -> "TRACK"
-                threat.firstDetectionShown -> "DETECT"
-                else -> "PATROL"
             }
 
             val flicker = Random(gameTime / 50).nextFloat() * 10f
@@ -124,6 +131,33 @@ class ScoutDroneRenderer : ThreatRenderer {
                     drawRect(stateColor.copy(alpha = trailAlpha), Offset(tx - 15f + (i + 1) * 8f, ty - 12f), Size(30f, 24f))
                 }
             }
+        }
+    }
+
+    private fun drawAssetScoutDrone(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        ty: Float,
+        gameTime: Long,
+        context: android.content.Context
+    ) {
+        val bitmap = AssetManager.getBitmap(context, R.drawable.game_icon)
+        val tx = threat.x
+        
+        with(drawScope) {
+            val size = 40f + sin(gameTime / 100f) * 5f
+            drawImage(
+                image = bitmap,
+                dstOffset = androidx.compose.ui.unit.IntOffset(
+                    (tx - size / 2).toInt(),
+                    (ty - size / 2).toInt()
+                ),
+                dstSize = androidx.compose.ui.unit.IntSize(size.toInt(), size.toInt())
+            )
+            
+            // Add state-colored eye glow
+            val eyeColor = if (threat.isTracking || (threat.transmissionProgress > 0f && threat.transmissionProgress < 1f)) Color.Red else Color.Cyan
+            drawCircle(eyeColor.copy(alpha = 0.6f), radius = 6f, center = Offset(tx, ty))
         }
     }
 }

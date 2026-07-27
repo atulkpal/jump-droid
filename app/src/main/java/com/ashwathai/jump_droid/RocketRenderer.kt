@@ -27,7 +27,9 @@ class RocketRenderer {
         thrustTarget: Offset,
         cameraY: Float,
         gameTime: Long,
-        offsetOverride: Offset? = null
+        offsetOverride: Offset? = null,
+        context: android.content.Context? = null,
+        isPreview: Boolean = false
     ) {
         val rocketX = offsetOverride?.x ?: player.x
         val rocketY = offsetOverride?.y ?: (player.y - cameraY)
@@ -38,13 +40,18 @@ class RocketRenderer {
         with(drawScope) {
             translate(rocketX, rocketY) {
 
-                if (player.destructionTimer > 0) {
+                if (DevConfig.RENDER_MODE_ASSETS && context != null) {
+                    drawRocketAsset(this, player, tilt, isThrusting, gameTime, context)
+                    return@translate
+                }
+
+                if (player.destructionTimer > 0 && !isPreview) {
                     val progress = player.destructionTimer
 
                     if (progress < 0.5f) {
-                        val flashAlpha = (sin(gameTime / 30f) * 0.5f + 0.5f)
+                        val flashAlpha = (sin((gameTime / 30f).toDouble()).toFloat() * 0.5f + 0.5f)
                         rotate(tilt) {
-                            drawRocketBody(this, player)
+                            drawRocketBody(this, player, gameTime)
                             drawRect(Color.White.copy(alpha = flashAlpha), topLeft = Offset(-ROCKET_WIDTH/2, -ROCKET_HEIGHT/2), size = Size(ROCKET_WIDTH, ROCKET_HEIGHT))
                         }
                     } else if (progress < 1.5f) {
@@ -80,7 +87,7 @@ class RocketRenderer {
                     } else {
                         val tumbleProgress = (progress - 1.5f)
                         rotate(gameTime / 2f) {
-                            drawRocketBody(this, player, overrideColor = Color.DarkGray)
+                            drawRocketBody(this, player, gameTime, overrideColor = Color.DarkGray)
 
                             repeat(3) { i ->
                                 val r = Random(gameTime + i)
@@ -102,7 +109,7 @@ class RocketRenderer {
                 scale(scaleX = 1f / player.squashStretch, scaleY = player.squashStretch, pivot = Offset(0f, ROCKET_HEIGHT / 2)) {
                     rotate(tilt, pivot = Offset(0f, ROCKET_HEIGHT / 2)) {
 
-                        val isVisible = if (player.invulnerabilityTimer > 0) (gameTime / 100) % 2 == 0L else true
+                        val isVisible = if (player.invulnerabilityTimer > 0 && !isPreview) (gameTime / 100) % 2 == 0L else true
 
                         if (isVisible) {
                             if (isThrusting && player.fuel > 0) {
@@ -114,7 +121,7 @@ class RocketRenderer {
                                 }
                             }
 
-                            drawRocketBody(this, player)
+                            drawRocketBody(this, player, gameTime)
                             drawAuras(this, player, gameTime)
                             drawSurvivalLayers(this, player, gameTime)
                             drawModuleIndicators(this, player, gameTime)
@@ -133,6 +140,46 @@ class RocketRenderer {
         }
     }
 
+    private fun drawRocketAsset(
+        drawScope: DrawScope,
+        player: Player,
+        tilt: Float,
+        isThrusting: Boolean,
+        gameTime: Long,
+        context: android.content.Context
+    ) {
+        val bitmap = AssetManager.getBitmap(context, R.drawable.game_icon)
+        val pulse = (sin(gameTime / 150f) * 0.05f) + 1.0f
+        
+        with(drawScope) {
+            rotate(tilt, pivot = Offset(0f, ROCKET_HEIGHT / 2)) {
+                if (isThrusting && player.fuel > 0) {
+                    drawThrusterFlame(this, player, gameTime)
+                }
+
+                // Draw the main rocket asset
+                val srcSize = Size(bitmap.width.toFloat(), bitmap.height.toFloat())
+                val dstSize = Size(ROCKET_WIDTH * 1.5f, ROCKET_HEIGHT * 1.5f)
+                
+                drawImage(
+                    image = bitmap,
+                    dstOffset = androidx.compose.ui.unit.IntOffset(
+                        (-dstSize.width / 2).toInt(),
+                        (-dstSize.height / 2).toInt()
+                    ),
+                    dstSize = androidx.compose.ui.unit.IntSize(
+                        dstSize.width.toInt(),
+                        dstSize.height.toInt()
+                    )
+                )
+
+                drawAuras(this, player, gameTime)
+                drawSurvivalLayers(this, player, gameTime)
+                drawModuleIndicators(this, player, gameTime)
+            }
+        }
+    }
+
     private fun drawModuleIndicators(drawScope: DrawScope, player: Player, gameTime: Long) {
         val modules = player.activeModules
         if (modules.isEmpty()) return
@@ -145,13 +192,23 @@ class RocketRenderer {
         modules.forEachIndexed { index, module ->
             val y = bodyTop + bodyH * (index + 1) / (modules.size + 1)
             val x = bodyLeft + bodyW + 8f
+            
+            // Category-specific glow colors
+            val indicatorColor = when(module.category) {
+                ModuleCategory.HULL -> Color(0xFF78909C)
+                ModuleCategory.SHIELD -> SciFiCyan
+                ModuleCategory.ENGINE -> SciFiGold
+                ModuleCategory.HEAT -> SciFiRed
+                ModuleCategory.UTILITY -> SciFiPurple
+            }
+
             drawScope.drawCircle(
-                color = module.iconColor.copy(alpha = 0.6f * pulse),
+                color = indicatorColor.copy(alpha = 0.6f * pulse),
                 radius = 4f,
                 center = Offset(x, y)
             )
             drawScope.drawCircle(
-                color = module.iconColor.copy(alpha = 0.15f),
+                color = indicatorColor.copy(alpha = 0.15f),
                 radius = 6f,
                 center = Offset(x, y)
             )
@@ -160,46 +217,58 @@ class RocketRenderer {
 
     private fun drawThrusterFlame(drawScope: DrawScope, player: Player, gameTime: Long) {
         val random = Random(gameTime / 50)
-        val flicker = random.nextFloat() * 15f
-        val flickerInner = random.nextFloat() * 8f
+        val flicker = random.nextFloat() * 18f
+        val flickerInner = random.nextFloat() * 10f
         val nozzleY = ROCKET_HEIGHT / 2
 
         val heatRatio = (player.heat / Constants.MAX_HEAT).coerceIn(0f, 1f)
 
+        // Dynamic colors based on heat and module tint
+        val engineMod = player.activeModules.firstOrNull { it.category == ModuleCategory.ENGINE && it.iconColor != Color.Black }
+        
         val outerFlameColor = when {
-            heatRatio > 0.8f -> SciFiRed
-            heatRatio > 0.5f -> SciFiGold
-            heatRatio > 0.2f -> Color(0xFFFF9800)
+            heatRatio > 0.85f -> SciFiRed
+            heatRatio > 0.6f -> SciFiGold
+            heatRatio > 0.3f -> Color(0xFFFF9800)
             else -> SciFiCyan
         }
         val innerFlameColor = when {
-            heatRatio > 0.8f -> Color(0xFFFFEB3B)
-            heatRatio > 0.5f -> Color.White
-            heatRatio > 0.2f -> Color(0xFFB2EBF2)
+            heatRatio > 0.85f -> Color(0xFFFFEB3B)
+            heatRatio > 0.6f -> Color.White
+            heatRatio > 0.3f -> Color(0xFFB2EBF2)
             else -> Color.White
         }
 
-        val outerLength = 50f + flicker + heatRatio * 20f
-        val innerLength = 30f + flickerInner + heatRatio * 10f
+        val outerLength = 55f + flicker + heatRatio * 25f
+        val innerLength = 32f + flickerInner + heatRatio * 12f
 
+        // D1: Core heat shimmer (wide, very low alpha)
+        drawScope.drawCircle(
+            color = outerFlameColor.copy(alpha = 0.1f * (0.5f + heatRatio * 0.5f)),
+            radius = 25f + heatRatio * 15f,
+            center = Offset(0f, nozzleY + 5f)
+        )
+
+        // D2: Outer Flame
         val outerFlame = Path().apply {
-            moveTo(-14f, nozzleY - 2f)
-            quadraticTo(0f, nozzleY + outerLength, 14f, nozzleY - 2f)
+            moveTo(-15f, nozzleY - 2f)
+            quadraticTo(0f, nozzleY + outerLength, 15f, nozzleY - 2f)
             close()
         }
 
         drawScope.drawPath(
             path = outerFlame,
             brush = Brush.verticalGradient(
-                colors = listOf(outerFlameColor, SciFiRed.copy(alpha = 0.0f)),
+                colors = listOf(outerFlameColor.copy(alpha = 0.9f), outerFlameColor.copy(alpha = 0.0f)),
                 startY = nozzleY - 2f,
                 endY = nozzleY + outerLength + 10f
             )
         )
 
+        // D3: Inner Flame (Core)
         val innerFlame = Path().apply {
-            moveTo(-6f, nozzleY - 2f)
-            quadraticTo(0f, nozzleY + innerLength, 6f, nozzleY - 2f)
+            moveTo(-7f, nozzleY - 2f)
+            quadraticTo(0f, nozzleY + innerLength, 7f, nozzleY - 2f)
             close()
         }
 
@@ -212,45 +281,48 @@ class RocketRenderer {
             )
         )
 
-        val engineMod = player.activeModules.firstOrNull { it.category == ModuleCategory.ENGINE && it.iconColor != Color.Black }
+        // D4: Module-specific exhaust tinting
         if (engineMod != null) {
             val tintPath = Path().apply {
-                moveTo(-14f, nozzleY - 2f)
-                quadraticTo(0f, nozzleY + outerLength * 1.2f, 14f, nozzleY - 2f)
+                moveTo(-16f, nozzleY - 2f)
+                quadraticTo(0f, nozzleY + outerLength * 1.3f, 16f, nozzleY - 2f)
                 close()
             }
             drawScope.drawPath(
                 path = tintPath,
                 brush = Brush.verticalGradient(
-                    colors = listOf(engineMod.iconColor.copy(alpha = 0.4f), engineMod.iconColor.copy(alpha = 0.0f)),
+                    colors = listOf(engineMod.iconColor.copy(alpha = 0.5f), engineMod.iconColor.copy(alpha = 0.0f)),
                     startY = nozzleY - 2f,
-                    endY = nozzleY + outerLength + 10f
+                    endY = nozzleY + outerLength + 15f
                 )
             )
         }
 
-        val afterburnerAlpha = 0.6f + sin(gameTime / 30f) * 0.15f
+        // D5: Afterburner Glow
+        val afterburnerAlpha = 0.7f + sin(gameTime / 25f) * 0.2f
         drawScope.drawCircle(
-            color = Color.White.copy(alpha = afterburnerAlpha * 0.5f),
-            radius = 11f,
+            color = Color.White.copy(alpha = afterburnerAlpha * 0.6f),
+            radius = 12f,
             center = Offset(0f, nozzleY)
         )
         drawScope.drawCircle(
-            color = SciFiGold.copy(alpha = afterburnerAlpha * 0.3f),
-            radius = 16f,
+            color = outerFlameColor.copy(alpha = afterburnerAlpha * 0.4f),
+            radius = 18f,
             center = Offset(0f, nozzleY)
         )
 
-        if ((gameTime / 80) % 3 == 0L) {
-            val diamondY = nozzleY + 8f + (gameTime / 80 % 3) * 10f
+        // D6: Mach Diamonds (refined)
+        if ((gameTime / 70) % 3 == 0L) {
+            val diamondIdx = (gameTime / 70 % 3)
+            val diamondY = nozzleY + 10f + diamondIdx * 12f
             val mach = Path().apply {
                 moveTo(0f, diamondY)
-                lineTo(4f, diamondY + 6f)
-                lineTo(0f, diamondY + 12f)
-                lineTo(-4f, diamondY + 6f)
+                lineTo(5f, diamondY + 7f)
+                lineTo(0f, diamondY + 14f)
+                lineTo(-5f, diamondY + 7f)
                 close()
             }
-            drawScope.drawPath(mach, Color.White.copy(alpha = 0.3f))
+            drawScope.drawPath(mach, Color.White.copy(alpha = 0.4f * (1f - diamondIdx * 0.2f)))
         }
     }
 
@@ -269,7 +341,7 @@ class RocketRenderer {
         drawScope.drawPath(path, SciFiCyan.copy(alpha = 0.6f))
     }
 
-    private fun drawRocketBody(drawScope: DrawScope, player: Player, overrideColor: Color? = null) {
+    private fun drawRocketBody(drawScope: DrawScope, player: Player, gameTime: Long, overrideColor: Color? = null) {
         val halfW = ROCKET_WIDTH / 2
         val halfH = ROCKET_HEIGHT / 2
         val chassis = player.currentChassisIndex
@@ -346,20 +418,37 @@ class RocketRenderer {
             }
 
             // Panel Lines with glow highlights
+            val panelAlpha = 0.2f + kotlin.math.sin((gameTime / 400f).toDouble()).toFloat() * 0.1f
             val panelColor = Color.Black.copy(alpha = 0.15f)
-            val energyLineColor = currentColor.copy(alpha = 0.08f)
-            drawLine(panelColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.25f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.25f), strokeWidth = 1f)
-            drawLine(energyLineColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.25f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.25f), strokeWidth = 2f)
-            drawLine(panelColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.5f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.5f), strokeWidth = 1f)
-            drawLine(energyLineColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.5f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.5f), strokeWidth = 2f)
-            drawLine(panelColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.75f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.75f), strokeWidth = 1f)
-            drawLine(energyLineColor, Offset(bodyLeft + 5f, bodyTop + bodyH * 0.75f), Offset(bodyRight - 5f, bodyTop + bodyH * 0.75f), strokeWidth = 2f)
+            val energyLineColor = currentColor.copy(alpha = (0.12f * panelAlpha).coerceIn(0f, 1f))
+            val highlightStroke = 1.5f + (sin((gameTime / 200f).toDouble()).toFloat() * 0.5f)
+            
+            // D1: Horizontal Panel Divisions
+            repeat(3) { i ->
+                val py = bodyTop + bodyH * (0.25f * (i + 1))
+                drawLine(panelColor, Offset(bodyLeft + 2f, py), Offset(bodyRight - 2f, py), strokeWidth = 1f)
+                drawLine(energyLineColor, Offset(bodyLeft + 2f, py), Offset(bodyRight - 2f, py), strokeWidth = highlightStroke)
+            }
+
+            // D2: Vertical Access Panels
+            drawLine(panelColor, Offset(0f, bodyTop + 10f), Offset(0f, bodyBottom - 10f), strokeWidth = 0.8f)
+            drawLine(energyLineColor, Offset(0f, bodyTop + 10f), Offset(0f, bodyBottom - 10f), strokeWidth = highlightStroke * 0.8f)
+
+            // D3: Corner Bolts/Rivets
+            val boltColor = Color.Black.copy(alpha = 0.3f)
+            drawCircle(boltColor, 1.5f, Offset(bodyLeft + 4f, bodyTop + 4f))
+            drawCircle(boltColor, 1.5f, Offset(bodyRight - 4f, bodyTop + 4f))
+            drawCircle(boltColor, 1.5f, Offset(bodyLeft + 4f, bodyBottom - 4f))
+            drawCircle(boltColor, 1.5f, Offset(bodyRight - 4f, bodyBottom - 4f))
 
             // Chassis 2: extra armor ridges
             if (chassis == 2) {
                 val ridgeColor = Color(0xFF546E7A)
-                drawLine(ridgeColor, Offset(bodyLeft, bodyTop + bodyH * 0.2f), Offset(bodyRight, bodyTop + bodyH * 0.2f), strokeWidth = 2f)
-                drawLine(ridgeColor, Offset(bodyLeft, bodyTop + bodyH * 0.7f), Offset(bodyRight, bodyTop + bodyH * 0.7f), strokeWidth = 2f)
+                val ridgeGlow = accentColor.copy(alpha = (0.2f * panelAlpha).coerceIn(0f, 1f))
+                drawLine(ridgeColor, Offset(bodyLeft - 1f, bodyTop + bodyH * 0.2f), Offset(bodyRight + 1f, bodyTop + bodyH * 0.2f), strokeWidth = 2.5f)
+                drawLine(ridgeGlow, Offset(bodyLeft - 1f, bodyTop + bodyH * 0.2f), Offset(bodyRight + 1f, bodyTop + bodyH * 0.2f), strokeWidth = 4f)
+                drawLine(ridgeColor, Offset(bodyLeft - 1f, bodyTop + bodyH * 0.7f), Offset(bodyRight + 1f, bodyTop + bodyH * 0.7f), strokeWidth = 2.5f)
+                drawLine(ridgeGlow, Offset(bodyLeft - 1f, bodyTop + bodyH * 0.7f), Offset(bodyRight + 1f, bodyTop + bodyH * 0.7f), strokeWidth = 4f)
             }
 
             // Armor plates for hull modules (amplified on chassis 2)

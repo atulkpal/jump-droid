@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,12 +23,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -74,9 +78,17 @@ fun HangarScreen(
 
             Column(Modifier.padding(16.dp).safeDrawingPadding()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column {
-                        Text("ROCKET HANGAR", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                        Text(progressionManager.currentRank.title, color = SciFiGold, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_btn_hangar),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("ROCKET HANGAR", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                            Text(progressionManager.currentRank.title, color = SciFiGold, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        }
                     }
                     TextButton(onClick = { onNavigate(GameState.MAIN_MENU) }) {
                         Text("\u2715", color = SciFiWhite.copy(alpha = 0.6f), fontSize = 18.sp)
@@ -112,7 +124,7 @@ fun HangarScreen(
 
                 when (selectedTab) {
                     0 -> OverviewTab(player, loadoutManager, progressionManager, missionManager, highScore, sharedPrefs, accentPulse, borderPulse, onNavigate, soundManager)
-                    1 -> CosmeticsTab(player, highScore, sharedPrefs)
+                    1 -> CosmeticsTab(player, progressionManager, highScore, sharedPrefs)
                 }
             }
         }
@@ -155,62 +167,139 @@ private fun OverviewTab(
             Box(
                 Modifier.fillMaxWidth().height(300.dp).padding(8.dp)
                     .background(SciFiSurface, RoundedCornerShape(16.dp))
-                    .border(1.dp, SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(16.dp)),
+                    .border(1.dp, SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+                    .border(2.dp, SciFiCyan.copy(alpha = 0.12f), RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(Modifier.fillMaxSize()) {
                     val gt = currentGameTime.value
-                    val driftX = sin(gt / 3000f * 6.283185f) * 25f
+                    val driftX = sin(gt / 3200f * 6.283185f) * 12f
+                    val cx = size.width / 2
+                    val cy = size.height / 2 - 22f
 
-                    translate(size.width / 2, size.height / 2 + bobY) {
-                        // Orbital tech rings
-                        val arcAngle = (gt / 80f) % 360f
-                        drawArc(SciFiCyan.copy(alpha = 0.3f), startAngle = arcAngle, sweepAngle = 270f, useCenter = false,
-                            topLeft = Offset(-65f, -45f), size = Size(130f, 90f), style = Stroke(width = 1f))
-                        drawArc(SciFiGold.copy(alpha = 0.18f), startAngle = arcAngle + 180f, sweepAngle = 180f, useCenter = false,
-                            topLeft = Offset(-75f, -55f), size = Size(150f, 110f), style = Stroke(width = 0.5f))
+                    drawRect(Brush.verticalGradient(listOf(Color(0xFF07101E), Color(0xFF101E32), Color(0xFF07101E))), size = size)
 
-                        // Scanning line (full cycle every ~3s)
-                        val scanY = ((gt / 130f) % 280f) - 140f
-                        drawLine(SciFiCyan.copy(alpha = 0.25f), Offset(-100f, scanY), Offset(100f, scanY), strokeWidth = 1f)
-                        drawLine(SciFiCyan.copy(alpha = 0.08f), Offset(-100f, scanY + 3f), Offset(100f, scanY + 3f), strokeWidth = 4f)
+                    val leftPanel = Path().apply {
+                        moveTo(0f, 0f)
+                        lineTo(size.width * 0.23f, 0f)
+                        lineTo(size.width * 0.16f, size.height)
+                        lineTo(0f, size.height)
+                        close()
+                    }
+                    val rightPanel = Path().apply {
+                        moveTo(size.width, 0f)
+                        lineTo(size.width * 0.77f, 0f)
+                        lineTo(size.width * 0.84f, size.height)
+                        lineTo(size.width, size.height)
+                        close()
+                    }
+                    drawPath(leftPanel, Color.Black.copy(alpha = 0.12f))
+                    drawPath(rightPanel, Color.Black.copy(alpha = 0.16f))
+                    drawLine(SciFiCyan.copy(alpha = 0.11f), Offset(size.width * 0.23f, 0f), Offset(size.width * 0.16f, size.height), strokeWidth = 1.2f)
+                    drawLine(SciFiCyan.copy(alpha = 0.08f), Offset(size.width * 0.77f, 0f), Offset(size.width * 0.84f, size.height), strokeWidth = 1.2f)
 
-                        // Orbiting sparkle highlights
-                        repeat(5) { i ->
-                            val angle = gt / 800f + i * 1.256f
-                            val dist = 32f + sin(gt / 1000f + i) * 6f
-                            val sx = cos(angle) * dist
-                            val sy = sin(angle) * dist * 0.6f
-                            val sparkle = (sin(gt / 200f + i * 2.3f) * 0.4f + 0.6f)
-                            drawCircle(SciFiGold.copy(alpha = 0.6f * sparkle), radius = 2f, center = Offset(sx, sy))
-                            drawCircle(SciFiWhite.copy(alpha = 0.35f * sparkle), radius = 3.5f, center = Offset(sx, sy))
+                    val beam = Path().apply {
+                        moveTo(size.width * 0.04f, size.height * 0.18f)
+                        lineTo(size.width * 0.35f, size.height * 0.31f)
+                        lineTo(size.width * 0.23f, size.height * 0.68f)
+                        lineTo(size.width * 0.02f, size.height * 0.54f)
+                        close()
+                    }
+                    drawPath(beam, SciFiCyan.copy(alpha = 0.045f))
+
+                    translate(cx, cy + bobY) {
+                        val padY = 88f
+                        val pad = Path().apply {
+                            moveTo(-78f, padY + 18f)
+                            lineTo(78f, padY + 18f)
+                            lineTo(52f, padY - 5f)
+                            lineTo(-52f, padY - 5f)
+                            close()
                         }
+                        drawOval(Color.Black.copy(alpha = 0.52f), topLeft = Offset(-70f, padY - 18f), size = Size(140f, 24f))
+                        drawPath(pad, Color(0xFF07101E).copy(alpha = 0.96f))
+                        drawLine(SciFiCyan.copy(alpha = 0.68f), Offset(-52f, padY - 5f), Offset(52f, padY - 5f), strokeWidth = 2.4f)
+                        drawLine(SciFiGold.copy(alpha = 0.30f), Offset(-64f, padY + 9f), Offset(64f, padY + 9f), strokeWidth = 1.4f)
 
-                        // Pulsing glow halos
-                        val haloPulse = (sin(gt / 1500f) * 0.3f + 0.7f)
-                        drawCircle(SciFiCyan.copy(alpha = 0.12f * haloPulse), radius = 100f)
-                        drawCircle(SciFiGold.copy(alpha = 0.06f * haloPulse), radius = 140f)
+                        val glowPulse = 0.20f + sin(gt / 1200f) * 0.05f
+                        drawOval(Color(0xFFFF7628).copy(alpha = glowPulse), topLeft = Offset(-22f, 52f), size = Size(44f, 42f))
+                        drawOval(SciFiCyan.copy(alpha = 0.13f), topLeft = Offset(-30f, 64f), size = Size(60f, 20f))
 
-                        // Engine particles
-                        repeat(10) { i ->
-                            val seed = i * 137L + gt / 50
-                            val rng = kotlin.random.Random(seed)
-                            val progress = ((gt / 50f + i * 10f) % 100f) / 100f
-                            val px = sin(gt / 350f + i * 1.7f) * 12f
-                            val py = 28f + progress * 90f
-                            val alpha = (1f - progress * progress) * 0.8f
-                            val size = 1.5f + rng.nextFloat() * 3f * (1f - progress)
-                            val color = listOf(SciFiCyan, SciFiGold, SciFiRed)[i % 3]
-                            drawCircle(color.copy(alpha = alpha), radius = size, center = Offset(px, py))
-                            drawCircle(SciFiWhite.copy(alpha = alpha * 0.3f), radius = size * 0.4f, center = Offset(px - 1f, py))
-                        }
-
-                        // Rocket with horizontal drift
                         translate(driftX, 0f) {
-                            scale(3f, 3f, pivot = Offset.Zero) {
-                                rocketRenderer.render(this, player, true, Offset.Zero, 0f, gt, offsetOverride = Offset.Zero)
+                            scale(4.1f, 4.1f, pivot = Offset.Zero) {
+                                rocketRenderer.render(this, player, false, Offset.Zero, 0f, gt, offsetOverride = Offset.Zero, isPreview = true)
                             }
                         }
+
+                        val flamePulse = 0.85f + sin(gt / 180f) * 0.15f
+                        val outerFlame = Path().apply {
+                            moveTo(-13f, 36f)
+                            quadraticTo(0f, 72f + flamePulse * 5f, 13f, 36f)
+                            quadraticTo(0f, 48f, -13f, 36f)
+                            close()
+                        }
+                        val innerFlame = Path().apply {
+                            moveTo(-6f, 40f)
+                            quadraticTo(0f, 61f + flamePulse * 4f, 6f, 40f)
+                            quadraticTo(0f, 49f, -6f, 40f)
+                            close()
+                        }
+                        drawPath(outerFlame, SciFiCyan.copy(alpha = 0.75f))
+                        drawPath(innerFlame, Color(0xFFFFF2A6).copy(alpha = 0.85f))
+
+                        repeat(9) { i ->
+                            val seed = i * 149L + gt / 70
+                            val rng = kotlin.random.Random(seed)
+                            val progress = ((gt / 70f + i * 11f) % 100f) / 100f
+                            val px = sin(gt / 420f + i * 1.6f) * 10f
+                            val py = 48f + progress * 40f
+                            val alpha = (1f - progress) * 0.65f
+                            val emberSize = 2f + rng.nextFloat() * 3f * (1f - progress)
+                            val emberColor = if (i % 3 == 0) SciFiCyan else Color(0xFFFF9A2A)
+                            drawCircle(emberColor.copy(alpha = alpha), radius = emberSize, center = Offset(px, py))
+                            drawCircle(SciFiWhite.copy(alpha = alpha * 0.35f), radius = emberSize * 0.45f, center = Offset(px - 0.8f, py - 0.5f))
+                        }
+
+                        repeat(3) { i ->
+                            val progress = ((gt / 4200f + i * 0.33f) % 1f)
+                            val side = if (i % 2 == 0) -1f else 1f
+                            val px = side * (28f + progress * 18f)
+                            val py = 66f + progress * 18f
+                            val alpha = (1f - progress) * 0.18f
+                            val puffSize = 8f + progress * 12f
+                            drawCircle(Color.White.copy(alpha = alpha), radius = puffSize, center = Offset(px, py))
+                            drawCircle(SciFiCyan.copy(alpha = alpha * 0.45f), radius = puffSize * 0.65f, center = Offset(px + side * 3f, py - 2f))
+                        }
+                    }
+                }
+
+                // Inspection label
+                Surface(
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 9.dp).padding(horizontal = 16.dp),
+                    color = Color.Black.copy(alpha = 0.28f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.18f))
+                ) {
+                    Column(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            "${player.rocketType.title.uppercase()} · ${player.rocketType.chassisVariants.getOrNull(player.currentChassisIndex)?.name?.uppercase() ?: "STOCK"}",
+                            color = SciFiWhite.copy(alpha = 0.55f),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
+                        )
+                        val equippedCount = loadoutManager.equippedModuleIds.count { it != null }
+                        Text(
+                            "POWER ON · MODULES $equippedCount/2",
+                            color = SciFiCyan.copy(alpha = 0.38f),
+                            fontSize = 6.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.6.sp,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
+                        )
                     }
                 }
             }
@@ -264,9 +353,17 @@ private fun OverviewTab(
                     Text("\u2694 PERFORMANCE", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                     Spacer(Modifier.height(3.dp))
                     val maxPerf = 1.5f
-                    StatBar("THRUST", "${(player.rocketType.chassisThrustMult(player.currentChassisIndex) * 100).toInt()}%", player.rocketType.chassisThrustMult(player.currentChassisIndex) / maxPerf, SciFiGold)
-                    StatBar("FUEL", "${(player.rocketType.chassisFuelMult(player.currentChassisIndex) * 100).toInt()}%", player.rocketType.chassisFuelMult(player.currentChassisIndex) / maxPerf, SciFiGreen)
-                    StatBar("THERMAL", "${(player.rocketType.chassisHeatMult(player.currentChassisIndex) * 100).toInt()}%", player.rocketType.chassisHeatMult(player.currentChassisIndex) / maxPerf, SciFiRed)
+                    val currentThrust = player.rocketType.chassisThrustMult(player.currentChassisIndex)
+                    val currentFuel = player.rocketType.chassisFuelMult(player.currentChassisIndex)
+                    val currentHeat = player.rocketType.chassisHeatMult(player.currentChassisIndex)
+                    val currentIntegrity = player.rocketType.chassisIntegrityMult(player.currentChassisIndex)
+                    val currentManeuver = player.rocketType.chassisSteerMult(player.currentChassisIndex)
+
+                    StatBar("THRUST", "${(currentThrust * 100).toInt()}%", currentThrust / maxPerf, SciFiGold, R.drawable.ic_stat_thrust)
+                    StatBar("FUEL", "${(currentFuel * 100).toInt()}%", currentFuel / maxPerf, SciFiGreen, R.drawable.ic_hud_fuel)
+                    StatBar("THERMAL", "${(1.0f / currentHeat * 100).toInt()}%", (1.0f / currentHeat) / maxPerf, SciFiRed, R.drawable.ic_hud_heat)
+                    StatBar("INTEGRITY", "${(currentIntegrity * 100).toInt()}%", currentIntegrity / maxPerf, SciFiGold, R.drawable.ic_hud_hull)
+                    StatBar("MANEUVER", "${(currentManeuver * 100).toInt()}%", currentManeuver / maxPerf, SciFiCyan, R.drawable.ic_cat_utility)
 
                     // CHASSIS picker
                     Spacer(Modifier.height(4.dp))
@@ -302,12 +399,22 @@ private fun OverviewTab(
                     Text("\uD83D\uDEE1 DURATIONALS", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                     Spacer(Modifier.height(3.dp))
                     val maxInt = 800f
-                    StatBar("HULL", "${progressionManager.permanentMaxIntegrity.toInt()}", progressionManager.permanentMaxIntegrity / maxInt, SciFiGold)
-                    StatBar("SHIELD", "${progressionManager.permanentMaxShield.toInt()}", progressionManager.permanentMaxShield / maxInt, SciFiCyan)
+                    StatBar("HULL", "${progressionManager.permanentMaxIntegrity.toInt()}", progressionManager.permanentMaxIntegrity / maxInt, SciFiGold, R.drawable.ic_hud_hull)
+                    StatBar("SHIELD", "${progressionManager.permanentMaxShield.toInt()}", progressionManager.permanentMaxShield / maxInt, SciFiCyan, R.drawable.ic_hud_shield)
                 }
             }
             Spacer(Modifier.width(6.dp))
-            PentagonChart(rocketType = player.rocketType, modifier = Modifier.weight(0.42f).height(120.dp))
+            PentagonChart(
+                stats = RocketStats(
+                    thrust = player.rocketType.chassisThrustMult(player.currentChassisIndex),
+                    fuel = player.rocketType.chassisFuelMult(player.currentChassisIndex),
+                    thermal = 1.0f / player.rocketType.chassisHeatMult(player.currentChassisIndex),
+                    integrity = player.rocketType.chassisIntegrityMult(player.currentChassisIndex),
+                    maneuverability = player.rocketType.chassisSteerMult(player.currentChassisIndex)
+                ),
+                color = typeColor(player.rocketType),
+                modifier = Modifier.weight(0.42f).height(140.dp)
+            )
         }
 
         Spacer(Modifier.height(6.dp))
@@ -326,7 +433,11 @@ private fun OverviewTab(
                     if (module != null) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
                             Box(Modifier.size(22.dp).background(module.iconColor.copy(alpha = 0.2f), RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
-                                Text(module.category.name.take(1), color = module.iconColor, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                Image(
+                                    painter = painterResource(id = categoryIconRes(module.category)),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
                             Spacer(Modifier.width(8.dp))
                             Column {
@@ -414,9 +525,14 @@ private fun ModulePickerPopup(
                 Spacer(Modifier.height(12.dp))
 
                 if (selectedCategory == null) {
+                    val otherSlotIndex = 1 - slotIndex
+                    val otherSlotModuleId = loadoutManager.equippedModuleIds.getOrNull(otherSlotIndex)
+                    val otherSlotModule = otherSlotModuleId?.let { ModuleRegistry.getById(it) }
+                    val otherSlotCategory = otherSlotModule?.category
                     // Category grid
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         ModuleCategory.entries.forEach { cat ->
+                            val catBlocked = cat == otherSlotCategory
                             Surface(
                                 modifier = Modifier.weight(1f)
                                     .clickable { onSelectCategory(cat) }
@@ -424,14 +540,51 @@ private fun ModulePickerPopup(
                                 color = categoryColor(cat).copy(alpha = 0.08f),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
-                                Column(Modifier.padding(8.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(categoryIcon(cat), fontSize = 20.sp)
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(cat.name, color = categoryColor(cat), fontWeight = FontWeight.Bold, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Box(Modifier.padding(8.dp).fillMaxWidth()) {
+                                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(categoryIcon(cat), fontSize = 20.sp)
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(cat.name, color = categoryColor(cat), fontWeight = FontWeight.Bold, fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                    if (catBlocked) {
+                                        Text("S${otherSlotIndex + 1}", color = categoryColor(cat), fontSize = 7.sp, fontWeight = FontWeight.Black, modifier = Modifier.align(Alignment.TopEnd))
+                                    }
                                 }
                             }
                         }
                     }
+                    Spacer(Modifier.height(10.dp))
+
+                    // Slot-only unequip section
+                    val currentModId = loadoutManager.equippedModuleIds.getOrNull(slotIndex)
+                    val currentMod = currentModId?.let { ModuleRegistry.getById(it) }
+                    if (currentMod != null) {
+                        Text("EQUIPPED", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth()
+                                .border(1.dp, currentMod.iconColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp)),
+                            color = currentMod.iconColor.copy(alpha = 0.06f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Box(Modifier.size(24.dp).background(currentMod.iconColor.copy(alpha = 0.2f), RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
+                                    Image(
+                                        painter = painterResource(id = categoryIconRes(currentMod.category)),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(currentMod.name.uppercase(), color = currentMod.iconColor, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                    Text(currentMod.description, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Text("UNEQUIP", color = SciFiRed, fontWeight = FontWeight.Black, fontSize = 7.sp, modifier = Modifier.clickable { loadoutManager.unequipModule(slotIndex); onDismiss() })
+                            }
+                        }
+                    }
+
                     Spacer(Modifier.height(12.dp))
                     Button(
                         onClick = onDismiss,
@@ -450,26 +603,37 @@ private fun ModulePickerPopup(
 
                     val equippedIds = loadoutManager.equippedModuleIds
                     ModuleRegistry.getAll().filter { it.category == selectedCategory }.forEach { module ->
-                        val isEquipped = equippedIds.contains(module.id)
+                        val equippedSlot = equippedIds.indexOf(module.id)
+                        val isEquipped = equippedSlot == slotIndex
+                        val isEquippedOther = equippedSlot == 1 - slotIndex && equippedSlot >= 0
                         val isUnlocked = loadoutManager.isModuleUnlocked(module, progressionManager, missionManager)
 
                         Surface(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                                .clickable(isUnlocked && !isEquipped) { onSelectModule(module.id) },
-                            color = when { isEquipped -> SciFiSurface.copy(alpha = 0.3f); !isUnlocked -> Color.Black.copy(alpha = 0.3f); else -> SciFiSurface },
+                                .clickable(isUnlocked && !isEquipped && !isEquippedOther) { onSelectModule(module.id) },
+                            color = when { isEquipped || isEquippedOther -> SciFiSurface.copy(alpha = 0.3f); !isUnlocked -> Color.Black.copy(alpha = 0.3f); else -> SciFiSurface },
                             shape = RoundedCornerShape(8.dp),
-                            border = if (isUnlocked && !isEquipped) BorderStroke(1.dp, categoryColor(selectedCategory).copy(alpha = 0.15f)) else null
+                            border = if (isUnlocked && !isEquipped && !isEquippedOther) BorderStroke(1.dp, categoryColor(selectedCategory).copy(alpha = 0.15f)) else null
                         ) {
                             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(Modifier.size(24.dp).background(if (isUnlocked) module.iconColor.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
-                                    Text(if (isUnlocked) module.category.name.take(1) else "\uD83D\uDD12", color = if (isUnlocked) module.iconColor else Color.Gray, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                    if (isUnlocked) {
+                                        Image(
+                                            painter = painterResource(id = categoryIconRes(module.category)),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    } else {
+                                        Text("\uD83D\uDD12", color = Color.Gray, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                    }
                                 }
                                 Spacer(Modifier.width(10.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(if (isUnlocked) module.name else "LOCKED MODULE", color = when { isEquipped -> SciFiWhite.copy(alpha = 0.3f); !isUnlocked -> Color.Gray; else -> SciFiWhite }, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                    Text(if (isUnlocked) module.name else "LOCKED MODULE", color = when { isEquipped -> SciFiWhite.copy(alpha = 0.3f); isEquippedOther -> SciFiWhite.copy(alpha = 0.4f); !isUnlocked -> Color.Gray; else -> SciFiWhite }, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                                     Text(if (isUnlocked) module.description else formatRequirement(module.unlockRequirement), color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 if (isEquipped) Text("EQPD", color = SciFiCyan, fontSize = 7.sp, fontWeight = FontWeight.Black)
+                                else if (isEquippedOther) Text("S${equippedSlot + 1}", color = categoryColor(selectedCategory), fontSize = 7.sp, fontWeight = FontWeight.Black)
                                 else if (!isUnlocked) Text("LOCKED", color = SciFiRed.copy(alpha = 0.4f), fontSize = 6.sp, fontWeight = FontWeight.Bold)
                             }
                         }
@@ -489,16 +653,25 @@ private fun categoryColor(category: ModuleCategory): Color = when (category) {
 }
 
 private fun categoryIcon(category: ModuleCategory): String = when (category) {
-    ModuleCategory.HULL -> "\uD83D\uDEE1"
-    ModuleCategory.SHIELD -> "\u26E8"
+    ModuleCategory.HULL -> "\u2B1C"
+    ModuleCategory.SHIELD -> "\uD83D\uDEE1"
     ModuleCategory.ENGINE -> "\uD83D\uDD25"
     ModuleCategory.HEAT -> "\u2744"
     ModuleCategory.UTILITY -> "\uD83D\uDD0D"
 }
 
+private fun categoryIconRes(category: ModuleCategory): Int = when (category) {
+    ModuleCategory.HULL -> R.drawable.ic_cat_hull
+    ModuleCategory.SHIELD -> R.drawable.ic_cat_shield
+    ModuleCategory.ENGINE -> R.drawable.ic_cat_engine
+    ModuleCategory.HEAT -> R.drawable.ic_cat_heat
+    ModuleCategory.UTILITY -> R.drawable.ic_cat_utility
+}
+
 @Composable
 private fun CosmeticsTab(
     player: Player,
+    progressionManager: ProgressionManager,
     highScore: Int,
     sharedPrefs: SharedPreferences
 ) {
@@ -524,13 +697,21 @@ private fun CosmeticsTab(
         }
 
         // Mastery progress bar
-        Box(
-            Modifier.fillMaxWidth().height(4.dp).background(SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(2.dp))
-        ) {
-            Box(
-                Modifier.fillMaxWidth(fraction = unlockedChassis.toFloat() / totalChassis).fillMaxHeight()
-                    .background(SciFiGold, RoundedCornerShape(2.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_premium_star),
+                contentDescription = null,
+                modifier = Modifier.size(16.dp)
             )
+            Spacer(Modifier.width(8.dp))
+            Box(
+                Modifier.weight(1f).height(4.dp).background(SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(2.dp))
+            ) {
+                Box(
+                    Modifier.fillMaxWidth(fraction = unlockedChassis.toFloat() / totalChassis).fillMaxHeight()
+                        .background(SciFiGold, RoundedCornerShape(2.dp))
+                )
+            }
         }
 
         Spacer(Modifier.height(12.dp))
@@ -541,27 +722,28 @@ private fun CosmeticsTab(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             EngineTrailRegistry.trails.forEachIndexed { idx, trail ->
                 val isSelected = player.equippedTrailIndex == idx
+                val isUnlocked = progressionManager.isTrailUnlocked(trail.id)
                 Surface(
                     modifier = Modifier
                         .weight(1f)
-                        .border(1.dp, if (isSelected) trail.trailColor else SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                        .clickable {
+                        .border(1.dp, if (isSelected) trail.trailColor else if (isUnlocked) SciFiBorder.copy(alpha = 0.15f) else SciFiBorder.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                        .clickable(enabled = isUnlocked) {
                             player.equippedTrailIndex = idx
                             sharedPrefs.edit().putInt("equipped_trail", idx).commit()
                         },
-                    color = if (isSelected) trail.trailColor.copy(alpha = 0.1f) else SciFiSurface,
+                    color = if (isSelected) trail.trailColor.copy(alpha = 0.1f) else if (isUnlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.3f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Column(Modifier.padding(6.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                         Canvas(Modifier.size(20.dp)) {
                             val cx = size.width / 2
                             val cy = size.height / 2
-                            drawCircle(trail.glowColor.copy(alpha = 0.2f), radius = size.minDimension / 2)
-                            drawCircle(trail.trailColor, radius = 4f, center = Offset(cx, cy))
+                            drawCircle(if (isUnlocked) trail.glowColor.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f), radius = size.minDimension / 2)
+                            drawCircle(if (isUnlocked) trail.trailColor else Color.Gray, radius = 4f, center = Offset(cx, cy))
                         }
                         Spacer(Modifier.height(2.dp))
-                        Text(trail.name, color = if (isSelected) trail.trailColor else SciFiWhite, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(if (isSelected) "ACTIVE" else "SELECT", color = if (isSelected) trail.trailColor.copy(alpha = 0.6f) else SciFiWhite.copy(alpha = 0.2f), fontSize = 6.sp, fontWeight = FontWeight.Black)
+                        Text(trail.name, color = if (isSelected) trail.trailColor else if (isUnlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.2f), fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(if (isSelected) "ACTIVE" else if (isUnlocked) "SELECT" else "\uD83D\uDD12", color = if (isSelected) trail.trailColor.copy(alpha = 0.6f) else SciFiWhite.copy(alpha = 0.1f), fontSize = 6.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -573,25 +755,26 @@ private fun CosmeticsTab(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             PaintRegistry.paints.forEachIndexed { idx, paint ->
                 val isSelected = player.equippedPaintIndex == idx
+                val isUnlocked = progressionManager.isPaintUnlocked(paint.id)
                 Surface(
                     modifier = Modifier
                         .weight(1f)
-                        .border(1.dp, if (isSelected) paint.accentColor else SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                        .clickable {
+                        .border(1.dp, if (isSelected) paint.accentColor else if (isUnlocked) SciFiBorder.copy(alpha = 0.15f) else SciFiBorder.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
+                        .clickable(enabled = isUnlocked) {
                             player.equippedPaintIndex = idx
                             sharedPrefs.edit().putInt("equipped_paint", idx).commit()
                         },
-                    color = if (isSelected) paint.hullColor.copy(alpha = 0.15f) else SciFiSurface,
+                    color = if (isSelected) paint.hullColor.copy(alpha = 0.15f) else if (isUnlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.3f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Column(Modifier.padding(6.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
-                            Modifier.size(20.dp).background(paint.hullColor, RoundedCornerShape(4.dp))
-                                .border(1.dp, paint.accentColor.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                            Modifier.size(20.dp).background(if (isUnlocked) paint.hullColor else Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                .border(1.dp, if (isUnlocked) paint.accentColor.copy(alpha = 0.3f) else Color.Gray.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
                         )
                         Spacer(Modifier.height(2.dp))
-                        Text(paint.name, color = if (isSelected) paint.accentColor else SciFiWhite, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(if (isSelected) "ACTIVE" else "SELECT", color = if (isSelected) paint.accentColor.copy(alpha = 0.6f) else SciFiWhite.copy(alpha = 0.2f), fontSize = 6.sp, fontWeight = FontWeight.Black)
+                        Text(paint.name, color = if (isSelected) paint.accentColor else if (isUnlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.2f), fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(if (isSelected) "ACTIVE" else if (isUnlocked) "SELECT" else "\uD83D\uDD12", color = if (isSelected) paint.accentColor.copy(alpha = 0.6f) else SciFiWhite.copy(alpha = 0.1f), fontSize = 6.sp, fontWeight = FontWeight.Black)
                     }
                 }
             }
@@ -719,8 +902,16 @@ private fun CosmeticsTab(
 }
 
 @Composable
-private fun StatBar(label: String, value: String, fraction: Float, color: Color) {
+private fun StatBar(label: String, value: String, fraction: Float, color: Color, iconRes: Int? = null) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        if (iconRes != null) {
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         Text(label, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.width(48.dp))
         Box(Modifier.weight(1f).height(6.dp).background(SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(3.dp))) {
             Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().background(color, RoundedCornerShape(3.dp)))

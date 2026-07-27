@@ -1,6 +1,7 @@
 package com.ashwathai.jump_droid
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -111,11 +113,15 @@ fun LoadoutScreen(
                                 if (isUnlocked) module.iconColor.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f), 
                                 RoundedCornerShape(4.dp)
                             ), contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = if (isUnlocked) module.category.name.take(1) else "🔒", 
-                                    color = if (isUnlocked) module.iconColor else Color.Gray, 
-                                    fontWeight = FontWeight.Black
-                                )
+                                if (isUnlocked) {
+                                    Image(
+                                        painter = painterResource(id = categoryIconRes(module.category)),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                } else {
+                                    Text(text = "🔒", color = Color.Gray, fontWeight = FontWeight.Black)
+                                }
                             }
                             Spacer(Modifier.width(16.dp))
                             Column(Modifier.weight(1f)) {
@@ -158,6 +164,14 @@ fun LoadoutScreen(
             GlobalAdBanner()
         }
     }
+}
+
+private fun categoryIconRes(category: ModuleCategory): Int = when (category) {
+    ModuleCategory.HULL -> R.drawable.ic_cat_hull
+    ModuleCategory.SHIELD -> R.drawable.ic_cat_shield
+    ModuleCategory.ENGINE -> R.drawable.ic_cat_engine
+    ModuleCategory.HEAT -> R.drawable.ic_cat_heat
+    ModuleCategory.UTILITY -> R.drawable.ic_cat_utility
 }
 
 private fun formatRequirement(req: UnlockRequirement): String {

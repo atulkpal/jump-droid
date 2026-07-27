@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-15
-**Current Version:** v1.5.2 — Closed Beta Release
-**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Published to GitHub — Open Source (MIT)
-**Current Stable Tag:** `v1.5.2`
+**Last Updated:** 2026-07-27
+**Current Version:** v2.0.0 — Production Ascension
+**Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
+**Current Stable Tag:** `v2.0.0`
 **Branch:** `master` (protected — no direct commits)
 **Base Commit:** `HEAD`
 
@@ -34,15 +34,13 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 ## 2. Current Project State
 
 *   **Current Branch**: `master`
-*   **Current Stable Tag**: `v1.5.2`
-*   **Current Version**: v1.5.2 — Closed Beta Release
-*   **Current EPIC**: EPIC 12 — Fleet Ascension: Visual Overhaul & Fleet Expansion — **ACTIVE ✅**
-*   **Current Status**: **EPIC 12 Phase 1 COMPLETE**. Branch `feature/fleet-ascension-visual-overhaul`. Phase 1 finished: Main Menu redesigned (hero canvas, LAUNCH pill, collapsible nav drawer, credit/cash bar), NavHost transitions (fade/scale/slide), brand color audit across 4 screens, equipment visual feedback on rocket Canvas (module indicator dots, armor plates, shield amplification, engine flame tint). See `docs/roadmap/EPIC_12_FLEET_ASCENSION_VISUAL_OVERHAUL.md`.
+*   **Current Stable Tag**: `v2.0.0`
+*   **Current Version**: v2.0.0 — Production Ascension
+*   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **IN PROGRESS 🚀**
+*   **Current Status**: **EPIC 12 Finalized**. Transitioning to **EPIC 13**. All systems verified for production. v2.0.0 includes full fleet expansion, cosmetic economy, and performance-optimized rendering. Ready for Play Store listing.
 *   **Known Issues**: 
-    *   Visual noise during high-combo streaks (excessive floating text) — deferred to EPIC 12 Phase 3 (notification/tuning).
-    *   GameScreen.kt at ~2,080 lines — decomposition targeted in EPIC 12 Phase 8.
-*   **Current Priorities**: EPIC 12 Phase 2 (Hangar, Missions, Fleet) or Phase 3 (Gameplay UX: HUD, Unlocks, Continue Credits).
-*   **Next Planned Work**: EPIC 12 Phase 1 — Visual Identity & Navigation.
+    *   `GamesAchievementManager.kt` uses placeholder GPG achievement IDs (`PLEASE_REPLACE_ME_*`) — must replace with real Google Play Console IDs before production.
+*   **Current Priorities**: EPIC 13 — Production deployment and Play Store listing.
 
 ---
 
@@ -89,6 +87,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Mission Dashboard** | Provide high-level summary (Completion %, Claims). | Faster UX for checking account status. |
 | **SharedPreferences Unification** | DataStore transition in EPIC 8 prototype caused sync debt. | Reverted to `SharedPreferences` as the Single Source of Truth. |
 | **Combo Ring Top-Left** | Avoid overlap with system UI and Pause/Help buttons. | Cleanest possible HUD for high-speed flight. |
+| **Decoupled Altitude/Score** | Altitude-only scoring lacked performance variance. | `runAltitude` (meters) drives physical progress; `score` (points) reflects skill mastery. |
 
 ---
 
@@ -105,6 +104,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Rocket System** | `docs/design/ROCKET_LIBRARY.md` | (Content Only) |
 | **Monetization** | `docs/roadmap/MONETIZATION_VISION.md` | (Strategy Only) |
 | **Roadmaps** | `docs/JumpDroid_EPIC_Tracker.md` | `docs/roadmap/` |
+| **Sign-In Audit** | `docs/SIGN_IN_FAILURE_AUDIT.md` | (Blocked — investigation doc) |
 | **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | (Reference Only) |
 | **Inventory** | `docs/INVENTORY.md` | (Cross-Reference) |
 | **Production Checklist** | `docs/PRODUCTION_CHECKLIST.md` | Mandatory gate before any release |
@@ -246,6 +246,7 @@ Before implementing ANY new:
 | Artifacts | `docs/design/ARTIFACT_LIBRARY.md` |
 | Achievements | `docs/design/ACHIEVEMENT_LIBRARY.md` |
 | Rockets | `docs/design/ROCKET_LIBRARY.md` |
+| Scoring | `docs/design/SCORING_LIBRARY.md` |
 
 ### Priority Order
 1. **APPROVED** items → Implement as-is (highest priority)

@@ -2,6 +2,7 @@ package com.ashwathai.jump_droid
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,8 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,23 +33,23 @@ private val CardShape = RoundedCornerShape(10.dp)
 
 private data class MissionTrack(
     val name: String,
-    val icon: String,
+    val iconRes: Int,
     val color: Color,
     val categories: List<MissionCategory>
 )
 
 private val MISSION_TRACKS = listOf(
-    MissionTrack("Aeronautics", "\uD83D\uDE80", SciFiCyan, listOf(MissionCategory.FLIGHT_TIME, MissionCategory.NO_HEAT)),
-    MissionTrack("Ground Support", "\uD83C\uDFE2", SciFiWhite, listOf(MissionCategory.PLATFORM_STAY)),
-    MissionTrack("Resource Mgmt", "\uD83D\uDD0B", SciFiGreen, listOf(MissionCategory.FUEL_EFFICIENCY)),
-    MissionTrack("Combo Mastery", "\uD83D\uDD25", SciFiGold, listOf(MissionCategory.COMBO_STREAK, MissionCategory.COMBO_PRO)),
-    MissionTrack("Elite Combat", "\u2694\uFE0F", SciFiRed, listOf(MissionCategory.BOSS_SLAYER)),
-    MissionTrack("Surveying", "\uD83D\uDCE1", SciFiPurple, listOf(MissionCategory.DISCOVERY_HUNTER)),
-    MissionTrack("Ascension Path", "\u26F0\uFE0F", SciFiCyan, listOf(MissionCategory.ALTITUDE_CLIMBER)),
-    MissionTrack("Kinetic Control", "\uD83D\uDCA8", SciFiOrange, listOf(MissionCategory.MOMENTUM_MASTER, MissionCategory.BOOST_CHAMPION)),
-    MissionTrack("Reinforcement", "\uD83D\uDEE1\uFE0F", SciFiGreen, listOf(MissionCategory.HAZARD_SURVIVOR)),
-    MissionTrack("Precision Flight", "\uD83C\uDFAF", SciFiGold, listOf(MissionCategory.PERFECT_RUN)),
-    MissionTrack("Archeology", "\uD83C\uDFFA", SciFiPurple, listOf(MissionCategory.COLLECTOR))
+    MissionTrack("Aeronautics", R.drawable.ic_track_aero, SciFiCyan, listOf(MissionCategory.FLIGHT_TIME, MissionCategory.NO_HEAT)),
+    MissionTrack("Ground Support", R.drawable.ic_track_ground, SciFiWhite, listOf(MissionCategory.PLATFORM_STAY)),
+    MissionTrack("Resource Mgmt", R.drawable.ic_track_resource, SciFiGreen, listOf(MissionCategory.FUEL_EFFICIENCY)),
+    MissionTrack("Combo Mastery", R.drawable.ic_track_combo, SciFiGold, listOf(MissionCategory.COMBO_STREAK, MissionCategory.COMBO_PRO)),
+    MissionTrack("Elite Combat", R.drawable.ic_track_combat, SciFiRed, listOf(MissionCategory.BOSS_SLAYER)),
+    MissionTrack("Surveying", R.drawable.ic_track_survey, SciFiPurple, listOf(MissionCategory.DISCOVERY_HUNTER)),
+    MissionTrack("Ascension Path", R.drawable.ic_track_climb, SciFiCyan, listOf(MissionCategory.ALTITUDE_CLIMBER)),
+    MissionTrack("Kinetic Control", R.drawable.ic_track_kinetic, SciFiOrange, listOf(MissionCategory.MOMENTUM_MASTER, MissionCategory.BOOST_CHAMPION)),
+    MissionTrack("Reinforcement", R.drawable.ic_track_defense, SciFiGreen, listOf(MissionCategory.HAZARD_SURVIVOR)),
+    MissionTrack("Precision Flight", R.drawable.ic_track_precision, SciFiGold, listOf(MissionCategory.PERFECT_RUN)),
+    MissionTrack("Archeology", R.drawable.ic_track_archeo, SciFiPurple, listOf(MissionCategory.COLLECTOR))
 )
 
 @Composable
@@ -244,7 +247,11 @@ private fun TimelineNode(
         ) {
             Column(Modifier.padding(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(track.icon, fontSize = 18.sp, modifier = Modifier.padding(end = 8.dp))
+                    Image(
+                        painter = painterResource(id = track.iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp).padding(end = 8.dp)
+                    )
                     Text(track.name.uppercase(), color = track.color, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                     Spacer(Modifier.width(8.dp))
                     Text(
@@ -334,7 +341,15 @@ private fun HiddenSignalsCard(
                 )
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (mission.isUnlocked) "\uD83D\uDCE1" else "\uD83D\uDD12", fontSize = 18.sp, modifier = Modifier.padding(end = 12.dp))
+                    if (mission.isUnlocked) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_track_survey),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp).padding(end = 12.dp)
+                        )
+                    } else {
+                        Text("\uD83D\uDD12", fontSize = 18.sp, modifier = Modifier.padding(end = 12.dp))
+                    }
                     Column(Modifier.weight(1f)) {
                         if (!mission.isUnlocked) {
                             GlitchText(text = "SIGNAL LOST", style = MaterialTheme.typography.labelLarge.copy(color = SciFiRed, fontWeight = FontWeight.Black, letterSpacing = 1.sp))

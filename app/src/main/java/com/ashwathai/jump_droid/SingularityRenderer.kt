@@ -18,7 +18,8 @@ class SingularityRenderer : ThreatRenderer {
         cameraY: Float,
         alpha: Float,
         gameTime: Long,
-        player: Player
+        player: Player,
+        context: android.content.Context?
     ) {
         val cx = threat.x
         val cy = threat.y - cameraY
@@ -126,17 +127,59 @@ class SingularityRenderer : ThreatRenderer {
             )
         }
 
-        // 6. Reality Rifts (Random lines) — more in later phases
-        val riftCount = when (phase) { 4 -> 10; 3 -> 8; else -> 5 }
+        // D1: Digital Glitch Geometry (Wireframe flickering)
+        if (Random(gameTime).nextFloat() < 0.15f) {
+            val wireColor = coreColor.copy(alpha = 0.4f * alpha)
+            drawScope.rotate(rotation * 1.5f, pivot = Offset(cx, cy)) {
+                drawScope.drawRect(
+                    color = wireColor,
+                    topLeft = Offset(cx - 80f, cy - 80f),
+                    size = Size(160f, 160f),
+                    style = Stroke(width = 1.5f)
+                )
+            }
+        }
+
+        val riftCount = when (phase) { 4 -> 12; 3 -> 8; else -> 5 }
+        // D2: Reality Fracture (Color-inverting screen tears)
         repeat(riftCount) { i ->
-            val rx = cx + (Random(gameTime + i * 17L).nextFloat() - 0.5f) * 500f
-            val ry = cy + (Random(gameTime + i * 31L).nextFloat() - 0.5f) * 500f
-            val riftLen = if (phase == 4) 100f else 50f
+            val r = Random(gameTime + i * 37L)
+            val rx = cx + (r.nextFloat() - 0.5f) * 600f
+            val ry = cy + (r.nextFloat() - 0.5f) * 600f
+            val riftLen = if (phase == 4) 150f else 80f
+            
+            val fractureColor = if (r.nextBoolean()) coreColor else Color.White
             drawScope.drawLine(
-                color = coreColor.copy(alpha = 0.2f * alpha * (sin(gameTime / 100f + i) * 0.5f + 0.5f)),
-                start = Offset(rx - riftLen, ry),
-                end = Offset(rx + riftLen, ry),
-                strokeWidth = 2f
+                color = fractureColor.copy(alpha = 0.3f * alpha),
+                start = Offset(rx - riftLen, ry + (r.nextFloat()-0.5f) * 10f),
+                end = Offset(rx + riftLen, ry + (r.nextFloat()-0.5f) * 10f),
+                strokeWidth = 3f
+            )
+            // Secondary glitch line
+            if (phase >= 3) {
+                drawScope.drawLine(
+                    color = Color.Black.copy(alpha = 0.5f * alpha),
+                    start = Offset(rx - riftLen, ry),
+                    end = Offset(rx + riftLen, ry),
+                    strokeWidth = 1f
+                )
+            }
+        }
+
+        // D3: The Event Horizon (Screen-swallowing dark halo)
+        if (phase == 4) {
+            val horizonPulse = sin((gameTime / 120f).toDouble()).toFloat() * 0.1f + 0.9f
+            drawScope.drawCircle(
+                brush = Brush.radialGradient(
+                    0.0f to Color.Black,
+                    0.4f to Color.Black,
+                    0.7f to Color(0xFF1A237E).copy(alpha = 0.6f * alpha),
+                    1.0f to Color.Transparent,
+                    center = Offset(cx, cy),
+                    radius = 800f * horizonPulse
+                ),
+                radius = 800f * horizonPulse,
+                center = Offset(cx, cy)
             )
         }
         

@@ -10,7 +10,7 @@ class WorldRenderer {
     private val rocketRenderer = RocketRenderer()
     private val platformRenderer = PlatformRenderer()
 
-    fun render(drawScope: DrawScope, engine: GameEngine) {
+    fun render(drawScope: DrawScope, engine: GameEngine, context: android.content.Context) {
         val score = engine.score
         val gameTime = engine.gameTime
         val cameraY = engine.cameraY
@@ -21,13 +21,14 @@ class WorldRenderer {
         val screenWidth = engine.screenWidth
         val screenHeight = engine.screenHeight
         val groundY = engine.groundY
+        val assetMode = DevConfig.RENDER_MODE_ASSETS
 
         val shakeX = if (screenShake > 0) (Random.nextFloat() - 0.5f) * screenShake else 0f
         val shakeY = if (screenShake > 0) (Random.nextFloat() - 0.5f) * screenShake else 0f
 
         drawScope.translate(shakeX, shakeY) {
             // 1. Background
-            backgroundRenderer.render(this, score, altitudeManager.currentZone, cameraY, gameTime)
+            backgroundRenderer.render(this, score, altitudeManager.currentZone, cameraY, gameTime, context = context)
             
             // 2. Ground (before everything else in-game)
             val isPlaying = engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.PAUSED || engine.gameState == GameState.GAMEOVER
@@ -40,7 +41,7 @@ class WorldRenderer {
 
             // 4. Platforms
             engine.platforms.forEach { 
-                platformRenderer.render(this, it, altitudeManager.currentZone, cameraY, gameTime) 
+                platformRenderer.render(this, it, altitudeManager.currentZone, cameraY, gameTime, context = context) 
             }
 
             // 5. Particles (Rich rendering)
@@ -60,7 +61,7 @@ class WorldRenderer {
 
             // 10. Threats
             engine.threatManager.activeThreats.forEach { threat ->
-                ThreatRendererRegistry.forId(threat.definition.id)?.render(this, threat, cameraY, 1.0f, gameTime, player)
+                ThreatRendererRegistry.forId(threat.definition.id)?.render(this, threat, cameraY, 1.0f, gameTime, player, context = context)
                 drawBossHealthBar(threat, cameraY)
             }
 
@@ -68,7 +69,7 @@ class WorldRenderer {
             drawPowerUps(engine.powerUpManager.powerUps, cameraY, gameTime)
 
             // 12. Rocket
-            rocketRenderer.render(this, player, engine.effectiveThrust, engine.effectiveTarget, cameraY, gameTime)
+            rocketRenderer.render(this, player, engine.effectiveThrust, engine.effectiveTarget, cameraY, gameTime, context = context)
         }
 
         // 13. Reality Distortion (Void zone visual)

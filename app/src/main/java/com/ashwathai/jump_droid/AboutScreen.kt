@@ -2,14 +2,19 @@ package com.ashwathai.jump_droid
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -23,9 +28,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,15 +58,23 @@ fun AboutScreen(onDismiss: () -> Unit) {
             }
 
             Column(Modifier.padding(32.dp).verticalScroll(rememberScrollState()).safeDrawingPadding()) {
-                Text(
-                    "SYSTEM PROTOCOL",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        shadow = Shadow(SciFiCyan.copy(alpha = 0.4f), blurRadius = 12f)
-                    ),
-                    color = SciFiCyan,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 2.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_station_inf),
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(
+                        "SYSTEM PROTOCOL",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            shadow = Shadow(SciFiCyan.copy(alpha = 0.4f), blurRadius = 12f)
+                        ),
+                        color = SciFiCyan,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp
+                    )
+                }
                 Spacer(Modifier.height(32.dp))
                 Text(
                     text = "Jump Droid is a precision vertical exploration simulator. Navigate 12 unique atmospheric zones, battle 11 bosses, and discover over 100 entities. Master modular loadouts, complete mission tracks, and ascend beyond the known.",
@@ -78,15 +94,15 @@ fun AboutScreen(onDismiss: () -> Unit) {
                     "• 12 ATMOSPHERIC ZONES\n• 11 UNIQUE BOSSES\n• 100+ DISCOVERABLE ENTITIES\n" +
                     "• MODULAR ROCKET LOADOUT\n• 11 MISSION TRACKS\n• DATA ARCHIVES & LORE\n" +
                     "• 12-ZONE BGM & 33 SFX\n• HAPTIC FEEDBACK SYSTEM\n• COMBO REWARDS\n" +
-                    "• NOTIFICATION PRIORITY SYSTEM\n• PREMIUM PURCHASE (ADS REMOVED)",
+                    "• NOTIFICATION PRIORITY SYSTEM\n• PREMIUM PURCHASE (ADS REMOVED)\n" +
+                    "• CURRENCY SHOP (Skins, Trails, Themes)\n• FLEET EXPANSION (Scout, Tank, Experimental)",
                     color = SciFiWhite.copy(alpha = 0.6f), lineHeight = 22.sp, letterSpacing = 1.sp
                 )
                 Spacer(Modifier.height(32.dp))
 
-                Text("V2 PLANNED", style = MaterialTheme.typography.titleLarge, color = SciFiGold.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
+                Text("STATION STATUS", style = MaterialTheme.typography.titleLarge, color = SciFiGold.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
                 Text(
-                    "• CURRENCY SHOP (Rocket Skins, Engine Trails, UI Themes)\n" +
-                    "• FLEET EXPANSION\n• PREMIUM COSMETICS",
+                    "• ALL SYSTEMS OPERATIONAL\n• PRODUCTION ASCENSION COMPLETE\n• UNIVERSE EXPANSION READY",
                     color = SciFiWhite.copy(alpha = 0.4f), lineHeight = 22.sp, letterSpacing = 1.sp
                 )
                 Spacer(Modifier.height(48.dp))

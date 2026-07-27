@@ -23,6 +23,7 @@
 *   `docs/analysis/EPIC8_5_MASTER_BLUEPRINT.md`: Implementation blueprint for all EPIC 8.5 sprints.
 *   `docs/analysis/EPIC8_5_FINDING_COVERAGE_MATRIX.md`: Mapping audit findings to EPIC 8.5 sprints.
 *   `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md`: 17-finding codebase health assessment.
+*   `docs/SIGN_IN_FAILURE_AUDIT.md`: Investigative audit of Google Sign-In / Play Games identity silent failure.
 
 ## Gameplay & Design Libraries
 *   `docs/design/ACHIEVEMENT_LIBRARY.md`: Achievement catalog.
@@ -33,6 +34,7 @@
 *   `docs/design/PLATFORM_LIBRARY.md`: Platform type catalog.
 *   `docs/design/POWERUP_LIBRARY.md`: Catalog of in-run benefits and their logic.
 *   `docs/design/ROCKET_LIBRARY.md`: Class trait and stat specifications.
+*   `docs/design/SCORING_LIBRARY.md`: Mastery Source of Truth — formula, point registries, visual identity.
 *   `docs/design/THREAT_LIBRARY.md`: Threat (hazard/enemy/boss) design catalog.
 *   `docs/gameplay/BOSS_DESIGN_BIBLE.md`: Patterns, phases, and mechanics for all 6 bosses.
 *   `docs/gameplay/THREATS.md`: Comprehensive table of hazards and enemies.
@@ -46,8 +48,16 @@
 *   `docs/roadmap/RELEASE_POLISH_PLAN.md`: Pre-ship sprint plan — 7 phases, 20 items.
 *   `docs/roadmap/CRM_DECOUPLE_PLAN.md`: ReachEngine extraction roadmap — variable catalog, integration contracts, 5-phase extraction plan, customization API design, migration guide.
 
-## Marketing
-*   `docs/marketing/`: Store copy, brand guide, press materials, launch checklist.
+## Assets (Vector Suite)
+*   `app/src/main/res/drawable/`: Unified all-vector asset directory.
+    *   `ic_hud_*`: Living HUD indicators (Fuel, Heat, Shield, Hull).
+    *   `ic_station_*`: Main Menu station tray icons (ARC, INF, SYS, TRM).
+    *   `ic_btn_*`: Navigation button icons (Hangar, Missions, Shop).
+    *   `ic_currency_*`: Economy indicators (Credits, Cash).
+    *   `ic_track_*`: 11 Mission track identifiers.
+    *   `ic_cat_*`: 5 Module category icons.
+    *   `ic_stat_*`: Hangar performance stats (Thrust).
+    *   `ic_premium_star`: Premium user badge.
 
 ## Analytics & Ads
 *   `docs/ANALYTICS.md`: Primary doc — event catalog, screen tracking, AdMob, user properties, governance.

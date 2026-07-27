@@ -1,0 +1,12 @@
+- [x] Upgrade Google Play Billing Library to v9.1.0
+    - [x] Update `gradle/libs.versions.toml`
+    - [x] Update `PurchaseManager.kt`
+    - [x] Verify build
+- [x] Update build configuration (`app/build.gradle.kts`)
+- [x] Update Protocol Screen UI (`AboutScreen.kt`)
+- [x] Update project governance (`AGENTS.md`)
+- [x] Update `CHANGELOG.md`
+- [x] Update `RELEASES.md`
+- [x] Generate `docs/RELEASE_NOTES_v2.0.0.md`
+- [x] Build artifacts (Debug APK, Release APK, Release AAB)
+- [x] Verify changes

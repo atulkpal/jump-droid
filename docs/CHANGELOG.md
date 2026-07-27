@@ -4,6 +4,531 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-27
+
+**Version:** v2.0.0 — Production Ascension
+
+**Status:** Implementation Complete — branch `master` (Production Release)
+
+### Added — "Living World" Earth Overhaul
+- **High-Fidelity Backdrop**: Re-engineered the Earth zone with a vibrant "Morning City" aesthetic.
+- **Ice-Capped Mountains**: Distant peaks now feature procedural snow-caps with sunlight shading.
+- **Dynamic Entities**: Added a slow-moving aircraft silhouette and pulsating aviation lights to the skyline.
+- **Grounded Traffic**: Implemented a road layer with moving vehicles, headlight blooms, and lane markers.
+- **Rural Detail**: Dotted the rolling hills with tiny homestead silhouettes for a "lived-in" feel.
+
+### Added — HUD Immersion: The Flight Log
+- **Non-Blocking Flow**: Achievements, missions, and module unlocks no longer pause gameplay. They now trigger tactical notifications and "settle" into a pulsating deck on the HUD.
+- **Post-Run Summary**: Added a scrollable "Expedition Data" row to the Game Over screen for review.
+- **Claim Flow**: Unified mission reward collection into a single "Claim All" action at the end of a run.
+- **Tension Markers**: Progress bars now only appear at 95% completion to maintain high-stakes focus.
+
+### Changed — Performance & Geometry Fixes
+- **Global Parallax Fix**: Resolved project-wide bug where background elements (stars, clouds, dust) moved in reverse. All layers now correctly drift downward during ascent.
+- **Path Caching**: Implemented geometric caching for mountain and hill silhouettes, eliminating per-frame vertex calculations.
+- **Point Caching**: Star and particle positions are now pre-calculated to reduce Random churn.
+- **Quality Guardrails**: Added `QUALITY_LOW_END` toggle to disable expensive window lights and blooms on struggling hardware.
+
+### Added — Fleet Mastery & Rank Overhaul (Phase 10)
+- **Visible Mastery Points (MP)**: Surfaced account-level progression points (MP) across all major screens. Formula: `MP = Discoveries + (Artifacts × 3) + (Zones × 5)`.
+- **Procedural Rank Insignias**: Implemented 5 distinct, geometric rank medallions (Triangle to Stellar Nova) drawn via Compose Canvas with dynamic rotation and glow effects.
+- **Mastery Readout**: Added a "Mastery Data" card to the Archive screen to explain the scoring system and next-rank thresholds.
+- **Rank Recalibration**: Increased Rank V requirement to 500 MP to ensure long-term prestige.
+
+### Added — Online Auth & Stability
+- **Google Play Billing Upgrade**: Successfully migrated from PBL v7.1.0 to **v9.1.0**, implementing the latest `PendingPurchasesParams` API and enabling **Automatic Service Reconnection** for robust transaction handling.
+- **Firebase Auth Integration**: Bridged Google Sign-In with Firebase Authentication to authorize Firestore writes, resolving the `PERMISSION_DENIED` leaderboard crash.
+- **Global Terminal Reporting**: Successfully restored score reporting to the Global Terminal; scores now correctly appear for signed-in pilots.
+- **Safe Activity Lookup**: Implemented a recursive `findActivity()` helper to resolve `ClassCastException` in ad flows on devices using wrapped contexts (e.g., Pixel 9 Pro).
+- **Throttled Firestore Strategy**: Implemented "Minimum Writes" strategy. Data only syncs to cloud on `onPause` or Terminal engagement. Added hash-based write avoidance to `CloudSyncManager`.
+
+### Added — Robust Reset Protocols
+- **Reset Progress (Soft)**: Now correctly clears all gameplay data while **preserving** Premium/Ads-Removed status.
+- **Factory Reset (Hard)**: Performs a total wipe of all 6 preference files, kills the login session, and returns the app to a "Day 1" state.
+- **Persistence Fixes**: Resolved bug where Mastery Points would "stick" after a reset by explicitly clearing the `ArtifactManager` cache.
+
+### Changed — Gameplay Pacing & Economy
+- **Dynamic Conversion**: Tiered the Cash-to-Credits exchange price (100, 200, 400, 800 JC) based on lifetime bosses defeated.
+- **Rocket Unlock Pacing**: Scaled unlock thresholds (Scout 5k, Tank 15k, Experimental 40k) to prevent premature fleet completion.
+- **Mission Tuning**: Doubled early mission targets to prevent the "reward burst" at the start of new profiles.
+- **Centered Reveals**: Centered and scaled the rocket preview (2.5x) in the `UnlockOverlay` for high-impact reveals.
+
+### Fixed
+- **Near-Miss Logic**: Fixed mission `id` check and ensured it only triggers during active gameplay at < 10% health.
+- **Missing INF Button**: Restored the "About" button to the station tray which was accidentally removed in the previous layout pass.
+- **Ground-Level Triggers**: Added a 10-meter altitude guard to all mission and achievement updates to prevent triggers while standing on the ground.
+
+---
+
+## 2026-07-26
+
+**Version:** v1.5.3 — Dynamic Scoring & Cyber-Packet Visuals
+
+**Status:** Implementation Complete — branch `feature/fleet-ascension-visual-overhaul`
+
+### Added — Dynamic Scoring Engine
+- **Decoupled Progression**: Separated physical altitude (`runAltitude` in meters) from performance score (`score` in points). Physical distance now correctly drives zone transitions and boss spawns, while score reflects skill mastery.
+- **Boss Mastery Awards**: Implemented unique, data-driven score awards for all 12 bosses (250 pts for mini-bosses up to 5,000 pts for the Singularity).
+- **Exploration Bonuses**: Granted +10 points for every unique platform landed on during a run.
+- **Combo Score Injection**: Integrated combo streaks directly into the total score with per-step bonuses and major milestone awards (+100 pts every 5 steps).
+
+### Added — Cyber-Packet Visual Identity
+- **Flying Score Packets**: Scoring events now manifest as physical "Cyber-Packets" `[ +1000 ]` that fly from the event source to the HUD.
+- **Neon Palette**: Implemented high-contrast neon colors for different score sources: Matrix Green (Platforms), Plasma Gold (Bosses), and Hyper Purple (Combos).
+- **Rolling Counter**: HUD score display now rapidly "rolls" up as packets impact, accompanied by scale-pulse effects and localized particle blasts.
+- **Visual Polish**: Added ghost trail frames and exponential motion curves to flying packets for a futuristic feel.
+
+### Changed — Performance & Optimization
+- **Staggered Explosions**: Distributed boss death particle bursts over 200ms to eliminate frame skips on emulator devices.
+- **Overdraw Reduction**: Capped impact flash intensity to 0.7f to reduce GPU pressure.
+- **Data Integrity**: Refactored `MissionManager` and `UnlockEngine` to use physical altitude (meters) for distance-based milestones, preventing "skill teleportation" through mission tracks.
+
+### Fixed
+- **Missing Boss Scores**: Resolved root cause where boss destruction never triggered the `onScoreUpdate` callback.
+- **Persistence Ambiguity**: Added `highAltitude` (meters) to SharedPreferences to track lifetime best distance separately from `highScore` (points).
+
+---
+
+## 2026-07-27
+
+**Version:** v2.0.0 — Production Ascension
+
+**Status:** Implementation Complete — branch `master` (Production Release)
+
+### Added — "Living World" Earth Overhaul
+- **High-Fidelity Backdrop**: Re-engineered the Earth zone with a vibrant "Morning City" aesthetic.
+- **Ice-Capped Mountains**: Distant peaks now feature procedural snow-caps with sunlight shading.
+- **Dynamic Entities**: Added a slow-moving aircraft silhouette and pulsating aviation lights to the skyline.
+- **Grounded Traffic**: Implemented a road layer with moving vehicles, headlight blooms, and lane markers.
+- **Rural Detail**: Dotted the rolling hills with tiny homestead silhouettes for a "lived-in" feel.
+
+### Added — HUD Immersion: The Flight Log
+- **Non-Blocking Flow**: Achievements, missions, and module unlocks no longer pause gameplay. They now trigger tactical notifications and "settle" into a pulsating deck on the HUD.
+- **Post-Run Summary**: Added a scrollable "Expedition Data" row to the Game Over screen for review.
+- **Claim Flow**: Unified mission reward collection into a single "Claim All" action at the end of a run.
+- **Tension Markers**: Progress bars now only appear at 95% completion to maintain high-stakes focus.
+
+### Changed — Performance & Geometry Fixes
+- **Global Parallax Fix**: Resolved project-wide bug where background elements (stars, clouds, dust) moved in reverse. All layers now correctly drift downward during ascent.
+- **Path Caching**: Implemented geometric caching for mountain and hill silhouettes, eliminating per-frame vertex calculations.
+- **Point Caching**: Star and particle positions are now pre-calculated to reduce Random churn.
+- **Quality Guardrails**: Added `QUALITY_LOW_END` toggle to disable expensive window lights and blooms on struggling hardware.
+
+### Added — Fleet Mastery & Rank Overhaul (Phase 10)
+- **Visible Mastery Points (MP)**: Surfaced account-level progression points (MP) across all major screens. Formula: `MP = Discoveries + (Artifacts × 3) + (Zones × 5)`.
+- **Procedural Rank Insignias**: Implemented 5 distinct, geometric rank medallions (Triangle to Stellar Nova) drawn via Compose Canvas with dynamic rotation and glow effects.
+- **Mastery Readout**: Added a "Mastery Data" card to the Archive screen to explain the scoring system and next-rank thresholds.
+- **Rank Recalibration**: Increased Rank V requirement to 500 MP to ensure long-term prestige.
+
+### Added — Online Auth & Stability
+- **Google Play Billing Upgrade**: Successfully migrated from PBL v7.1.0 to **v9.1.0**, implementing the latest `PendingPurchasesParams` API and enabling **Automatic Service Reconnection** for robust transaction handling.
+- **Firebase Auth Integration**: Bridged Google Sign-In with Firebase Authentication to authorize Firestore writes, resolving the `PERMISSION_DENIED` leaderboard crash.
+- **Global Terminal Reporting**: Successfully restored score reporting to the Global Terminal; scores now correctly appear for signed-in pilots.
+- **Safe Activity Lookup**: Implemented a recursive `findActivity()` helper to resolve `ClassCastException` in ad flows on devices using wrapped contexts (e.g., Pixel 9 Pro).
+- **Throttled Firestore Strategy**: Implemented "Minimum Writes" strategy. Data only syncs to cloud on `onPause` or Terminal engagement. Added hash-based write avoidance to `CloudSyncManager`.
+
+### Added — Robust Reset Protocols
+- **Reset Progress (Soft)**: Now correctly clears all gameplay data while **preserving** Premium/Ads-Removed status.
+- **Factory Reset (Hard)**: Performs a total wipe of all 6 preference files, kills the login session, and returns the app to a "Day 1" state.
+- **Persistence Fixes**: Resolved bug where Mastery Points would "stick" after a reset by explicitly clearing the `ArtifactManager` cache.
+
+### Changed — Gameplay Pacing & Economy
+- **Dynamic Conversion**: Tiered the Cash-to-Credits exchange price (100, 200, 400, 800 JC) based on lifetime bosses defeated.
+- **Rocket Unlock Pacing**: Scaled unlock thresholds (Scout 5k, Tank 15k, Experimental 40k) to prevent premature fleet completion.
+- **Mission Tuning**: Doubled early mission targets to prevent the "reward burst" at the start of new profiles.
+- **Centered Reveals**: Centered and scaled the rocket preview (2.5x) in the `UnlockOverlay` for high-impact reveals.
+
+### Fixed
+- **Near-Miss Logic**: Fixed mission `id` check and ensured it only triggers during active gameplay at < 10% health.
+- **Missing INF Button**: Restored the "About" button to the station tray which was accidentally removed in the previous layout pass.
+- **Ground-Level Triggers**: Added a 10-meter altitude guard to all mission and achievement updates to prevent triggers while standing on the ground.
+
+---
+
+## 2026-07-26
+
+**Version:** v1.6.0 (Planned) — Navigation Migration & Performance Finalization
+
+**Status:** Implementation Complete — branch `feature/fleet-ascension-visual-overhaul`
+
+### Added — Navigation-Based Overlay System
+- **NavHost Overlays**: Successfully migrated 7 interactive overlays (`pause`, `game_over`, `tutorial`, `help`, `unlock`, `continue_ready`, `ascension_credits`) to the centralized `NavHost` as `dialog` routes.
+- **Architectural Purity**: Removed all conditional visibility flags for interactive overlays in `GamePlayScreen.kt`.
+- **Back-Stack Management**: Standardized back-navigation across all game states, ensuring a consistent user experience.
+
+### Added — Cosmetic Economy (Phase 6)
+- **Trail Requisition**: Activated 3 purchasable engine trails (Solar Flare, Void Glitch, Plasma Blue) in the Shop using Jump Credits (JC).
+- **Paint Schemes**: Activated 3 purchasable hull coatings (Chrome, Stealth, Prototype-X) in the Shop.
+- **Credit Banking**: Implemented JC-to-Credit exchange (100 JC = 1 Continue Credit).
+- **Hangar Persistence**: Enhanced `ProgressionManager.kt` and `HangarScreen.kt` to track and display unlocked cosmetics with secure persistence and cloud-sync support.
+
+### Changed — Performance & Rendering (Phase 8)
+- **Zero-Allocation Noise**: Pre-calculated white-noise fragments for the `SINGULARITY` zone to eliminate per-frame `Random` and `Size` object churn.
+- **Aurora Path Caching**: Implemented geometric caching for Aurora bands in the `UPPER_ATMOSPHERE`, reducing DrawScope overhead.
+- **Visual Priority Queue**: Implemented a state-based priority system in `GameEngine.kt` to sequence major events (`Zone Transition` > `Boss Arrival` > `Artifact Lore`) and prevent UI overlap.
+
+### Fixed
+- **Firestore Stability**: Resolved a fatal `PERMISSION_DENIED` crash in `RemoteConfigManager` by removing illegal client-side writes to global server configuration.
+- **Overlay Hierarchy**: Enhanced `GamePlayScreen` layering logic to automatically suppress background alerts (Boss Arrivals, Zone Transitions) when a blocking modal or dialog is active, resolving the "frozen/chaotic UI" state.
+- **Warning Fade Bug**: Fixed root cause where `majorWarningTimer` was never decremented, causing tactical warnings to persist indefinitely.
+- **Sign-In Silent Failure**: (Phase 7.1) Resolved `ActivityResult` parsing error and added mandatory `PlayGamesSdk` initialization.
+
+---
+
+## 2026-07-27
+
+**Version:** v2.0.0 — Production Ascension
+
+**Status:** Implementation Complete — branch `master` (Production Release)
+
+### Added — "Living World" Earth Overhaul
+- **High-Fidelity Backdrop**: Re-engineered the Earth zone with a vibrant "Morning City" aesthetic.
+- **Ice-Capped Mountains**: Distant peaks now feature procedural snow-caps with sunlight shading.
+- **Dynamic Entities**: Added a slow-moving aircraft silhouette and pulsating aviation lights to the skyline.
+- **Grounded Traffic**: Implemented a road layer with moving vehicles, headlight blooms, and lane markers.
+- **Rural Detail**: Dotted the rolling hills with tiny homestead silhouettes for a "lived-in" feel.
+
+### Added — HUD Immersion: The Flight Log
+- **Non-Blocking Flow**: Achievements, missions, and module unlocks no longer pause gameplay. They now trigger tactical notifications and "settle" into a pulsating deck on the HUD.
+- **Post-Run Summary**: Added a scrollable "Expedition Data" row to the Game Over screen for review.
+- **Claim Flow**: Unified mission reward collection into a single "Claim All" action at the end of a run.
+- **Tension Markers**: Progress bars now only appear at 95% completion to maintain high-stakes focus.
+
+### Changed — Performance & Geometry Fixes
+- **Global Parallax Fix**: Resolved project-wide bug where background elements (stars, clouds, dust) moved in reverse. All layers now correctly drift downward during ascent.
+- **Path Caching**: Implemented geometric caching for mountain and hill silhouettes, eliminating per-frame vertex calculations.
+- **Point Caching**: Star and particle positions are now pre-calculated to reduce Random churn.
+- **Quality Guardrails**: Added `QUALITY_LOW_END` toggle to disable expensive window lights and blooms on struggling hardware.
+
+### Added — Fleet Mastery & Rank Overhaul (Phase 10)
+- **Visible Mastery Points (MP)**: Surfaced account-level progression points (MP) across all major screens. Formula: `MP = Discoveries + (Artifacts × 3) + (Zones × 5)`.
+- **Procedural Rank Insignias**: Implemented 5 distinct, geometric rank medallions (Triangle to Stellar Nova) drawn via Compose Canvas with dynamic rotation and glow effects.
+- **Mastery Readout**: Added a "Mastery Data" card to the Archive screen to explain the scoring system and next-rank thresholds.
+- **Rank Recalibration**: Increased Rank V requirement to 500 MP to ensure long-term prestige.
+
+### Added — Online Auth & Stability
+- **Google Play Billing Upgrade**: Successfully migrated from PBL v7.1.0 to **v9.1.0**, implementing the latest `PendingPurchasesParams` API and enabling **Automatic Service Reconnection** for robust transaction handling.
+- **Firebase Auth Integration**: Bridged Google Sign-In with Firebase Authentication to authorize Firestore writes, resolving the `PERMISSION_DENIED` leaderboard crash.
+- **Global Terminal Reporting**: Successfully restored score reporting to the Global Terminal; scores now correctly appear for signed-in pilots.
+- **Safe Activity Lookup**: Implemented a recursive `findActivity()` helper to resolve `ClassCastException` in ad flows on devices using wrapped contexts (e.g., Pixel 9 Pro).
+- **Throttled Firestore Strategy**: Implemented "Minimum Writes" strategy. Data only syncs to cloud on `onPause` or Terminal engagement. Added hash-based write avoidance to `CloudSyncManager`.
+
+### Added — Robust Reset Protocols
+- **Reset Progress (Soft)**: Now correctly clears all gameplay data while **preserving** Premium/Ads-Removed status.
+- **Factory Reset (Hard)**: Performs a total wipe of all 6 preference files, kills the login session, and returns the app to a "Day 1" state.
+- **Persistence Fixes**: Resolved bug where Mastery Points would "stick" after a reset by explicitly clearing the `ArtifactManager` cache.
+
+### Changed — Gameplay Pacing & Economy
+- **Dynamic Conversion**: Tiered the Cash-to-Credits exchange price (100, 200, 400, 800 JC) based on lifetime bosses defeated.
+- **Rocket Unlock Pacing**: Scaled unlock thresholds (Scout 5k, Tank 15k, Experimental 40k) to prevent premature fleet completion.
+- **Mission Tuning**: Doubled early mission targets to prevent the "reward burst" at the start of new profiles.
+- **Centered Reveals**: Centered and scaled the rocket preview (2.5x) in the `UnlockOverlay` for high-impact reveals.
+
+### Fixed
+- **Near-Miss Logic**: Fixed mission `id` check and ensured it only triggers during active gameplay at < 10% health.
+- **Missing INF Button**: Restored the "About" button to the station tray which was accidentally removed in the previous layout pass.
+- **Ground-Level Triggers**: Added a 10-meter altitude guard to all mission and achievement updates to prevent triggers while standing on the ground.
+
+---
+
+## 2026-07-26
+
+**Version:** v1.5.3 — Dynamic Scoring & Cyber-Packet Visuals
+
+**Status:** Implementation Complete — branch `feature/fleet-ascension-visual-overhaul`
+
+### Added — Dynamic Scoring Engine
+- **Decoupled Progression**: Separated physical altitude (`runAltitude` in meters) from performance score (`score` in points). Physical distance now correctly drives zone transitions and boss spawns, while score reflects skill mastery.
+- **Boss Mastery Awards**: Implemented unique, data-driven score awards for all 12 bosses (250 pts for mini-bosses up to 5,000 pts for the Singularity).
+- **Exploration Bonuses**: Granted +10 points for every unique platform landed on during a run.
+- **Combo Score Injection**: Integrated combo streaks directly into the total score with per-step bonuses and major milestone awards (+100 pts every 5 steps).
+
+### Added — Cyber-Packet Visual Identity
+- **Flying Score Packets**: Scoring events now manifest as physical "Cyber-Packets" `[ +1000 ]` that fly from the event source to the HUD.
+- **Neon Palette**: Implemented high-contrast neon colors for different score sources: Matrix Green (Platforms), Plasma Gold (Bosses), and Hyper Purple (Combos).
+- **Rolling Counter**: HUD score display now rapidly "rolls" up as packets impact, accompanied by scale-pulse effects and localized particle blasts.
+- **Visual Polish**: Added ghost trail frames and exponential motion curves to flying packets for a futuristic feel.
+
+### Changed — Performance & Optimization
+- **Staggered Explosions**: Distributed boss death particle bursts over 200ms to eliminate frame skips on emulator devices.
+- **Overdraw Reduction**: Capped impact flash intensity to 0.7f to reduce GPU pressure.
+- **Data Integrity**: Refactored `MissionManager` and `UnlockEngine` to use physical altitude (meters) for distance-based milestones, preventing "skill teleportation" through mission tracks.
+
+### Fixed
+- **Missing Boss Scores**: Resolved root cause where boss destruction never triggered the `onScoreUpdate` callback.
+- **Persistence Ambiguity**: Added `highAltitude` (meters) to SharedPreferences to track lifetime best distance separately from `highScore` (points).
+
+---
+
+## 2026-07-27
+
+**Version:** v2.0.0 — Production Ascension
+
+**Status:** Implementation Complete — branch `master` (Production Release)
+
+### Added — "Living World" Earth Overhaul
+- **High-Fidelity Backdrop**: Re-engineered the Earth zone with a vibrant "Morning City" aesthetic.
+- **Ice-Capped Mountains**: Distant peaks now feature procedural snow-caps with sunlight shading.
+- **Dynamic Entities**: Added a slow-moving aircraft silhouette and pulsating aviation lights to the skyline.
+- **Grounded Traffic**: Implemented a road layer with moving vehicles, headlight blooms, and lane markers.
+- **Rural Detail**: Dotted the rolling hills with tiny homestead silhouettes for a "lived-in" feel.
+
+### Added — HUD Immersion: The Flight Log
+- **Non-Blocking Flow**: Achievements, missions, and module unlocks no longer pause gameplay. They now trigger tactical notifications and "settle" into a pulsating deck on the HUD.
+- **Post-Run Summary**: Added a scrollable "Expedition Data" row to the Game Over screen for review.
+- **Claim Flow**: Unified mission reward collection into a single "Claim All" action at the end of a run.
+- **Tension Markers**: Progress bars now only appear at 95% completion to maintain high-stakes focus.
+
+### Changed — Performance & Geometry Fixes
+- **Global Parallax Fix**: Resolved project-wide bug where background elements (stars, clouds, dust) moved in reverse. All layers now correctly drift downward during ascent.
+- **Path Caching**: Implemented geometric caching for mountain and hill silhouettes, eliminating per-frame vertex calculations.
+- **Point Caching**: Star and particle positions are now pre-calculated to reduce Random churn.
+- **Quality Guardrails**: Added `QUALITY_LOW_END` toggle to disable expensive window lights and blooms on struggling hardware.
+
+### Added — Fleet Mastery & Rank Overhaul (Phase 10)
+- **Visible Mastery Points (MP)**: Surfaced account-level progression points (MP) across all major screens. Formula: `MP = Discoveries + (Artifacts × 3) + (Zones × 5)`.
+- **Procedural Rank Insignias**: Implemented 5 distinct, geometric rank medallions (Triangle to Stellar Nova) drawn via Compose Canvas with dynamic rotation and glow effects.
+- **Mastery Readout**: Added a "Mastery Data" card to the Archive screen to explain the scoring system and next-rank thresholds.
+- **Rank Recalibration**: Increased Rank V requirement to 500 MP to ensure long-term prestige.
+
+### Added — Online Auth & Stability
+- **Google Play Billing Upgrade**: Successfully migrated from PBL v7.1.0 to **v9.1.0**, implementing the latest `PendingPurchasesParams` API and enabling **Automatic Service Reconnection** for robust transaction handling.
+- **Firebase Auth Integration**: Bridged Google Sign-In with Firebase Authentication to authorize Firestore writes, resolving the `PERMISSION_DENIED` leaderboard crash.
+- **Global Terminal Reporting**: Successfully restored score reporting to the Global Terminal; scores now correctly appear for signed-in pilots.
+- **Safe Activity Lookup**: Implemented a recursive `findActivity()` helper to resolve `ClassCastException` in ad flows on devices using wrapped contexts (e.g., Pixel 9 Pro).
+- **Throttled Firestore Strategy**: Implemented "Minimum Writes" strategy. Data only syncs to cloud on `onPause` or Terminal engagement. Added hash-based write avoidance to `CloudSyncManager`.
+
+### Added — Robust Reset Protocols
+- **Reset Progress (Soft)**: Now correctly clears all gameplay data while **preserving** Premium/Ads-Removed status.
+- **Factory Reset (Hard)**: Performs a total wipe of all 6 preference files, kills the login session, and returns the app to a "Day 1" state.
+- **Persistence Fixes**: Resolved bug where Mastery Points would "stick" after a reset by explicitly clearing the `ArtifactManager` cache.
+
+### Changed — Gameplay Pacing & Economy
+- **Dynamic Conversion**: Tiered the Cash-to-Credits exchange price (100, 200, 400, 800 JC) based on lifetime bosses defeated.
+- **Rocket Unlock Pacing**: Scaled unlock thresholds (Scout 5k, Tank 15k, Experimental 40k) to prevent premature fleet completion.
+- **Mission Tuning**: Doubled early mission targets to prevent the "reward burst" at the start of new profiles.
+- **Centered Reveals**: Centered and scaled the rocket preview (2.5x) in the `UnlockOverlay` for high-impact reveals.
+
+### Fixed
+- **Near-Miss Logic**: Fixed mission `id` check and ensured it only triggers during active gameplay at < 10% health.
+- **Missing INF Button**: Restored the "About" button to the station tray which was accidentally removed in the previous layout pass.
+- **Ground-Level Triggers**: Added a 10-meter altitude guard to all mission and achievement updates to prevent triggers while standing on the ground.
+
+---
+
+## 2026-07-26
+
+**Version:** v1.5.5 (Planned) — Colorful Vector Integration & HUD Refinement
+
+**Status:** Implementation Complete — branch `feature/fleet-ascension-visual-overhaul`
+
+### Added — Colorful Vector Suite (34 Assets)
+- **Integration**: Integrated 34 high-fidelity multi-color vector icons across all UI surfaces (HUD, Menus, Hangar, Shop, Missions).
+- **Format Migration**: Successfully migrated the entire UI asset ecosystem from raster (PNG) to **All-Vector (XML)** for infinite scalability and reduced build size.
+- **Living HUD**: Implemented state-responsive animations for HUD indicators:
+    - **Fuel**: Animated bounce and color-coded shadows.
+    - **Heat**: Dynamic flicker and scale-based warning pulses.
+    - **Shield**: Rotational sway and status-aware glow.
+    - **Hull**: Heartbeat pulse tied to integrity percentage.
+
+### Changed — UI Visual Polish
+- **Classy Minimalist HUD**: Reduced HUD icon sizes (13-14dp) and implemented Monospaced Black typography for a technical "digital readout" aesthetic.
+- **Station Tray Restoration**: Replaced legacy PNG station tray icons with vibrant, multi-color vectors.
+- **Mission Tracks**: Every mission track now features a unique, colorful vector identifier.
+- **Hangar Performance**: Replaced procedural performance icons with detailed vector assets.
+
+### Fixed — Visual Regressions & UI Layering
+- **Boss Arrival Intensity**: Reduced screen dimming from 60% to 40% and fixed the fade-out logic to reach 0% alpha reliably.
+- **GameOver Layer Isolation**: Implemented a "Z-Order Lockdown" in `GamePlayScreen.kt` to suppress all background alerts (Boss Arrival, Zone Discovery, Lore) while the Game Over screen is active.
+- **Notification De-duplication**: Scrapped the legacy "Boxed" zone discovery card in favor of the cleaner, minimal underline transition overlay.
+- **Continuity Fixes**: Ensured `restartGame()` and `jumpToZone()` properly reset all boss arrival and zone transition states.
+
+---
+
+## 2026-07-27
+
+**Version:** v2.0.0 — Production Ascension
+
+**Status:** Implementation Complete — branch `master` (Production Release)
+
+### Added — "Living World" Earth Overhaul
+- **High-Fidelity Backdrop**: Re-engineered the Earth zone with a vibrant "Morning City" aesthetic.
+- **Ice-Capped Mountains**: Distant peaks now feature procedural snow-caps with sunlight shading.
+- **Dynamic Entities**: Added a slow-moving aircraft silhouette and pulsating aviation lights to the skyline.
+- **Grounded Traffic**: Implemented a road layer with moving vehicles, headlight blooms, and lane markers.
+- **Rural Detail**: Dotted the rolling hills with tiny homestead silhouettes for a "lived-in" feel.
+
+### Added — HUD Immersion: The Flight Log
+- **Non-Blocking Flow**: Achievements, missions, and module unlocks no longer pause gameplay. They now trigger tactical notifications and "settle" into a pulsating deck on the HUD.
+- **Post-Run Summary**: Added a scrollable "Expedition Data" row to the Game Over screen for review.
+- **Claim Flow**: Unified mission reward collection into a single "Claim All" action at the end of a run.
+- **Tension Markers**: Progress bars now only appear at 95% completion to maintain high-stakes focus.
+
+### Changed — Performance & Geometry Fixes
+- **Global Parallax Fix**: Resolved project-wide bug where background elements (stars, clouds, dust) moved in reverse. All layers now correctly drift downward during ascent.
+- **Path Caching**: Implemented geometric caching for mountain and hill silhouettes, eliminating per-frame vertex calculations.
+- **Point Caching**: Star and particle positions are now pre-calculated to reduce Random churn.
+- **Quality Guardrails**: Added `QUALITY_LOW_END` toggle to disable expensive window lights and blooms on struggling hardware.
+
+### Added — Fleet Mastery & Rank Overhaul (Phase 10)
+- **Visible Mastery Points (MP)**: Surfaced account-level progression points (MP) across all major screens. Formula: `MP = Discoveries + (Artifacts × 3) + (Zones × 5)`.
+- **Procedural Rank Insignias**: Implemented 5 distinct, geometric rank medallions (Triangle to Stellar Nova) drawn via Compose Canvas with dynamic rotation and glow effects.
+- **Mastery Readout**: Added a "Mastery Data" card to the Archive screen to explain the scoring system and next-rank thresholds.
+- **Rank Recalibration**: Increased Rank V requirement to 500 MP to ensure long-term prestige.
+
+### Added — Online Auth & Stability
+- **Google Play Billing Upgrade**: Successfully migrated from PBL v7.1.0 to **v9.1.0**, implementing the latest `PendingPurchasesParams` API and enabling **Automatic Service Reconnection** for robust transaction handling.
+- **Firebase Auth Integration**: Bridged Google Sign-In with Firebase Authentication to authorize Firestore writes, resolving the `PERMISSION_DENIED` leaderboard crash.
+- **Global Terminal Reporting**: Successfully restored score reporting to the Global Terminal; scores now correctly appear for signed-in pilots.
+- **Safe Activity Lookup**: Implemented a recursive `findActivity()` helper to resolve `ClassCastException` in ad flows on devices using wrapped contexts (e.g., Pixel 9 Pro).
+- **Throttled Firestore Strategy**: Implemented "Minimum Writes" strategy. Data only syncs to cloud on `onPause` or Terminal engagement. Added hash-based write avoidance to `CloudSyncManager`.
+
+### Added — Robust Reset Protocols
+- **Reset Progress (Soft)**: Now correctly clears all gameplay data while **preserving** Premium/Ads-Removed status.
+- **Factory Reset (Hard)**: Performs a total wipe of all 6 preference files, kills the login session, and returns the app to a "Day 1" state.
+- **Persistence Fixes**: Resolved bug where Mastery Points would "stick" after a reset by explicitly clearing the `ArtifactManager` cache.
+
+### Changed — Gameplay Pacing & Economy
+- **Dynamic Conversion**: Tiered the Cash-to-Credits exchange price (100, 200, 400, 800 JC) based on lifetime bosses defeated.
+- **Rocket Unlock Pacing**: Scaled unlock thresholds (Scout 5k, Tank 15k, Experimental 40k) to prevent premature fleet completion.
+- **Mission Tuning**: Doubled early mission targets to prevent the "reward burst" at the start of new profiles.
+- **Centered Reveals**: Centered and scaled the rocket preview (2.5x) in the `UnlockOverlay` for high-impact reveals.
+
+### Fixed
+- **Near-Miss Logic**: Fixed mission `id` check and ensured it only triggers during active gameplay at < 10% health.
+- **Missing INF Button**: Restored the "About" button to the station tray which was accidentally removed in the previous layout pass.
+- **Ground-Level Triggers**: Added a 10-meter altitude guard to all mission and achievement updates to prevent triggers while standing on the ground.
+
+---
+
+## 2026-07-26
+
+**Version:** v1.5.3 — Dynamic Scoring & Cyber-Packet Visuals
+
+**Status:** Implementation Complete — branch `feature/fleet-ascension-visual-overhaul`
+
+### Added — Dynamic Scoring Engine
+- **Decoupled Progression**: Separated physical altitude (`runAltitude` in meters) from performance score (`score` in points). Physical distance now correctly drives zone transitions and boss spawns, while score reflects skill mastery.
+- **Boss Mastery Awards**: Implemented unique, data-driven score awards for all 12 bosses (250 pts for mini-bosses up to 5,000 pts for the Singularity).
+- **Exploration Bonuses**: Granted +10 points for every unique platform landed on during a run.
+- **Combo Score Injection**: Integrated combo streaks directly into the total score with per-step bonuses and major milestone awards (+100 pts every 5 steps).
+
+### Added — Cyber-Packet Visual Identity
+- **Flying Score Packets**: Scoring events now manifest as physical "Cyber-Packets" `[ +1000 ]` that fly from the event source to the HUD.
+- **Neon Palette**: Implemented high-contrast neon colors for different score sources: Matrix Green (Platforms), Plasma Gold (Bosses), and Hyper Purple (Combos).
+- **Rolling Counter**: HUD score display now rapidly "rolls" up as packets impact, accompanied by scale-pulse effects and localized particle blasts.
+- **Visual Polish**: Added ghost trail frames and exponential motion curves to flying packets for a futuristic feel.
+
+### Changed — Performance & Optimization
+- **Staggered Explosions**: Distributed boss death particle bursts over 200ms to eliminate frame skips on emulator devices.
+- **Overdraw Reduction**: Capped impact flash intensity to 0.7f to reduce GPU pressure.
+- **Data Integrity**: Refactored `MissionManager` and `UnlockEngine` to use physical altitude (meters) for distance-based milestones, preventing "skill teleportation" through mission tracks.
+
+### Fixed
+- **Missing Boss Scores**: Resolved root cause where boss destruction never triggered the `onScoreUpdate` callback.
+- **Persistence Ambiguity**: Added `highAltitude` (meters) to SharedPreferences to track lifetime best distance separately from `highScore` (points).
+
+---
+
+## 2026-07-27
+
+**Version:** v2.0.0 — Production Ascension
+
+**Status:** Implementation Complete — branch `master` (Production Release)
+
+### Added — "Living World" Earth Overhaul
+- **High-Fidelity Backdrop**: Re-engineered the Earth zone with a vibrant "Morning City" aesthetic.
+- **Ice-Capped Mountains**: Distant peaks now feature procedural snow-caps with sunlight shading.
+- **Dynamic Entities**: Added a slow-moving aircraft silhouette and pulsating aviation lights to the skyline.
+- **Grounded Traffic**: Implemented a road layer with moving vehicles, headlight blooms, and lane markers.
+- **Rural Detail**: Dotted the rolling hills with tiny homestead silhouettes for a "lived-in" feel.
+
+### Added — HUD Immersion: The Flight Log
+- **Non-Blocking Flow**: Achievements, missions, and module unlocks no longer pause gameplay. They now trigger tactical notifications and "settle" into a pulsating deck on the HUD.
+- **Post-Run Summary**: Added a scrollable "Expedition Data" row to the Game Over screen for review.
+- **Claim Flow**: Unified mission reward collection into a single "Claim All" action at the end of a run.
+- **Tension Markers**: Progress bars now only appear at 95% completion to maintain high-stakes focus.
+
+### Changed — Performance & Geometry Fixes
+- **Global Parallax Fix**: Resolved project-wide bug where background elements (stars, clouds, dust) moved in reverse. All layers now correctly drift downward during ascent.
+- **Path Caching**: Implemented geometric caching for mountain and hill silhouettes, eliminating per-frame vertex calculations.
+- **Point Caching**: Star and particle positions are now pre-calculated to reduce Random churn.
+- **Quality Guardrails**: Added `QUALITY_LOW_END` toggle to disable expensive window lights and blooms on struggling hardware.
+
+### Added — Fleet Mastery & Rank Overhaul (Phase 10)
+- **Visible Mastery Points (MP)**: Surfaced account-level progression points (MP) across all major screens. Formula: `MP = Discoveries + (Artifacts × 3) + (Zones × 5)`.
+- **Procedural Rank Insignias**: Implemented 5 distinct, geometric rank medallions (Triangle to Stellar Nova) drawn via Compose Canvas with dynamic rotation and glow effects.
+- **Mastery Readout**: Added a "Mastery Data" card to the Archive screen to explain the scoring system and next-rank thresholds.
+- **Rank Recalibration**: Increased Rank V requirement to 500 MP to ensure long-term prestige.
+
+### Added — Online Auth & Stability
+- **Google Play Billing Upgrade**: Successfully migrated from PBL v7.1.0 to **v9.1.0**, implementing the latest `PendingPurchasesParams` API and enabling **Automatic Service Reconnection** for robust transaction handling.
+- **Firebase Auth Integration**: Bridged Google Sign-In with Firebase Authentication to authorize Firestore writes, resolving the `PERMISSION_DENIED` leaderboard crash.
+- **Global Terminal Reporting**: Successfully restored score reporting to the Global Terminal; scores now correctly appear for signed-in pilots.
+- **Safe Activity Lookup**: Implemented a recursive `findActivity()` helper to resolve `ClassCastException` in ad flows on devices using wrapped contexts (e.g., Pixel 9 Pro).
+- **Throttled Firestore Strategy**: Implemented "Minimum Writes" strategy. Data only syncs to cloud on `onPause` or Terminal engagement. Added hash-based write avoidance to `CloudSyncManager`.
+
+### Added — Robust Reset Protocols
+- **Reset Progress (Soft)**: Now correctly clears all gameplay data while **preserving** Premium/Ads-Removed status.
+- **Factory Reset (Hard)**: Performs a total wipe of all 6 preference files, kills the login session, and returns the app to a "Day 1" state.
+- **Persistence Fixes**: Resolved bug where Mastery Points would "stick" after a reset by explicitly clearing the `ArtifactManager` cache.
+
+### Changed — Gameplay Pacing & Economy
+- **Dynamic Conversion**: Tiered the Cash-to-Credits exchange price (100, 200, 400, 800 JC) based on lifetime bosses defeated.
+- **Rocket Unlock Pacing**: Scaled unlock thresholds (Scout 5k, Tank 15k, Experimental 40k) to prevent premature fleet completion.
+- **Mission Tuning**: Doubled early mission targets to prevent the "reward burst" at the start of new profiles.
+- **Centered Reveals**: Centered and scaled the rocket preview (2.5x) in the `UnlockOverlay` for high-impact reveals.
+
+### Fixed
+- **Near-Miss Logic**: Fixed mission `id` check and ensured it only triggers during active gameplay at < 10% health.
+- **Missing INF Button**: Restored the "About" button to the station tray which was accidentally removed in the previous layout pass.
+- **Ground-Level Triggers**: Added a 10-meter altitude guard to all mission and achievement updates to prevent triggers while standing on the ground.
+
+---
+
+## 2026-07-26
+
+**Version:** v1.5.4 (Planned) — Total Canvas Visual Overhaul
+
+**Status:** Implementation Complete — branch `feature/fleet-ascension-visual-overhaul`
+
+### Fixed — Google Sign-In & Play Games Identity
+- **Silent Failure Resolution**: Fixed root cause where sign-in result was never captured. Now uses `GoogleSignIn.getSignedInAccountFromIntent(data)` for interactive picker results.
+- **SDK Initialization**: Added mandatory `PlayGamesSdk.initialize(this)` and `com.google.android.gms.games.APP_ID` manifest entry.
+- **Identity Prioritization**: Enhanced `LoginManager.kt` to explicitly fetch and prioritize Play Games **GamerTag (Alias)** over Google Account names.
+- **Configuration Sync**: Generated and synced production SHA-1 fingerprints (Debug & Release) with Firebase and Play Console via CLI.
+- **Sign-Out UX**: Added confirmation dialogs and clear "SIGN OUT ([Name])" labels to prevent accidental disconnects.
+
+### Added — Total Boss Visual Pass (12 Bosses)
+- **Commander**: Long flickering exhaust trails, rotating turret pods, extending sensor arrays, and hexagonal jam pulses.
+- **Star-Eater**: Dense purple accretion disk with orbiting light motes and central "gravity lens" radial gradient. Liquid-like hunger tendrils.
+- **Thermal Hive**: Screen-wide thermal haze overlay and increased orbiting swarm density. Red vascular internal vein pulsing.
+- **Forger**: Holographic "blueprint" grid projection during fabrication. Multi-jointed assembly arm animations. High-intensity cyan strobes.
+- **Architect**: "Fractal Unfolding" core with 4 counter-rotating geometric shells. Energy conduit lightning links between sub-structures.
+- **Entropy Core**: Plasma siphon beams pulling from screen edges. Periodic cooling vent steam particles.
+- **Singularity**: Reality fractures (color-inverting tears) and massive Phase 4 "Event Horizon" dark halo.
+- **Legacy Pass**: Enhanced Gatekeeper afterimages, Leviathan segment smoothness, and Signal glitch density.
+- **Death Sequences**: Scaled cataclysmic explosion intensity across all bosses in `ThreatInteractionProcessor.kt`.
+
+### Added — Rocket Visual Upgrade
+- **Thruster Flame**: 2-layer outer/inner flicker with smooth Blue→Gold→Red heat-based color transitions. Mach diamonds and core heat shimmer.
+- **Body Details**: Pulsing energy glow highlights on panel lines, rivet details, and enhanced armor ridges for Chassis 2.
+- **Damage States**: Multi-layered scorch marks (>40%), electrical sparking (>70%), and internal "Integrity Breach" glow (>85%).
+- **Shielding**: Persistent energy sphere pulse on hit and hexagonal lattice background on active shield plates.
+
+### Added — Particle System Pass
+- **Landing Effects**: Zone-tinted, multi-layered expanding rings.
+- **Combo Rewards**: Persistent flight trails for rewards flying toward the player.
+- **Thrust Trail**: Enhanced shimmer and background glow for engine particles.
+
+### Technical Foundation (Phase 8)
+- **ProgressionManager Decomposition**: Split into 5 domain services (ArtifactManager, ModuleInventory, MissionTracker, UnlockService, StatRecorder).
+- **StarfieldBackground Extraction**: Consistently unified 6 duplicate implementations into a single shared composable.
+- **Navigation Research**: Identified 9 overlay candidates for `NavHost` migration.
+- **Performance Profiling**: Identified bottlenecks in `ZoneBackgroundRenderer.kt` (Aurora paths and starfield loops).
+
+---
+
 ## 2026-07-24
 
 **Version:** v1.5.3 — Scout Drone Gradient Crash Fix (Hotfix)

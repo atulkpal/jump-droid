@@ -4,6 +4,26 @@ All official releases with build artifacts and key changes.
 
 ---
 
+## v2.0.0 — Production Ascension
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-27 |
+| **Version Code** | 7 |
+| **Tag** | `v2.0.0` |
+| **Branch** | `master` |
+| **Status** | ✅ Production Release |
+
+### Highlights
+- **Fleet Expansion**: Full access to Scout, Tank, and Experimental rocket classes.
+- **Cosmetic Economy**: Integrated Currency Shop with engine trails and paint schemes.
+- **Visual Overhaul**: "Morning City" Earth backdrop with high-fidelity parallax and dynamic traffic.
+- **Flight Log System**: Non-blocking tactical notifications for achievements and unlocks.
+- **Performance Optimization**: Path caching for complex geometry and zero-allocation noise rendering.
+- **Online Integration**: Stable Firebase Auth + Firestore leaderboards.
+
+---
+
 ## v1.5.3 — Scout Drone Gradient Crash Fix (Hotfix)
 
 | Field | Value |

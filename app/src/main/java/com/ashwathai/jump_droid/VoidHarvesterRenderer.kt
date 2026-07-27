@@ -20,7 +20,8 @@ class VoidHarvesterRenderer : ThreatRenderer {
         cameraY: Float,
         alpha: Float,
         gameTime: Long,
-        player: Player
+        player: Player,
+        context: android.content.Context?
     ) {
         val centerX = threat.x
         val centerY = threat.y - cameraY

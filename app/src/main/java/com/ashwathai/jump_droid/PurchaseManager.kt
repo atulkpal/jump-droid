@@ -8,8 +8,10 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryProductDetailsResult
 import com.android.billingclient.api.QueryPurchasesParams
 
 class PurchaseManager(private val appContext: Context) {
@@ -30,7 +32,8 @@ class PurchaseManager(private val appContext: Context) {
                     }
                 }
             }
-            .enablePendingPurchases()
+            .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
+            .enableAutoServiceReconnection()
             .build()
 
         billingClient?.startConnection(object : BillingClientStateListener {
@@ -68,8 +71,9 @@ class PurchaseManager(private val appContext: Context) {
                 .setProductList(listOf(productParams))
                 .build()
 
-            billingClient?.queryProductDetailsAsync(queryParams) { result, details ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK && details.isNotEmpty()) {
+            billingClient?.queryProductDetailsAsync(queryParams) { result, queryProductDetailsResult ->
+                val details = queryProductDetailsResult.productDetailsList
+                if (result.responseCode == BillingClient.BillingResponseCode.OK && !details.isNullOrEmpty()) {
                     val params = BillingFlowParams.newBuilder()
                         .setProductDetailsParamsList(
                             listOf(

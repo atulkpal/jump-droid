@@ -40,12 +40,12 @@ This document is the permanent repository for all proposed, evaluated, and class
 
 ## 3. Mini-Bosses
 
-| Name | Classification | Role | Zone | Difficulty | Behavior & Rationale |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Thermal Hive** | **APPROVED** | Summoner | Atmosphere | ⭐⭐⭐ | **Heat-Based Spawning.** Only spawns Swarm Bots when player Heat is high. |
-| **Gravity Anchor** | **APPROVED** | Controller | Deep Space | ⭐⭐⭐⭐ | **Climb or Die.** Downward pull increases every 10s. Static boss scaling race. |
-| **The Forger** | **APPROVED** | Platform Control| Orbit | ⭐⭐⭐ | **Platform Conversion.** Periodically turns Normal platforms into Ice or Breakable. |
-| **Command Cruiser** | **APPROVED** | Surveillance | Atmosphere–Void | ⭐⭐⭐⭐ | **Drone Deployment.** Multi-phase vessel that tracks player, fires projectiles, deploys reinforcement drones. Weak-point system. |
+| Name | Classification | Role | Zone | Difficulty | Behavior & Rationale | Score |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Thermal Hive** | **APPROVED** | Summoner | Atmosphere | ⭐⭐⭐ | **Heat-Based Spawning.** Only spawns Swarm Bots when player Heat is high. | 300 |
+| **Gravity Anchor** | **APPROVED** | Controller | Deep Space | ⭐⭐⭐⭐ | **Climb or Die.** Downward pull increases every 10s. Static boss scaling race. | 400 |
+| **The Forger** | **APPROVED** | Platform Control| Orbit | ⭐⭐⭐ | **Platform Conversion.** Periodically turns Normal platforms into Ice or Breakable. | 350 |
+| **Command Cruiser** | **APPROVED** | Surveillance | Atmosphere–Void | ⭐⭐⭐⭐ | **Drone Deployment.** Multi-phase vessel that tracks player, fires projectiles, deploys reinforcement drones. Weak-point system. | 250 |
 | **Scrap King** | **BACKLOG** | Juggernaut | Orbit | ⭐⭐⭐ | **Debris Shield.** Pulls debris to create armor. Blocked by lack of projectile system. |
 | **Nebula Serpent**| **BACKLOG** | Visibility | Atmosphere | ⭐⭐⭐ | **Smoke Trail.** Leaves smoke that hides platforms. Requires "Fog of War" renderer. |
 
@@ -53,17 +53,17 @@ This document is the permanent repository for all proposed, evaluated, and class
 
 ## 4. Major Bosses
 
-| Name | Classification | Role | Zone | Difficulty | Behavior & Rationale |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **The Gatekeeper** | **APPROVED** | Area Denial | Orbit–Void | ⭐⭐⭐⭐ | **Rotating Safe Zones.** Ancient defense platform that creates rotating safe zones. Weak-point system with phased combat. |
-| **Void Engine** | **APPROVED** | Reality Warper | Void | ⭐⭐⭐⭐⭐ | **Gravity Flip.** Periodically inverts gravity direction and spawns projectiles. Phase 3 introduces random control inversion and GRAVITY FLUX bursts. |
-| **The Architect** | **APPROVED** | Controller | The Foundry | ⭐⭐⭐⭐ | **Level is the Boss.** Rhythmically adds/removes platforms. Reaching the top is the win. |
-| **Entropy Core** | **APPROVED** | Resource Predator| Deep Space | ⭐⭐⭐⭐⭐ | **Global Drain.** Simultaneous Fuel/Shield/Heat pressure. Destroy 4 pylons to win. |
-| **The Leviathan** | **APPROVED** | Charger | Deep Space–Void | ⭐⭐⭐⭐ | **Slipstream Charge.** Gigantic creature that bounces between screen edges creating moving slipstreams. Weak-point system. |
-| **The Signal** | **APPROVED** | Deceiver | Void | ⭐⭐⭐⭐⭐ | **False Navigation.** Unknown intelligence that creates false navigation cues with erratic movement and fake drift. Requires player to trust instincts over visual cues. |
-| **Chrono Warden** | **BACKLOG** | Time-Warp | Chrono-Rift | ⭐⭐⭐⭐⭐ | **State Rewind.** Periodically resets player pos/stats to 3s prior. High bug risk. |
-| **The Singularity**| **APPROVED** | Meta-Deceiver | Point Zero | ⭐⭐⭐⭐⭐ | **HUD Distortion.** Pulls UI gauges into center. Phase 3 gravity flux + control inversion. The final encounter. |
-| **Star-Eater** | **APPROVED** | Ambusher | Deep Space–Void | ⭐⭐⭐⭐ | **Light Consumer.** Massive cosmic organism that tracks player, accelerates in phase 3 with rapid pursuit. |
+| Name | Classification | Role | Zone | Difficulty | Behavior & Rationale | Score |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **The Gatekeeper** | **APPROVED** | Area Denial | Orbit–Void | ⭐⭐⭐⭐ | **Rotating Safe Zones.** Ancient defense platform that creates rotating safe zones. Weak-point system with phased combat. | 1,000 |
+| **Void Engine** | **APPROVED** | Reality Warper | Void | ⭐⭐⭐⭐⭐ | **Gravity Flip.** Periodically inverts gravity direction and spawns projectiles. Phase 3 introduces random control inversion and GRAVITY FLUX bursts. | 2,000 |
+| **The Architect** | **APPROVED** | Controller | The Foundry | ⭐⭐⭐⭐ | **Level is the Boss.** Rhythmically adds/removes platforms. Reaching the top is the win. | 3,000 |
+| **Entropy Core** | **APPROVED** | Resource Predator| Deep Space | ⭐⭐⭐⭐⭐ | **Global Drain.** Simultaneous Fuel/Shield/Heat pressure. Destroy 4 pylons to win. | 4,000 |
+| **The Leviathan** | **APPROVED** | Charger | Deep Space–Void | ⭐⭐⭐⭐ | **Slipstream Charge.** Gigantic creature that bounces between screen edges creating moving slipstreams. Weak-point system. | 1,200 |
+| **The Signal** | **APPROVED** | Deceiver | Void | ⭐⭐⭐⭐⭐ | **False Navigation.** Unknown intelligence that creates false navigation cues with erratic movement and fake drift. Requires player to trust instincts over visual cues. | 2,500 |
+| **Chrono Warden** | **BACKLOG** | Time-Warp | Chrono-Rift | ⭐⭐⭐⭐⭐ | **State Rewind.** Periodically resets player pos/stats to 3s prior. High bug risk. | 0 |
+| **The Singularity**| **APPROVED** | Meta-Deceiver | Point Zero | ⭐⭐⭐⭐⭐ | **HUD Distortion.** Pulls UI gauges into center. Phase 3 gravity flux + control inversion. The final encounter. | 5,000 |
+| **Star-Eater** | **APPROVED** | Ambusher | Deep Space–Void | ⭐⭐⭐⭐ | **Light Consumer.** Massive cosmic organism that tracks player, accelerates in phase 3 with rapid pursuit. | 1,500 |
 | **Solar Monarch** | **REJECTED** | Juggernaut | Solar Core | ⭐⭐⭐⭐ | **Flare Dance.** Redundant with Star Eater and existing Solar Flare mechanics. |
 
 ---

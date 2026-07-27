@@ -1,0 +1,25 @@
+- `[x]` EPIC 12 Visual Polish & Bug Fixes
+    - `[x]` Main Menu: Archive button pulse animation
+    - `[x]` Hangar: Dynamic Pentagon Chart with chassis offsets
+    - `[x]` Hangar: Consistent 5-axis stat bars (Thrust, Fuel, Thermal, Integrity, Maneuver)
+    - `[x]` Economy: Scale Cash-to-Credits price based on bosses defeated
+    - `[x]` Missions: Tune early mission thresholds and fix Near-Death mapping
+    - `[x]` Watch Ad: Implement findActivity helper to fix crash
+    - `[x]` Watch Ad: Add loading spinner and retry-to-free-reward fallback
+    - `[x]` Watch Ad: Centered and scaled rocket reveal visuals
+    - `[x]` Firestore: Implement "Minimum Writes" strategy
+        - `[x]` Guard leaderboard submission by local highScore
+        - `[x]` Add hash-based write avoidance in CloudSyncManager
+        - `[x]` Move cloud sync to onPause and Terminal engagement
+    - `[x]` Bug Fixes: Address "Signal Lost" mission unlock state issue
+    - `[x]` Bug Fixes: Fix PERMISSION_DENIED Firestore crash via Auth bridge
+    - `[x]` Bug Fixes: Restore missing INF button on Main Menu
+- `[x]` Mastery Overhaul & Connectivity Fix
+    - `[x]` Integrate Firebase Auth for terminal fix
+    - `[x]` Create procedural Ascension Rank Medallions
+    - `[x]` Surface Mastery Points (MP) in UI
+    - `[x]` Rebalance Rank thresholds and Rocket unlocks
+- `[x]` Robust Reset Protocols
+    - `[x]` Differentiate "Reset Progress" vs "Factory Reset"
+    - `[x]` Fix Mastery Points persistence after reset
+    - `[x]` Wipe multiple preference files for Factory Reset

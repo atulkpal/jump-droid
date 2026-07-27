@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -72,9 +73,12 @@ fun UnlockOverlay(
                         val previewPlayer = remember {
                             Player(0f, 0f).apply { rocketType = unlockEvent.type }
                         }
-                        Box(Modifier.size(120.dp).background(SciFiBackground.copy(alpha = 0.5f), RoundedCornerShape(10.dp)).border(0.5.dp, unlockEvent.accentColor.copy(alpha = 0.2f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                            Canvas(Modifier.size(60.dp).align(Alignment.Center)) {
-                                rocketRenderer.render(this, previewPlayer, false, Offset.Zero, 0f, 0L, offsetOverride = Offset.Zero)
+                        Box(Modifier.size(160.dp).background(SciFiBackground.copy(alpha = 0.5f), RoundedCornerShape(10.dp)).border(0.5.dp, unlockEvent.accentColor.copy(alpha = 0.2f), RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
+                            Canvas(Modifier.size(80.dp).align(Alignment.Center)) {
+                                val center = Offset(size.width / 2f, size.height / 2f)
+                                scale(2.5f, pivot = center) {
+                                    rocketRenderer.render(this, previewPlayer, false, Offset.Zero, 0f, 0L, offsetOverride = center)
+                                }
                             }
                         }
                     }

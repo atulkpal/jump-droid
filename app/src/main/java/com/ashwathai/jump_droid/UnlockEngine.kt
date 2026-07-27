@@ -18,7 +18,7 @@ object UnlockEngine {
                 progression.highScore >= req.value
             }
             UnlockType.ALTITUDE -> {
-                progression.highScore >= req.value
+                progression.highAltitude >= req.value
             }
             UnlockType.ARTIFACT -> {
                 progression.lifetimeArtifacts >= req.value

@@ -21,6 +21,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.nativeCanvas
+import android.graphics.Typeface
+import android.graphics.Paint
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -29,11 +33,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.ashwathai.jump_droid.Constants.ROCKET_HEIGHT
 import com.ashwathai.jump_droid.ui.theme.*
 
 @Composable
-fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
+fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: NavController) {
     val gameState = engine.gameState
     val altitudeManager = engine.altitudeManager
     val player = engine.player
@@ -45,6 +50,24 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
     val density = LocalDensity.current
     val context = LocalContext.current
     val activity = remember { context as? ComponentActivity }
+
+    LaunchedEffect(gameState) {
+        when (gameState) {
+            GameState.PAUSED -> navController.navigate("pause")
+            GameState.GAMEOVER -> navController.navigate("game_over")
+            GameState.TUTORIAL -> if (engine.activeDiscovery != null) navController.navigate("tutorial")
+            GameState.HELP -> navController.navigate("help")
+            GameState.UNLOCK -> if (engine.currentUnlockEvent != null) navController.navigate("unlock")
+            GameState.CONTINUE_READY -> navController.navigate("continue_ready")
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(engine.showAscensionCredits) {
+        if (engine.showAscensionCredits) {
+            navController.navigate("ascension_credits")
+        }
+    }
 
     DisposableEffect(gameState) {
         val window = activity?.window ?: return@DisposableEffect onDispose {}
@@ -110,106 +133,89 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
         }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            worldRenderer.render(this, engine)
+            worldRenderer.render(this, engine, context)
+            
+            // --- Flying Score Rendering (Cyber-Packet Style) ---
+            engine.flyingScores.forEach { fs ->
+                val targetX = size.width / 2f
+                val targetY = 60f
+                val currentX = fs.x + (targetX - fs.x) * fs.progress
+                val currentY = fs.y + (targetY - fs.y) * fs.progress
+                
+                val alpha = if (fs.progress < 0.2f) fs.progress / 0.2f else if (fs.progress > 0.8f) (1f - fs.progress) / 0.2f else 1.0f
+                
+                // Motion blur effect (ghost frames)
+                repeat(2) { i ->
+                    val ghostProgress = (fs.progress - 0.05f * (i + 1)).coerceAtLeast(0f)
+                    val gx = fs.x + (targetX - fs.x) * ghostProgress
+                    val gy = fs.y + (targetY - fs.y) * ghostProgress
+                    val gPaint = Paint().apply {
+                        color = fs.color.toArgb()
+                        textSize = (18f + (if (fs.value >= 100) 8f else 0f)) * (1f + ghostProgress * 0.3f)
+                        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                        this.alpha = (alpha * 60 / (i + 1)).toInt()
+                        textAlign = Paint.Align.CENTER
+                    }
+                    drawContext.canvas.nativeCanvas.drawText("[ +${fs.value} ]", gx, gy, gPaint)
+                }
+
+                // Main Packet Background
+                val boxWidth = 80f + (if (fs.value >= 100) 40f else 0f)
+                val boxHeight = 32f
+                drawRect(
+                    color = fs.color.copy(alpha = 0.15f * alpha),
+                    topLeft = Offset(currentX - boxWidth/2, currentY - boxHeight/2),
+                    size = Size(boxWidth, boxHeight)
+                )
+                
+                // Main Futuristic Text
+                val paint = Paint().apply {
+                    color = fs.color.toArgb()
+                    textSize = (18f + (if (fs.value >= 100) 8f else 0f)) * (1f + fs.progress * 0.3f)
+                    typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                    setShadowLayer(15f, 0f, 0f, fs.color.toArgb())
+                    this.alpha = (alpha * 255).toInt()
+                    textAlign = Paint.Align.CENTER
+                }
+                
+                drawContext.canvas.nativeCanvas.drawText(
+                    "[ +${fs.value} ]",
+                    currentX,
+                    currentY + boxHeight/4, // Vertical centering adjustment
+                    paint
+                )
+            }
         }
 
         // --- HUD Layer ---
-        HUDLayer(engine)
+        HUDLayer(engine, onNavigateArchive = { onMainMenu() })
 
-        // --- Overlays ---
-        if (gameState == GameState.CONTINUE_READY) {
-            ContinueReadyOverlay(
-                onTap = { engine.gameState = GameState.PLAYING }
-            )
-        }
-
-        if (gameState == GameState.PAUSED) {
-            PauseOverlay(
-                showDevMenu = engine.showDevMenu,
-                infiniteFuel = engine.infiniteFuel,
-                disableHeat = engine.disableHeat,
-                infiniteShield = player.infiniteShield,
-                invincibleHull = player.invincibleHull,
-                cheatsEnabled = BuildConfig.DEBUG,
-                onToggleDevMenu = { engine.showDevMenu = !engine.showDevMenu },
-                onJumpToZone = { engine.jumpToZone(it) },
-                onSpawnDevThreat = { engine.spawnDevThreat(it) },
-                onSpawnDevPowerUp = { engine.spawnDevPowerUp(it) },
-                onSpawnDevPlatform = { engine.spawnDevPlatform(it) },
-                onToggleInfiniteFuel = { engine.infiniteFuel = !engine.infiniteFuel },
-                onToggleDisableHeat = { engine.disableHeat = !engine.disableHeat },
-                onToggleInfiniteShield = { player.infiniteShield = !player.infiniteShield },
-                onToggleInvincibleHull = { player.invincibleHull = !player.invincibleHull },
-                onUnlockAll = { engine.unlockAll() },
-                onResume = { engine.gameState = engine.preOverlayState },
-                onRestart = { engine.restartGame() },
-                onMainMenu = onMainMenu,
-                zone = altitudeManager.currentZone,
-                soundManager = engine.soundManager,
-                hapticManager = engine.hapticManager,
-                sharedPrefs = engine.sharedPrefs
-            )
-        }
-
-        if (gameState == GameState.GAMEOVER) {
-            GameOverOverlay(
-                score = engine.score,
-                highScore = engine.progressionManager.highScore,
-                progressionManager = engine.progressionManager,
-                continuesUsed = engine.continuesUsed,
-                isPremiumUser = engine.isPremiumUser,
-                runBossesDefeated = engine.runBossesDefeated,
-                bestComboThisRun = engine.comboManager.bestComboThisRun,
-                onContinue = { engine.continueRun() },
-                onRestart = { engine.restartGame() },
-                onMainMenu = onMainMenu
-            )
-        }
-
-        if (gameState == GameState.TUTORIAL && engine.activeDiscovery != null) {
-            TutorialOverlay(
-                activeDiscovery = engine.activeDiscovery!!,
-                onAcknowledge = { engine.gameState = engine.preOverlayState; engine.activeDiscovery = null }
-            )
-        }
-
-        if (gameState == GameState.HELP) {
-            HelpOverlay(onDismiss = { engine.gameState = engine.preOverlayState })
-        }
-
-        if (engine.bossArrivalEvent != null && engine.bossArrivalTimer > 0) {
-            BossArrivalOverlay(
-                event = engine.bossArrivalEvent!!,
-                timer = engine.bossArrivalTimer,
-                gameTime = engine.gameTime
-            )
-        }
-
-        if (gameState == GameState.UNLOCK && engine.currentUnlockEvent != null) {
-            UnlockOverlay(
-                unlockEvent = engine.currentUnlockEvent!!,
-                onConfirm = {
-                    val target = if (engine.preOverlayState == GameState.UNLOCK || engine.preOverlayState == GameState.GAMEOVER) GameState.PLAYING else engine.preOverlayState
-                    engine.gameState = target
-                    engine.currentUnlockEvent = null
+        // --- Overlays (Transient/Visual Only - Mutually Exclusive) ---
+        // Only render these background alerts if the game is actively running
+        if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL) {
+            when {
+                engine.zoneTransitionTimer > 0 -> {
+                    ZoneTransitionOverlay(
+                        zone = engine.zoneTransitionTo,
+                        timer = engine.zoneTransitionTimer,
+                        gameTime = engine.gameTime
+                    )
                 }
-            )
-        }
-
-        if (engine.showAscensionCredits) {
-            AscensionOverlay(onComplete = {
-                engine.showAscensionCredits = false
-                onMainMenu()
-            })
-        }
-        
-        // Zone Transition Overlay
-        if (engine.zoneTransitionTimer > 0) {
-            ZoneTransitionOverlay(
-                zone = engine.zoneTransitionTo,
-                timer = engine.zoneTransitionTimer,
-                gameTime = engine.gameTime
-            )
+                engine.bossArrivalEvent != null && engine.bossArrivalTimer > 0 -> {
+                    BossArrivalOverlay(
+                        event = engine.bossArrivalEvent!!,
+                        timer = engine.bossArrivalTimer,
+                        gameTime = engine.gameTime
+                    )
+                }
+                engine.artifactLoreTimer > 0f && engine.artifactLoreType != null -> {
+                    ArtifactLoreOverlay(
+                        type = engine.artifactLoreType!!,
+                        timer = engine.artifactLoreTimer,
+                        totalDuration = 4f
+                    )
+                }
+            }
         }
 
         engine.signalDecodedMissionName?.let { name ->
@@ -219,9 +225,9 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit) {
 }
 
 @Composable
-fun HUDLayer(engine: GameEngine) {
+fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
     val player = engine.player
-    val score = engine.score
+    val score = engine.visualScore
     val altitudeManager = engine.altitudeManager
     val comboManager = engine.comboManager
     val notificationManager = engine.notificationManager
@@ -229,7 +235,9 @@ fun HUDLayer(engine: GameEngine) {
     Box(Modifier.fillMaxSize()) {
         AltitudeDisplay(
             modifier = Modifier.align(Alignment.TopCenter),
-            score = score, highScore = engine.progressionManager.highScore,
+            score = score, 
+            altitude = engine.runAltitude,
+            highScore = engine.progressionManager.highScore,
             zone = altitudeManager.currentZone
         )
 
@@ -286,12 +294,25 @@ fun HUDLayer(engine: GameEngine) {
             zone = altitudeManager.currentZone
         )
 
-        MissionProgressCard(
-            activeMissions = engine.missionManager.activeMissions,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp)
-        )
+        if (engine.gameState != GameState.GAMEOVER) {
+            MissionProgressCard(
+                activeMissions = engine.missionManager.activeMissions,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp)
+            )
 
-        if (engine.majorWarningText != null) {
+            AchievementDeck(
+                pendingUnlocks = engine.pendingUnlocks,
+                modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 80.dp)
+            )
+
+            CodexQuickAccess(
+                discoveryManager = engine.discoveryManager,
+                onNavigateArchive = onNavigateArchive,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 80.dp)
+            )
+        }
+
+        if (engine.gameState != GameState.GAMEOVER && engine.majorWarningText != null) {
             val warnAlpha = (engine.majorWarningTimer / 2f).coerceIn(0f, 1f)
             Text(
                 text = engine.majorWarningText!!,
@@ -302,13 +323,8 @@ fun HUDLayer(engine: GameEngine) {
             )
         }
 
-        FloatingTextsLayer(texts = engine.floatingTextManager.texts, cameraY = engine.cameraY)
-
-        val activeEvent = engine.discoveryManager.activeEvent
-        if (activeEvent is DiscoveryEvent.Zone && engine.zoneTransitionTimer <= 0) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                ZoneDiscoveryCard(activeEvent = activeEvent, score = engine.score)
-            }
+        if (engine.gameState != GameState.GAMEOVER) {
+            FloatingTextsLayer(texts = engine.floatingTextManager.texts, cameraY = engine.cameraY)
         }
     }
 }
