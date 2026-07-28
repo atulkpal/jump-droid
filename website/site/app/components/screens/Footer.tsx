@@ -13,7 +13,7 @@ export default function FooterSection() {
           {FOOTER.description}
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
           <a
             href={PLAY_STORE_URL}
             target="_blank"
@@ -44,11 +44,20 @@ export default function FooterSection() {
             <span className="w-3.5 h-3.5 flex-shrink-0"><ItchIoIcon className="w-full h-full" /></span>
             itch.io
           </a>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
           <a
             href={SOCIAL_LINKS.privacy}
             className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-2 font-mono text-[11px] tracking-[0.1em] text-slate-500 transition-all hover:border-white/10 hover:text-slate-300 uppercase"
           >
             Privacy
+          </a>
+          <a
+            href="/account-deletion"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.02] px-4 py-2 font-mono text-[11px] tracking-[0.1em] text-slate-500 transition-all hover:border-white/10 hover:text-slate-300 uppercase"
+          >
+            Account Deletion
           </a>
         </div>
 

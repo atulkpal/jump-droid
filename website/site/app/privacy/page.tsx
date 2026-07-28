@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Data Handling Protocol — Jump Droid",
@@ -38,7 +39,7 @@ const sections = [
     content: (
       <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
-          This protocol is effective as of <strong className="text-slate-200">July 14, 2026</strong>.
+          This protocol is effective as of <strong className="text-slate-200">July 29, 2026</strong>.
           Updates will be posted with a revised effective date.
         </p>
       </div>
@@ -51,10 +52,32 @@ const sections = [
       <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
           Jump Droid collects minimal data necessary to improve the experience, fix anomalies,
-          and serve advertisements. We do <strong className="text-slate-200">not</strong> collect your name, email address,
-          or any personally identifiable information unless you voluntarily contact us.
+          and serve advertisements. The game is fully playable without an account.
         </p>
-        <p>The following data may be collected automatically:</p>
+        <p>The following data may be collected automatically or voluntarily:</p>
+      </div>
+    ),
+  },
+  {
+    id: "google-sign-in",
+    title: "Optional Google Sign-In",
+    content: (
+      <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
+        <p>
+          Connecting a Google account is <strong className="text-slate-200">optional</strong>. If you choose to connect,
+          we may collect:
+        </p>
+        <ul className="space-y-1 pl-4">
+          <li className="before:content-['>_'] before:text-cyan-400/40">Google account identifier (unique ID)</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Cloud save data (game progress, unlocks)</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Achievements and leaderboard entries</li>
+        </ul>
+        <p>
+            This data is used solely to enable online features. You can request deletion of this data at any time via the{" "}
+            <Link href="/account-deletion" className="text-cyan-400/70 hover:text-cyan-300 underline underline-offset-2 transition-colors">
+                Account Deletion page
+            </Link>.
+        </p>
       </div>
     ),
   },
@@ -64,18 +87,17 @@ const sections = [
     content: (
       <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
-          Jump Droid uses <strong className="text-slate-200">Firebase Analytics</strong>, a service provided by Google LLC.
-          It collects anonymised usage data such as:
+          Jump Droid uses <strong className="text-slate-200">Firebase Analytics</strong> to collect anonymised usage data such as:
         </p>
         <ul className="space-y-1 pl-4">
           <li className="before:content-['>_'] before:text-cyan-400/40">Session duration and engagement metrics</li>
           <li className="before:content-['>_'] before:text-cyan-400/40">Screen views and feature interactions</li>
-          <li className="before:content-['>_'] before:text-cyan-400/40">In-app events (level reached, boss defeated, module unlocked)</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">In-app events (level reached, boss defeated)</li>
           <li className="before:content-['>_'] before:text-cyan-400/40">Device language and region settings</li>
         </ul>
         <p>
           This data is aggregated and used solely to understand how players interact with the game.
-          Firebase Analytics does <strong className="text-slate-200">not</strong> transmit your identity.
+          It does <strong className="text-slate-200">not</strong> transmit your identity.
         </p>
       </div>
     ),
@@ -86,19 +108,14 @@ const sections = [
     content: (
       <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
-          Jump Droid uses <strong className="text-slate-200">Firebase Crashlytics</strong> to monitor and diagnose crashes
-          and performance issues. When an anomaly occurs, Crashlytics collects:
+          Jump Droid uses <strong className="text-slate-200">Firebase Crashlytics</strong> to diagnose performance issues.
+          When an anomaly occurs, it collects:
         </p>
         <ul className="space-y-1 pl-4">
           <li className="before:content-['>_'] before:text-cyan-400/40">Crash stack traces and error logs</li>
-          <li className="before:content-['>_'] before:text-cyan-400/40">Device model, OS version, and available memory</li>
-          <li className="before:content-['>_'] before:text-cyan-400/40">Timestamp of the crash event</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Device model and OS version</li>
           <li className="before:content-['>_'] before:text-cyan-400/40">App version and build number</li>
         </ul>
-        <p>
-          This data helps identify and fix stability issues. It is <strong className="text-slate-200">not</strong> linked
-          to any personal identifier.
-        </p>
       </div>
     ),
   },
@@ -108,17 +125,16 @@ const sections = [
     content: (
       <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
-          Jump Droid displays advertisements via <strong className="text-slate-200">Google AdMob</strong>. AdMob may
-          collect and process data to serve relevant ads, including:
+          Jump Droid displays ads via <strong className="text-slate-200">Google AdMob</strong>. AdMob may
+          collect:
         </p>
         <ul className="space-y-1 pl-4">
-          <li className="before:content-['>_'] before:text-cyan-400/40">Device advertising ID (resettable in device settings)</li>
-          <li className="before:content-['>_'] before:text-cyan-400/40">IP address (coarse location targeting)</li>
-          <li className="before:content-['>_'] before:text-cyan-400/40">App installs and ad interactions</li>
-          <li className="before:content-['>_'] before:text-cyan-400/40">Device type and connectivity status</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Device advertising ID</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">IP address (coarse location)</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40">Ad interactions</li>
         </ul>
         <p>
-          AdMob operates under Google&apos;s Privacy Policy. Learn more at{" "}
+          Learn more at{" "}
           <a
             href="https://policies.google.com/privacy"
             target="_blank"
@@ -132,28 +148,13 @@ const sections = [
     ),
   },
   {
-    id: "no-account",
-    title: "No Account Required",
-    content: (
-      <p className="font-mono text-xs leading-relaxed text-slate-400">
-        Jump Droid does <strong className="text-slate-200">not</strong> require an account, email registration,
-        or personal information to operate. All game progress is stored locally.
-        There is no login system, no profile system, and no social features.
-      </p>
-    ),
-  },
-  {
     id: "childrens-privacy",
     title: "Children&apos;s Privacy",
     content: (
       <div className="font-mono text-xs leading-relaxed text-slate-400 space-y-3">
         <p>
           Jump Droid is not directed at children under 13. We do <strong className="text-slate-200">not</strong> knowingly
-          collect personal information from children. If you believe your child has provided data,
-          contact us for deletion.
-        </p>
-        <p>
-          In compliance with COPPA, we do not serve interest-based advertising to users identified as children.
+          collect personal information from children.
         </p>
       </div>
     ),
@@ -166,7 +167,7 @@ const sections = [
         <p>Jump Droid integrates the following third-party services:</p>
         <ul className="space-y-2 pl-4">
           <li>
-            <strong className="text-slate-200">Google Firebase</strong> (Analytics & Crashlytics) —{" "}
+            <strong className="text-slate-200">Google Firebase</strong> —{" "}
             <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer"
               className="text-cyan-400/70 hover:text-cyan-300 underline underline-offset-2 transition-colors">
               firebase.google.com/support/privacy
@@ -195,10 +196,8 @@ const sections = [
     title: "Data Security",
     content: (
       <p className="font-mono text-xs leading-relaxed text-slate-400">
-        Industry-standard security measures are implemented. All data transmitted to Firebase and
-        AdMob is encrypted using TLS/SSL. Aggregated analytics and crash data is access-controlled
-        and retained only as long as necessary. No method of electronic storage or transmission is
-        100% secure.
+        Industry-standard security measures are implemented. All data transmitted is encrypted using TLS/SSL.
+        Aggregated data is access-controlled and retained only as long as necessary.
       </p>
     ),
   },
@@ -210,12 +209,11 @@ const sections = [
         <p>Depending on your jurisdiction, you may have the following rights:</p>
         <ul className="space-y-1 pl-4">
           <li className="before:content-['>_'] before:text-cyan-400/40"><strong className="text-slate-200">Access</strong> — Request a copy of associated data</li>
-          <li className="before:content-['>_'] before:text-cyan-400/40"><strong className="text-slate-200">Deletion</strong> — Request deletion of analytics and crash data</li>
+          <li className="before:content-['>_'] before:text-cyan-400/40"><strong className="text-slate-200">Deletion</strong> — Request deletion via the <Link href="/account-deletion" className="text-cyan-300/80 hover:text-cyan-300 underline">Account Deletion page</Link></li>
           <li className="before:content-['>_'] before:text-cyan-400/40"><strong className="text-slate-200">Opt-out</strong> — Disable advertising ID in device settings</li>
-          <li className="before:content-['>_'] before:text-cyan-400/40"><strong className="text-slate-200">Withdraw</strong> — Uninstall the app to stop all data collection</li>
         </ul>
         <p>
-          To exercise these rights: <strong className="text-slate-200">ashwathai.dev@gmail.com</strong>.
+          To exercise these rights: <strong className="text-slate-200">hi.jumpdroid@gmail.com</strong>.
         </p>
       </div>
     ),
@@ -229,10 +227,10 @@ const sections = [
         <div className="rounded-lg border border-cyan-400/10 bg-cyan-400/[0.02] px-5 py-3">
           <p className="text-[10px] tracking-[0.15em] text-cyan-400/60 uppercase mb-1">Email</p>
           <a
-            href="mailto:ashwathai.dev@gmail.com"
+            href="mailto:hi.jumpdroid@gmail.com"
             className="text-slate-200 hover:text-cyan-300 transition-colors underline underline-offset-2"
           >
-            ashwathai.dev@gmail.com
+            hi.jumpdroid@gmail.com
           </a>
         </div>
       </div>
@@ -256,7 +254,7 @@ export default function PrivacyPage() {
             <span className="text-cyan-300">Protocol</span>
           </h1>
           <p className="font-mono text-xs leading-relaxed text-slate-400 max-w-lg">
-            Last updated: July 14, 2026. This document explains what data Jump Droid
+            Last updated: July 29, 2026. This document explains what data Jump Droid
             collects, why, and how you stay in control.
           </p>
         </div>
@@ -274,6 +272,21 @@ export default function PrivacyPage() {
               {s.content}
             </section>
           ))}
+        </div>
+
+        <div className="mt-12 flex flex-wrap justify-center gap-6">
+            <Link
+                href="/"
+                className="font-mono text-[10px] tracking-widest text-slate-600 hover:text-cyan-400 transition-colors uppercase"
+            >
+                Surface
+            </Link>
+            <Link
+                href="/account-deletion"
+                className="font-mono text-[10px] tracking-widest text-slate-600 hover:text-cyan-400 transition-colors uppercase"
+            >
+                Account Deletion
+            </Link>
         </div>
       </main>
     </div>

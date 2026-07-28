@@ -1,0 +1,15 @@
+- [x] Update website configuration & contact info
+    - [x] `lib/constants.ts`: Change email to `hi.jumpdroid@gmail.com`
+    - [x] `app/transmission/SignalSource.tsx`: Update hardcoded email and clipboard logic
+    - [x] `app/api/campaign/send-now/route.ts`: Update sender email
+- [x] Implement Account Deletion Page (`/account-deletion`)
+    - [x] Rewrite `app/account-deletion/page.tsx` with "Protocol" styling
+    - [x] Include clear sections for optionality, data deletion, and contact
+- [x] Update Privacy Policy (`/privacy`)
+    - [x] Update `app/privacy/page.tsx` with production details
+    - [x] Link to Account Deletion page
+- [x] Update Footer Navigation
+    - [x] `app/components/screens/Footer.tsx`: Add Account Deletion link
+- [x] Production Review & Cleanup
+    - [x] Search for placeholders (`TODO`, `Coming Soon`)
+    - [x] Verify all legal links

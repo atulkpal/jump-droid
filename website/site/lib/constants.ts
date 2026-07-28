@@ -7,7 +7,7 @@ export const BETA_TESTING_URL =
 export const SOCIAL_LINKS = {
   github: "https://github.com/atulkpal/jump-droid",
   itchIo: "https://ashwathai.itch.io/jump-droid",
-  email: "mailto:ashwathai.dev@gmail.com",
+  email: "mailto:hi.jumpdroid@gmail.com",
   privacy: "/privacy",
 } as const;
 

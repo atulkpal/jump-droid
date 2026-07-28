@@ -20,7 +20,7 @@ import type { SenderProfile } from "@/types/senderProfile";
 
 const DEFAULT_SENDER: SenderProfile = {
   name: "Ashwath AI",
-  email: "ashwathai.dev@gmail.com",
+  email: "hi.jumpdroid@gmail.com",
 };
 
 const GMAIL_API_TIMEOUT = 15000;
