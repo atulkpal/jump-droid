@@ -9,7 +9,8 @@ interface ThreatRenderer {
         cameraY: Float,
         alpha: Float,
         gameTime: Long,
-        player: Player
+        player: Player,
+        context: android.content.Context? = null
     )
 }
 

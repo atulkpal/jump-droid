@@ -52,12 +52,26 @@ class ComboManager {
     var comboCompleteTimer by mutableFloatStateOf(0f)
     var isNewHighReached by mutableStateOf(false)
     
+    var comboScoreBonus by mutableIntStateOf(0)
+        private set
+
     // Task 6: Survival Rewards
     val immediateSurvivalRewards = mutableListOf<ComboReward>()
 
-    fun onLanding() {
+    fun onLanding(): Int {
+        val prevBonus = comboScoreBonus
         currentCombo++
         
+        // Scoring: +5 per combo level
+        comboScoreBonus += currentCombo * 5
+        
+        // Milestone bonus: +100 every 5 steps
+        if (currentCombo > 0 && currentCombo % 5 == 0) {
+            comboScoreBonus += 100
+        }
+        
+        val earned = comboScoreBonus - prevBonus
+
         // Survival drops: check if we just entered a new tier
         TIERS.firstOrNull { currentCombo == it.minCombo }?.survivalDrop?.let {
             immediateSurvivalRewards.add(it)
@@ -68,6 +82,7 @@ class ComboManager {
         }
 
         refreshTimer()
+        return earned
     }
 
     private fun refreshTimer() {
@@ -126,6 +141,7 @@ class ComboManager {
         comboTimeRemaining = 0L
         pendingReward = null
         showComboComplete = false
+        comboScoreBonus = 0
         immediateSurvivalRewards.clear()
     }
 }

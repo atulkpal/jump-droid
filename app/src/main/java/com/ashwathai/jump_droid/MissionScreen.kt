@@ -1,48 +1,38 @@
 package com.ashwathai.jump_droid
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ashwathai.jump_droid.ui.theme.*
+import kotlin.math.sin
 
-private val CardShape = RoundedCornerShape(8.dp)
-
-private data class MissionTrack(
-    val name: String,
-    val icon: String,
-    val categories: List<MissionCategory>
-)
-
-private val MISSION_TRACKS = listOf(
-    MissionTrack("Aeronautics", "🚀", listOf(MissionCategory.FLIGHT_TIME, MissionCategory.NO_HEAT)),
-    MissionTrack("Ground Support", "🏢", listOf(MissionCategory.PLATFORM_STAY)),
-    MissionTrack("Resource Mgmt", "🔋", listOf(MissionCategory.FUEL_EFFICIENCY)),
-    MissionTrack("Combo Mastery", "🔥", listOf(MissionCategory.COMBO_STREAK, MissionCategory.COMBO_PRO)),
-    MissionTrack("Elite Combat", "⚔️", listOf(MissionCategory.BOSS_SLAYER)),
-    MissionTrack("Surveying", "📡", listOf(MissionCategory.DISCOVERY_HUNTER)),
-    MissionTrack("Ascension Path", "⛰️", listOf(MissionCategory.ALTITUDE_CLIMBER)),
-    MissionTrack("Kinetic Control", "💨", listOf(MissionCategory.MOMENTUM_MASTER, MissionCategory.BOOST_CHAMPION)),
-    MissionTrack("Reinforcement", "🛡️", listOf(MissionCategory.HAZARD_SURVIVOR)),
-    MissionTrack("Precision Flight", "🎯", listOf(MissionCategory.PERFECT_RUN)),
-    MissionTrack("Archeology", "🏺", listOf(MissionCategory.COLLECTOR))
-)
+private val CardShape = RoundedCornerShape(10.dp)
 
 @Composable
 fun MissionScreen(
@@ -53,7 +43,7 @@ fun MissionScreen(
     val allMissions = missionManager.getAllMissions()
     var claimEffectAlpha by remember { mutableStateOf(0f) }
     var claimEffectText by remember { mutableStateOf("") }
-    
+
     LaunchedEffect(Unit) {
         missionManager.syncState()
     }
@@ -66,39 +56,26 @@ fun MissionScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(
-                        "MISSION LOG",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = SciFiCyan,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp
-                    )
-                    Text(
-                        "OPERATIONAL STATUS: ACTIVE",
-                        color = SciFiWhite.copy(alpha = 0.6f),
-                        style = MaterialTheme.typography.labelSmall,
-                        letterSpacing = 1.sp
-                    )
+                    Text("MISSION LOG", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                    Text("JOURNAL: ASCENSION PATH", color = SciFiWhite.copy(alpha = 0.6f), style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp)
                 }
                 IconButton(onClick = onDismiss) {
-                    Text("✕", color = SciFiWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("\u2715", color = SciFiWhite, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // Dashboard Summary
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = SciFiSurface.copy(alpha = 0.4f),
                 shape = RoundedCornerShape(4.dp),
-                border = BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.1f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.1f))
             ) {
                 Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceAround) {
                     val claimable = allMissions.count { it.isCompleted && !it.isClaimed }
                     val completed = allMissions.count { it.isClaimed }
                     val total = allMissions.size
-                    
                     val hiddenClaimable = allMissions.count { it.isHidden && it.isCompleted && !it.isClaimed }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         SummaryItem("CLAIMABLE", claimable.toString(), if (claimable > 0) SciFiGold else SciFiWhite.copy(alpha = 0.4f))
@@ -112,42 +89,37 @@ fun MissionScreen(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(1),
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                items(MISSION_TRACKS) { track ->
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                MissionRegistry.MISSION_TRACKS.forEachIndexed { index, track ->
                     val currentMission = missionManager.getBestMissionForTrack(allMissions, track.categories)
-
                     if (currentMission != null) {
-                        TrackRow(
+                        TimelineNode(
                             track = track,
                             mission = currentMission,
+                            isLast = index == MissionRegistry.MISSION_TRACKS.lastIndex,
                             onClaim = {
                                 missionManager.claimMissionRewards(currentMission.id, player)
                                 claimEffectAlpha = 1f
-                                claimEffectText = "${track.name.uppercase()} — CLAIMED"
+                                claimEffectText = "${track.name.uppercase()} \u2014 CLAIMED"
                             }
                         )
                     }
                 }
-                
-                item {
-                    HiddenSignalsCard(
-                        count = allMissions.count { it.isHidden && it.isUnlocked },
-                        total = allMissions.count { it.isHidden },
-                        missions = allMissions.filter { it.isHidden },
-                        onClaim = { id ->
-                            missionManager.claimMissionRewards(id, player)
-                            claimEffectAlpha = 1f
-                            claimEffectText = "SIGNAL RECOVERED"
-                        }
-                    )
-                }
+
+                Spacer(Modifier.height(16.dp))
+
+                HiddenSignalsCard(
+                    count = allMissions.count { it.isHidden && it.isUnlocked },
+                    total = allMissions.count { it.isHidden },
+                    missions = allMissions.filter { it.isHidden },
+                    onClaim = { id ->
+                        missionManager.claimMissionRewards(id, player)
+                        claimEffectAlpha = 1f
+                        claimEffectText = "SIGNAL RECOVERED"
+                    }
+                )
             }
 
             Button(
@@ -155,46 +127,55 @@ fun MissionScreen(
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = SciFiButtonShape,
                 colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
-                border = BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.5f))
+                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.5f))
             ) {
                 Text("BACK TO COMMAND", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
             Spacer(Modifier.height(4.dp))
-            Text(
-                "CURRENCY SHOP — COMING IN V2",
-                color = SciFiWhite.copy(alpha = 0.3f),
-                fontSize = 8.sp,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(4.dp))
             GlobalAdBanner()
 
-            // Claim celebration overlay
             if (claimEffectAlpha > 0f) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    val pulse = sin(System.nanoTime() / 1e8f) * 0.2f + 0.8f
                     Box(
                         modifier = Modifier
-                            .size(200.dp)
-                            .background(
-                                SciFiGold.copy(alpha = claimEffectAlpha * 0.15f),
-                                RoundedCornerShape(100.dp)
+                            .size(240.dp)
+                            .graphicsLayer(scaleX = 1f + (1f - claimEffectAlpha), scaleY = 1f + (1f - claimEffectAlpha), alpha = claimEffectAlpha)
+                            .border(2.dp, SciFiGold.copy(alpha = 0.5f), CircleShape)
+                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.graphicsLayer(scaleX = pulse, scaleY = pulse, alpha = claimEffectAlpha)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_currency_jc),
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(SciFiGold)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = claimEffectText,
+                            color = SciFiGold,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 4.sp,
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                shadow = Shadow(SciFiGold.copy(alpha = 0.6f), blurRadius = 20f)
                             )
-                    )
-                    Text(
-                        text = claimEffectText,
-                        color = SciFiGold.copy(alpha = claimEffectAlpha),
-                        fontSize = (14 + 6 * claimEffectAlpha).sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp,
-                        textAlign = TextAlign.Center
-                    )
+                        )
+                        Text(
+                            "MASTERED",
+                            color = SciFiWhite.copy(alpha = 0.5f),
+                            fontSize = 10.sp,
+                            letterSpacing = 2.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
                 LaunchedEffect(claimEffectAlpha) {
-                    kotlinx.coroutines.delay(800)
+                    kotlinx.coroutines.delay(1200)
                     claimEffectAlpha = 0f
                     claimEffectText = ""
                 }
@@ -212,96 +193,165 @@ private fun SummaryItem(label: String, value: String, color: Color) {
 }
 
 @Composable
-private fun TrackRow(
+private fun TimelineNode(
     track: MissionTrack,
     mission: Mission,
+    isLast: Boolean,
     onClaim: () -> Unit
 ) {
     val isClaimable = mission.isCompleted && !mission.isClaimed
     val bgGlow by animateFloatAsState(targetValue = if (isClaimable) 1f else 0f, label = "bgGlow")
+    val pulse = sin(System.nanoTime().toFloat() / 500_000_000f) * 0.3f + 0.7f
 
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = isClaimable) { onClaim() },
-        color = if (isClaimable) SciFiGold.copy(alpha = 0.05f + 0.1f * bgGlow) else SciFiSurface,
-        shape = CardShape,
-        border = BorderStroke(1.dp, if (isClaimable) SciFiGold.copy(alpha = 0.4f + 0.4f * bgGlow) else SciFiBorder.copy(alpha = 0.1f))
-    ) {
-        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(track.icon, fontSize = 24.sp, modifier = Modifier.padding(end = 16.dp))
-            
-            Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(track.name.uppercase(), color = SciFiCyan, fontSize = 12.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = if (mission.isClaimed) "MAXED" else mission.tier.displayName,
-                        color = if (mission.isClaimed) SciFiGreen else SciFiWhite.copy(alpha = 0.4f),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold
+    Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+        // Timeline line and dot
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.width(28.dp).fillMaxHeight()
+        ) {
+            Spacer(Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .size(if (isClaimable) 14.dp else 10.dp)
+                    .background(
+                        if (mission.isClaimed) track.color.copy(alpha = 0.5f)
+                        else if (isClaimable) track.color.copy(alpha = pulse)
+                        else track.color.copy(alpha = 0.3f),
+                        RoundedCornerShape(50)
                     )
+            )
+            if (!isLast) {
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .weight(1f)
+                        .background(track.color.copy(alpha = 0.15f))
+                )
+            }
+        }
+
+        Spacer(Modifier.width(8.dp))
+
+        // Track card
+        Surface(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = if (isLast) 0.dp else 8.dp)
+                .clickable(enabled = isClaimable) { onClaim() },
+            color = if (isClaimable) SciFiGold.copy(alpha = 0.05f + 0.1f * bgGlow)
+                    else if (mission.isClaimed) SciFiSurface.copy(alpha = 0.4f)
+                    else SciFiSurface,
+            shape = CardShape,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                when {
+                    isClaimable -> SciFiGold.copy(alpha = 0.4f + 0.4f * bgGlow)
+                    mission.isClaimed -> SciFiBorder.copy(alpha = 0.05f)
+                    else -> track.color.copy(alpha = 0.2f)
                 }
-                
-                Text(
-                    text = if (mission.isClaimed) "All track objectives finalized." else mission.description,
-                    color = SciFiWhite.copy(alpha = 0.7f),
-                    fontSize = 10.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+            )
+        ) {
+            Box {
+                // Insignia Watermark
+                Image(
+                    painter = painterResource(id = track.iconRes),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 20.dp, y = 20.dp)
+                        .graphicsLayer(alpha = 0.2f),
+                    colorFilter = ColorFilter.tint(track.color)
                 )
 
-                if (!mission.isClaimed) {
-                    Spacer(Modifier.height(4.dp))
-                    val rewardTexts = mission.rewards.mapNotNull { reward ->
-                        when (reward) {
-                            is MissionReward.Cash -> "+${reward.amount} CASH (v2)"
-                            is MissionReward.ModuleUnlock -> "MODULE"
-                            is MissionReward.Artifact -> "ARTIFACT"
-                            is MissionReward.PowerUp -> reward.type.name.replace("_", " ")
-                            is MissionReward.Unlock -> "ROCKET"
-                            is MissionReward.Achievement -> "ACHIEVEMENT"
-                            is MissionReward.None -> null
+                Column(Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = track.iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp).padding(end = 8.dp)
+                        )
+                        Text(track.name.uppercase(), color = track.color, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = if (mission.isClaimed) "DONE" else mission.tier.displayName,
+                            color = if (mission.isClaimed) SciFiGreen else SciFiWhite.copy(alpha = 0.4f),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.weight(1f))
+                        if (isClaimable) {
+                            Text("CLAIM", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 9.sp, letterSpacing = 1.sp)
+                        } else if (mission.isClaimed) {
+                            Text("MAXED", color = SciFiGreen, fontSize = 8.sp, fontWeight = FontWeight.Black)
                         }
                     }
-                    val extraCount = mission.rewards.count { it !is MissionReward.None } - rewardTexts.size
-                    val rewardDisplay = buildString {
-                        append(rewardTexts.joinToString(" + "))
-                        if (extraCount > 0) append(" +${extraCount} MORE")
-                    }
-                    if (rewardDisplay.isNotEmpty()) {
-                        Text("REWARD: $rewardDisplay", color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                    }
 
-                    Spacer(Modifier.height(6.dp))
-                    val pct = (mission.currentProgress.toFloat() / mission.targetValue).coerceIn(0f, 1f)
-                    LinearProgressIndicator(
-                        progress = { pct },
-                        modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
-                        color = if (mission.isCompleted) SciFiGreen else SciFiCyan,
-                        trackColor = Color.White.copy(alpha = 0.05f)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = if (mission.isClaimed) "Track complete." else mission.description,
+                        color = SciFiWhite.copy(alpha = 0.6f),
+                        fontSize = 9.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                }
-            }
 
-            if (isClaimable) {
-                Box(
-                    Modifier
-                        .padding(start = 16.dp)
-                        .size(width = 80.dp, height = 32.dp)
-                        .background(SciFiGold, RoundedCornerShape(4.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("CLAIM", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                    // Debrief Section
+                    if (mission.isCompleted || mission.isClaimed) {
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            color = track.color.copy(alpha = 0.05f),
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(Modifier.padding(8.dp)) {
+                                Text(
+                                    "DEBRIEF // ACCESS AUTHORIZED",
+                                    color = track.color,
+                                    fontSize = 7.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = mission.debrief.ifEmpty { "Mission results archived successfully. Ascension progress logged." },
+                                    color = SciFiWhite.copy(alpha = 0.8f),
+                                    fontSize = 8.sp,
+                                    lineHeight = 11.sp,
+                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                )
+                            }
+                        }
+                    }
+
+                    if (!mission.isClaimed) {
+                        Spacer(Modifier.height(6.dp))
+                        val pct = (mission.currentProgress.toFloat() / mission.targetValue).coerceIn(0f, 1f)
+                        LinearProgressIndicator(
+                            progress = { pct },
+                            modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
+                            color = if (mission.isCompleted) SciFiGreen else track.color,
+                            trackColor = Color.White.copy(alpha = 0.05f)
+                        )
+
+                        val rewardTexts = mission.rewards.mapNotNull { reward ->
+                            when (reward) {
+                                is MissionReward.Cash -> "+${reward.amount} CASH"
+                                is MissionReward.ModuleUnlock -> "MODULE"
+                                is MissionReward.Artifact -> "ARTIFACT"
+                                is MissionReward.PowerUp -> reward.type.name.replace("_", " ")
+                                is MissionReward.Unlock -> "ROCKET"
+                                is MissionReward.Achievement -> "ACHIEVEMENT"
+                                is MissionReward.None -> null
+                            }
+                        }
+                        val rewardDisplay = rewardTexts.joinToString(" + ")
+                        if (rewardDisplay.isNotEmpty()) {
+                            Spacer(Modifier.height(3.dp))
+                            Text("NEXT: $rewardDisplay", color = SciFiGold.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
-            } else if (mission.isClaimed) {
-                Text(
-                    text = "DONE",
-                    color = SciFiGreen,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
             }
         }
     }
@@ -314,32 +364,22 @@ private fun HiddenSignalsCard(
     missions: List<Mission>,
     onClaim: (String) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-        Text(
-            "HIDDEN SIGNALS",
-            color = SciFiPurple,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Text("HIDDEN SIGNALS", color = SciFiPurple, fontSize = 10.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, modifier = Modifier.padding(bottom = 6.dp))
 
         missions.forEach { mission ->
             val isClaimable = mission.isCompleted && !mission.isClaimed
             val bgGlow by animateFloatAsState(targetValue = if (isClaimable) 1f else 0f, label = "bgGlow")
 
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-                    .clickable(enabled = isClaimable) { onClaim(mission.id) },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp).clickable(enabled = isClaimable) { onClaim(mission.id) },
                 color = when {
                     isClaimable -> SciFiGold.copy(alpha = 0.05f + 0.1f * bgGlow)
                     !mission.isUnlocked -> Color.Black.copy(alpha = 0.4f)
                     else -> SciFiSurface
                 },
                 shape = CardShape,
-                border = BorderStroke(
+                border = androidx.compose.foundation.BorderStroke(
                     1.dp,
                     when {
                         isClaimable -> SciFiGold.copy(alpha = 0.4f + 0.4f * bgGlow)
@@ -348,50 +388,44 @@ private fun HiddenSignalsCard(
                     }
                 )
             ) {
-                Row(
-                    Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        if (mission.isUnlocked) "📡" else "🔒",
-                        fontSize = 20.sp,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
-
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (mission.isUnlocked) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_track_survey),
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp).padding(end = 12.dp)
+                        )
+                    } else {
+                        Text("\uD83D\uDD12", fontSize = 18.sp, modifier = Modifier.padding(end = 12.dp))
+                    }
                     Column(Modifier.weight(1f)) {
                         if (!mission.isUnlocked) {
-                            GlitchText(
-                                text = "SIGNAL LOST",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    color = SciFiRed,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 1.sp
-                                )
-                            )
-                            Text(
-                                text = mission.crypticHint,
-                                color = SciFiPurple.copy(alpha = 0.7f),
-                                fontSize = 9.sp,
-                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                            )
+                            GlitchText(text = "SIGNAL LOST", style = MaterialTheme.typography.labelLarge.copy(color = SciFiRed, fontWeight = FontWeight.Black, letterSpacing = 1.sp))
+                            Text(mission.crypticHint, color = SciFiPurple.copy(alpha = 0.7f), fontSize = 9.sp, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
                         } else {
+                            Text(mission.name.uppercase(), color = SciFiPurple, fontSize = 11.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
                             Text(
-                                mission.name.uppercase(),
-                                color = SciFiPurple,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                text = if (mission.isClaimed) "SIGNAL DECODED & ARCHIVED" else mission.description,
+                                text = if (mission.isClaimed) "Decoded & archived." else mission.description,
                                 color = SciFiWhite.copy(alpha = 0.7f),
-                                fontSize = 10.sp,
+                                fontSize = 9.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            
-                            if (!mission.isClaimed) {
+
+                            // Signal Debrief
+                            if (mission.isCompleted || mission.isClaimed) {
                                 Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = mission.debrief.ifEmpty { "Encrypted packet decoded. New lore fragment archived." },
+                                    color = SciFiPurple.copy(alpha = 0.8f),
+                                    fontSize = 8.sp,
+                                    lineHeight = 11.sp,
+                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                )
+                            }
+
+                            if (!mission.isClaimed) {
+                                Spacer(Modifier.height(4.dp))
                                 val pct = (mission.currentProgress.toFloat() / mission.targetValue).coerceIn(0f, 1f)
                                 LinearProgressIndicator(
                                     progress = { pct },
@@ -402,25 +436,14 @@ private fun HiddenSignalsCard(
                             }
                         }
                     }
-
                     if (isClaimable) {
                         Box(
-                            Modifier
-                                .padding(start = 16.dp)
-                                .size(width = 80.dp, height = 32.dp)
+                            Modifier.padding(start = 12.dp).size(width = 72.dp, height = 28.dp)
                                 .background(SciFiGold, RoundedCornerShape(4.dp)),
                             contentAlignment = Alignment.Center
-                        ) {
-                            Text("RECOVER", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                        }
+                        ) { Text("RECOVER", color = Color.Black, fontSize = 8.sp, fontWeight = FontWeight.Black) }
                     } else if (mission.isClaimed) {
-                        Text(
-                            text = "ARCHIVED",
-                            color = SciFiGreen,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            modifier = Modifier.padding(start = 16.dp)
-                        )
+                        Text("ARCHIVED", color = SciFiGreen, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(start = 12.dp))
                     }
                 }
             }

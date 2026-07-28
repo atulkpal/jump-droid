@@ -10,7 +10,15 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 class EntropyCoreRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         val cx = threat.x
         val cy = threat.y - cameraY
         val pulse = threat.scanPulse
@@ -31,31 +39,61 @@ class EntropyCoreRenderer : ThreatRenderer {
             center = Offset(cx, cy)
         )
 
-        // Pulsing core — multi-layered
-        val coreRadius = 80f * (0.9f + pulse * 0.1f)
-        drawScope.drawCircle(
-            color = Color.Black.copy(alpha = alpha),
-            radius = coreRadius,
-            center = Offset(cx, cy)
-        )
-        drawScope.drawCircle(
-            color = SciFiRed.copy(alpha = (0.15f + pulse * 0.35f) * alpha),
-            radius = coreRadius + pulse * 30f,
-            center = Offset(cx, cy)
-        )
+        // D1: Plasma Siphon Beams (Pulling energy from edges)
+        if (drainActive) {
+            repeat(4) { side ->
+                val startX = when(side) { 0 -> 0f; 1 -> drawScope.size.width; else -> cx }
+                val startY = when(side) { 2 -> 0f; 3 -> drawScope.size.height; else -> cy }
+                
+                val beamPulse = sin((gameTime / 120f + side).toDouble()).toFloat() * 0.4f + 0.6f
+                drawScope.drawLine(
+                    color = SciFiRed.copy(alpha = 0.15f * beamPulse * alpha),
+                    start = Offset(startX, startY),
+                    end = Offset(cx, cy),
+                    strokeWidth = 4f * beamPulse
+                )
+            }
+        }
 
-        // Core glow gradient
+        // D2: Cooling Vents (Venting periodic steam particles)
+        val steamAlpha = (sin((gameTime / 600f).toDouble()).toFloat() * 0.5f + 0.5f) * alpha
+        repeat(8) { i ->
+            val r = kotlin.random.Random(threat.instanceId.hashCode() + i + (gameTime / 1000).toInt())
+            val steamDist = 140f + r.nextFloat() * 100f
+            val steamAngle = i * 45f * (kotlin.math.PI.toFloat() / 180f)
+            val sx = cx + cos(steamAngle) * steamDist
+            val sy = cy + sin(steamAngle) * steamDist
+            
+            drawScope.drawCircle(
+                color = Color.White.copy(alpha = 0.12f * steamAlpha),
+                radius = 10f + r.nextFloat() * 15f,
+                center = Offset(sx, sy)
+            )
+        }
+
+        // D3: Redline Core (Intensifying glow as pylons fall)
+        val destroyedCount = threat.maxWeakPoints - threat.activeWeakPoints
+        val redlineIntensity = 1f + (destroyedCount * 0.5f)
+        val corePulse = (0.9f + pulse * 0.2f) * redlineIntensity
+        
+        val coreRadius = 80f * corePulse.coerceIn(0.5f, 2.5f)
         drawScope.drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    SciFiRed.copy(alpha = 0.5f * alpha),
-                    Color(0xFFFF6D00).copy(alpha = 0.2f * alpha),
-                    Color.Black.copy(alpha = 0f)
+                    SciFiRed.copy(alpha = 0.9f * alpha),
+                    Color(0xFFFF6D00).copy(alpha = 0.6f * alpha),
+                    Color.Transparent
                 ),
                 center = Offset(cx, cy),
-                radius = coreRadius * 1.5f
+                radius = coreRadius * 1.8f
             ),
-            radius = coreRadius * 1.5f,
+            radius = coreRadius * 1.8f,
+            center = Offset(cx, cy)
+        )
+        
+        drawScope.drawCircle(
+            color = Color.Black.copy(alpha = alpha),
+            radius = coreRadius * 0.7f,
             center = Offset(cx, cy)
         )
 

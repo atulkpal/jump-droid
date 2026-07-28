@@ -3,6 +3,7 @@ package com.ashwathai.jump_droid
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,7 +51,7 @@ import com.ashwathai.jump_droid.ui.theme.SciFiRed
 import com.ashwathai.jump_droid.ui.theme.SciFiSurface
 import com.ashwathai.jump_droid.ui.theme.SciFiWhite
 
-private data class CatDef(val label: String, val accent: Color)
+private data class CatDef(val label: String, val accent: Color, val iconRes: Int)
 
 @Composable
 fun ArchiveScreen(
@@ -59,18 +61,18 @@ fun ArchiveScreen(
     onNavigate: (GameState) -> Unit
 ) {
     val cats = listOf(
-        CatDef("BOSSES", SciFiRed),
-        CatDef("ENEMIES", SciFiGold),
-        CatDef("HAZARDS", SciFiCyan),
-        CatDef("PLATFORMS", SciFiCyan),
-        CatDef("ZONES", SciFiGreen),
-        CatDef("POWER-UPS", SciFiGold),
-        CatDef("MODULES", SciFiPurple),
-        CatDef("LORE", SciFiPurple),
-        CatDef("MECHANICS", SciFiCyan),
-        CatDef("ARTIFACTS", SciFiPurple),
-        CatDef("LOGS", SciFiGold),
-        CatDef("ACHIEVEMENTS", SciFiGold)
+        CatDef("BOSSES", SciFiRed, R.drawable.ic_track_combat),
+        CatDef("ENEMIES", SciFiGold, R.drawable.ic_track_combat),
+        CatDef("HAZARDS", SciFiCyan, R.drawable.ic_track_defense),
+        CatDef("PLATFORMS", SciFiCyan, R.drawable.ic_track_ground),
+        CatDef("ZONES", SciFiGreen, R.drawable.ic_track_climb),
+        CatDef("POWER-UPS", SciFiGold, R.drawable.ic_hud_fuel),
+        CatDef("MODULES", SciFiPurple, R.drawable.ic_cat_engine),
+        CatDef("LORE", SciFiPurple, R.drawable.ic_track_archeo),
+        CatDef("MECHANICS", SciFiCyan, R.drawable.ic_station_sys),
+        CatDef("ARTIFACTS", SciFiPurple, R.drawable.ic_track_survey),
+        CatDef("LOGS", SciFiGold, R.drawable.ic_station_arc),
+        CatDef("ACHIEVEMENTS", SciFiGold, R.drawable.ic_premium_star)
     )
     var selectedCat by remember { mutableStateOf(cats[0]) }
     var selectedDetail by remember { mutableStateOf<EntityDetail?>(null) }
@@ -90,14 +92,7 @@ fun ArchiveScreen(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            val totalDiscovery = DiscoveryType.entries.size
-            val totalLore = LoreLog.ALL_LOGS.size
-            val totalAchieve = AchievementsList.size
-            val overallTotal = totalDiscovery + totalLore + totalAchieve
-            val overallFound = DiscoveryType.entries.count { sharedPrefs.getBoolean("discovery_$it", false) } +
-                LoreLog.ALL_LOGS.count { sharedPrefs.getBoolean("log_${it.id}", false) } +
-                AchievementsList.count { sharedPrefs.getBoolean("achievement_${it.id}", false) }
-            val overallPct = if (overallTotal > 0) (overallFound * 100) / overallTotal else 0
+            
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 color = SciFiSurface.copy(alpha = 0.5f),
@@ -105,33 +100,62 @@ fun ArchiveScreen(
                 border = BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.2f))
             ) {
                 Column(Modifier.padding(12.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("ARCHIVE STATUS", style = MaterialTheme.typography.labelSmall, color = SciFiCyan)
-                        Text("$overallFound / $overallTotal", style = MaterialTheme.typography.labelSmall, color = SciFiWhite)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text("MASTERY DATA", style = MaterialTheme.typography.labelSmall, color = SciFiCyan)
+                            Text("${progressionManager.currentMasteryPoints} MP ACQUIRED", style = MaterialTheme.typography.labelMedium, color = SciFiGold, fontWeight = FontWeight.Black)
+                        }
+                        AscensionInsignia(rank = progressionManager.currentRank, insigniaSize = 32.dp)
                     }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "MP = Discoveries + (Artifacts × 3) + (Zones × 5)",
+                        color = SciFiWhite.copy(alpha = 0.3f),
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
                     Spacer(Modifier.height(4.dp))
+                    val progressToNext = (progressionManager.currentMasteryPoints.toFloat() / progressionManager.nextRankThreshold).coerceIn(0f, 1f)
                     LinearProgressIndicator(
-                        progress = { overallPct / 100f },
+                        progress = { progressToNext },
                         modifier = Modifier.fillMaxWidth().height(4.dp),
                         color = SciFiCyan,
                         trackColor = SciFiSurface
+                    )
+                    Text(
+                        "NEXT RANK AT ${progressionManager.nextRankThreshold} MP",
+                        color = SciFiCyan.copy(alpha = 0.5f),
+                        fontSize = 7.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 4.dp)
                     )
                 }
             }
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 16.dp)) {
                 cats.forEach { cat ->
                     val isSelected = cat == selectedCat
-                    Text(
-                        text = cat.label,
+                    Row(
                         modifier = Modifier
                             .clickable { selectedCat = cat }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                             .background(if (isSelected) cat.accent.copy(alpha = 0.12f) else Color.Transparent, RoundedCornerShape(4.dp)),
-                        color = if (isSelected) cat.accent else SciFiWhite.copy(alpha = 0.4f),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = painterResource(id = cat.iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = cat.label,
+                            color = if (isSelected) cat.accent else SciFiWhite.copy(alpha = 0.4f),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                    }
                 }
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {

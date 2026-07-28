@@ -14,7 +14,15 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 class VoidEngineRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         with(drawScope) {
             val tx = threat.x; val ty = threat.y - cameraY
             val rot = threat.rotation
@@ -30,19 +38,49 @@ class VoidEngineRenderer : ThreatRenderer {
                 center = Offset(tx, ty)
             )
 
+            val tearJitterPulse = if (phase == 3) 120f else 60f
+            val tearAlpha = if (phase == 3) 0.2f else 0.1f
             val tearPath = Path().apply {
-                val segs = 16
+                val segs = 32 // Smoother tear
                 moveTo(tx + 500f, ty)
                 repeat(segs) {
                     val ta = ((it + 1) / segs.toFloat()) * 2f * PI.toFloat()
-                    val seed = threat.instanceId.hashCode() + it + (gameTime / 150).toInt()
+                    val seed = threat.instanceId.hashCode() + it + (gameTime / 80).toInt()
                     val rng = Random(seed)
-                    val jitter = 480f + rng.nextFloat() * 40f
+                    val jitter = 450f + rng.nextFloat() * tearJitterPulse
                     lineTo(tx + cos(ta) * jitter, ty + sin(ta) * jitter)
                 }
                 close()
             }
-            drawPath(tearPath, Color(0xFFE91E63).copy(alpha = 0.08f), style = Stroke(width = 2f))
+            // D1: Primary Outer Tear (Vibrant Pink/Magenta)
+            drawPath(tearPath, Color(0xFFFF1744).copy(alpha = tearAlpha), style = Stroke(width = (if (phase == 3) 6f else 3f)))
+            
+            val innerTearPath = Path().apply {
+                val segs = 20
+                moveTo(tx + 470f, ty)
+                repeat(segs) {
+                    val ta = ((it + 1) / segs.toFloat()) * 2f * PI.toFloat()
+                    val seed = threat.instanceId.hashCode() + it * 9 + (gameTime / 100).toInt()
+                    val rng = Random(seed)
+                    val jitter = 430f + rng.nextFloat() * 70f
+                    lineTo(tx + cos(ta) * jitter, ty + sin(ta) * jitter)
+                }
+                close()
+            }
+            // D2: Secondary Inner Distortion (Lighter Pink)
+            drawPath(innerTearPath, Color(0xFFFF4081).copy(alpha = tearAlpha * 0.7f), style = Stroke(width = 1.5f))
+            
+            // D3: Particle Shards inside the tear
+            repeat(12) { i ->
+                val r = Random(threat.instanceId.hashCode() + i + (gameTime / 200).toInt())
+                val angle = r.nextFloat() * 2f * PI.toFloat()
+                val dist = 420f + r.nextFloat() * 80f
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.3f * tearAlpha),
+                    radius = 2f + r.nextFloat() * 4f,
+                    center = Offset(tx + cos(angle) * dist, ty + sin(angle) * dist)
+                )
+            }
 
             rotate(rot, pivot = Offset(tx, ty)) {
                 repeat(2) { g ->

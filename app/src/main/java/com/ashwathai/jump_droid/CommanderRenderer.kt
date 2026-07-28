@@ -14,7 +14,15 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 class CommanderRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         with(drawScope) {
             val tx = threat.x
             val ty = threat.y - cameraY
@@ -76,61 +84,76 @@ class CommanderRenderer : ThreatRenderer {
                 drawCircle(Color.Yellow, radius = 4f, center = Offset(tx, ty - 40f))
             }
 
-            val engineFlicker = Random(gameTime / 50).nextFloat() * 15f
+            // D1: Engine Overhaul (Long flickering exhaust trails)
+            val engineFlicker = Random(gameTime / 40).nextFloat() * 20f
+            val exhaustLen = 120f + (if (phase >= 3) 80f else 40f) + engineFlicker
             repeat(3) { i ->
                 val ex = tx - 100f + i * 100f
+                val ey = ty + 60f
+                
+                // Outer glow
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(engineGlowColor.copy(alpha = 0.5f), Color.Transparent),
-                        center = Offset(ex, ty + 60f),
-                        radius = 40f + engineFlicker
+                        colors = listOf(engineGlowColor.copy(alpha = 0.4f), Color.Transparent),
+                        center = Offset(ex, ey),
+                        radius = 45f + engineFlicker
                     ),
-                    radius = 40f + engineFlicker,
-                    center = Offset(ex, ty + 60f)
+                    radius = 45f + engineFlicker,
+                    center = Offset(ex, ey)
+                )
+                
+                // Trail path
+                val trailPath = Path().apply {
+                    moveTo(ex - 15f, ey)
+                    quadraticTo(ex, ey + exhaustLen, ex + 15f, ey)
+                    close()
+                }
+                drawPath(
+                    path = trailPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(engineGlowColor.copy(alpha = 0.7f), Color.Transparent),
+                        startY = ey,
+                        endY = ey + exhaustLen
+                    )
                 )
             }
 
-            if (phase >= 3) {
-                repeat(2) { i ->
-                    val offset = if (i == 0) -100f else 100f
-                    val angle = (sin(gameTime / 1000f + i) * 45f) + 90f
-                    rotate(angle, pivot = Offset(tx + offset, ty + 40f)) {
-                        drawPath(
-                            path = Path().apply {
-                                moveTo(tx + offset, ty + 40f)
-                                lineTo(tx + offset + 400f, ty + 40f - 60f)
-                                lineTo(tx + offset + 400f, ty + 40f + 60f)
-                                close()
-                            },
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(Color.Red.copy(alpha = 0.3f), Color.Transparent),
-                                startX = tx + offset,
-                                endX = tx + offset + 400f
-                            )
-                        )
+            // D2: Animated Sensor Arrays & Turrets
+            repeat(2) { i ->
+                val offset = if (i == 0) -120f else 120f
+                val arrayAngle = (sin((gameTime / 600f + i).toDouble()).toFloat() * 35f)
+                val extendY = if (phase >= 3) 20f else 0f
+                
+                rotate(arrayAngle, pivot = Offset(tx + offset, ty - 60f)) {
+                    drawLine(Color.Gray, Offset(tx + offset, ty - 60f), Offset(tx + offset, ty - 130f - extendY), strokeWidth = 4f)
+                    drawCircle(Color.Red.copy(alpha = 0.8f), radius = 6f, center = Offset(tx + offset, ty - 130f - extendY))
+                    
+                    // Rotating Turret Pods
+                    val turretAngle = (gameTime / 15f) % 360f
+                    rotate(turretAngle, pivot = Offset(tx + offset, ty - 90f)) {
+                        drawRect(Color(0xFF455A64), Offset(tx + offset - 10f, ty - 100f), Size(20f, 20f))
+                        drawLine(Color.DarkGray, Offset(tx + offset, ty - 100f), Offset(tx + offset, ty - 115f), strokeWidth = 3f)
                     }
                 }
             }
 
-            val wpGlow = 0.5f + 0.5f * (1f - (threat.health / threat.definition.baseHealth).coerceIn(0f, 1f))
-            repeat(threat.maxWeakPoints) { i ->
-                val isDestroyed = (threat.wpDestroyedMask and (1 shl i)) != 0
-                val wx = tx - 80f + (i * 80f)
-                val wy = ty - 40f
-                if (!isDestroyed) {
-                    drawRect(Color.Magenta.copy(alpha = wpGlow), topLeft = Offset(wx - 10f, wy - 10f), size = Size(20f, 20f))
-                    drawRect(Color.White.copy(alpha = 0.5f * wpGlow), topLeft = Offset(wx - 10f, wy - 10f), size = Size(20f, 20f), style = Stroke(width = 2f))
-                    val beaconAngle = (gameTime / 20f + i * 120f) % 360f
-                    rotate(beaconAngle, pivot = Offset(wx, wy)) {
-                        drawLine(Color.White.copy(alpha = 0.5f * wpGlow), Offset(wx, wy), Offset(wx + 15f, wy), strokeWidth = 2f)
-                    }
-                }
-            }
-
+            // D3: Tactical Jam Pulse (Hexagonal distortion wave)
             if (phase >= 3) {
-                val jamPulse = (sin(gameTime / 400f) * 0.5f + 0.5f)
-                drawCircle(Color(0xFF00BCD4).copy(alpha = 0.1f * jamPulse), radius = 100f + jamPulse * 200f, center = Offset(tx, ty), style = Stroke(width = 4f))
-                drawCircle(Color.Cyan.copy(alpha = 0.05f * jamPulse), radius = 100f + jamPulse * 200f, center = Offset(tx, ty), style = Stroke(width = 2f))
+                val jamPulse = (sin((gameTime / 450f).toDouble()).toFloat() * 0.5f + 0.5f)
+                val pulseRadius = 150f + jamPulse * 250f
+                
+                // Drawing 6 segments of a hexagon
+                val hexPath = Path().apply {
+                    repeat(6) { i ->
+                        val ang = i * 60f * (PI.toFloat() / 180f)
+                        val px = tx + pulseRadius * cos(ang)
+                        val py = ty + pulseRadius * sin(ang)
+                        if (i == 0) moveTo(px, py) else lineTo(px, py)
+                    }
+                    close()
+                }
+                drawPath(hexPath, Color.Cyan.copy(alpha = 0.15f * (1f - jamPulse)), style = Stroke(width = 6f))
+                drawPath(hexPath, Color.White.copy(alpha = 0.1f * (1f - jamPulse)), style = Stroke(width = 2f))
             }
 
             if (threat.pulseAlpha > 0) {

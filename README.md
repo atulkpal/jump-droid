@@ -19,7 +19,7 @@
 
 <br>
 
-> **📥 Download Jump Droid (v1.5.2)** — [Google Play](https://play.google.com/store/apps/details?id=com.ashwathai.jump_droid) · [GitHub APK](https://github.com/atulkpal/jump-droid/releases/tag/v1.5.2) · [itch.io](https://ashwathai.itch.io/jump-droid)
+> **📥 Download Jump Droid (v2.0.0)** — [Google Play](https://play.google.com/store/apps/details?id=com.ashwathai.jump_droid) · [GitHub APK](https://github.com/atulkpal/jump-droid/releases/tag/v2.0.0) · [itch.io](https://ashwathai.itch.io/jump-droid)
 
 <br>
 
@@ -156,9 +156,9 @@ Open in Android Studio, sync Gradle, and run on a device or emulator (API 34+).
 
 | | |
 |---|---|
-| **Version** | v1.5.2 — Closed Beta Release |
-| **Latest EPIC** | 11 — Ascension (The End) — **Complete** |
-| **Next** | EPIC 12 — Fleet Expansion (planned) |
+| **Version** | v2.0.0 — Production Release |
+| **Latest EPIC** | 13 — Production Deployment — **In Progress** |
+| **Next** | 14 — Post-Launch Expansion (planned) |
 | **Platform** | Android (API 34+) |
 | **License** | [MIT](LICENSE) |
 

@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,12 +21,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.border
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,7 +45,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +55,12 @@ import androidx.core.content.edit
 import com.ashwathai.jump_droid.ui.theme.SciFiBackground
 import com.ashwathai.jump_droid.ui.theme.SciFiBorder
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
+import com.ashwathai.jump_droid.ui.theme.SciFiGold
+import com.ashwathai.jump_droid.ui.theme.SciFiGreen
+import com.ashwathai.jump_droid.ui.theme.SciFiRed
+import com.ashwathai.jump_droid.ui.theme.SciFiPurple
+import com.ashwathai.jump_droid.ui.theme.SciFiWhite
+import com.ashwathai.jump_droid.ui.theme.SciFiSurface
 import com.ashwathai.jump_droid.ui.theme.SciFiGold
 import com.ashwathai.jump_droid.ui.theme.SciFiGreen
 import com.ashwathai.jump_droid.ui.theme.SciFiRed
@@ -103,21 +116,32 @@ fun SettingsScreen(
             }
 
             Column(Modifier.padding(32.dp).safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "SYSTEM SETTINGS",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        shadow = Shadow(SciFiCyan.copy(alpha = 0.4f), blurRadius = 12f)
-                    ),
-                    color = SciFiCyan,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 2.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_station_sys),
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(Modifier.width(16.dp))
+                    Text(
+                        "SYSTEM SETTINGS",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            shadow = Shadow(SciFiCyan.copy(alpha = 0.4f), blurRadius = 12f)
+                        ),
+                        color = SciFiCyan,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp
+                    )
+                }
                 Spacer(Modifier.height(32.dp))
                 Text("SOUND EFFECTS", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 2.sp, fontSize = 10.sp)
                 Spacer(Modifier.height(8.dp))
                 AudioSlider(
                     value = soundManager?.sfxVolume ?: 0.7f,
-                    onValueChange = { soundManager?.sfxVolume = it },
+                    onValueChange = { 
+                        soundManager?.sfxVolume = it
+                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                    },
                     accent = SciFiCyan
                 )
                 Spacer(Modifier.height(16.dp))
@@ -125,7 +149,10 @@ fun SettingsScreen(
                 Spacer(Modifier.height(8.dp))
                 AudioSlider(
                     value = soundManager?.musicVolume ?: 0.5f,
-                    onValueChange = { soundManager?.musicVolume = it },
+                    onValueChange = { 
+                        soundManager?.musicVolume = it
+                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                    },
                     accent = SciFiGold
                 )
                 Spacer(Modifier.height(16.dp))
@@ -135,6 +162,7 @@ fun SettingsScreen(
                             if (soundManager != null) {
                                 soundManager.isMuted = !soundManager.isMuted
                                 soundManager.playSfx("sfx_ui_click")
+                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -155,6 +183,8 @@ fun SettingsScreen(
                             soundManager?.playSfx("sfx_ui_click")
                             if (newState) {
                                 hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                            } else {
+                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -167,31 +197,80 @@ fun SettingsScreen(
                         Text(if (!hapticEnabled) "HAPTIC OFF" else "HAPTIC ON", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(0.6f), horizontalArrangement = Arrangement.Center) {
+                    val assetMode = sharedPrefs.getBoolean("render_mode_assets", false)
+                    Button(
+                        onClick = { 
+                            val newState = !assetMode
+                            sharedPrefs.edit { putBoolean("render_mode_assets", newState) }
+                            DevConfig.RENDER_MODE_ASSETS = newState
+                            soundManager?.playSfx("sfx_ui_click")
+                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                            if (newState) hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (!assetMode) SciFiWhite.copy(alpha = 0.1f) else SciFiPurple.copy(alpha = 0.3f),
+                            contentColor = if (!assetMode) SciFiWhite.copy(alpha = 0.6f) else SciFiPurple
+                        ),
+                        modifier = Modifier.height(36.dp).fillMaxWidth(),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(if (!assetMode) "RENDER: PROCEDURAL" else "RENDER: ASSETS (BETA)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
                 Spacer(Modifier.height(16.dp))
                 val isPremium = purchaseManager?.isPremiumUser ?: sharedPrefs.getBoolean("premium_user", false)
                 var showDebugPurchaseDialog by remember { mutableStateOf(false) }
                 var showStoreDialog by remember { mutableStateOf(false) }
-                Button(
-                    onClick = {
-                        soundManager?.playSfx("sfx_ui_click")
-                        if (!isPremium) {
-                            purchaseManager?.launchPurchaseFlow(context as android.app.Activity) {
-                                if (BuildConfig.DEBUG) showDebugPurchaseDialog = true else showStoreDialog = true
+                var showBenefitsDialog by remember { mutableStateOf(false) }
+
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            soundManager?.playSfx("sfx_ui_click")
+                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                            if (!isPremium) {
+                                purchaseManager?.launchPurchaseFlow(context as android.app.Activity) {
+                                    if (BuildConfig.DEBUG) showDebugPurchaseDialog = true else showStoreDialog = true
+                                }
                             }
-                        }
-                    },
-                    enabled = !isPremium,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isPremium) SciFiGreen.copy(alpha = 0.2f) else SciFiGold.copy(alpha = 0.2f),
-                        contentColor = if (isPremium) SciFiGreen else SciFiGold,
-                        disabledContainerColor = SciFiGreen.copy(alpha = 0.15f),
-                        disabledContentColor = SciFiGreen.copy(alpha = 0.5f)
-                    ),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.3f) else SciFiGold.copy(alpha = 0.5f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(if (isPremium) "ADS REMOVED ✓" else "UPGRADE: REMOVE ADS (\$1.99)", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        },
+                        enabled = !isPremium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isPremium) SciFiGreen.copy(alpha = 0.2f) else SciFiGold.copy(alpha = 0.2f),
+                            contentColor = if (isPremium) SciFiGreen else SciFiGold,
+                            disabledContainerColor = SciFiGreen.copy(alpha = 0.15f),
+                            disabledContentColor = SciFiGreen.copy(alpha = 0.5f)
+                        ),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.3f) else SciFiGold.copy(alpha = 0.5f)),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(if (isPremium) "ADS REMOVED ✓" else "UPGRADE: REMOVE ADS (\$1.99)", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    }
+                    
+                    Spacer(Modifier.width(8.dp))
+                    
+                    IconButton(
+                        onClick = { 
+                            soundManager?.playSfx("sfx_ui_click")
+                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                            showBenefitsDialog = true 
+                        },
+                        modifier = Modifier.size(40.dp).background(SciFiSurface, RoundedCornerShape(4.dp)).border(1.dp, SciFiCyan.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                    ) {
+                        Text("?", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                    }
                 }
+
+                if (showBenefitsDialog) {
+                    EliteBenefitsDialog(
+                        soundManager = soundManager,
+                        hapticManager = hapticManager,
+                        onDismiss = { showBenefitsDialog = false }
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
                 if (showDebugPurchaseDialog) {
                     AlertDialog(
                         onDismissRequest = { showDebugPurchaseDialog = false },
@@ -199,14 +278,20 @@ fun SettingsScreen(
                         text = { Text("Remove all ads for a one-time payment of \$1.99.", color = SciFiWhite.copy(alpha = 0.8f)) },
                         confirmButton = {
                             TextButton(onClick = {
+                                soundManager?.playSfx("sfx_ui_confirm")
+                                hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
                                 purchaseManager?.confirmPurchase()
                                 showDebugPurchaseDialog = false
                             }) { Text("PURCHASE", color = SciFiGold, fontWeight = FontWeight.Bold) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showDebugPurchaseDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
+                            TextButton(onClick = { 
+                                soundManager?.playSfx("sfx_ui_back")
+                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                showDebugPurchaseDialog = false 
+                            }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
                         },
-                        containerColor = Color(0xFF1A1A2E),
+                        containerColor = SciFiSurface,
                         titleContentColor = SciFiWhite,
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
@@ -217,9 +302,13 @@ fun SettingsScreen(
                         title = { Text("PLAY STORE REQUIRED", color = SciFiGold, fontWeight = FontWeight.Bold) },
                         text = { Text("Premium purchase is only available through the Google Play Store.\n\nDownload Jump Droid from the Play Store to remove ads.", color = SciFiWhite.copy(alpha = 0.8f)) },
                         confirmButton = {
-                            TextButton(onClick = { showStoreDialog = false }) { Text("DISMISS", color = SciFiGold, fontWeight = FontWeight.Bold) }
+                            TextButton(onClick = { 
+                                soundManager?.playSfx("sfx_ui_back")
+                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                showStoreDialog = false 
+                            }) { Text("DISMISS", color = SciFiGold, fontWeight = FontWeight.Bold) }
                         },
-                        containerColor = Color(0xFF1A1A2E),
+                        containerColor = SciFiSurface,
                         titleContentColor = SciFiGold,
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
@@ -230,6 +319,7 @@ fun SettingsScreen(
                 Button(
                     onClick = {
                         soundManager?.playSfx("sfx_ui_click")
+                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
                         showResetDialog = true
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = SciFiGold.copy(alpha = 0.15f), contentColor = SciFiGold),
@@ -245,17 +335,20 @@ fun SettingsScreen(
                         text = { Text("This will clear all game data:\n• Missions & Milestones\n• Discoveries & Lore\n• Cash Balance\n• Zone Progression\n\nYour Premium Purchase will NOT be affected.", color = SciFiWhite.copy(alpha = 0.8f)) },
                         confirmButton = {
                             TextButton(onClick = {
-                                val wasPremium = sharedPrefs.getBoolean("premium_user", false)
-                                sharedPrefs.edit { clear() }
-                                if (wasPremium) sharedPrefs.edit { putBoolean("premium_user", true) }
+                                soundManager?.playSfx("sfx_ui_confirm")
+                                hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
                                 showResetDialog = false
                                 onWipeData()
                             }) { Text("RESET", color = SciFiGold, fontWeight = FontWeight.Bold) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showResetDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
+                            TextButton(onClick = { 
+                                soundManager?.playSfx("sfx_ui_back")
+                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                showResetDialog = false 
+                            }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
                         },
-                        containerColor = Color(0xFF1A1A2E),
+                        containerColor = SciFiSurface,
                         titleContentColor = SciFiGold,
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
@@ -264,6 +357,7 @@ fun SettingsScreen(
                 Button(
                     onClick = {
                         soundManager?.playSfx("sfx_ui_click")
+                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
                         showFactoryResetDialog = true
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = SciFiRed.copy(alpha = 0.15f), contentColor = SciFiRed),
@@ -279,14 +373,20 @@ fun SettingsScreen(
                         text = { Text("This will clear ALL data including:\n• Premium Purchase (ads will return)\n• All game progress & cash\n• All preferences\n\nThis cannot be undone.", color = SciFiWhite.copy(alpha = 0.8f)) },
                         confirmButton = {
                             TextButton(onClick = {
+                                soundManager?.playSfx("sfx_ui_confirm")
+                                hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
                                 showFactoryResetDialog = false
                                 onFactoryReset()
                             }) { Text("FACTORY RESET", color = SciFiRed, fontWeight = FontWeight.Bold) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showFactoryResetDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
+                            TextButton(onClick = { 
+                                soundManager?.playSfx("sfx_ui_back")
+                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                showFactoryResetDialog = false 
+                            }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
                         },
-                        containerColor = Color(0xFF1A1A2E),
+                        containerColor = SciFiSurface,
                         titleContentColor = SciFiRed,
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
@@ -296,7 +396,8 @@ fun SettingsScreen(
                 Spacer(Modifier.weight(1f))
                 Button(
                     onClick = {
-                        soundManager?.playSfx("sfx_ui_click")
+                        soundManager?.playSfx("sfx_ui_back")
+                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
                         onReturn()
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -308,6 +409,59 @@ fun SettingsScreen(
                 Spacer(Modifier.height(8.dp))
                 Text("SYSTEM PREFERENCES // AUDIO // DATA", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp)
             }
+        }
+    }
+}
+
+@Composable
+fun EliteBenefitsDialog(onDismiss: () -> Unit, soundManager: SoundManager? = null, hapticManager: HapticManager? = null) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = SciFiSurface,
+        titleContentColor = SciFiCyan,
+        textContentColor = SciFiWhite.copy(alpha = 0.8f),
+        title = { Text("ELITE FLEET BENEFITS", fontWeight = FontWeight.Black, letterSpacing = 2.sp) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                BenefitItem("AD-FREE COMMAND", "Remove all intermittent and optional ads.", true)
+                BenefitItem("ELITE IDENT", "Exclusive Supporter badge on your profile.", true)
+                BenefitItem("CLOUD RELAY", "Enhanced cloud sync with offline local caching.", true)
+                BenefitItem("PRIORITY ACCESS", "Early testing of experimental engine assets.", true)
+                
+                HorizontalDivider(color = SciFiWhite.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
+                
+                Text(
+                    "One-time purchase supports all future engine development and zone expansions.",
+                    fontSize = 10.sp,
+                    color = SciFiGold.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                soundManager?.playSfx("sfx_ui_back")
+                hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                onDismiss()
+            }) {
+                Text("ACKNOWLEDGED", color = SciFiCyan, fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+@Composable
+private fun BenefitItem(title: String, desc: String, isPremium: Boolean) {
+    Row(verticalAlignment = Alignment.Top) {
+        Text(
+            if (isPremium) "★" else "○",
+            color = if (isPremium) SciFiGold else SciFiWhite.copy(alpha = 0.3f),
+            modifier = Modifier.padding(top = 2.dp)
+        )
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(title, color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(desc, color = SciFiWhite.copy(alpha = 0.6f), fontSize = 10.sp)
         }
     }
 }

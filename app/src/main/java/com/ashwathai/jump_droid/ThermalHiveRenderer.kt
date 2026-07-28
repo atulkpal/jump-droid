@@ -11,81 +11,70 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 class ThermalHiveRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         val cx = threat.x
         val cy = threat.y - cameraY
         val pulse = sin(gameTime / 200f) * 0.1f + 0.9f
         val heatDanger = player.heat > 60f
 
-        // Heat haze aura
-        drawScope.drawCircle(
-            color = SciFiOrange.copy(alpha = (if (heatDanger) 0.15f else 0.05f) * alpha),
-            radius = 80f * pulse,
-            center = Offset(cx, cy)
-        )
-
-        // Outer glow ring (heat-reactive)
-        val glowRadius = 55f * pulse
-        val glowColor = if (heatDanger) SciFiRed else SciFiOrange
-        val glowAlpha = if (heatDanger) 0.7f else 0.3f
-
-        drawScope.drawCircle(
-            color = glowColor.copy(alpha = glowAlpha * alpha),
-            radius = glowRadius,
-            center = Offset(cx, cy),
-            style = Stroke(width = 4f)
-        )
-
-        // Second glow ring
-        drawScope.drawCircle(
-            color = glowColor.copy(alpha = (glowAlpha * 0.5f) * alpha),
-            radius = glowRadius + 15f,
-            center = Offset(cx, cy),
-            style = Stroke(width = 2f)
-        )
-
-        // Black organic core with gradient
+        // D1: Thermal Haze Overlay (Centered on hive)
+        val hazeIntensity = if (heatDanger) 0.12f else 0.04f
+        val hazeRadius = 400f * pulse
         drawScope.drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFF1A0000).copy(alpha = alpha),
-                    Color.Black.copy(alpha = alpha),
-                    Color.Black.copy(alpha = alpha * 0.5f)
-                ),
+                colors = listOf(SciFiOrange.copy(alpha = hazeIntensity * alpha), Color.Transparent),
                 center = Offset(cx, cy),
-                radius = 45f * pulse
+                radius = hazeRadius
             ),
-            radius = 45f * pulse,
+            radius = hazeRadius,
             center = Offset(cx, cy)
         )
 
-        // Internal heat veins
-        repeat(3) { i ->
-            val va = (i * 120f + gameTime / 100f) * (kotlin.math.PI.toFloat() / 180f)
-            val vd = 20f + sin(gameTime / 400f + i * 2f) * 10f
+        // D2: Vascular Internal Veins (breathing intensity)
+        val veinAlpha = (if (heatDanger) 0.6f else 0.3f) * alpha
+        repeat(5) { i ->
+            val va = (i * 72f + gameTime / 80f) * (kotlin.math.PI.toFloat() / 180f)
+            val vPulse = sin((gameTime / 150f + i).toDouble()).toFloat() * 10f
+            val vd = 15f + vPulse
             val vx = cx + cos(va) * vd
             val vy = cy + sin(va) * vd
             drawScope.drawCircle(
-                color = glowColor.copy(alpha = (0.3f + 0.3f * sin(gameTime / 150f + i)) * alpha),
-                radius = 4f + sin(gameTime / 200f + i * 1.3f) * 2f,
+                color = if (heatDanger) SciFiRed.copy(alpha = veinAlpha) else SciFiOrange.copy(alpha = veinAlpha),
+                radius = 5f + sin((gameTime / 100f + i).toDouble()).toFloat() * 2f,
                 center = Offset(vx, vy)
             )
         }
 
-        // Swarm particles — orbiting, heat-reactive density
-        val particleCount = if (heatDanger) 12 else 6
-        val particleSpeed = if (heatDanger) 80f else 150f
+        // D3: Swarm Particles (Significantly increased density)
+        val particleCount = if (heatDanger) 24 else 12
+        val particleSpeed = if (heatDanger) 60f else 120f
         repeat(particleCount) { i ->
-            val angle = (gameTime / particleSpeed) + (i * (kotlin.math.PI.toFloat() * 2f / particleCount))
-            val dist = 28f + sin(gameTime / 300f + i * 1.7f) * 12f
+            val r = kotlin.random.Random(threat.instanceId.hashCode() + i)
+            val angle = (gameTime / (particleSpeed + r.nextFloat() * 20f)) + (i * (kotlin.math.PI.toFloat() * 2f / particleCount))
+            val dist = 30f + sin((gameTime / 250f + i).toDouble()).toFloat() * 20f + r.nextFloat() * 15f
             val px = cx + cos(angle) * dist
             val py = cy + sin(angle) * dist
-            val pSize = if (heatDanger) 3f else 2f
+            val pSize = if (heatDanger) 4f else 2.5f
             val pColor = if (heatDanger) SciFiRed else SciFiOrange
+            
             drawScope.drawCircle(
-                color = pColor.copy(alpha = (0.4f + 0.4f * sin(gameTime / 100f + i * 2.1f)) * alpha),
+                color = pColor.copy(alpha = (0.5f + 0.4f * sin((gameTime / 90f + i * 1.5f).toDouble()).toFloat()) * alpha),
                 radius = pSize,
                 center = Offset(px, py)
+            )
+            // Add tiny trail to particles
+            drawScope.drawCircle(
+                color = pColor.copy(alpha = 0.2f * alpha),
+                radius = pSize * 0.7f,
+                center = Offset(px - cos(angle) * 5f, py - sin(angle) * 5f)
             )
         }
 

@@ -2,10 +2,77 @@ package com.ashwathai.jump_droid
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import com.ashwathai.jump_droid.ui.theme.SciFiCyan
+import com.ashwathai.jump_droid.ui.theme.SciFiGold
+import com.ashwathai.jump_droid.ui.theme.SciFiPurple
+import com.ashwathai.jump_droid.ui.theme.SciFiRed
 import kotlin.math.*
 
 enum class GameState {
-    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS, ASCENSION_PROTOCOL, SHOP, CONTINUE_READY
+    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS, ASCENSION_PROTOCOL, SHOP, CONTINUE_READY, ZEN, EXPEDITION_REWARDS
+}
+
+enum class GameMode {
+    STANDARD, ZEN
+}
+
+sealed class UnlockEvent {
+    abstract val title: String
+    abstract val description: String
+    abstract val destinationLabel: String
+    abstract val accentColor: Color
+    open val insigniaRes: Int? = null
+    open val loreText: String? = null
+
+    data class Rocket(val type: RocketType) : UnlockEvent() {
+        override val title get() = type.title.uppercase()
+        override val description get() = "${type.traitName}: ${type.traitDescription}"
+        override val destinationLabel get() = "VIEW IN HANGAR"
+        override val accentColor get() = SciFiCyan
+        override val insigniaRes get() = R.drawable.ic_btn_hangar
+    }
+
+    data class Module(val module: com.ashwathai.jump_droid.Module) : UnlockEvent() {
+        override val title get() = module.name.uppercase()
+        override val description get() = module.description
+        override val destinationLabel get() = "VIEW IN HANGAR"
+        override val accentColor get() = module.iconColor
+        override val insigniaRes get() = when(module.category) {
+            ModuleCategory.HULL -> R.drawable.ic_hud_hull
+            ModuleCategory.SHIELD -> R.drawable.ic_hud_shield
+            ModuleCategory.ENGINE -> R.drawable.ic_cat_engine
+            ModuleCategory.HEAT -> R.drawable.ic_hud_heat
+            ModuleCategory.UTILITY -> R.drawable.ic_station_sys
+        }
+        override val loreText get() = "Advanced subsystem acquired. Deploy via Hangar to enhance droid performance."
+    }
+
+    data class Achievement(val achievement: com.ashwathai.jump_droid.Achievement) : UnlockEvent() {
+        override val title get() = achievement.title.uppercase()
+        override val description get() = achievement.description
+        override val destinationLabel get() = "VIEW IN ARCHIVE"
+        override val accentColor get() = SciFiGold
+        override val insigniaRes get() = R.drawable.ic_premium_star
+        override val loreText get() = "A legendary feat recorded in the Ascension Archives. Prestige levels increased."
+    }
+
+    data class Mission(val mission: com.ashwathai.jump_droid.Mission) : UnlockEvent() {
+        override val title get() = mission.name.uppercase()
+        override val description get() = "Mission objective completed."
+        override val destinationLabel get() = "VIEW IN MISSIONS"
+        override val accentColor get() = MissionRegistry.getTrackForCategory(mission.category)?.color ?: SciFiCyan
+        override val insigniaRes get() = MissionRegistry.getTrackForCategory(mission.category)?.iconRes
+        override val loreText get() = mission.debrief
+    }
+
+    data class Discovery(val type: com.ashwathai.jump_droid.DiscoveryType) : UnlockEvent() {
+        override val title get() = type.title.uppercase()
+        override val description get() = "New entry archived."
+        override val destinationLabel get() = "VIEW IN ARCHIVE"
+        override val accentColor get() = SciFiPurple
+        override val insigniaRes get() = R.drawable.ic_station_arc
+        override val loreText get() = type.lore
+    }
 }
 
 enum class PowerUpType {
@@ -137,14 +204,62 @@ enum class RocketType(
     val thrustMult: Float,
     val fuelMult: Float,
     val heatMult: Float,
+    val integrityMult: Float = 1.0f,
+    val steerMult: Float = 1.0f,
     val unlockScore: Int,
     val discovery: DiscoveryType
 ) {
-    BALANCED("Explorer", "Sensor Array", "Native +20% discovery range.", 1.0f, 1.0f, 1.0f, 0, DiscoveryType.ROCKET_BALANCED),
-    SCOUT("Striker", "Target Lock", "Precision strikes on weak points.", 1.25f, 0.7f, 0.9f, 2000, DiscoveryType.ROCKET_SCOUT),
-    TANK("Heavy", "Kinetic Mass", "Impact shockwaves on weak point destruction.", 0.85f, 1.5f, 0.8f, 5000, DiscoveryType.ROCKET_TANK),
-    EXPERIMENTAL("Prototype", "Overclocked Core", "Retain steering authority while overheated.", 1.5f, 1.0f, 1.4f, 10000, DiscoveryType.ROCKET_EXPERIMENTAL)
+    BALANCED("Explorer", "Sensor Array", "Native +20% discovery range.", 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0, DiscoveryType.ROCKET_BALANCED),
+    SCOUT("Striker", "Target Lock", "Precision strikes on weak points.", 1.25f, 0.7f, 0.9f, 0.9f, 1.2f, 2000, DiscoveryType.ROCKET_SCOUT),
+    TANK("Heavy", "Kinetic Mass", "Impact shockwaves on weak point destruction.", 0.85f, 1.5f, 0.8f, 1.4f, 0.6f, 5000, DiscoveryType.ROCKET_TANK),
+    EXPERIMENTAL("Prototype", "Overclocked Core", "Retain steering authority while overheated.", 1.5f, 1.0f, 1.4f, 0.8f, 1.3f, 10000, DiscoveryType.ROCKET_EXPERIMENTAL);
+
+    val chassisVariants: List<ChassisVariant> by lazy {
+        when (this) {
+            BALANCED -> listOf(
+                ChassisVariant("Pathfinder", 0f, 0f, 0f, 0f, 0f),
+                ChassisVariant("Nomad", 0.08f, -0.05f, 0.05f, 0.05f, -0.03f),
+                ChassisVariant("Surveyor", -0.05f, 0.08f, -0.05f, -0.05f, 0.10f)
+            )
+            SCOUT -> listOf(
+                ChassisVariant("Interceptor", 0f, 0f, 0f, 0f, 0f),
+                ChassisVariant("Raptor", 0.10f, -0.10f, 0.08f, -0.08f, 0.12f),
+                ChassisVariant("Phantom", -0.05f, 0.05f, -0.08f, 0.05f, 0.05f)
+            )
+            TANK -> listOf(
+                ChassisVariant("Atlas", 0f, 0f, 0f, 0f, 0f),
+                ChassisVariant("Bulwark", -0.08f, 0.12f, -0.05f, 0.15f, -0.10f),
+                ChassisVariant("Leviathan", 0.05f, -0.05f, 0.05f, 0.08f, 0.05f)
+            )
+            EXPERIMENTAL -> listOf(
+                ChassisVariant("X-01", 0f, 0f, 0f, 0f, 0f),
+                ChassisVariant("X-07", 0.12f, -0.05f, 0.10f, -0.05f, 0.10f),
+                ChassisVariant("Singularity", -0.05f, 0.10f, -0.10f, 0.10f, -0.05f)
+            )
+        }
+    }
+
+    fun chassisThrustMult(index: Int): Float = thrustMult * (1f + (chassisVariants.getOrNull(index)?.thrustOffset ?: 0f))
+    fun chassisFuelMult(index: Int): Float = fuelMult * (1f + (chassisVariants.getOrNull(index)?.fuelOffset ?: 0f))
+    fun chassisHeatMult(index: Int): Float = heatMult * (1f + (chassisVariants.getOrNull(index)?.heatOffset ?: 0f))
+    fun chassisIntegrityMult(index: Int): Float = integrityMult * (1f + (chassisVariants.getOrNull(index)?.integrityOffset ?: 0f))
+    fun chassisSteerMult(index: Int): Float = steerMult * (1f + (chassisVariants.getOrNull(index)?.steerOffset ?: 0f))
 }
+
+data class ChassisVariant(
+    val name: String,
+    val thrustOffset: Float,
+    val fuelOffset: Float,
+    val heatOffset: Float,
+    val integrityOffset: Float = 0f,
+    val steerOffset: Float = 0f
+)
+
+data class BossArrivalEvent(
+    val bossName: String,
+    val bossId: String,
+    val zone: AltitudeZone
+)
 
 data class Achievement(
     val id: String,
@@ -195,6 +310,15 @@ class Particle(
     val size: Float
 )
 
+class FlyingScore(
+    val value: Int,
+    var x: Float,
+    var y: Float,
+    val color: Color,
+    var progress: Float = 0f,
+    var scale: Float = 1.0f
+)
+
 class Player(
     initialX: Float,
     initialY: Float
@@ -206,6 +330,8 @@ class Player(
     var fuel by mutableFloatStateOf(100f) // Will be set on restart
     
     var rocketType by mutableStateOf(RocketType.BALANCED)
+    var currentChassisIndex by mutableIntStateOf(0)
+    val chassisName: String get() = rocketType.chassisVariants.getOrNull(currentChassisIndex)?.name ?: rocketType.chassisVariants.first().name
     var maxFuel by mutableFloatStateOf(100f)
     var maxHeat by mutableFloatStateOf(100f) // Sprint E: Dynamic scaling support
 
@@ -237,6 +363,7 @@ class Player(
 
     // Visual Feedback State
     var squashStretch by mutableFloatStateOf(1.0f)
+    var shieldHitTimer by mutableFloatStateOf(0f)
     var invulnerabilityTimer by mutableFloatStateOf(0f)
     var wpInvulnerabilityTimer by mutableFloatStateOf(0f)
     var isOnPlatform by mutableStateOf(false)
@@ -248,6 +375,10 @@ class Player(
     var kineticBatteryTimer by mutableFloatStateOf(0f) // EPIC 10
     var magneticSiphonTimer by mutableFloatStateOf(0f) // EPIC 10
     var overdriveTimer by mutableFloatStateOf(0f) // EPIC 10
+
+    // EPIC 12: Cosmetic Customization
+    var equippedTrailIndex by mutableIntStateOf(0)
+    var equippedPaintIndex by mutableIntStateOf(0)
 
     // EPIC 7: Module System
     val activeModules = mutableStateListOf<Module>()
@@ -269,5 +400,48 @@ class Player(
         if (comboFreezeTimer > 0) comboFreezeTimer = max(0f, comboFreezeTimer - dt)
         if (controlInversionTimer > 0) controlInversionTimer = max(0f, controlInversionTimer - dt)
         if (hudInterferenceTimer > 0) hudInterferenceTimer = max(0f, hudInterferenceTimer - dt)
+        if (shieldHitTimer > 0) shieldHitTimer = max(0f, shieldHitTimer - dt)
     }
+}
+
+data class EngineTrail(
+    val id: String,
+    val name: String,
+    val trailColor: Color,
+    val glowColor: Color,
+    val description: String,
+    val price: Int = 0,
+    val isDefault: Boolean = false
+)
+
+object EngineTrailRegistry {
+    val trails = listOf(
+        EngineTrail("plasma_cyan", "Plasma Cyan", Color(0xFF00E5FF), Color(0xFF80DEEA), "Standard cyan plasma exhaust.", price = 0, isDefault = true),
+        EngineTrail("solar_flare", "Solar Flare", Color(0xFFFF6D00), Color(0xFFFFD700), "Burning orange-gold wake.", price = 300),
+        EngineTrail("void_glitch", "Void Glitch", Color(0xFF9C27B0), Color(0xFFE040FB), "Unstable purple distortion trail.", price = 500),
+        EngineTrail("plasma_blue", "Plasma Blue", Color(0xFF2196F3), Color(0xFF64B5F6), "Bright blue energy exhaust.", price = 400),
+    )
+    val default: EngineTrail get() = trails.first { it.isDefault }
+    fun getById(id: String) = trails.find { it.id == id } ?: default
+}
+
+data class PaintScheme(
+    val id: String,
+    val name: String,
+    val hullColor: Color,
+    val accentColor: Color,
+    val description: String,
+    val price: Int = 0,
+    val isDefault: Boolean = false
+)
+
+object PaintRegistry {
+    val paints = listOf(
+        PaintScheme("stock", "Stock", Color.White, Color.White, "Standard factory finish.", price = 0, isDefault = true),
+        PaintScheme("chrome", "Chrome", Color(0xFFB0BEC5), Color(0xFF78909C), "Sleek metallic chrome.", price = 500),
+        PaintScheme("stealth", "Stealth", Color(0xFF263238), Color(0xFF37474F), "Dark matte stealth coating.", price = 750),
+        PaintScheme("prototype_x", "Prototype-X", Color(0xFF880E4F), Color(0xFFAD1457), "Experimental prototype finish.", price = 1000),
+    )
+    val default: PaintScheme get() = paints.first { it.isDefault }
+    fun getById(id: String) = paints.find { it.id == id } ?: default
 }

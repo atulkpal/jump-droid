@@ -70,6 +70,7 @@ class FirebaseGameAnalytics(context: Context) : GameAnalytics {
         val params = Bundle().apply {
             putString("mission_id", mission.id)
             putString("mission_type", mission.type.name)
+            putString("mission_category", mission.category.name)
         }
         firebase.logEvent("mission_completed", params)
     }
@@ -86,6 +87,7 @@ class FirebaseGameAnalytics(context: Context) : GameAnalytics {
     override fun logBossDefeated(boss: ThreatDefinition, zone: AltitudeZone) {
         val params = Bundle().apply {
             putString("boss_id", boss.id)
+            putString("boss_name", boss.name)
             putString("zone", zone.zoneName)
         }
         firebase.logEvent("boss_defeated", params)

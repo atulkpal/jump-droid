@@ -1,65 +1,109 @@
 package com.ashwathai.jump_droid
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ashwathai.jump_droid.ui.theme.SciFiBackground
-import com.ashwathai.jump_droid.ui.theme.SciFiBorder
-import com.ashwathai.jump_droid.ui.theme.SciFiCyan
-import com.ashwathai.jump_droid.ui.theme.SciFiRed
-import com.ashwathai.jump_droid.ui.theme.SciFiSurface
-import com.ashwathai.jump_droid.ui.theme.SciFiWhite
+import com.ashwathai.jump_droid.ui.theme.*
 
 @Composable
-fun LeaderboardScreen(onDismiss: () -> Unit) {
-    Box(Modifier.fillMaxSize().background(SciFiBackground).safeDrawingPadding(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(300.dp)) {
-            Text("GLOBAL TERMINAL", style = MaterialTheme.typography.headlineMedium, color = SciFiCyan, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+fun LeaderboardScreen(
+    leaderboardManager: LeaderboardManager,
+    progressionManager: ProgressionManager,
+    cloudSyncManager: CloudSyncManager? = null,
+    onDismiss: () -> Unit
+) {
+    Box(Modifier.fillMaxSize().background(SciFiBackground).safeDrawingPadding()) {
+        StarfieldBackground()
+        
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxSize().padding(24.dp)
+        ) {
+            Text(
+                "GLOBAL TERMINAL",
+                style = MaterialTheme.typography.headlineMedium,
+                color = SciFiCyan,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp,
+                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+            )
+            
             Spacer(Modifier.height(48.dp))
+
+            // Lockdown Modal
             Surface(
-                color = SciFiSurface,
-                shape = RoundedCornerShape(8.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                color = Color.Black.copy(alpha = 0.85f),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(2.dp, SciFiOrange.copy(alpha = 0.5f))
             ) {
-                Column(Modifier.padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("CONNECTION STATUS", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
-                    Spacer(Modifier.height(12.dp))
-                    Text("OFFLINE", color = SciFiRed, fontWeight = FontWeight.Bold, letterSpacing = 4.sp)
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "Lockdown")
+                    val pulse by infiniteTransition.animateFloat(0.6f, 1.2f, infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "IconPulse")
+                    
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_station_trm),
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp).graphicsLayer(scaleX = pulse, scaleY = pulse),
+                        tint = SciFiOrange
+                    )
+                    
                     Spacer(Modifier.height(24.dp))
-                    Text("Worldwide rankings currently unavailable due to atmospheric interference.", color = SciFiWhite.copy(alpha = 0.6f), textAlign = TextAlign.Center, fontSize = 12.sp)
+                    
+                    Text(
+                        "TERMINAL OFFLINE",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = SciFiOrange,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 4.sp
+                    )
+                    
+                    Text(
+                        "GLOBAL UPLINK SEVERED // ERROR 404",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = SciFiOrange.copy(alpha = 0.6f),
+                        letterSpacing = 2.sp
+                    )
+                    
+                    Spacer(Modifier.height(16.dp))
+                    
+                    Text(
+                        "The Global Pilot Network is currently experiencing heavy interference. Terminal access is restricted until the next software sync.",
+                        color = SciFiWhite.copy(alpha = 0.8f),
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 18.sp
+                    )
+                    
+                    Spacer(Modifier.height(32.dp))
+                    
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(containerColor = SciFiOrange.copy(alpha = 0.2f), contentColor = SciFiOrange),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, SciFiOrange.copy(alpha = 0.4f))
+                    ) {
+                        Text("RETURN TO COMMAND", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    }
                 }
             }
-            Spacer(Modifier.height(48.dp))
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder)
-            ) {
-                Text("DISCONNECT", color = SciFiWhite, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(8.dp))
+
+            Spacer(Modifier.weight(1f))
             GlobalAdBanner()
         }
     }

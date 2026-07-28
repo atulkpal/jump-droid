@@ -3,7 +3,10 @@ package com.ashwathai.jump_droid
 import android.app.Activity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,8 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,6 +53,7 @@ import com.ashwathai.jump_droid.ui.theme.SciFiButtonShape
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
 import com.ashwathai.jump_droid.ui.theme.SciFiGold
 import com.ashwathai.jump_droid.ui.theme.SciFiGreen
+import com.ashwathai.jump_droid.ui.theme.SciFiRed
 import com.ashwathai.jump_droid.ui.theme.SciFiSurface
 import com.ashwathai.jump_droid.ui.theme.SciFiWhite
 
@@ -78,24 +84,40 @@ fun ShopScreen(
                 Modifier.padding(24.dp).verticalScroll(rememberScrollState()).safeDrawingPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    "CURRENCY EXCHANGE",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        shadow = Shadow(SciFiCyan.copy(alpha = 0.3f), blurRadius = 10f)
-                    ),
-                    color = SciFiCyan,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 2.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_btn_shop),
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "CURRENCY EXCHANGE",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            shadow = Shadow(SciFiCyan.copy(alpha = 0.3f), blurRadius = 10f)
+                        ),
+                        color = SciFiCyan,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
 
-                Text(
-                    "BALANCE: $cashBalance JC",
-                    color = SciFiGold,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "BALANCE: $cashBalance",
+                        color = SciFiGold,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_currency_jc),
+                        contentDescription = "JC",
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
                 Text(
                     "JUMP CREDITS",
                     color = SciFiWhite.copy(alpha = 0.3f),
@@ -111,8 +133,12 @@ fun ShopScreen(
                 ) {
                     Column(Modifier.fillMaxWidth().padding(20.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(10.dp).background(if (isPremium) SciFiGreen else SciFiGold, RoundedCornerShape(2.dp)))
-                            Spacer(Modifier.width(8.dp))
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_premium_star),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(Modifier.width(12.dp))
                             Text(
                                 "PREMIUM UPGRADE",
                                 color = if (isPremium) SciFiGreen else SciFiGold,
@@ -160,38 +186,109 @@ fun ShopScreen(
                 }
                 Spacer(Modifier.height(24.dp))
 
+                // --- Continue Credit Purchase ---
+                val currentRate = progressionManager.getCurrentCreditRate()
+                Surface(
+                    color = SciFiSurface.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.3f))
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("BANK CONTINUE CREDITS", color = SciFiCyan, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp)
+                            Text("$currentRate JC = 1 CREDIT (${progressionManager.creditBalance}/${progressionManager.maxCredits})", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 9.sp)
+                        }
+                        Button(
+                            onClick = {
+                                if (progressionManager.spendCash(currentRate)) {
+                                    progressionManager.addCredits(1)
+                                    soundManager?.playSfx("sfx_ui_confirm")
+                                } else {
+                                    soundManager?.playSfx("sfx_ui_error")
+                                }
+                            },
+                            enabled = progressionManager.totalCash >= currentRate && progressionManager.creditBalance < progressionManager.maxCredits,
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f), contentColor = SciFiCyan),
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text("PURCHASE", fontSize = 9.sp, fontWeight = FontWeight.Black)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(24.dp))
+
                 Text(
-                    "COMING IN V2.0.0",
-                    color = SciFiWhite.copy(alpha = 0.4f),
-                    fontSize = 10.sp,
-                    letterSpacing = 3.sp
+                    "COSMETIC REQUISITION",
+                    color = SciFiGold,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 2.sp
                 )
                 Spacer(Modifier.height(12.dp))
 
-                val v2Items = listOf(
-                    "ROCKET SKINS" to "Custom color schemes for your fleet",
-                    "ENGINE TRAILS" to "Plasma, ice, and void effects",
-                    "UI THEMES" to "HUD color schemes and layouts"
-                )
-                v2Items.forEach { (title, desc) ->
-                    Surface(
-                        color = SciFiSurface.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(6.dp),
-                        border = BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.2f))
-                    ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column {
-                                Text(title, color = SciFiWhite.copy(alpha = 0.3f), fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                                Text(desc, color = SciFiWhite.copy(alpha = 0.2f), fontSize = 9.sp)
-                            }
-                            Text("V2", color = SciFiCyan.copy(alpha = 0.3f), fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                // Trails
+                Text("ENGINE TRAILS", color = SciFiWhite.copy(alpha = 0.3f), fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    maxItemsInEachRow = 2
+                ) {
+                    EngineTrailRegistry.trails.filter { !it.isDefault }.forEach { trail ->
+                        Box(Modifier.fillMaxWidth(0.48f).padding(bottom = 10.dp)) {
+                            CosmeticPurchaseCard(
+                                name = trail.name,
+                                price = trail.price,
+                                isUnlocked = progressionManager.isTrailUnlocked(trail.id),
+                                accentColor = trail.trailColor,
+                                iconRes = R.drawable.ic_shop_trails,
+                                onPurchase = {
+                                    if (progressionManager.spendCash(trail.price)) {
+                                        progressionManager.unlockTrail(trail.id)
+                                        soundManager?.playSfx("sfx_ui_confirm")
+                                    } else {
+                                        soundManager?.playSfx("sfx_ui_error")
+                                    }
+                                }
+                            )
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
+                }
+
+                Spacer(Modifier.height(12.dp))
+                // Paint Schemes
+                Text("PAINT SCHEMES", color = SciFiWhite.copy(alpha = 0.3f), fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    maxItemsInEachRow = 2
+                ) {
+                    PaintRegistry.paints.filter { !it.isDefault }.forEach { paint ->
+                        Box(Modifier.fillMaxWidth(0.48f).padding(bottom = 10.dp)) {
+                            CosmeticPurchaseCard(
+                                name = paint.name,
+                                price = paint.price,
+                                isUnlocked = progressionManager.isPaintUnlocked(paint.id),
+                                accentColor = paint.accentColor,
+                                iconRes = R.drawable.ic_shop_skins,
+                                onPurchase = {
+                                    if (progressionManager.spendCash(paint.price)) {
+                                        progressionManager.unlockPaint(paint.id)
+                                        soundManager?.playSfx("sfx_ui_confirm")
+                                    } else {
+                                        soundManager?.playSfx("sfx_ui_error")
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(32.dp))
@@ -232,7 +329,7 @@ fun ShopScreen(
                     dismissButton = {
                         TextButton(onClick = { showDebugPurchaseDialog = false }) { Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f)) }
                     },
-                    containerColor = Color(0xFF1A1A2E),
+                    containerColor = SciFiSurface,
                     titleContentColor = SciFiWhite,
                     textContentColor = SciFiWhite.copy(alpha = 0.8f)
                 )
@@ -245,10 +342,75 @@ fun ShopScreen(
                     confirmButton = {
                         TextButton(onClick = { showStoreDialog = false }) { Text("DISMISS", color = SciFiGold, fontWeight = FontWeight.Bold) }
                     },
-                    containerColor = Color(0xFF1A1A2E),
+                    containerColor = SciFiSurface,
                     titleContentColor = SciFiGold,
                     textContentColor = SciFiWhite.copy(alpha = 0.8f)
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CosmeticPurchaseCard(
+    name: String,
+    price: Int,
+    isUnlocked: Boolean,
+    accentColor: Color,
+    iconRes: Int,
+    onPurchase: () -> Unit
+) {
+    Surface(
+        color = SciFiSurface.copy(alpha = 0.5f),
+        shape = RoundedCornerShape(6.dp),
+        border = BorderStroke(1.dp, if (isUnlocked) accentColor.copy(alpha = 0.3f) else SciFiBorder.copy(alpha = 0.1f))
+    ) {
+        Column(
+            Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                colorFilter = ColorFilter.tint(if (isUnlocked) accentColor else SciFiWhite.copy(alpha = 0.3f))
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                name,
+                color = if (isUnlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.4f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+            Text(
+                if (isUnlocked) "UNLOCKED" else "LOCKED",
+                color = if (isUnlocked) SciFiGreen.copy(alpha = 0.6f) else SciFiRed.copy(alpha = 0.4f),
+                fontSize = 7.sp,
+                fontWeight = FontWeight.Black
+            )
+            Spacer(Modifier.height(12.dp))
+            if (!isUnlocked) {
+                Button(
+                    onClick = onPurchase,
+                    colors = ButtonDefaults.buttonColors(containerColor = SciFiGold.copy(alpha = 0.2f), contentColor = SciFiGold),
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.fillMaxWidth().height(28.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                ) {
+                    Text("$price JC", fontSize = 8.sp, fontWeight = FontWeight.Black)
+                }
+            } else {
+                Box(
+                    Modifier.fillMaxWidth().height(28.dp).background(SciFiGreen.copy(alpha = 0.1f), RoundedCornerShape(4.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("OWNED", color = SciFiGreen, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                }
             }
         }
     }

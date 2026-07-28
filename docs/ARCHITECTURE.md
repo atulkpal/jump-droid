@@ -23,6 +23,11 @@ GamePlayScreen (NavHost target — UI Composition)
     │   │       ├── Utility managers (Notification, FloatingText, Combo, Discovery)
     │   │       ├── Environment (EncounterDirector, ThreatManager, AmbientManager)
     │   │       ├── SurvivalManager.update()
+    │   │       ├── Scoring Engine:
+    │   │       │   ├── runAltitude (Meters) tracking
+    │   │       │   ├── score (Points) calculation: Altitude + Bosses + Platforms + Combos
+    │   │       │   ├── visualScore rolling counter interpolation
+    │   │       │   └── flyingScores (Cyber-Packets) lifecycle + HUD impact
     │   │       ├── Sub-stepped physics (4× per frame):
     │   │       │   ├── Platform movement + break timers
     │   │       │   ├── Magnetic/Graviton field proximity effects
@@ -65,14 +70,16 @@ GamePlayScreen (NavHost target — UI Composition)
     │   ├── drawPowerUps()
     │   ├── RocketRenderer (thruster, body, shield, damage)
     │   ├── drawRealityDistortion() (void zone anomaly)
+    │   ├── drawFlyingScores() (Cyber-Packet digital brackets + glow)
     │   ├── drawVisualObstruction() (radial fog)
     │   ├── drawSpeedLines() (high-velocity motion)
     │   └── drawImpactFlash() (white flash overlay)
     │
-    └── UI Overlays (Composables)
-        ├── Full-screen: Title, Main Menu, Hangar, Loadout, Archive, About, Leaderboard, Settings, Missions
+    └── UI Overlays (Composables via NavHost)
+        ├── Full-screen Routes: title, main_menu, hangar, archive, about, leaderboard, settings, missions, game, shop
         ├── HUD: HudWidgets.kt (Fuel, Heat, Shield, Integrity gauges), ComboDisplay, AltitudeDisplay
-        └── Contextual: Pause, Help, Tutorial, GameOver, Unlock, AscensionCredits
+        ├── Insignias: AscensionInsignia.kt (Procedural rank medallions)
+        └── Dialog Routes: pause, game_over, tutorial, help, unlock, continue_ready, ascension_credits
 ```
 
 ---
@@ -120,7 +127,9 @@ runGameLoop(currentTime, isThrusting, thrustTarget, inputProcessor)
        m. Off-screen death check
     4. Render (via GamePlayScreen Canvas):
        ├── WorldRenderer.render(drawScope, engine) — all canvas drawing
-       └── UI Overlays (composables stacked on Canvas)
+       │   ├── Optimized SINGULARITY noise via pre-calculated fragments.
+       │   └── Optimized AURORA path caching (recalculated on phase/resolution change).
+       └── UI Overlays (NavHost dialog routes stacked on Canvas)
 ```
 
 ---
@@ -142,7 +151,7 @@ runGameLoop(currentTime, isThrusting, thrustTarget, inputProcessor)
 | File | Responsibility |
 |------|---------------|
 | `SurvivalManager.kt` | Centralizes damage distribution (Shield → Hull) and the 3-phase catastrophic destruction sequence. |
-| `EncounterDirector.kt` | The "AI Director": decides hazard spawn types, zone-specific weights, boss arrival thresholds, **Difficulty Scaling (HP/WP multipliers)**, **Escalation Logic (Minion Summons)**, **Boss Recurrence** (~3s timer picks from defeated bosses + zone mini-bosses), **Milestone guards** (one-boss-per-frame, no boss while alive), **Score integrity** (no score reward for boss kills — score = altitude only), **Hazard suppression** (0.1f during bosses, Solar Flare filtered out). |
+| `EncounterDirector.kt` | The "AI Director": decides hazard spawn types, zone-specific weights, boss arrival thresholds, **Difficulty Scaling (HP/WP multipliers)**, **Escalation Logic (Minion Summons)**, **Boss Recurrence** (~3s timer picks from defeated bosses + zone mini-bosses), **Milestone guards** (one-boss-per-frame, no boss while alive). **Note**: Drives progression via `runAltitude` (meters). |
 | `PlatformManager.kt` | Owns the mathematical generation of platforms and tracks streak counters (Breakable, Phase, Magnetic). |
 | `NotificationManager.kt` | Encapsulates the message queue, priority alerts, and alpha/timer fading logic. |
 | `FloatingTextManager.kt` | Manages the lifecycle and upward drift of status popups (e.g., "HULL IMPACT"). |
@@ -273,7 +282,8 @@ ThreatManager.spawnThreat(...)
 
 ```
 SharedPreferences (via ProgressionManager)
-    ├── highScore (Int)
+    ├── highScore (Int — Points)
+    ├── highAltitude (Int — Meters)
     ├── discovery_<TYPE> (Boolean)
     ├── unlock_<ROCKET> (Boolean)
     └── achievement_<ID> (Boolean)
@@ -290,13 +300,20 @@ SharedPreferences (via ProgressionManager)
 Moving threat interactions to `ActiveThreat.kt`, `ThreatAIUpdater.kt`, and `ThreatInteractionProcessor.kt` ensures the physics engine doesn't need to be modified when adding new hostile entities. Each threat is responsible for its own logic within the proximity of the player and other game entities (E2E).
 
 ### 3. Decoupled UI Framework
-The UI is strictly partitioned into standalone `@Composable` files. Communication is handled via callbacks (e.g., `onNavigate`, `onLaunch`), preventing the UI from directly mutating gameplay state.
+The UI is strictly partitioned into standalone `@Composable` files and managed by a centralized `NavHost` in `MainActivity.kt`. All interactive overlays (Pause, Game Over, etc.) are implemented as `dialog` routes. This ensures a clean back-stack, reduces memory pressure by lazily loading overlays, and prevents the "state hell" of manual visibility flags.
 
 ### 4. Sub-Stepped Physics Engine
 The physics loop runs 4 substeps per frame. Interaction processing is called **within** these substeps to maintain pixel-perfect collision reliability and accurate force application. Magnetic/Graviton field effects, tether physics, and projectile collisions all execute inside these substeps.
 
 ### 5. WorldRenderer as Render Pipeline
-All canvas drawing is centralized in `WorldRenderer.render()` which calls the appropriate renderers and `CanvasEffects` extensions in a fixed order. This decouples rendering logic from game state updates and provides a single location for visual debugging.
+All canvas drawing is centralized in `WorldRenderer.render()` which calls the appropriate renderers and `CanvasEffects` extensions in a fixed order. 
+
+**Performance Profile (EPIC 12 Update):** 
+- **Noise Prefabrication**: Removed per-frame `Random` churn in high-intensity zones.
+- **Path Caching**: Aurora bands and complex geometry use persistent `Path` objects to minimize native allocation overhead.
+- **Visual Priority Logic**: Major narrative events (Zone Transitions, Boss Arrivals) are sequenced via a priority queue in `GameEngine.update()` and automatically suppressed in `GamePlayScreen.kt` if a modal route (Unlock, Pause, etc.) is active. This prevents UI overlap and ensures high-priority information is never obscured.
+
+The system now utilizes an **All-Vector Asset Strategy** where static multi-color icons are animated programmatically (Pulse, Slosh, Flicker) using Jetpack Compose `graphicsLayer` and `Shadow` effects, ensuring infinite scalability and a high-fidelity "Fleet Command" aesthetic.
 
 ---
 

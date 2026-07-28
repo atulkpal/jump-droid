@@ -4,6 +4,59 @@ All official releases with build artifacts and key changes.
 
 ---
 
+## v2.1.1 — Tactical Polish Update
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-29 |
+| **Version Code** | 8 |
+| **Tag** | `v2.1.1` |
+| **Branch** | `master` |
+| **Status** | ✅ Release Prep |
+
+### Highlights
+- **Zen Mode**: Holographic console with decryption progress bars and music selector.
+- **Reward Refactor**: Stacked card deck with swipe-to-sync physics and currency HUD.
+- **Lore Integration**: 48 unique mission debriefs and track-specific insignia watermarks.
+- **Feature Lockdown**: Maintenance protocols for Cosmetics and Leaderboard for stability.
+- **Menu Polish**: ARC station wiggle, badge centering, and collapsed default state.
+
+---
+
+## v2.0.0 — Production Ascension
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-27 |
+| **Version Code** | 7 |
+| **Tag** | `v2.0.0` |
+| **Branch** | `master` |
+| **Status** | ✅ Production Release |
+
+### Highlights
+- **Fleet Expansion**: Full access to Scout, Tank, and Experimental rocket classes.
+- **Cosmetic Economy**: Integrated Currency Shop with tiered Continue Credits (250-2000 JC).
+- **Visual Overhaul**: "Morning City" Earth backdrop and lively Main Menu with Scan Rings.
+- **Flight Log System**: Non-blocking tactical notifications with physical "Thud" fly-in animations.
+- **Privacy-First Connectivity**: Manual opt-in for Google Play Games connectivity.
+- **Online Integration**: Stable Firebase Auth + Firestore leaderboards with telemetry logging.
+
+---
+
+## v1.5.3 — Scout Drone Gradient Crash Fix (Hotfix)
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-24 |
+| **Version Code** | 6 |
+| **Branch** | `hotfix/v1.5.3-scout-drone-gradient-crash` |
+| **Status** | ✅ Hotfix |
+
+### Highlights
+- Fixed `IllegalArgumentException` crash in `ScoutDroneRenderer.render()` — `RadialGradient.nativeCreate` on certain devices when using a `Random`-generated dynamic glow radius. Radius is now clamped to `≥ 0.01f`.
+
+---
+
 ## v1.5.2 — Closed Beta
 
 | Field | Value |

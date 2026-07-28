@@ -7,46 +7,35 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
-data class ArtifactRecord(
-    val name: String,
-    val firstDiscoveryDate: String,
-    val timesFound: Int,
-    val highestAltitude: Int,
-    val zoneFound: String
-)
-
-enum class AscensionRank(val title: String, val level: Int) {
-    EXPLORER_I("Explorer Rank I", 1),
-    EXPLORER_II("Explorer Rank II", 2),
-    EXPLORER_III("Explorer Rank III", 3),
-    EXPLORER_IV("Explorer Rank IV", 4),
-    EXPLORER_V("Explorer Rank V", 5)
-}
+// ArtifactRecord + AscensionRank declared in ArtifactManager.kt
 
 /**
  * Manages permanent account progression, artifact collection, and ranks.
  */
 class ProgressionManager(private val sharedPrefs: SharedPreferences) : ProgressionService {
 
+    private val missionTracker = MissionTracker(sharedPrefs)
+    private val statRecorder = StatRecorder(sharedPrefs)
+    private val artifactManager = ArtifactManager(sharedPrefs)
+    private val unlockService = UnlockService(sharedPrefs)
+
     companion object {
         private const val PROGRESS_PREFIX = "mission_progress_"
     }
 
-    override var artifactsCollected by mutableStateOf<Map<String, ArtifactRecord>>(emptyMap())
-        private set
+    override val artifactsCollected: Map<String, ArtifactRecord>
+        get() = artifactManager.artifactsCollected
 
     var ownedModuleIds by mutableStateOf<Set<String>>(emptySet())
         private set
 
-    override var completedMissionIds by mutableStateOf<Set<String>>(emptySet())
-        private set
+    override val completedMissionIds: Set<String>
+        get() = missionTracker.completedMissionIds
 
-    override var claimedMissionIds by mutableStateOf<Set<String>>(emptySet())
-        private set
+    override val claimedMissionIds: Set<String>
+        get() = missionTracker.claimedMissionIds
 
     var onModuleUnlocked: ((Module) -> Unit)? = null
 
@@ -54,11 +43,17 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
 
     var onBlueprintUnlocked: ((BlueprintType) -> Unit)? = null
 
-    var currentRank by mutableStateOf(AscensionRank.EXPLORER_I)
-        private set
+    val currentRank: AscensionRank
+        get() = artifactManager.currentRank
 
-    var activeSetBonuses by mutableStateOf<List<ArtifactBonus>>(emptyList())
-        private set
+    val activeSetBonuses: List<ArtifactBonus>
+        get() = artifactManager.activeSetBonuses
+
+    val currentMasteryPoints: Int
+        get() = artifactManager.currentMasteryPoints
+
+    val nextRankThreshold: Int
+        get() = artifactManager.nextRankThreshold
 
     var permanentMaxIntegrity by mutableFloatStateOf(Constants.BASE_INTEGRITY)
         private set
@@ -72,32 +67,117 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     var totalCash by mutableIntStateOf(0)
         private set
 
-    val missionsCompleted: Int get() = completedMissionIds.size
+    var unlockedTrailIds by mutableStateOf<Set<String>>(setOf("plasma_cyan"))
+        private set
+
+    var unlockedPaintIds by mutableStateOf<Set<String>>(setOf("stock"))
+        private set
+
+    var creditBalance by mutableIntStateOf(0)
+        private set
+
+    var maxCredits by mutableIntStateOf(10)
+        private set
+
+    var totalMiniBossesKilled by mutableIntStateOf(0)
+        private set
+
+    var totalBossesKilled by mutableIntStateOf(0)
+        private set
+
+    var unlockedMusicTracks by mutableStateOf<Set<String>>(emptySet())
+        private set
+
+    var isZenModeUnlocked by mutableStateOf(false)
+        private set
+
+    val missionsCompleted: Int get() = missionTracker.completedMissionIds.size
 
     fun getCashBalance(): Int = totalCash
+
+    fun spendCash(amount: Int): Boolean {
+        if (totalCash >= amount) {
+            totalCash -= amount
+            sharedPrefs.edit { putInt("total_cash", totalCash) }
+            return true
+        }
+        return false
+    }
+
+    fun unlockTrail(id: String) {
+        unlockedTrailIds = unlockedTrailIds + id
+        sharedPrefs.edit { putStringSet("unlocked_trails", unlockedTrailIds) }
+    }
+
+    fun isTrailUnlocked(id: String): Boolean = unlockedTrailIds.contains(id)
+
+    fun unlockPaint(id: String) {
+        unlockedPaintIds = unlockedPaintIds + id
+        sharedPrefs.edit { putStringSet("unlocked_paints", unlockedPaintIds) }
+    }
+
+    fun isPaintUnlocked(id: String): Boolean = unlockedPaintIds.contains(id)
+
+    fun addCredits(amount: Int): Int {
+        val added = minOf(amount, maxCredits - creditBalance)
+        if (added > 0) {
+            creditBalance += added
+            sharedPrefs.edit { putInt("credit_balance", creditBalance) }
+        }
+        return added
+    }
+
+    fun spendCredit(): Boolean {
+        if (creditBalance > 0) {
+            creditBalance--
+            sharedPrefs.edit { putInt("credit_balance", creditBalance) }
+            return true
+        }
+        return false
+    }
+
+    fun cashToCredits(cashAmount: Int): Int {
+        val cashPerCredit = getCurrentCreditRate()
+
+        if (cashAmount < cashPerCredit) return 0
+        val maxBuy = cashAmount / cashPerCredit
+        val available = maxCredits - creditBalance
+        val actualBuy = minOf(maxBuy, available)
+        if (actualBuy > 0) {
+            totalCash -= actualBuy * cashPerCredit
+            creditBalance += actualBuy
+            sharedPrefs.edit {
+                putInt("total_cash", totalCash)
+                putInt("credit_balance", creditBalance)
+            }
+        }
+        return actualBuy
+    }
+
+    fun getCurrentCreditRate(): Int {
+        val bosses = lifetimeBossesDefeated
+        return when {
+            bosses >= 15 -> 2000
+            bosses >= 10 -> 1000
+            bosses >= 5 -> 500
+            else -> 250
+        }
+    }
 
     override var highScore by mutableIntStateOf(0)
         internal set
 
-    // --- Lifetime Stats (Intelligence Network) ---
-    override var lifetimeFlightTime by mutableFloatStateOf(0f)
+    override var highAltitude by mutableIntStateOf(0)
         private set
-    override var lifetimePlatformTime by mutableFloatStateOf(0f)
-        private set
-    override var lifetimeHazards by mutableIntStateOf(0)
-        private set
-    override var lifetimeArtifacts by mutableIntStateOf(0)
-        private set
-    override var lifetimeLandings by mutableIntStateOf(0)
-        private set
-    override var lifetimeBossesDefeated by mutableIntStateOf(0)
-        private set
-    var lifetimeArtifactsCollected by mutableIntStateOf(0) // Legacy, keeping for sync if needed
-        private set
-    var lifetimeHazardHitsSurvived by mutableIntStateOf(0) // Legacy
-        private set
-    var lifetimeMissionsCompleted by mutableIntStateOf(0)
-        private set
+
+    // --- Lifetime Stats (Delegated) ---
+    override val lifetimeFlightTime: Float get() = statRecorder.lifetimeFlightTime
+    override val lifetimePlatformTime: Float get() = statRecorder.lifetimePlatformTime
+    override val lifetimeHazards: Int get() = statRecorder.lifetimeHazards
+    override val lifetimeArtifacts: Int get() = statRecorder.lifetimeArtifacts
+    override val lifetimeLandings: Int get() = statRecorder.lifetimeLandings
+    override val lifetimeBossesDefeated: Int get() = statRecorder.lifetimeBossesDefeated
+    val lifetimeMissionsCompleted: Int get() = statRecorder.lifetimeMissionsCompleted
 
     init {
         loadProgression()
@@ -105,123 +185,57 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
 
     private fun loadProgression() {
         highScore = sharedPrefs.getInt("highScore", 0)
-        
-        // Load Lifetime Stats
-        lifetimeFlightTime = sharedPrefs.getFloat("stat_lifetime_flight_time", 0f)
-        lifetimePlatformTime = sharedPrefs.getFloat("stat_lifetime_platform_time", 0f)
-        lifetimeBossesDefeated = sharedPrefs.getInt("stat_lifetime_bosses", 0)
-        lifetimeHazards = sharedPrefs.getInt("stat_lifetime_hazards", 0)
-        lifetimeArtifacts = sharedPrefs.getInt("stat_lifetime_artifacts", 0)
-        lifetimeLandings = sharedPrefs.getInt("stat_lifetime_landings", 0)
-        lifetimeMissionsCompleted = sharedPrefs.getInt("missions_completed", 0)
+        highAltitude = sharedPrefs.getInt("highAltitude", 0)
         ascensionPrestigeLevel = sharedPrefs.getInt("ascension_prestige", 0)
         totalCash = sharedPrefs.getInt("total_cash", 0)
+        unlockedTrailIds = sharedPrefs.getStringSet("unlocked_trails", setOf("plasma_cyan")) ?: setOf("plasma_cyan")
+        unlockedPaintIds = sharedPrefs.getStringSet("unlocked_paints", setOf("stock")) ?: setOf("stock")
+        creditBalance = sharedPrefs.getInt("credit_balance", 0)
 
-        val artifactTypes = DiscoveryType.values().filter { it.category == "ARTIFACTS" }
-        val loadedArtifacts = mutableMapOf<String, ArtifactRecord>()
-        
-        artifactTypes.forEach { type ->
-            val keyBase = "art_${type.name}"
-            if (sharedPrefs.contains("${keyBase}_date")) {
-                loadedArtifacts[type.name] = ArtifactRecord(
-                    name = type.title,
-                    firstDiscoveryDate = sharedPrefs.getString("${keyBase}_date", "") ?: "",
-                    timesFound = sharedPrefs.getInt("${keyBase}_count", 0),
-                    highestAltitude = sharedPrefs.getInt("${keyBase}_alt", 0),
-                    zoneFound = sharedPrefs.getString("${keyBase}_zone", "") ?: ""
-                )
-            }
-        }
-        artifactsCollected = loadedArtifacts
-        
         ownedModuleIds = sharedPrefs.getStringSet("owned_modules", emptySet()) ?: emptySet()
-        completedMissionIds = sharedPrefs.getStringSet("completed_missions", emptySet()) ?: emptySet()
-        claimedMissionIds = sharedPrefs.getStringSet("claimed_missions", emptySet()) ?: emptySet()
 
         permanentMaxIntegrity = sharedPrefs.getFloat("max_integrity", Constants.BASE_INTEGRITY)
         permanentMaxShield = sharedPrefs.getFloat("max_shield", Constants.BASE_SHIELD)
 
-        reevaluateSetBonuses()
-        updateRank()
+        totalMiniBossesKilled = sharedPrefs.getInt("total_mini_bosses", 0)
+        totalBossesKilled = sharedPrefs.getInt("total_bosses", 0)
+        unlockedMusicTracks = sharedPrefs.getStringSet("unlocked_music", emptySet()) ?: emptySet()
+        isZenModeUnlocked = sharedPrefs.getBoolean("zen_unlocked", false)
+
+        artifactManager.reevaluateSetBonuses()
     }
 
     fun reevaluateSetBonuses() {
-        val active = mutableListOf<ArtifactBonus>()
-        ArtifactSet.ALL_SETS.forEach { set ->
-            val complete = set.discoveries.all { isDiscoveryUnlocked(it.name) }
-            if (complete) {
-                active.add(set.bonus)
-            }
-        }
-        activeSetBonuses = active
+        artifactManager.reevaluateSetBonuses()
     }
 
     // --- Set Bonus Calculation Helpers ---
     fun getFuelRegenMultiplier(): Float {
-        var mult = 1.0f
-        activeSetBonuses.forEach { if (it is ArtifactBonus.FuelRegen) mult *= it.multiplier }
-        return mult * getGlobalEfficiencyMultiplier()
+        return artifactManager.getFuelRegenMultiplier(ascensionPrestigeLevel)
     }
 
     fun getShieldRegenMultiplier(): Float {
-        var mult = 1.0f
-        activeSetBonuses.forEach { if (it is ArtifactBonus.ShieldRegen) mult *= it.multiplier }
-        return mult * getGlobalEfficiencyMultiplier()
+        return artifactManager.getShieldRegenMultiplier(ascensionPrestigeLevel)
     }
 
     fun getHeatCooldownMultiplier(): Float {
-        var mult = 1.0f
-        activeSetBonuses.forEach { if (it is ArtifactBonus.HeatCooldown) mult *= it.multiplier }
-        return mult * getGlobalEfficiencyMultiplier()
+        return artifactManager.getHeatCooldownMultiplier(ascensionPrestigeLevel)
     }
 
     fun getThrustMultiplier(): Float {
-        var mult = 1.0f
-        activeSetBonuses.forEach { if (it is ArtifactBonus.ThrustBoost) mult *= it.multiplier }
-        return mult * getGlobalEfficiencyMultiplier()
+        return artifactManager.getThrustMultiplier(ascensionPrestigeLevel)
     }
 
     fun getHullBonusAmount(): Float {
-        var bonus = 0f
-        activeSetBonuses.forEach { if (it is ArtifactBonus.HullBoost) bonus += it.amount }
-        return bonus
+        return artifactManager.getHullBonusAmount()
     }
 
     fun getGlobalEfficiencyMultiplier(): Float {
-        var mult = 1.0f + (ascensionPrestigeLevel * 0.1f)
-        activeSetBonuses.forEach { if (it is ArtifactBonus.GlobalEfficiency) mult *= it.multiplier }
-        return mult
+        return artifactManager.getGlobalEfficiencyMultiplier(ascensionPrestigeLevel)
     }
 
     fun recordArtifactDiscovery(type: DiscoveryType, altitude: Int, zone: AltitudeZone) {
-        val name = type.name
-        val existing = artifactsCollected[name]
-        
-        val newRecord = if (existing == null) {
-            ArtifactRecord(
-                name = type.title,
-                firstDiscoveryDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()),
-                timesFound = 1,
-                highestAltitude = altitude,
-                zoneFound = zone.name.lowercase().replace("_", " ").capitalize(Locale.getDefault())
-            )
-        } else {
-            existing.copy(
-                timesFound = existing.timesFound + 1,
-                highestAltitude = maxOf(existing.highestAltitude, altitude)
-            )
-        }
-        
-        val keyBase = "art_${name}"
-        sharedPrefs.edit {
-            putString("${keyBase}_date", newRecord.firstDiscoveryDate)
-            putInt("${keyBase}_count", newRecord.timesFound)
-            putInt("${keyBase}_alt", newRecord.highestAltitude)
-            putString("${keyBase}_zone", newRecord.zoneFound)
-        }
-        
-        artifactsCollected = artifactsCollected + (name to newRecord)
-        updateRank()
+        artifactManager.recordArtifactDiscovery(type, altitude, zone)
     }
 
     fun grantModule(moduleId: String): Boolean {
@@ -237,40 +251,32 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         return ownedModuleIds.contains(moduleId)
     }
 
+    fun syncModules(ids: Set<String>) {
+        ownedModuleIds = ids
+    }
+
     override fun saveMissionProgress(missionId: String, progress: Int) {
-        val prev = sharedPrefs.getInt("$PROGRESS_PREFIX$missionId", 0)
-        if (progress != prev) {
-            sharedPrefs.edit { putInt("$PROGRESS_PREFIX$missionId", progress) }
-        }
+        missionTracker.saveMissionProgress(missionId, progress)
     }
 
     override fun getMissionProgress(missionId: String): Int {
-        return sharedPrefs.getInt("$PROGRESS_PREFIX$missionId", 0)
+        return missionTracker.getMissionProgress(missionId)
     }
 
     fun recordMissionCompletion(missionId: String) {
-        if (completedMissionIds.contains(missionId)) return
-        completedMissionIds = completedMissionIds + missionId
-        sharedPrefs.edit {
-            putStringSet("completed_missions", completedMissionIds)
-            putInt("missions_completed", completedMissionIds.size)
-        }
-        
-        lifetimeMissionsCompleted = completedMissionIds.size
+        missionTracker.recordMissionCompletion(missionId)
     }
 
     override fun recordMissionClaim(missionId: String) {
-        if (claimedMissionIds.contains(missionId)) return
-        claimedMissionIds = claimedMissionIds + missionId
-        sharedPrefs.edit { putStringSet("claimed_missions", claimedMissionIds) }
+        missionTracker.recordMissionClaim(missionId)
     }
 
     override fun saveUnlockedMissionIds(ids: Set<String>) {
-        sharedPrefs.edit { putStringSet("unlocked_missions", ids) }
+        missionTracker.saveUnlockedMissionIds(ids)
     }
 
     override fun getUnlockedMissionIds(): Set<String> {
-        return sharedPrefs.getStringSet("unlocked_missions", emptySet()) ?: emptySet()
+        return missionTracker.getUnlockedMissionIds()
     }
 
     override fun isDiscoveryUnlocked(discoveryName: String): Boolean {
@@ -278,52 +284,91 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     }
 
     override fun saveDiscoveredLog(logId: String) {
-        sharedPrefs.edit { putBoolean("log_$logId", true) }
+        unlockService.saveDiscoveredLog(logId)
     }
 
     override fun getDiscoveredLogs(): Set<String> {
-        val discovered = mutableSetOf<String>()
-        LoreLog.ALL_LOGS.forEach { log ->
-            if (sharedPrefs.getBoolean("log_${log.id}", false)) {
-                discovered.add(log.id)
-            }
-        }
-        return discovered
+        return unlockService.getDiscoveredLogs()
     }
 
     override fun saveUnlockedBlueprint(id: String) {
-        sharedPrefs.edit { putBoolean("blueprint_$id", true) }
+        unlockService.saveUnlockedBlueprint(id)
     }
 
     override fun getUnlockedBlueprints(): Set<String> {
-        val unlocked = mutableSetOf<String>()
-        BlueprintType.entries.forEach { blueprint ->
-            if (sharedPrefs.getBoolean("blueprint_${blueprint.name}", false)) {
-                unlocked.add(blueprint.name)
-            }
-        }
-        return unlocked
+        return unlockService.getUnlockedBlueprints()
     }
 
     /**
      * Updates lifetime statistics from session results.
      */
     fun commitSessionStats(stats: GameStats) {
-        lifetimeFlightTime += stats.totalFlightTime
-        lifetimePlatformTime += stats.totalPlatformTime
-        lifetimeBossesDefeated += stats.bossesDefeated
-        lifetimeHazards += stats.hazardHitsSurvived
-        lifetimeArtifacts += stats.artifactsCollected
-        lifetimeLandings += stats.platformLandings
-        
+        statRecorder.commitSessionStats(stats, missionsCompleted)
+
+        totalMiniBossesKilled += stats.miniBossesDefeated
+        totalBossesKilled += stats.bossesDefeated
+
         sharedPrefs.edit {
-            putFloat("stat_lifetime_flight_time", lifetimeFlightTime)
-            putFloat("stat_lifetime_platform_time", lifetimePlatformTime)
-            putInt("stat_lifetime_bosses", lifetimeBossesDefeated)
-            putInt("stat_lifetime_hazards", lifetimeHazards)
-            putInt("stat_lifetime_artifacts", lifetimeArtifacts)
-            putInt("stat_lifetime_landings", lifetimeLandings)
-            putInt("missions_completed", lifetimeMissionsCompleted)
+            putInt("total_mini_bosses", totalMiniBossesKilled)
+            putInt("total_bosses", totalBossesKilled)
+        }
+
+        checkMusicUnlocks()
+        checkZenModeUnlock(stats)
+    }
+
+    private fun checkMusicUnlocks() {
+        val newUnlocks = mutableSetOf<String>()
+
+        // Boss BGM: 20 mini-bosses, 10 bosses
+        if (totalMiniBossesKilled >= 20 && totalBossesKilled >= 10 && !unlockedMusicTracks.contains("bgm_boss")) {
+            newUnlocks.add("bgm_boss")
+        }
+
+        if (newUnlocks.isNotEmpty()) {
+            unlockedMusicTracks = unlockedMusicTracks + newUnlocks
+            sharedPrefs.edit { putStringSet("unlocked_music", unlockedMusicTracks) }
+        }
+    }
+
+    private fun checkZenModeUnlock(stats: GameStats) {
+        if (isZenModeUnlocked) return
+
+        // Requirements: 10,000m Cumulative Altitude, 5 Bosses Defeated, 50x Max Combo
+        val cumulativeAltitude = sharedPrefs.getInt("stat_lifetime_altitude", 0) + stats.maxAltitudeMeters
+        if (cumulativeAltitude >= 10000 && totalBossesKilled >= 5 && stats.maxCombo >= 50) {
+            isZenModeUnlocked = true
+            sharedPrefs.edit { putBoolean("zen_unlocked", true) }
+        }
+    }
+
+    fun getZenRequirements(): List<Triple<String, String, Float>> {
+        val cumulativeAltitude = sharedPrefs.getInt("stat_lifetime_altitude", 0)
+        val maxComboEver = sharedPrefs.getInt("stat_max_combo", 0)
+        
+        return listOf(
+            Triple("ALTITUDE", "${(cumulativeAltitude/1000f).toInt()}K / 10K", (cumulativeAltitude.toFloat() / 10000f).coerceIn(0f, 1f)),
+            Triple("BOSSES", "$totalBossesKilled / 5", (totalBossesKilled.toFloat() / 5f).coerceIn(0f, 1f)),
+            Triple("MAX COMBO", "$maxComboEver / 50", (maxComboEver.toFloat() / 50f).coerceIn(0f, 1f))
+        )
+    }
+
+    fun getZenUnlockProgress(): Float {
+        if (isZenModeUnlocked) return 1f
+        val cumulativeAltitude = sharedPrefs.getInt("stat_lifetime_altitude", 0)
+        val altProgress = (cumulativeAltitude.toFloat() / 10000f).coerceIn(0f, 1f)
+        val bossProgress = (totalBossesKilled.toFloat() / 5f).coerceIn(0f, 1f)
+        // Note: Max combo is per-run, we might want to track lifetime max combo too
+        val maxComboEver = sharedPrefs.getInt("stat_max_combo", 0)
+        val comboProgress = (maxComboEver.toFloat() / 50f).coerceIn(0f, 1f)
+        
+        return (altProgress + bossProgress + comboProgress) / 3f
+    }
+
+    fun unlockMusicTrack(resName: String) {
+        if (!unlockedMusicTracks.contains(resName)) {
+            unlockedMusicTracks = unlockedMusicTracks + resName
+            sharedPrefs.edit { putStringSet("unlocked_music", unlockedMusicTracks) }
         }
     }
 
@@ -359,61 +404,142 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     }
 
     fun updateRank() {
-        reevaluateSetBonuses()
-        val totalDiscoveries = DiscoveryType.values().count { sharedPrefs.getBoolean("discovery_$it", false) }
-        val artifactCount = artifactsCollected.size
-        val areaTypes = DiscoveryType.values().filter { it.name.startsWith("AREA_") }
-        val zoneCount = areaTypes.count { sharedPrefs.getBoolean("discovery_${it.name}", false) }
-        
-        // Progression score calculation
-        val score = totalDiscoveries + (artifactCount * 3) + (zoneCount * 5)
-        
-        currentRank = when {
-            score >= 60 -> AscensionRank.EXPLORER_V
-            score >= 40 -> AscensionRank.EXPLORER_IV
-            score >= 25 -> AscensionRank.EXPLORER_III
-            score >= 10 -> AscensionRank.EXPLORER_II
-            else -> AscensionRank.EXPLORER_I
-        }
+        artifactManager.updateRank()
     }
     
     fun getCompletionStats(category: String): Pair<Int, Int> {
-        val allInCategory = DiscoveryType.values().filter { it.category == category }
-        val discoveredCount = allInCategory.count { sharedPrefs.getBoolean("discovery_$it", false) }
-        return discoveredCount to allInCategory.size
+        return artifactManager.getCompletionStats(category)
     }
 
     fun getTotalCompletionPercentage(): Int {
-        val total = DiscoveryType.values().size
-        val discovered = DiscoveryType.values().count { sharedPrefs.getBoolean("discovery_$it", false) }
-        return if (total > 0) (discovered * 100) / total else 0
+        return artifactManager.getTotalCompletionPercentage()
     }
 
     override fun getTotalDiscoveries(): Int {
-        return DiscoveryType.entries.count { sharedPrefs.getBoolean("discovery_$it", false) }
+        return artifactManager.getTotalDiscoveries()
+    }
+    
+    /**
+     * Returns all progression data as a flat map for cloud sync.
+     */
+    fun getCloudData(): Map<String, Any> = buildMap {
+        put("highScore", highScore)
+        put("highAltitude", highAltitude)
+        put("totalCash", totalCash)
+        put("unlockedTrailIds", unlockedTrailIds.toList())
+        put("unlockedPaintIds", unlockedPaintIds.toList())
+        put("creditBalance", creditBalance)
+        put("ascensionPrestigeLevel", ascensionPrestigeLevel)
+        put("permanentMaxIntegrity", permanentMaxIntegrity.toDouble())
+        put("permanentMaxShield", permanentMaxShield.toDouble())
+        put("lifetimeFlightTime", lifetimeFlightTime.toDouble())
+        put("lifetimePlatformTime", lifetimePlatformTime.toDouble())
+        put("lifetimeBossesDefeated", lifetimeBossesDefeated)
+        put("lifetimeHazards", lifetimeHazards)
+        put("lifetimeArtifacts", lifetimeArtifacts)
+        put("lifetimeLandings", lifetimeLandings)
+        put("lifetimeMissionsCompleted", lifetimeMissionsCompleted)
+        put("ownedModuleIds", ownedModuleIds.toList())
+        put("completedMissionIds", completedMissionIds.toList())
+        put("claimedMissionIds", claimedMissionIds.toList())
+    }
+
+    /**
+     * Merges cloud data into local progression. "Keep highest" for competitive stats,
+     * union for collections, last-write-wins for settings.
+     */
+    fun applyCloudData(data: Map<String, Any>) {
+        highScore = maxOf(highScore, (data["highScore"] as? Long)?.toInt() ?: 0)
+        highAltitude = maxOf(highAltitude, (data["highAltitude"] as? Long)?.toInt() ?: 0)
+        totalCash = maxOf(totalCash, (data["totalCash"] as? Long)?.toInt() ?: 0)
+        
+        val cloudTrails = (data["unlockedTrailIds"] as? List<*>)?.mapNotNull { it as? String }?.toSet() ?: emptySet()
+        if (cloudTrails.isNotEmpty()) unlockedTrailIds = unlockedTrailIds union cloudTrails
+
+        val cloudPaints = (data["unlockedPaintIds"] as? List<*>)?.mapNotNull { it as? String }?.toSet() ?: emptySet()
+        if (cloudPaints.isNotEmpty()) unlockedPaintIds = unlockedPaintIds union cloudPaints
+
+        creditBalance = maxOf(creditBalance, (data["creditBalance"] as? Long)?.toInt() ?: 0)
+        ascensionPrestigeLevel = maxOf(ascensionPrestigeLevel, (data["ascensionPrestigeLevel"] as? Long)?.toInt() ?: 0)
+        permanentMaxIntegrity = maxOf(permanentMaxIntegrity, (data["permanentMaxIntegrity"] as? Double)?.toFloat() ?: 0f)
+        permanentMaxShield = maxOf(permanentMaxShield, (data["permanentMaxShield"] as? Double)?.toFloat() ?: 0f)
+        
+        statRecorder.syncStats(
+            flightTime = maxOf(lifetimeFlightTime, (data["lifetimeFlightTime"] as? Double)?.toFloat() ?: 0f),
+            platformTime = maxOf(lifetimePlatformTime, (data["lifetimePlatformTime"] as? Double)?.toFloat() ?: 0f),
+            bosses = maxOf(lifetimeBossesDefeated, (data["lifetimeBossesDefeated"] as? Long)?.toInt() ?: 0),
+            hazards = maxOf(lifetimeHazards, (data["lifetimeHazards"] as? Long)?.toInt() ?: 0),
+            artifacts = maxOf(lifetimeArtifacts, (data["lifetimeArtifacts"] as? Long)?.toInt() ?: 0),
+            landings = maxOf(lifetimeLandings, (data["lifetimeLandings"] as? Long)?.toInt() ?: 0),
+            missions = maxOf(lifetimeMissionsCompleted, (data["lifetimeMissionsCompleted"] as? Long)?.toInt() ?: 0)
+        )
+
+        val cloudModules = (data["ownedModuleIds"] as? List<*>)?.mapNotNull { it as? String }?.toSet() ?: emptySet()
+        if (cloudModules.isNotEmpty()) ownedModuleIds = ownedModuleIds union cloudModules
+
+        missionTracker.syncMissions(
+            completed = completedMissionIds union ((data["completedMissionIds"] as? List<*>)?.mapNotNull { it as? String }?.toSet() ?: emptySet()),
+            claimed = claimedMissionIds union ((data["claimedMissionIds"] as? List<*>)?.mapNotNull { it as? String }?.toSet() ?: emptySet())
+        )
+
+        persistCloudSync()
+    }
+
+    private fun persistCloudSync() {
+        sharedPrefs.edit {
+            putInt("highScore", highScore)
+            putInt("highAltitude", highAltitude)
+            putInt("total_cash", totalCash)
+            putStringSet("unlocked_trails", unlockedTrailIds)
+            putStringSet("unlocked_paints", unlockedPaintIds)
+            putInt("credit_balance", creditBalance)
+            putInt("ascension_prestige", ascensionPrestigeLevel)
+            putFloat("max_integrity", permanentMaxIntegrity)
+            putFloat("max_shield", permanentMaxShield)
+            putFloat("stat_lifetime_flight_time", lifetimeFlightTime)
+            putFloat("stat_lifetime_platform_time", lifetimePlatformTime)
+            putInt("stat_lifetime_bosses", lifetimeBossesDefeated)
+            putInt("stat_lifetime_hazards", lifetimeHazards)
+            putInt("stat_lifetime_artifacts", lifetimeArtifacts)
+            putInt("stat_lifetime_landings", lifetimeLandings)
+            putInt("missions_completed", lifetimeMissionsCompleted)
+            putStringSet("owned_modules", ownedModuleIds)
+            putStringSet("completed_missions", completedMissionIds)
+            putStringSet("claimed_missions", claimedMissionIds)
+        }
     }
 
     /**
      * Wipes all progression data.
+     * If isFactoryReset is false, preserves premium status.
      */
-    fun wipeData() {
+    fun wipeData(isFactoryReset: Boolean = false) {
+        val wasPremium = if (!isFactoryReset) sharedPrefs.getBoolean("premium_user", false) else false
+        
         sharedPrefs.edit { clear() }
+        
+        if (wasPremium) {
+            sharedPrefs.edit { putBoolean("premium_user", true) }
+        }
+
         highScore = 0
-        artifactsCollected = emptyMap()
+        highAltitude = 0
         ownedModuleIds = emptySet()
-        completedMissionIds = emptySet()
-        claimedMissionIds = emptySet()
-        lifetimeFlightTime = 0f
-        lifetimePlatformTime = 0f
-        lifetimeBossesDefeated = 0
-        lifetimeHazards = 0
-        lifetimeArtifacts = 0
-        lifetimeLandings = 0
-        lifetimeMissionsCompleted = 0
-        currentRank = AscensionRank.EXPLORER_I
+        totalCash = 0
+        creditBalance = 0
+        ascensionPrestigeLevel = 0
+        unlockedTrailIds = setOf("plasma_cyan")
+        unlockedPaintIds = setOf("stock")
+        
         permanentMaxIntegrity = Constants.BASE_INTEGRITY
         permanentMaxShield = Constants.BASE_SHIELD
-        totalCash = 0
+        
+        missionTracker.clear()
+        statRecorder.clear()
+        artifactManager.clear()
+        
+        // Re-evaluate rank immediately so MP becomes 0
+        updateRank()
     }
 
     /**
@@ -429,41 +555,26 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     }
 
     /**
+     * Persists a new high altitude if it exceeds the current one.
+     */
+    fun saveHighAltitude(newAltitude: Int): Boolean {
+        if (newAltitude > highAltitude) {
+            highAltitude = newAltitude
+            sharedPrefs.edit { putInt("highAltitude", newAltitude) }
+            return true
+        }
+        return false
+    }
+
+    /**
      * Re-evaluates all module unlocks.
      */
     fun checkModuleUnlocks(missionManager: MissionManager) {
-        ModuleRegistry.getAll().forEach { module ->
-            if (!isModuleOwned(module.id)) {
-                if (UnlockEngine.evaluate(module.unlockRequirement, this, missionManager)) {
-                    if (grantModule(module.id)) {
-                        onModuleUnlocked?.invoke(module)
-                        android.util.Log.i("ProgressionManager", "NEW MODULE UNLOCKED: ${module.name}")
-                    }
-                }
-            }
-        }
-
-        BlueprintRegistry.ALL_BLUEPRINTS.forEach { (type, req) ->
-            if (!sharedPrefs.getBoolean("blueprint_${type.name}", false)) {
-                if (UnlockEngine.evaluate(req, this, missionManager)) {
-                    saveUnlockedBlueprint(type.name)
-                    onBlueprintUnlocked?.invoke(type)
-                    android.util.Log.i("ProgressionManager", "BLUEPRINT ACQUIRED: ${type.displayName}")
-                }
-            }
-        }
+        unlockService.checkModuleUnlocks(this, missionManager, onModuleUnlocked, onBlueprintUnlocked)
     }
 
     fun evaluateLoreLogs(altitude: Int) {
-        LoreLog.ALL_LOGS.forEach { log ->
-            if (!sharedPrefs.getBoolean("log_${log.id}", false)) {
-                if (altitude >= log.unlockAltitude) {
-                    saveDiscoveredLog(log.id)
-                    onLoreLogDiscovered?.invoke(log)
-                    android.util.Log.i("ProgressionManager", "LORE LOG RECOVERED: ${log.title}")
-                }
-            }
-        }
+        unlockService.evaluateLoreLogs(altitude, onLoreLogDiscovered)
     }
 
     /**
@@ -476,32 +587,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         onAchievementUnlock: (Achievement) -> Unit,
         onLoreDiscovery: (DiscoveryType) -> Unit
     ) {
-        val score = stats.maxAltitude.toInt()
-        evaluateLoreLogs(score)
-        // 1. Rocket Unlocks
-        RocketType.entries.forEach { type ->
-            if (score >= type.unlockScore && !sharedPrefs.getBoolean("unlock_${type.name}", false)) {
-                sharedPrefs.edit { putBoolean("unlock_${type.name}", true) }
-                onRocketUnlock(type)
-            }
-        }
-
-        // 3. Lore Discoveries (Score-based)
-        if (score >= 0) onLoreDiscovery(player.rocketType.discovery)
-        if (score >= 100) onLoreDiscovery(DiscoveryType.LORE_ASCENSION)
-        if (score >= 5000) onLoreDiscovery(DiscoveryType.LORE_SIGNAL)
-        if (score >= 10000) onLoreDiscovery(DiscoveryType.LORE_LOST_FLEET)
-        if (score >= 20000) onLoreDiscovery(DiscoveryType.LORE_LOGS)
-
-        // 3. Achievements
-        AchievementsList.forEach { achievement ->
-            if (!sharedPrefs.getBoolean("achievement_${achievement.id}", false)) {
-                if (achievement.unlockCondition(stats)) {
-                    sharedPrefs.edit { putBoolean("achievement_${achievement.id}", true) }
-                    onAchievementUnlock(achievement)
-                }
-            }
-        }
+        unlockService.checkUnlocks(stats, player, onRocketUnlock, onAchievementUnlock, onLoreDiscovery, onLoreLogDiscovered)
     }
 
     fun isAchievementUnlocked(id: String): Boolean {

@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-15
-**Current Version:** v1.5.2 — Closed Beta Release
-**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Published to GitHub — Open Source (MIT)
-**Current Stable Tag:** `v1.5.2`
+**Last Updated:** 2026-07-29
+**Current Version:** v2.1.1 — Tactical Polish Update
+**Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
+**Current Stable Tag:** `v2.1.1`
 **Branch:** `master` (protected — no direct commits)
 **Base Commit:** `HEAD`
 
@@ -34,15 +34,13 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 ## 2. Current Project State
 
 *   **Current Branch**: `master`
-*   **Current Stable Tag**: `v1.5.2`
-*   **Current Version**: v1.5.2 — Closed Beta Release
-*   **Current EPIC**: EPIC 11 — Ascension (The End) — **COMPLETE ✅**
-*   **Current Status**: **v1.5.2 PUBLISHED**. Closed Beta Release: continue-ready overlay, sharing system, main menu responsiveness, Heat Bat AI overhaul, boss cooldowns, and "NEW" archive badge system. See `docs/RELEASES.md`.
+*   **Current Stable Tag**: `v2.1.1`
+*   **Current Version**: v2.1.1 — Tactical Polish Update
+*   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **POLISH FINALIZED 🚀**
+*   **Current Status**: **EPIC 12 Finalized**. Transitioning to **EPIC 13**. All systems verified for production. v2.0.0 includes full fleet expansion, cosmetic economy, performance-optimized rendering, and high-fidelity visual action. Ready for Play Store listing.
 *   **Known Issues**: 
-    *   Visual noise during high-combo streaks (excessive floating text) — non-blocking, deferred.
-    *   GameScreen.kt at ~2,080 lines — extraction continued via GameEngine refactoring into `refactor/cleanup` branch.
-*   **Current Priorities**: Future EPIC planning / EPIC 12.
-*   **Next Planned Work**: EPIC 12 — Fleet Expansion (planned).
+    *   `GamesAchievementManager.kt` uses placeholder GPG achievement IDs (`PLEASE_REPLACE_ME_*`) — must replace with real Google Play Console IDs before production.
+*   **Current Priorities**: EPIC 13 — Production deployment and Play Store listing.
 
 ---
 
@@ -89,6 +87,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Mission Dashboard** | Provide high-level summary (Completion %, Claims). | Faster UX for checking account status. |
 | **SharedPreferences Unification** | DataStore transition in EPIC 8 prototype caused sync debt. | Reverted to `SharedPreferences` as the Single Source of Truth. |
 | **Combo Ring Top-Left** | Avoid overlap with system UI and Pause/Help buttons. | Cleanest possible HUD for high-speed flight. |
+| **Decoupled Altitude/Score** | Altitude-only scoring lacked performance variance. | `runAltitude` (meters) drives physical progress; `score` (points) reflects skill mastery. |
 
 ---
 
@@ -105,6 +104,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Rocket System** | `docs/design/ROCKET_LIBRARY.md` | (Content Only) |
 | **Monetization** | `docs/roadmap/MONETIZATION_VISION.md` | (Strategy Only) |
 | **Roadmaps** | `docs/JumpDroid_EPIC_Tracker.md` | `docs/roadmap/` |
+| **Sign-In Audit** | `docs/SIGN_IN_FAILURE_AUDIT.md` | (Blocked — investigation doc) |
 | **Tech Debt Audit** | `docs/analysis/EPIC8_TECH_DEBT_AUDIT.md` | (Reference Only) |
 | **Inventory** | `docs/INVENTORY.md` | (Cross-Reference) |
 | **Production Checklist** | `docs/PRODUCTION_CHECKLIST.md` | Mandatory gate before any release |
@@ -246,6 +246,7 @@ Before implementing ANY new:
 | Artifacts | `docs/design/ARTIFACT_LIBRARY.md` |
 | Achievements | `docs/design/ACHIEVEMENT_LIBRARY.md` |
 | Rockets | `docs/design/ROCKET_LIBRARY.md` |
+| Scoring | `docs/design/SCORING_LIBRARY.md` |
 
 ### Priority Order
 1. **APPROVED** items → Implement as-is (highest priority)

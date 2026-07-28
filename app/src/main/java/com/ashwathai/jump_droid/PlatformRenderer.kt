@@ -24,12 +24,18 @@ class PlatformRenderer {
         platform: Platform,
         currentZone: AltitudeZone,
         cameraY: Float,
-        gameTime: Long
+        gameTime: Long,
+        context: android.content.Context? = null
     ) {
         val px = platform.x
         val py = platform.y - cameraY
 
         with(drawScope) {
+            if (DevConfig.RENDER_MODE_ASSETS && context != null) {
+                drawAssetPlatform(this, platform, currentZone, py, gameTime, context)
+                return@with
+            }
+
             when (platform.type) {
                 PlatformType.NORMAL -> {
                     val isGhost = platform.isBreaking && platform.totalBreakTime < 0.5f
@@ -52,6 +58,45 @@ class PlatformRenderer {
 
             if (platform.isJammed) {
                 drawJammedEffect(this, px, py, platform.width, gameTime)
+            }
+        }
+    }
+
+    private fun drawAssetPlatform(
+        drawScope: DrawScope,
+        platform: Platform,
+        zone: AltitudeZone,
+        py: Float,
+        gameTime: Long,
+        context: android.content.Context
+    ) {
+        val bitmap = AssetManager.getBitmap(context, R.drawable.game_icon)
+        val px = platform.x
+        val width = platform.width
+        
+        with(drawScope) {
+            // Draw a section of the bitmap as the platform texture
+            drawImage(
+                image = bitmap,
+                dstOffset = androidx.compose.ui.unit.IntOffset(px.toInt(), py.toInt()),
+                dstSize = androidx.compose.ui.unit.IntSize(width.toInt(), PLATFORM_HEIGHT.toInt()),
+                alpha = 0.8f
+            )
+            
+            // Still draw some procedural effects on top (glows, etc.)
+            val tint = zoneTint(zone)
+            drawRect(
+                color = tint.copy(alpha = 0.2f),
+                topLeft = Offset(px, py),
+                size = Size(width, PLATFORM_HEIGHT)
+            )
+            
+            drawCornerBrackets(this, px, py, width, SciFiWhite, 0.4f, 10f)
+            
+            if (platform.isBreaking) {
+                // Procedural crack overlay still useful
+                val progress = (platform.crackTime / platform.totalBreakTime).coerceIn(0f, 1f)
+                drawLine(Color.White, Offset(px, py), Offset(px + width, py + PLATFORM_HEIGHT), strokeWidth = 2f + progress * 3f)
             }
         }
     }

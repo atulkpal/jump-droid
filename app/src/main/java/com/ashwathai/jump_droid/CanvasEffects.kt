@@ -3,6 +3,7 @@ package com.ashwathai.jump_droid
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -85,19 +86,7 @@ fun DrawScope.drawSpeedLines(
             )
         }
 
-        if (currentZone == AltitudeZone.EARTH || currentZone == AltitudeZone.CLOUD_LAYER) {
-            val hAlpha = (speedRatio - 0.4f) * 0.12f
-            repeat(4) {
-                val rx = kotlin.random.Random.nextFloat() * screenWidth
-                val ry = kotlin.random.Random.nextFloat() * screenHeight
-                drawLine(
-                    lineColor.copy(alpha = hAlpha),
-                    start = Offset(rx, ry),
-                    end = Offset(rx + 40f * speedRatio, ry),
-                    strokeWidth = 1f
-                )
-            }
-        }
+
     }
 }
 
@@ -109,24 +98,51 @@ fun DrawScope.drawGround(
 ) {
     if (currentZone.ordinal >= AltitudeZone.ORBIT.ordinal) return
 
-    val groundColor = when (currentZone) {
-        AltitudeZone.EARTH -> {
-            val green = androidx.compose.ui.graphics.lerp(Color(0xFF795548), Color(0xFF558B2F), zoneProgress * 0.3f)
-            green
-        }
-        AltitudeZone.CLOUD_LAYER -> Color(0xFF546E7A)
-        AltitudeZone.UPPER_ATMOSPHERE -> Color(0xFF1A0033)
-        else -> Color(0xFF795548)
-    }
-
     val baseY = groundY + (ROCKET_HEIGHT / 2) - cameraY
     val fadeAlpha = if (currentZone == AltitudeZone.UPPER_ATMOSPHERE) (1f - zoneProgress).coerceIn(0f, 1f) else 1f
 
-    drawRect(
-        groundColor.copy(alpha = fadeAlpha),
-        topLeft = Offset(0f, baseY),
-        size = Size(screenWidth, screenHeight)
-    )
+    when (currentZone) {
+        AltitudeZone.EARTH -> {
+            // Textured Ground (Grass -> Dirt -> Shadow)
+            drawRect(
+                brush = Brush.verticalGradient(
+                    0.0f to Color(0xFF558B2F),
+                    0.4f to Color(0xFF795548),
+                    1.0f to Color(0xFF3E2723)
+                ),
+                topLeft = Offset(0f, baseY),
+                size = Size(screenWidth, screenHeight),
+                alpha = fadeAlpha
+            )
+            // Procedural Grass Tufts
+            repeat(15) {
+                val gx = (it * 137.5f) % screenWidth
+                val gy = baseY + 10f + (it * 89.3f) % 40f
+                drawCircle(Color(0xFF33691E).copy(alpha = 0.3f), radius = 5f, center = Offset(gx, gy))
+            }
+        }
+        AltitudeZone.CLOUD_LAYER -> {
+            drawRect(
+                color = Color(0xFF546E7A).copy(alpha = fadeAlpha),
+                topLeft = Offset(0f, baseY),
+                size = Size(screenWidth, screenHeight)
+            )
+        }
+        AltitudeZone.UPPER_ATMOSPHERE -> {
+            drawRect(
+                color = Color(0xFF1A0033).copy(alpha = fadeAlpha),
+                topLeft = Offset(0f, baseY),
+                size = Size(screenWidth, screenHeight)
+            )
+        }
+        else -> {
+            drawRect(
+                color = Color(0xFF795548).copy(alpha = fadeAlpha),
+                topLeft = Offset(0f, baseY),
+                size = Size(screenWidth, screenHeight)
+            )
+        }
+    }
 }
 
 fun DrawScope.drawParticles(
@@ -141,28 +157,39 @@ fun DrawScope.drawParticles(
         val sizeMult = (0.5f + alpha * 0.5f)
         val currentSize = p.size * sizeMult
 
-        if (p.life < 0.9f) {
+        // D1: Particle Glow (Soft Background)
+        if (p.life < 0.95f) {
             drawCircle(
-                color = p.color.copy(alpha = alpha * 0.2f),
-                radius = currentSize * 2.5f,
+                color = p.color.copy(alpha = alpha * 0.25f),
+                radius = currentSize * 3f,
                 center = Offset(centerX, centerY)
             )
         }
 
-        if (currentSize > 3f && (gameTime / 120) % 2L == 0L) {
-            val s = currentSize * 1.5f
+        // D2: Rich Rendering for "shimmer" particles (identified by specific color or size)
+        if (currentSize > 3.5f && (gameTime / 100) % 2L == 0L) {
+            val s = currentSize * 1.6f
             val angle = kotlin.math.atan2(p.vy, p.vx)
             val cosA = kotlin.math.cos(angle)
             val sinA = kotlin.math.sin(angle)
             val cx = centerX
             val cy = centerY
-            drawLine(p.color.copy(alpha = alpha), Offset(cx - s * cosA, cy - s * sinA), Offset(cx + s * cosA, cy + s * sinA), strokeWidth = 2.5f)
-            drawLine(p.color.copy(alpha = alpha), Offset(cx + s * sinA, cy - s * cosA), Offset(cx - s * sinA, cy + s * cosA), strokeWidth = 2.5f)
-            val ds = s * 0.4f
-            drawLine(p.color.copy(alpha = alpha * 0.4f), Offset(cx - ds * cosA - ds * sinA, cy - ds * sinA + ds * cosA), Offset(cx + ds * cosA + ds * sinA, cy + ds * sinA - ds * cosA), strokeWidth = 1.5f)
-            drawLine(p.color.copy(alpha = alpha * 0.4f), Offset(cx + ds * cosA - ds * sinA, cy + ds * sinA + ds * cosA), Offset(cx - ds * cosA + ds * sinA, cy - ds * sinA - ds * cosA), strokeWidth = 1.5f)
+            
+            // X-pattern glow for shimmer
+            drawLine(p.color.copy(alpha = alpha * 0.8f), Offset(cx - s * cosA, cy - s * sinA), Offset(cx + s * cosA, cy + s * sinA), strokeWidth = 3f)
+            drawLine(p.color.copy(alpha = alpha * 0.8f), Offset(cx + s * sinA, cy - s * cosA), Offset(cx - s * sinA, cy + s * cosA), strokeWidth = 3f)
+            
+            val ds = s * 0.5f
+            drawLine(Color.White.copy(alpha = alpha * 0.5f), Offset(cx - ds * cosA - ds * sinA, cy - ds * sinA + ds * cosA), Offset(cx + ds * cosA + ds * sinA, cy + ds * sinA - ds * cosA), strokeWidth = 1.5f)
+            drawLine(Color.White.copy(alpha = alpha * 0.5f), Offset(cx + ds * cosA - ds * sinA, cy + ds * sinA + ds * cosA), Offset(cx - ds * cosA + ds * sinA, cy - ds * sinA - ds * cosA), strokeWidth = 1.5f)
         } else {
+            // D3: Standard Core
             drawCircle(p.color.copy(alpha = alpha), radius = currentSize, center = Offset(centerX, centerY))
+            
+            // D4: Bright center for core
+            if (alpha > 0.6f) {
+                drawCircle(Color.White.copy(alpha = alpha * 0.4f), radius = currentSize * 0.5f, center = Offset(centerX, centerY))
+            }
         }
     }
 }
@@ -172,26 +199,51 @@ fun DrawScope.drawLandingEffects(
     cameraY: Float,
     currentZone: AltitudeZone = AltitudeZone.EARTH
 ) {
-    val ringColor = when (currentZone) {
-        AltitudeZone.EARTH -> Color.Cyan
+    val ringColor = getZoneColor(currentZone)
+
+    effects.forEach { effect ->
+        val progress = (1f - (effect.life / 0.5f)).coerceIn(0f, 1f)
+        val alpha = 0.4f * (1f - progress)
+        
+        // D1: Primary Expanding Ring
+        drawCircle(
+            color = ringColor.copy(alpha = alpha),
+            radius = 45f * progress,
+            center = Offset(effect.x, effect.y - cameraY),
+            style = Stroke(width = 3f * (1f - progress) + 0.5f)
+        )
+        
+        // D2: Secondary Glow Ring
+        drawCircle(
+            color = ringColor.copy(alpha = alpha * 0.4f),
+            radius = 60f * progress,
+            center = Offset(effect.x, effect.y - cameraY),
+            style = Stroke(width = 1.5f)
+        )
+        
+        // D3: Inner Core Ring
+        if (progress < 0.5f) {
+            drawCircle(
+                color = Color.White.copy(alpha = alpha * 0.6f),
+                radius = 20f * progress,
+                center = Offset(effect.x, effect.y - cameraY),
+                style = Stroke(width = 1f)
+            )
+        }
+    }
+}
+
+private fun getZoneColor(zone: AltitudeZone): Color {
+    return when (zone) {
+        AltitudeZone.EARTH -> SciFiCyan
         AltitudeZone.CLOUD_LAYER -> Color(0xFF80DEEA)
         AltitudeZone.UPPER_ATMOSPHERE -> SciFiPurple
         AltitudeZone.ORBIT -> SciFiGold
-            AltitudeZone.DEEP_SPACE -> Color(0xFF64B5F6)
-            AltitudeZone.THE_FOUNDRY -> Color(0xFFFF6D00)
-            AltitudeZone.CHRONO_RIFT -> SciFiPurple
-            AltitudeZone.VOID, AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE, AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY -> 
+        AltitudeZone.DEEP_SPACE -> Color(0xFF64B5F6)
+        AltitudeZone.THE_FOUNDRY -> Color(0xFFFF6D00)
+        AltitudeZone.CHRONO_RIFT -> SciFiPurple
+        AltitudeZone.VOID, AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE, AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY -> 
             SciFiRed
-    }
-
-    effects.forEach { effect ->
-        val progress = 1f - (effect.life / 0.5f).coerceIn(0f, 1f)
-        drawCircle(
-            color = ringColor.copy(alpha = 0.3f * (1f - progress)),
-            radius = 40f * progress,
-            center = Offset(effect.x, effect.y - cameraY),
-            style = Stroke(width = 2f)
-        )
     }
 }
 
@@ -400,9 +452,33 @@ fun DrawScope.drawFlyingRewards(
             is ComboReward.Artifact -> Color(0xFF9C27B0)
         }
 
+        // D1: Flight Trail
+        val trailSegments = 4
+        repeat(trailSegments) { i ->
+            val trailProgress = (fr.progress - (i + 1) * 0.05f).coerceIn(0f, 1f)
+            val tx = fr.x * (1f - trailProgress) + fr.targetX * trailProgress
+            val ty = fr.y * (1f - trailProgress) + fr.targetY * trailProgress
+            val tAlpha = 0.4f * (1f - (i.toFloat() / trailSegments))
+            
+            drawCircle(
+                color = baseColor.copy(alpha = tAlpha),
+                radius = 10f * (1f - i.toFloat() / trailSegments),
+                center = Offset(tx, ty)
+            )
+        }
+
+        // D2: Main Reward Object
         scale(fr.scale, pivot = Offset(curX, curY)) {
             drawCircle(baseColor, radius = 15f, center = Offset(curX, curY))
             drawCircle(Color.White, radius = 5f, center = Offset(curX, curY))
+            
+            // Outer Glow
+            drawCircle(
+                color = baseColor.copy(alpha = 0.3f),
+                radius = 25f,
+                center = Offset(curX, curY),
+                style = Stroke(width = 2f)
+            )
         }
     }
 }

@@ -47,4 +47,7 @@ class Platform(
 
     // For trap/ghost platforms (BOSS_SIGNAL)
     var isTrapPlatform by mutableStateOf(false)
+
+    // Pre-Release Polish: Procedural Variation
+    var isWrapAround by mutableStateOf(false)
 }

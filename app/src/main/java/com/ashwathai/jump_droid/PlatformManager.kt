@@ -54,10 +54,18 @@ class PlatformManager {
         if (type == PlatformType.GRAVITON) gravitonStreak++ else gravitonStreak = 0
 
         val isMoving = type == PlatformType.MOVING
-        val speed = if (isMoving) (100f + (difficulty * 200f)) * (if (Random.nextBoolean()) 1f else -1f) else 0f
+        val baseSpeed = 100f + (difficulty * 250f) // Slightly increased max speed for polish
+        val speed = if (isMoving || type == PlatformType.CONVEYOR) baseSpeed * (if (Random.nextBoolean()) 1f else -1f) else 0f
         val totalBreakTime = if (type == PlatformType.BREAKABLE) 1.5f + Random.nextFloat() * 1.5f else 3f
 
-        return Platform(nextX, nextY, pWidth, type, isMoving, speed, totalBreakTime)
+        val platform = Platform(nextX, nextY, pWidth, type, isMoving, speed, totalBreakTime)
+        
+        // Procedural Variation: 20% chance for wrap-around moving platforms
+        if (isMoving && Random.nextFloat() < 0.2f) {
+            platform.isWrapAround = true
+        }
+        
+        return platform
     }
 
     /**

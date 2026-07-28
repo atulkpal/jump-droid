@@ -34,6 +34,9 @@ data class ThreatDefinition(
     val spawnVx: Float = 0f,
     val spawnVy: Float = 0f,
     
+    // Scoring
+    val scoreAward: Int = 0,
+    
     // Metadata for registry and lookup
     val tags: List<String> = emptyList()
 )

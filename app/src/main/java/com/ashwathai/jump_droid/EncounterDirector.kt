@@ -174,10 +174,13 @@ class EncounterDirector {
         bossesSpawned: MutableSet<String>,
         threatManager: ThreatManager,
         notificationManager: NotificationManager,
+        gameMode: GameMode = GameMode.STANDARD,
         onDiscovery: (DiscoveryType) -> Unit,
         onVisualFeedback: (shake: Float, flash: Float) -> Unit,
         onBossSpawned: (ThreatDefinition) -> Unit = {}
     ) {
+        if (gameMode == GameMode.ZEN) return
+
         // Tick boss cooldowns
         val iter = bossCooldowns.entries.iterator()
         while (iter.hasNext()) {

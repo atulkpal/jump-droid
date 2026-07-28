@@ -53,6 +53,7 @@ class SurvivalManager {
             }
 
             player.shield -= shieldDamage
+            player.shieldHitTimer = 0.3f
             remainingDamage -= shieldDamage
 
             // Shield Hit Feedback (Cyan)

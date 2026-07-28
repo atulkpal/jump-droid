@@ -10,7 +10,15 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 class LeviathanRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         with(drawScope) {
             val tx = threat.x; val ty = threat.y - cameraY
             val phase = threat.phase
@@ -22,23 +30,52 @@ class LeviathanRenderer : ThreatRenderer {
                 drawRect(Color.Red.copy(alpha = 0.15f), Offset(edgeX - if (nearLeft) 0f else 20f, 0f), Size(if (nearLeft) 20f else 20f, size.height))
             }
 
-            repeat(6) { i ->
-                val ox = sin(gameTime / 1000f - i * 0.5f) * 100f
-                val oy = i * 60f
-                val segmentPulse = (sin(gameTime / 500f + i) * 0.2f + 0.8f)
+            val bioPulse = (sin((gameTime / 350f).toDouble()).toFloat() * 0.4f + 0.6f)
+            val bioGlowColor = if (phase == 3) Color(0xFFFF1744) else Color(0xFF00E5FF)
+            val secondaryGlow = if (phase == 3) Color(0xFFFF8A80) else Color(0xFFB2EBF2)
+            
+            repeat(8) { i -> // Increased segment count for smoother tail
+                val ox = sin((gameTime / 1000f - i * 0.4f).toDouble()).toFloat() * 120f
+                val oy = i * 70f
+                val segmentPulse = (sin((gameTime / 450f + i).toDouble()).toFloat() * 0.25f + 0.75f) * bioPulse
                 val bodyColor = if (phase == 3) Color(0xFF1A237E) else Color(0xFF01579B)
+                val lerpedBioColor = if (i % 2 == 0) bioGlowColor else secondaryGlow
 
-                drawOval(bodyColor, topLeft = Offset(tx + ox - (60f - i * 8f) * segmentPulse, ty + oy - (45f - i * 6f) * segmentPulse), size = Size((120f - i * 16f) * segmentPulse, (90f - i * 12f) * segmentPulse))
-                drawOval(Color.Cyan.copy(alpha = 0.2f), topLeft = Offset(tx + ox - (60f - i * 8f) * segmentPulse, ty + oy - (45f - i * 6f) * segmentPulse), size = Size((120f - i * 16f) * segmentPulse, (90f - i * 12f) * segmentPulse), style = Stroke(width = 2f))
+                // D1: Body Segments (Enhanced Shadow & Glow)
+                drawOval(
+                    color = bodyColor,
+                    topLeft = Offset(tx + ox - (70f - i * 8f) * segmentPulse, ty + oy - (50f - i * 6f) * segmentPulse),
+                    size = Size((140f - i * 16f) * segmentPulse, (100f - i * 12f) * segmentPulse)
+                )
+                
+                // D2: Bio-luminescent Rims
+                drawOval(
+                    color = lerpedBioColor.copy(alpha = 0.2f * bioPulse),
+                    topLeft = Offset(tx + ox - (70f - i * 8f + 8f) * segmentPulse, ty + oy - (50f - i * 6f + 8f) * segmentPulse),
+                    size = Size((140f - i * 16f + 16f) * segmentPulse, (100f - i * 12f + 16f) * segmentPulse),
+                    style = Stroke(width = 5f)
+                )
+                drawOval(
+                    color = lerpedBioColor.copy(alpha = 0.5f * bioPulse),
+                    topLeft = Offset(tx + ox - (70f - i * 8f) * segmentPulse, ty + oy - (50f - i * 6f) * segmentPulse),
+                    size = Size((140f - i * 16f) * segmentPulse, (100f - i * 12f) * segmentPulse),
+                    style = Stroke(width = 2.5f)
+                )
 
-                drawOval(bodyColor.copy(alpha = 0.5f), topLeft = Offset(tx + ox - (30f - i * 4f) * segmentPulse, ty + oy - (10f - i * 2f) * segmentPulse), size = Size((60f - i * 8f) * segmentPulse, (20f - i * 3f) * segmentPulse))
-
+                // D3: Vein Network
                 val veinPath = Path().apply {
-                    moveTo(tx + ox - 20f + i * 3f, ty + oy - 15f)
-                    quadraticTo(tx + ox, ty + oy - 30f, tx + ox + 20f - i * 3f, ty + oy - 15f)
+                    moveTo(tx + ox - 25f + i * 3f, ty + oy - 20f)
+                    quadraticTo(tx + ox, ty + oy - 40f, tx + ox + 25f - i * 3f, ty + oy - 20f)
                 }
-                drawPath(veinPath, Color.Cyan.copy(alpha = 0.4f), style = Stroke(width = 2f))
-                drawCircle(Color.Cyan.copy(alpha = 0.5f), radius = (40f - i * 5f) * segmentPulse, center = Offset(tx + ox, ty + oy), style = Stroke(width = 2f))
+                drawPath(veinPath, secondaryGlow.copy(alpha = 0.5f * bioPulse), style = Stroke(width = 2f))
+
+                // D4: Pulsing Circular Nodes
+                drawCircle(
+                    color = lerpedBioColor.copy(alpha = 0.4f * segmentPulse),
+                    radius = (45f - i * 5f) * segmentPulse,
+                    center = Offset(tx + ox, ty + oy),
+                    style = Stroke(width = 2.5f)
+                )
 
                 val arrowDir = if (i % 2 == 0) 1f else -1f
                 val arrX = tx + ox + arrowDir * 40f

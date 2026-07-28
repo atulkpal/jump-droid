@@ -2,6 +2,7 @@ package com.ashwathai.jump_droid
 
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -11,6 +12,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
+
+fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
 
 @Composable
 fun GlobalAdBanner(isPremiumUser: Boolean = false) {
@@ -58,7 +65,14 @@ object RewardedAdHelper {
 
     fun show(activity: Activity, analytics: GameAnalytics, onReward: () -> Unit, onFailed: () -> Unit) {
         loadedAd?.let { ad ->
-            analytics.logAdImpression("rewarded", AdConfig.REWARDED_UNIT_ID)
+            ad.fullScreenContentCallback = object : com.google.android.gms.ads.FullScreenContentCallback() {
+                override fun onAdImpression() {
+                    analytics.logAdImpression("rewarded", AdConfig.REWARDED_UNIT_ID)
+                }
+                override fun onAdClicked() {
+                    analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
+                }
+            }
             ad.show(activity) { onReward() }
             loadedAd = null
         } ?: onFailed()

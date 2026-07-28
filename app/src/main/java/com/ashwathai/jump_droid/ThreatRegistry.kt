@@ -308,7 +308,8 @@ object ThreatRegistry {
             type = ThreatType.MINI_BOSS,
             tier = ThreatTier.TIER_4,
             baseHealth = 150f,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.05f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.CLOUD_LAYER, AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.05f),
+            scoreAward = 250
         ))
 
         register(ThreatDefinition(
@@ -318,7 +319,8 @@ object ThreatRegistry {
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
             baseHealth = 250f,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ORBIT, AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f),
+            scoreAward = 1000
         ))
 
         register(ThreatDefinition(
@@ -328,7 +330,8 @@ object ThreatRegistry {
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
             baseHealth = 400f,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f),
+            scoreAward = 1500
         ))
 
         register(ThreatDefinition(
@@ -338,7 +341,8 @@ object ThreatRegistry {
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
             baseHealth = 450f,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.01f),
+            scoreAward = 2000
         ))
 
         register(ThreatDefinition(
@@ -348,7 +352,8 @@ object ThreatRegistry {
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
             baseHealth = 350f,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.VOID), spawnChance = 0.01f),
+            scoreAward = 1200
         ))
 
         register(ThreatDefinition(
@@ -358,7 +363,8 @@ object ThreatRegistry {
             type = ThreatType.BOSS,
             tier = ThreatTier.TIER_5,
             baseHealth = 500f,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.VOID), spawnChance = 0.01f),
+            scoreAward = 2500
         ))
 
         // --- SPRINT 10.6 LIBRARY BOSSES ---
@@ -371,7 +377,8 @@ object ThreatRegistry {
             tier = ThreatTier.TIER_4,
             baseHealth = 180f,
             discoveryType = DiscoveryType.THREAT_THERMAL_HIVE,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.CLOUD_LAYER), spawnChance = 0.04f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.UPPER_ATMOSPHERE, AltitudeZone.CLOUD_LAYER), spawnChance = 0.04f),
+            scoreAward = 300
         ))
 
         register(ThreatDefinition(
@@ -382,7 +389,8 @@ object ThreatRegistry {
             tier = ThreatTier.TIER_4,
             baseHealth = 300f,
             discoveryType = DiscoveryType.THREAT_GRAVITY_ANCHOR,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.THE_BEYOND), spawnChance = 0.03f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.DEEP_SPACE, AltitudeZone.THE_BEYOND), spawnChance = 0.03f),
+            scoreAward = 400
         ))
 
         register(ThreatDefinition(
@@ -393,7 +401,8 @@ object ThreatRegistry {
             tier = ThreatTier.TIER_4,
             baseHealth = 200f,
             discoveryType = DiscoveryType.THREAT_FORGER,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.THE_FOUNDRY, AltitudeZone.ORBIT), spawnChance = 0.04f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.THE_FOUNDRY, AltitudeZone.ORBIT), spawnChance = 0.04f),
+            scoreAward = 350
         ))
 
         register(ThreatDefinition(
@@ -404,7 +413,8 @@ object ThreatRegistry {
             tier = ThreatTier.TIER_5,
             baseHealth = 600f,
             discoveryType = DiscoveryType.THREAT_ARCHITECT,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.THE_BEYOND, AltitudeZone.STELLAR_GATE), spawnChance = 0.01f),
+            scoreAward = 3000
         ))
 
         register(ThreatDefinition(
@@ -415,7 +425,8 @@ object ThreatRegistry {
             tier = ThreatTier.TIER_5,
             baseHealth = 800f,
             discoveryType = DiscoveryType.THREAT_ENTROPY_CORE,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.ANCIENT_CONSTRUCT, AltitudeZone.SINGULARITY), spawnChance = 0.01f),
+            scoreAward = 4000
         ))
 
         register(ThreatDefinition(
@@ -426,7 +437,8 @@ object ThreatRegistry {
             tier = ThreatTier.TIER_5,
             baseHealth = 1200f,
             discoveryType = DiscoveryType.THREAT_SINGULARITY,
-            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.SINGULARITY), spawnChance = 0.01f)
+            spawnRules = ThreatSpawnRules(allowedZones = listOf(AltitudeZone.SINGULARITY), spawnChance = 0.01f),
+            scoreAward = 5000
         ))
     }
 

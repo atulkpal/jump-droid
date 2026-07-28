@@ -91,6 +91,9 @@ class DiscoveryManager(private val sharedPrefs: SharedPreferences) {
     }
 
     fun getUnreadCount(): Int {
-        return DiscoveryType.entries.count { isDiscovered(it) && !isViewed(it) }
+        val discoveryUnread = DiscoveryType.entries.count { isDiscovered(it) && !isViewed(it) }
+        val logUnread = LoreLog.ALL_LOGS.count { sharedPrefs.getBoolean("log_${it.id}", false) && !sharedPrefs.getBoolean("viewed_log_${it.id}", false) }
+        val achUnread = AchievementsList.count { sharedPrefs.getBoolean("achievement_${it.id}", false) && !sharedPrefs.getBoolean("viewed_ach_${it.id}", false) }
+        return discoveryUnread + logUnread + achUnread
     }
 }

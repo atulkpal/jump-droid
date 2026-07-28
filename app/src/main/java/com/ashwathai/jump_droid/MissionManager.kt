@@ -64,7 +64,7 @@ class MissionManager(private val progressionService: ProgressionService) {
                     allMissionInstances[prereqId]?.isCompleted == true
                 }
                 MissionUnlockType.REACH_ALTITUDE -> {
-                    progressionService.highScore >= condition.value
+                    progressionService.highAltitude >= condition.value
                 }
                 MissionUnlockType.DEFEAT_BOSS -> {
                     progressionService.lifetimeBossesDefeated >= condition.value
@@ -74,7 +74,7 @@ class MissionManager(private val progressionService: ProgressionService) {
                 }
                 MissionUnlockType.REACH_BIOME -> {
                     // Approximate by altitude for now
-                    progressionService.highScore >= 5000f
+                    progressionService.highAltitude >= 5000f
                 }
                 MissionUnlockType.COLLECT_ARTIFACT -> {
                     progressionService.artifactsCollected.size >= condition.value
@@ -118,6 +118,7 @@ class MissionManager(private val progressionService: ProgressionService) {
                 icon = template.icon,
                 isHidden = template.isHidden,
                 crypticHint = template.crypticHint,
+                debrief = template.debrief,
                 initialProgress = progressionService.getMissionProgress(template.id)
             )
 
@@ -149,6 +150,7 @@ class MissionManager(private val progressionService: ProgressionService) {
                 mission.currentProgress = savedProgress
             }
         }
+        checkUnlocks() // Ensure newly satisfied conditions are updated
     }
 
     /**
@@ -188,10 +190,16 @@ class MissionManager(private val progressionService: ProgressionService) {
             MissionCategory.COMBO_STREAK -> stats.maxCombo.toFloat()
             MissionCategory.BOSS_SLAYER -> (progressionService.lifetimeBossesDefeated + stats.bossesDefeated).toFloat()
             MissionCategory.DISCOVERY_HUNTER -> stats.codexUnlocked.toFloat()
-            MissionCategory.ALTITUDE_CLIMBER -> stats.maxAltitude
+            MissionCategory.ALTITUDE_CLIMBER -> stats.maxAltitudeMeters.toFloat()
             MissionCategory.MOMENTUM_MASTER -> stats.maxMomentum
             MissionCategory.HAZARD_SURVIVOR -> (progressionService.lifetimeHazards + stats.hazardHitsSurvived).toFloat()
-            MissionCategory.PERFECT_RUN -> stats.perfectRunTime
+            MissionCategory.PERFECT_RUN -> {
+                if (mission.id == "hidden_near_death") {
+                    if (stats.wasNearDeath) 1f else 0f
+                } else {
+                    stats.perfectRunTime
+                }
+            }
             MissionCategory.COLLECTOR -> (progressionService.lifetimeArtifacts + stats.artifactsCollected).toFloat()
             MissionCategory.BOOST_CHAMPION -> stats.dashesPerRun.toFloat()
             MissionCategory.COMBO_PRO -> stats.comboMaintainTime

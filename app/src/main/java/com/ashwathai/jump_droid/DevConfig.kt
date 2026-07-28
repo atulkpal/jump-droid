@@ -9,4 +9,10 @@ object DevConfig {
     const val ENABLE_ENTITY_INTERACTION = true
     const val ENABLE_TETHER_PHYSICS = true
     const val ENABLE_INPUT_BUFFER = false
+
+    // Experimental: Asset-Based Rendering
+    var RENDER_MODE_ASSETS = true
+
+    // Performance Protection
+    var QUALITY_LOW_END = false
 }

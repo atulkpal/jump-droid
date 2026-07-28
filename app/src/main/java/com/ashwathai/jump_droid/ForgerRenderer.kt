@@ -7,79 +7,91 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
 import com.ashwathai.jump_droid.ui.theme.SciFiOrange
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 
 class ForgerRenderer : ThreatRenderer {
-    override fun render(drawScope: DrawScope, threat: ActiveThreat, cameraY: Float, alpha: Float, gameTime: Long, player: Player) {
+    override fun render(
+        drawScope: DrawScope,
+        threat: ActiveThreat,
+        cameraY: Float,
+        alpha: Float,
+        gameTime: Long,
+        player: Player,
+        context: android.content.Context?
+    ) {
         val cx = threat.x
         val cy = threat.y - cameraY
         val isJamming = threat.jamCooldown > 0f
         val pulse = sin(gameTime / 200f) * 0.05f + 0.95f
 
-        // Fabricator Body with horizontal gradient
+        // D1: Holographic Blueprint Projection (Flickering grid background)
+        if (isJamming) {
+            val bpAlpha = (0.05f + kotlin.random.Random(gameTime / 100).nextFloat() * 0.05f) * alpha
+            val bpSize = 300f
+            repeat(10) { i ->
+                val lineX = cx - bpSize/2 + i * (bpSize/10f)
+                drawScope.drawLine(SciFiCyan.copy(alpha = bpAlpha), Offset(lineX, cy - bpSize/2), Offset(lineX, cy + bpSize/2), strokeWidth = 1f)
+                val lineY = cy - bpSize/2 + i * (bpSize/10f)
+                drawScope.drawLine(SciFiCyan.copy(alpha = bpAlpha), Offset(cx - bpSize/2, lineY), Offset(cx + bpSize/2, lineY), strokeWidth = 1f)
+            }
+        }
+
+        // Fabrication Body with horizontal gradient
         drawScope.drawRect(
             brush = Brush.horizontalGradient(
                 colors = listOf(
                     Color(0xFF2A2A2A).copy(alpha = alpha),
-                    Color(0xFF1A1A1A).copy(alpha = alpha),
+                    Color(0xFF455A64).copy(alpha = alpha), // Higher specularity
                     Color(0xFF2A2A2A).copy(alpha = alpha)
                 ),
-                startX = cx - 40f,
-                endX = cx + 40f
+                startX = cx - 45f,
+                endX = cx + 45f
             ),
-            topLeft = Offset(cx - 40f, cy - 20f),
-            size = Size(80f, 40f)
+            topLeft = Offset(cx - 40f, cy - 25f),
+            size = Size(80f, 50f)
         )
 
-        // Body edge glow
-        drawScope.drawRect(
-            color = SciFiCyan.copy(alpha = 0.2f * alpha),
-            topLeft = Offset(cx - 42f, cy - 22f),
-            size = Size(84f, 44f)
-        )
-
-        // Scanning light (processing)
-        val scanPos = sin(gameTime / 80f) * 35f
-        drawScope.drawRect(
-            brush = Brush.horizontalGradient(
-                colors = listOf(
-                    SciFiCyan.copy(alpha = 0f),
-                    SciFiCyan.copy(alpha = 0.8f * alpha),
-                    SciFiCyan.copy(alpha = 0f)
-                ),
-                startX = cx + scanPos - 15f,
-                endX = cx + scanPos + 15f
-            ),
-            topLeft = Offset(cx + scanPos - 15f, cy - 18f),
-            size = Size(30f, 36f)
-        )
-
-        // Scan light center line
-        drawScope.drawRect(
-            color = Color.White.copy(alpha = 0.6f * alpha),
-            topLeft = Offset(cx + scanPos - 2f, cy - 16f),
-            size = Size(4f, 32f)
-        )
-
-        // Assembly arms (animated)
+        // D2: Multi-Jointed Assembly Arms (animated movement)
         repeat(2) { side ->
-            val armOffset = sin(gameTime / 300f + side * kotlin.math.PI.toFloat()) * 25f
-            val armX = cx + (if (side == 0) -45f else 45f) + armOffset
-            drawScope.drawLine(
-                color = Color.Gray.copy(alpha = 0.5f * alpha),
-                start = Offset(armX, cy - 30f),
-                end = Offset(armX, cy + 30f),
-                strokeWidth = 3f
-            )
+            val isRight = side == 1
+            val dir = if (isRight) 1f else -1f
+            val baseArmX = cx + dir * 40f
+            val armPulse = sin((gameTime / 350f + side * kotlin.math.PI.toFloat()).toDouble()).toFloat()
+            
+            // Shoulder Joint
+            val shoulderY = cy - 10f
+            val jointAngle = armPulse * 30f
+            val upperArmLen = 30f
+            val elbowX = baseArmX + cos((jointAngle * PI.toFloat() / 180f)) * upperArmLen * dir
+            val elbowY = shoulderY + sin((jointAngle * PI.toFloat() / 180f)) * upperArmLen
+            
+            drawScope.drawLine(Color.Gray.copy(alpha = 0.8f * alpha), Offset(baseArmX, shoulderY), Offset(elbowX, elbowY), strokeWidth = 5f)
+            
+            // Elbow Joint to Claw
+            val wristAngle = (jointAngle + 45f) * (if (isJamming) 2f else 1f)
+            val lowerArmLen = 25f
+            val clawX = elbowX + cos((wristAngle * PI.toFloat() / 180f)) * lowerArmLen * dir
+            val clawY = elbowY + sin((wristAngle * PI.toFloat() / 180f)) * lowerArmLen
+            
+            drawScope.drawLine(Color.DarkGray.copy(alpha = 0.8f * alpha), Offset(elbowX, elbowY), Offset(clawX, clawY), strokeWidth = 4f)
+            
+            // Claw Head (cyan glow)
+            drawScope.drawCircle(SciFiCyan.copy(alpha = 0.6f * alpha), 5f, Offset(clawX, clawY))
+        }
+
+        // D3: Fabrication Flash (High-intensity strobe when jamming)
+        if (isJamming) {
+            val strobe = if ((gameTime / 40) % 2 == 0L) 0.8f else 0.2f
             drawScope.drawCircle(
-                color = SciFiCyan.copy(alpha = 0.3f * alpha),
-                radius = 3f,
-                center = Offset(armX, cy - 30f)
-            )
-            drawScope.drawCircle(
-                color = SciFiCyan.copy(alpha = 0.3f * alpha),
-                radius = 3f,
-                center = Offset(armX, cy + 30f)
+                brush = Brush.radialGradient(
+                    colors = listOf(SciFiCyan.copy(alpha = 0.3f * strobe * alpha), Color.Transparent),
+                    center = Offset(cx, cy + 10f),
+                    radius = 120f
+                ),
+                radius = 120f,
+                center = Offset(cx, cy + 10f)
             )
         }
 

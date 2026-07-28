@@ -1,0 +1,31 @@
+# Task List - EPIC 12 Phase 4 & 8
+
+- `[x]` Phase 4: Visual Upgrades
+    - `[x]` 4.1 Rocket Visual Upgrade (`RocketRenderer.kt`)
+        - `[x]` 2-layer outer/inner flicker thruster flame
+        - `[x]` Body panel lines + glow highlights
+        - `[x]` Damage states (scorch marks/sparking)
+        - `[x]` Enhanced shield bubble pulse
+    - `[x]` 4.4 Boss Visual Upgrade Pass
+        - `[x]` GatekeeperRenderer: afterimage ring trails
+        - `[x]` LeviathanRenderer: bioluminescent pulse
+        - `[x]` VoidEngineRenderer: enhanced reality-tear
+        - `[x]` SignalRenderer: glitch rects + screen-tear
+        - `[x]` CommanderRenderer: flickering exhaust + sensor arrays
+        - `[x]` StarEaterRenderer: accretion disk + gravity lens
+        - `[x]` ThermalHiveRenderer: swarm density + thermal haze
+        - `[x]` GravityAnchorRenderer: gravity waves + metallic shimmer
+        - `[x]` ForgerRenderer: blueprint projection + assembly claws
+        - `[x]` ArchitectRenderer: fractal unfolding + energy conduits
+        - `[x]` EntropyCoreRenderer: plasma siphon beams + vent steam
+        - `[x]` SingularityRenderer: reality fracture + digital glitches
+        - `[x]` Death explosion zone-tinting (ThreatInteractionProcessor)
+    - `[x]` 4.5 Particle System Pass (`CanvasEffects.kt`)
+        - `[x]` Thrust trail shimmer
+        - `[x]` Zone-tinted landing rings
+        - `[x]` Combo reward flight trails
+- `[x]` Phase 8: Technical Foundation
+    - `[x]` 8.2 ProgressionManager Decomposition (Already done in previous session)
+    - `[x]` 8.3 StarfieldBackground Extraction (Already done in previous session)
+    - `[x]` 8.4 Navigation Migration (Researching)
+    - `[x]` 8.5 Performance Profiling (Researching)

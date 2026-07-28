@@ -150,6 +150,11 @@ class AmbientManager {
                     AmbientType.AIRCRAFT -> {
                         drawRect(c, topLeft = Offset(-15f * s, -5f * s), size = Size(30f * s, 10f * s))
                         drawRect(c, topLeft = Offset(-5f * s, -15f * s), size = Size(10f * s, 30f * s))
+                        
+                        // Blinking red light
+                        if ((gameTime / 500) % 2 == 0L) {
+                            drawCircle(Color.Red, radius = 2f * s, center = Offset(15f * s, 0f))
+                        }
                     }
                     AmbientType.BALLOON -> {
                         drawCircle(c, radius = 15f * s)
@@ -170,8 +175,15 @@ class AmbientManager {
                     }
                     AmbientType.SATELLITE -> {
                         drawRect(c, topLeft = Offset(-8f * s, -8f * s), size = Size(16f * s, 16f * s))
-                        drawRect(Color.Cyan.copy(alpha = 0.4f), topLeft = Offset(-20f * s, -4f * s), size = Size(12f * s, 8f * s))
-                        drawRect(Color.Cyan.copy(alpha = 0.4f), topLeft = Offset(8f * s, -4f * s), size = Size(12f * s, 8f * s))
+                        
+                        // Rotating solar panels
+                        val panelRotation = (gameTime / 10f) % 360f
+                        rotate(panelRotation, pivot = Offset(-14f * s, 0f)) {
+                            drawRect(Color.Cyan.copy(alpha = 0.4f), topLeft = Offset(-20f * s, -4f * s), size = Size(12f * s, 8f * s))
+                        }
+                        rotate(panelRotation, pivot = Offset(14f * s, 0f)) {
+                            drawRect(Color.Cyan.copy(alpha = 0.4f), topLeft = Offset(8f * s, -4f * s), size = Size(12f * s, 8f * s))
+                        }
                     }
                     AmbientType.DEBRIS -> {
                         drawRect(c, topLeft = Offset(-4f * s, -4f * s), size = Size(8f * s, 8f * s))
@@ -201,11 +213,13 @@ class AmbientManager {
                         drawRect(c, topLeft = Offset(-5f * s, -20f * s), size = Size(10f * s, 40f * s))
                     }
                     AmbientType.ANOMALY, AmbientType.DISTORTED_SHAPE -> {
+                        val pulse = sin(gameTime / 300f) * 0.2f + 0.8f
                         repeat(4) { i ->
                             rotate(i * 45f + (gameTime / 200f)) {
-                                drawRect(c.copy(alpha = 0.2f), topLeft = Offset(-15f * s, -15f * s), size = Size(30f * s, 30f * s))
+                                drawRect(c.copy(alpha = 0.2f * pulse), topLeft = Offset(-15f * s, -15f * s), size = Size(30f * s, 30f * s))
                             }
                         }
+                        drawCircle(c.copy(alpha = 0.4f * pulse), radius = 5f * s)
                     }
                 }
             }
