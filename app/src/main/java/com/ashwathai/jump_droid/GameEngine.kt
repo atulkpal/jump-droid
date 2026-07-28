@@ -86,6 +86,7 @@ class GameEngine(
     var totalPlatformLandings by mutableIntStateOf(0)
     var totalBossesDefeated by mutableIntStateOf(0)
     var runBossesDefeated by mutableIntStateOf(0)
+    var runMiniBossesDefeated by mutableIntStateOf(0)
     var totalArtifactsCollected by mutableIntStateOf(0)
     var totalDashes by mutableIntStateOf(0)
     var momentumValue by mutableFloatStateOf(0f)
@@ -170,6 +171,8 @@ class GameEngine(
     var lastFrameTime = 0L
     val zoneLoreTeasers = mutableStateSetOf<AltitudeZone>()
 
+    var gameMode by mutableStateOf(GameMode.STANDARD)
+
     init {
         altitudeManager.onZoneChanged = { zone ->
             soundManager.handleZoneChange(zone)
@@ -179,6 +182,24 @@ class GameEngine(
             zoneTransitionTo = zone
             impactFlashAlpha = 0.3f
             analytics.logZoneChanged(zone)
+            
+            // Music Unlock Logic
+            val trackName = when (zone) {
+                AltitudeZone.EARTH -> "bgm_earth"
+                AltitudeZone.CLOUD_LAYER -> "bgm_clouds"
+                AltitudeZone.UPPER_ATMOSPHERE -> "bgm_atmosphere"
+                AltitudeZone.ORBIT -> "bgm_orbit"
+                AltitudeZone.THE_FOUNDRY -> "bgm_foundry"
+                AltitudeZone.DEEP_SPACE -> "bgm_space"
+                AltitudeZone.CHRONO_RIFT -> "bgm_chrono"
+                AltitudeZone.VOID -> "bgm_void"
+                AltitudeZone.THE_BEYOND -> "bgm_beyond"
+                AltitudeZone.STELLAR_GATE -> "bgm_gate"
+                AltitudeZone.ANCIENT_CONSTRUCT -> "bgm_construct"
+                AltitudeZone.SINGULARITY -> "bgm_singularity"
+            }
+            progressionManager.unlockMusicTrack(trackName)
+
             if (zone !in zoneLoreTeasers) {
                 zoneLoreTeasers.add(zone)
                 val teaser = zoneLoreTeaser(zone)
@@ -188,7 +209,7 @@ class GameEngine(
         threatManager.onThreatDestroyed = { def ->
             if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
                 totalBossesDefeated++
-                runBossesDefeated++
+                if (def.type == ThreatType.BOSS) runBossesDefeated++ else runMiniBossesDefeated++
                 analytics.logBossDefeated(def, altitudeManager.currentZone)
                 val celebrationX = player.x
                 val celebrationY = cameraY + screenHeight * 0.3f
@@ -238,9 +259,10 @@ class GameEngine(
         maxCombo = comboManager.bestComboThisRun,
         currentCombo = comboManager.currentCombo,
         comboMaintainTime = comboMaintainTimer,
-        bossesDefeated = totalBossesDefeated,
+        bossesDefeated = runBossesDefeated,
+        miniBossesDefeated = runMiniBossesDefeated,
         codexUnlocked = progressionManager.getTotalDiscoveries(),
-        maxAltitudeMeters = runAltitude,
+        maxAltitudeMeters = (runAltitude / 10f).toInt(),
         totalScore = score,
         maxMomentum = momentumValue,
         hazardHitsSurvived = totalHazardHits,
@@ -275,6 +297,8 @@ class GameEngine(
             codexNotification = type
             activeDiscovery = type
             notificationManager.post("New Archive Entry — ${type.title}", NotificationPriority.FLAVOR)
+            soundManager.duck(1500L)
+            screenShake = max(screenShake, 8f)
             if (type.category == "ARTIFACTS") {
                 artifactLoreType = type
                 artifactLoreTimer = 4f
@@ -351,10 +375,14 @@ class GameEngine(
             onRocketUnlock = { type ->
                 showUnlockEvent(UnlockEvent.Rocket(type))
                 analytics.logRocketUnlocked(type)
+                soundManager.duck(2000L)
+                hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
             },
             onAchievementUnlock = { achievement ->
                 showUnlockEvent(UnlockEvent.Achievement(achievement))
                 gamesAchievementManager.unlock(achievement.id)
+                soundManager.duck(2000L)
+                hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
             },
             onLoreDiscovery = { type -> checkDiscovery(type) }
         )
@@ -383,11 +411,17 @@ class GameEngine(
                 soundManager.stopThrust()
                 spawnBurst(player.x, player.y, 50, SciFiRed, 500f)
                 screenShake = 25f
-                gameState = GameState.GAMEOVER
+                
                 saveHighScore(score)
                 saveHighAltitude(runAltitude)
                 progressionManager.commitSessionStats(getGameStats())
                 analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "structural_failure")
+                
+                if (pendingUnlocks.isNotEmpty()) {
+                    gameState = GameState.EXPEDITION_REWARDS
+                } else {
+                    gameState = GameState.GAMEOVER
+                }
             },
             onVisualFeedback = { shake, flash -> screenShake = shake; impactFlashAlpha = flash },
             onBurst = { x, y, count, color, speed -> spawnBurst(x, y, count, color, speed) },
@@ -534,6 +568,7 @@ class GameEngine(
                 PlatformType.CONVEYOR -> {
                     player.velocityY = 0f
                     if (checkDiscovery(DiscoveryType.CONVEYOR_PLATFORM)) { floatingTextManager.add(FloatingText("CONVEYOR — Hold your line!", player.x, player.y - 100f, color = SciFiCyan)) }
+                    // Carry speed is handled in resolveCollisions for momentum
                 }
                 else -> {
                     player.velocityY = com.ashwathai.jump_droid.Constants.LANDING_BOUNCE_VELOCITY
@@ -647,7 +682,7 @@ class GameEngine(
                         handleLanding(platform, pTop)
                         // Moving platform carry-over
                         if (platform.isMoving) player.x += platform.speed * dt
-                        if (platform.type == PlatformType.CONVEYOR) player.velocityX = 150f
+                        if (platform.type == PlatformType.CONVEYOR) player.velocityX = platform.speed
                     }
                     wasBelow && player.velocityY < 0 -> {
                         // Underside hit
@@ -677,7 +712,7 @@ class GameEngine(
                                 player.y = pTop - rHalfH
                                 handleLanding(platform, pTop)
                                 if (platform.isMoving) player.x += platform.speed * dt
-                                if (platform.type == PlatformType.CONVEYOR) player.velocityX = 150f
+                                if (platform.type == PlatformType.CONVEYOR) player.velocityX = platform.speed
                             }
                             overlapBottom -> if (player.velocityY < 0) {
                                 player.y = pBottom + rHalfH; player.velocityY = -player.velocityY * 0.5f
@@ -866,9 +901,16 @@ class GameEngine(
                 soundManager.stopAllLoops()
                 soundManager.stopThrust()
                 soundManager.fadeOutAndPlayGameOver { soundManager.playSfx("sfx_gameover") }
-                gameState = GameState.GAMEOVER; saveHighScore(score)
+                
+                saveHighScore(score)
                 saveHighAltitude(runAltitude)
                 analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "hull_breach")
+
+                if (pendingUnlocks.isNotEmpty()) {
+                    gameState = GameState.EXPEDITION_REWARDS
+                } else {
+                    gameState = GameState.GAMEOVER
+                }
             },
             onShake = { screenShake = max(screenShake, it) },
             shieldRegenMultiplier = progressionManager.getShieldRegenMultiplier(),
@@ -921,7 +963,15 @@ class GameEngine(
             platforms.forEach { p ->
                 if (p.isMoving) {
                     p.x += p.speed * sdt
-                    if (p.x < 0 || p.x + p.width > screenWidth) p.speed *= -1
+                    if (p.isWrapAround) {
+                        if (p.speed > 0 && p.x > screenWidth) {
+                            p.x = -p.width
+                        } else if (p.speed < 0 && p.x + p.width < 0) {
+                            p.x = screenWidth
+                        }
+                    } else {
+                        if (p.x < 0 || p.x + p.width > screenWidth) p.speed *= -1
+                    }
                 }
                 if (p.isBreaking) p.crackTime += sdt
             }
@@ -1088,6 +1138,7 @@ class GameEngine(
         // Director
         encounterDirector.update(
             dt, score, altitudeManager.currentZone, screenWidth, screenHeight, cameraY, player.x, player.y, bossesSpawned, threatManager, notificationManager, 
+            gameMode = gameMode,
             onDiscovery = { checkDiscovery(it) }, 
             onVisualFeedback = { s, f -> screenShake = max(screenShake, s); impactFlashAlpha = max(impactFlashAlpha, f) },
             onBossSpawned = {
@@ -1131,17 +1182,24 @@ class GameEngine(
             soundManager.fadeOutAndPlayGameOver { soundManager.playSfx("sfx_gameover") }
             spawnBurst(player.x, player.y, 30, SciFiRed, 400f)
             screenShake = 20f
-            gameState = GameState.GAMEOVER
+            
             saveHighScore(score)
             saveHighAltitude(runAltitude)
             analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "off_screen_fall")
+            
+            if (pendingUnlocks.isNotEmpty()) {
+                gameState = GameState.EXPEDITION_REWARDS
+            } else {
+                gameState = GameState.GAMEOVER
+            }
         }
     }
 
     fun generatePlatform(lastY: Float): Platform = platformManager.generate(runAltitude, screenWidth, lastY)
 
-    fun restartGame() {
+    fun restartGame(mode: GameMode = GameMode.STANDARD) {
         if (screenWidth <= 0f) return
+        gameMode = mode
         analytics.logGameStart(player.rocketType)
         player.x = screenWidth / 2f
         player.y = groundY
@@ -1159,7 +1217,7 @@ class GameEngine(
         player.isOverheated = false; player.lastPlatform = null; player.combo = 0
         player.invulnerabilityTimer = 0f
         player.destructionTimer = 0f
-        score = 0; visualScore = 0; runAltitude = 0; cameraY = 0f; baseAltitude = 0f; continuesUsed = 0; runBossesDefeated = 0; airborneTimer = 0f; noOverheatTimer = 0f
+        score = 0; visualScore = 0; runAltitude = 0; cameraY = 0f; baseAltitude = 0f; continuesUsed = 0; runBossesDefeated = 0; runMiniBossesDefeated = 0; airborneTimer = 0f; noOverheatTimer = 0f
         altitudePoints = 0; platformPoints = 0; bossPoints = 0; comboPoints = 0
         highestYReached = player.y
         zoneLoreTeasers.clear()
@@ -1176,7 +1234,8 @@ class GameEngine(
         
         altitudeManager.updateAltitude(0)
         soundManager.playZoneMusic(AltitudeZone.EARTH)
-        gameState = GameState.PLAYING
+        progressionManager.unlockMusicTrack("bgm_earth")
+        gameState = if (gameMode == GameMode.ZEN) GameState.ZEN else GameState.PLAYING
     }
 
     // --- Developer Cheats ---

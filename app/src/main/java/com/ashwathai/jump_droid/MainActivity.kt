@@ -306,7 +306,8 @@ fun JumpDroidApp(
                         else -> navController.navigate("main_menu")
                     }
                 },
-                soundManager = engine.soundManager
+                soundManager = engine.soundManager,
+                hapticManager = engine.hapticManager
             )
         }
         composable(
@@ -319,8 +320,13 @@ fun JumpDroidApp(
             MainMenuScreen(
                 onLaunch = { 
                     engine.gameState = GameState.PLAYING
-                    engine.restartGame()
+                    engine.restartGame(GameMode.STANDARD)
                     navController.navigate("game") 
+                },
+                onLaunchZen = {
+                    engine.gameState = GameState.ZEN
+                    engine.restartGame(GameMode.ZEN)
+                    navController.navigate("game")
                 },
                 onNavigate = { state ->
                     when (state) {
@@ -341,6 +347,7 @@ fun JumpDroidApp(
                     navController.navigate("title") 
                 },
                 soundManager = engine.soundManager,
+                hapticManager = engine.hapticManager,
                 archiveUnreadCount = engine.discoveryManager.getUnreadCount(),
                 hasNewEntries = engine.codexNotification != null || engine.discoveryManager.getUnreadCount() > 0,
                 progressionManager = engine.progressionManager,
@@ -422,7 +429,6 @@ fun JumpDroidApp(
                 isPremiumUser = engine.isPremiumUser,
                 runBossesDefeated = engine.runBossesDefeated,
                 bestComboThisRun = engine.comboManager.bestComboThisRun,
-                pendingUnlocks = engine.pendingUnlocks,
                 onContinue = { 
                     engine.continueRun()
                     navController.popBackStack()
@@ -435,13 +441,25 @@ fun JumpDroidApp(
                     navController.navigate("main_menu") {
                         popUpTo("title") { inclusive = false }
                     }
-                },
-                onClaimRewards = {
-                    engine.pendingUnlocks.filterIsInstance<UnlockEvent.Mission>().forEach { event ->
+                }
+            )
+        }
+        dialog(
+            route = "expedition_rewards",
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            ExpeditionRewardsOverlay(
+                pendingUnlocks = engine.pendingUnlocks,
+                onClaimReward = { event ->
+                    if (event is UnlockEvent.Mission) {
                         engine.missionManager.claimMissionRewards(event.mission.id, engine.player)
                     }
-                    engine.pendingUnlocks.clear()
                     engine.soundManager.playSfx("sfx_collect_item")
+                },
+                onAllClaimed = {
+                    engine.pendingUnlocks.clear()
+                    engine.gameState = GameState.GAMEOVER
+                    navController.popBackStack()
                 }
             )
         }
@@ -529,7 +547,8 @@ fun JumpDroidApp(
                         else -> navController.navigate("main_menu")
                     }
                 },
-                soundManager = engine.soundManager
+                soundManager = engine.soundManager,
+                hapticManager = engine.hapticManager
             )
         }
         composable(

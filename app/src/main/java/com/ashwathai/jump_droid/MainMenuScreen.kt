@@ -2,7 +2,9 @@ package com.ashwathai.jump_droid
 
 import android.app.Activity
 import android.content.Intent
+import kotlin.random.Random
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.expandVertically
@@ -27,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -42,15 +45,18 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -83,11 +89,13 @@ import java.util.Locale
 @Composable
 fun MainMenuScreen(
     onLaunch: () -> Unit,
+    onLaunchZen: () -> Unit,
     onNavigate: (GameState) -> Unit,
     onExit: () -> Unit,
     highScore: Int = 0,
     onPrestige: () -> Unit = {},
     soundManager: SoundManager? = null,
+    hapticManager: HapticManager? = null,
     hasNewEntries: Boolean = false,
     archiveUnreadCount: Int = 0,
     progressionManager: ProgressionManager? = null,
@@ -99,32 +107,71 @@ fun MainMenuScreen(
     val borderPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(1200), RepeatMode.Reverse), label = "BorderPulse")
     val titleGlow by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "TitleGlow")
     val accentPulse by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "AccentPulse")
+    val rocketBob by infiniteTransition.animateFloat(0f, -8f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "RocketBob")
+    val scanRingScale by infiniteTransition.animateFloat(0f, 1f, infiniteRepeatable(tween(2500, easing = androidx.compose.animation.core.LinearEasing)), label = "ScanRing")
+
+    val frameTime = remember { mutableStateOf(0L) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(50)
+            frameTime.value += 50
+        }
+    }
+    val ft = frameTime.value / 1000f
 
     val shape = RoundedCornerShape(12.dp)
-    var navExpanded by remember { mutableStateOf(true) }
+    var navExpanded by remember { mutableStateOf(false) }
     var showCreditDialog by remember { mutableStateOf(false) }
     var showSignOutConfirm by remember { mutableStateOf(false) }
     val analytics = LocalAnalytics.current
 
     Box(Modifier.fillMaxSize().background(SciFiBackground)) {
-        StarfieldBackground(Modifier.fillMaxSize(), starCount = 80, alphaRange = 0.15f..0.6f)
+        StarfieldBackground(Modifier.fillMaxSize(), starCount = 60, alphaRange = 0.1f..0.4f, speedRange = 0.1f..0.3f)
+        StarfieldBackground(Modifier.fillMaxSize(), starCount = 30, alphaRange = 0.2f..0.6f, speedRange = 0.4f..0.8f)
+        
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val ft = System.nanoTime() / 1e9f
+            // Use stable frame time for deterministic animations inside canvas too
+            val cft = frameTime.value / 1000f
 
-            drawCircle(SciFiCyan.copy(alpha = 0.04f), radius = 60f, center = Offset(w * 0.15f + sin(ft) * 8f, h * 0.12f + cos(ft * 0.7f) * 6f))
-            drawCircle(SciFiPurple.copy(alpha = 0.03f), radius = 80f, center = Offset(w * 0.85f + cos(ft * 0.5f) * 10f, h * 0.88f + sin(ft * 0.8f) * 8f))
-            drawCircle(SciFiGold.copy(alpha = 0.02f), radius = 50f, center = Offset(w * 0.5f + sin(ft * 0.3f) * 5f, h * 0.5f + cos(ft * 0.4f) * 5f))
+            drawCircle(SciFiCyan.copy(alpha = 0.04f), radius = 60f, center = Offset(w * 0.15f + sin(cft) * 8f, h * 0.12f + cos(cft * 0.7f) * 6f))
+            drawCircle(SciFiPurple.copy(alpha = 0.03f), radius = 80f, center = Offset(w * 0.85f + cos(cft * 0.5f) * 10f, h * 0.88f + sin(cft * 0.8f) * 8f))
+            drawCircle(SciFiGold.copy(alpha = 0.02f), radius = 50f, center = Offset(w * 0.5f + sin(cft * 0.3f) * 5f, h * 0.5f + cos(cft * 0.4f) * 5f))
+
+            // Drifting Debris
+            repeat(15) { i ->
+                val seed = i * 42L
+                val prng = Random(seed)
+                val speed = 10f + prng.nextFloat() * 20f
+                val dx = (cft * speed + prng.nextFloat() * w) % (w + 100f) - 50f
+                val dy = (cft * speed * 0.5f + prng.nextFloat() * h) % (h + 100f) - 50f
+                val size = 0.5f + prng.nextFloat() * 1.5f
+                drawCircle(SciFiWhite.copy(alpha = 0.1f), radius = size, center = Offset(dx, dy))
+            }
 
             repeat(12) { i ->
                 val px = ((i * 137.5f) % w.toFloat())
-                val py = ((i * 89.3f + ft * 20f * (0.5f + (i % 3) * 0.25f)) % h.toFloat())
-                drawCircle(SciFiCyan.copy(alpha = 0.05f + sin(ft + i) * 0.03f), radius = 1.5f, center = Offset(px, py))
+                val py = ((i * 89.3f + cft * 20f * (0.5f + (i % 3) * 0.25f)) % h.toFloat())
+                drawCircle(SciFiCyan.copy(alpha = 0.05f + sin(cft + i) * 0.03f), radius = 1.5f, center = Offset(px, py))
             }
 
             val cx = w / 2
-            val cy = h * 0.22f
+            val cy = h * 0.22f + rocketBob
+            
+            // Scan Rings (Expanding from center)
+            repeat(3) { i ->
+                val ringProgress = (scanRingScale + i * 0.33f) % 1f
+                val ringRad = 40f + ringProgress * 180f
+                val ringAlpha = (1f - ringRad / 220f).coerceIn(0f, 0.15f)
+                drawCircle(
+                    color = SciFiCyan.copy(alpha = ringAlpha),
+                    radius = ringRad,
+                    center = Offset(cx, cy),
+                    style = Stroke(width = 1f)
+                )
+            }
+
             val scanRad = 115f
             drawArc(
                 brush = Brush.sweepGradient(listOf(SciFiCyan.copy(alpha = 0.15f), Color.Transparent)),
@@ -168,7 +215,7 @@ fun MainMenuScreen(
                 style = Stroke(width = 1.5f)
             )
 
-            val glowRadius = 6f + sin(ft * 4f) * 2f
+            val glowRadius = 6f + sin(cft * 4f) * 2f
             drawCircle(
                 Brush.radialGradient(listOf(SciFiCyan.copy(alpha = 0.3f), SciFiCyan.copy(alpha = 0.05f), Color.Transparent)),
                 radius = glowRadius * 3f,
@@ -214,6 +261,7 @@ fun MainMenuScreen(
                         Surface(
                             modifier = Modifier.clickable {
                                 soundManager?.playSfx("sfx_ui_click")
+                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
                                 showCreditDialog = true
                             },
                             color = SciFiCyan.copy(alpha = 0.1f),
@@ -256,28 +304,49 @@ fun MainMenuScreen(
 
             Spacer(Modifier.height(32.dp))
 
+            val glitchX = if (sin(ft * 15f) > 0.9f) sin(ft * 40f) * 4f else 0f
             Text(
                 text = "JUMP DROID",
                 style = MaterialTheme.typography.headlineMedium.copy(
-                    shadow = Shadow(SciFiCyan.copy(alpha = titleGlow * 0.6f), blurRadius = 22f)
+                    shadow = Shadow(
+                        color = SciFiCyan.copy(alpha = titleGlow * 0.7f),
+                        offset = Offset(glitchX, 0f),
+                        blurRadius = 24f
+                    )
                 ),
                 color = SciFiWhite,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 6.sp,
-                fontSize = 28.sp
+                letterSpacing = 8.sp,
+                fontSize = 42.sp,
+                modifier = Modifier.offset(x = glitchX.dp)
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = "FLEET COMMAND",
-                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 4.sp),
-                color = SciFiCyan.copy(alpha = 0.35f)
+                text = "FLEET COMMAND PROTOCOL",
+                style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 5.sp),
+                color = SciFiCyan.copy(alpha = 0.4f),
+                fontSize = 10.sp
             )
 
             Spacer(Modifier.weight(1f))
 
+            // REDESIGNED ZEN COMMAND CONSOLE
+            ZenCommandConsole(
+                isUnlocked = progressionManager?.isZenModeUnlocked == true,
+                progressionManager = progressionManager,
+                borderPulse = borderPulse,
+                ft = ft,
+                hapticManager = hapticManager,
+                soundManager = soundManager,
+                onLaunchZen = onLaunchZen
+            )
+
+            Spacer(Modifier.height(8.dp))
+
             Button(
                 onClick = {
                     soundManager?.playSfx("sfx_ui_confirm")
+                    hapticManager?.vibrate(HapticManager.HapticType.TICK)
                     onLaunch()
                 },
                 modifier = Modifier.fillMaxWidth(0.75f).height(52.dp),
@@ -294,7 +363,11 @@ fun MainMenuScreen(
             if (highScore >= 100000) {
                 Spacer(Modifier.height(8.dp))
                 Button(
-                    onClick = onPrestige,
+                    onClick = {
+                        soundManager?.playSfx("sfx_ui_confirm")
+                        hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                        onPrestige()
+                    },
                     modifier = Modifier.fillMaxWidth(0.5f).height(32.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
@@ -309,7 +382,11 @@ fun MainMenuScreen(
 
             // Toggle
             Row(
-                modifier = Modifier.fillMaxWidth().clickable { navExpanded = !navExpanded }.padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().clickable { 
+                    soundManager?.playSfx("sfx_ui_click")
+                    hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                    navExpanded = !navExpanded 
+                }.padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -340,19 +417,24 @@ fun MainMenuScreen(
                 exit = shrinkVertically()
             ) {
                 Column {
-                    GhostButton("HANGAR", SciFiGold, borderPulse, shape, soundManager, iconRes = R.drawable.ic_btn_hangar) { onNavigate(GameState.HANGAR) }
+                    GhostButton("HANGAR", SciFiGold, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_hangar) { onNavigate(GameState.HANGAR) }
                     Spacer(Modifier.height(8.dp))
-                    GhostButton("MISSIONS", SciFiCyan, borderPulse, shape, soundManager, iconRes = R.drawable.ic_btn_missions) { onNavigate(GameState.MISSIONS) }
+                    GhostButton("MISSIONS", SciFiCyan, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_missions) { onNavigate(GameState.MISSIONS) }
                     Spacer(Modifier.height(8.dp))
-                    GhostButton("SHOP", SciFiGreen, borderPulse, shape, soundManager, iconRes = R.drawable.ic_btn_shop) { onNavigate(GameState.SHOP) }
+                    GhostButton("SHOP", SciFiGreen, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_shop) { onNavigate(GameState.SHOP) }
                     if (loginManager != null) {
                         Spacer(Modifier.height(8.dp))
                         if (loginManager.isSignedIn) {
-                            GhostButton("SIGN OUT (${loginManager.displayName?.take(10) ?: ""})", SciFiRed.copy(alpha = 0.7f), borderPulse * 0.5f, shape, soundManager) { 
+                            GhostButton("SIGN OUT (${loginManager.displayName?.take(10) ?: ""})", SciFiRed.copy(alpha = 0.7f), borderPulse * 0.5f, shape, soundManager, hapticManager) { 
                                 showSignOutConfirm = true
                             }
                         } else {
-                            GhostButton("SIGN IN", SciFiWhite.copy(alpha = 0.6f), borderPulse * 0.5f, shape, soundManager) { onSignIn() }
+                            GhostButton("CONNECT PILOT ID", SciFiWhite.copy(alpha = 0.6f), borderPulse * 0.5f, shape, soundManager, hapticManager) { 
+                                soundManager?.playSfx("sfx_ui_click")
+                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                loginManager.triggerPlayGamesSignIn()
+                                onSignIn()
+                            }
                         }
                     }
                 }
@@ -366,19 +448,19 @@ fun MainMenuScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StationIcon(iconRes = R.drawable.ic_station_sys, label = "SYS", color = SciFiWhite.copy(alpha = 0.6f)) {
+                StationIcon(iconRes = R.drawable.ic_station_sys, label = "SYS", color = SciFiWhite.copy(alpha = 0.6f), hapticManager = hapticManager) {
                     soundManager?.playSfx("sfx_ui_click")
                     onNavigate(GameState.SETTINGS)
                 }
-                StationIcon(iconRes = R.drawable.ic_station_trm, label = "TRM", color = SciFiOrange) {
+                StationIcon(iconRes = R.drawable.ic_station_trm, label = "TRM", color = SciFiOrange, hapticManager = hapticManager) {
                     soundManager?.playSfx("sfx_ui_click")
                     onNavigate(GameState.LEADERBOARD)
                 }
-                StationIcon(iconRes = R.drawable.ic_station_arc, label = "ARC", color = SciFiPurple, badgeCount = archiveUnreadCount) {
+                StationIcon(iconRes = R.drawable.ic_station_arc, label = "ARC", color = SciFiPurple, badgeCount = archiveUnreadCount, hapticManager = hapticManager) {
                     soundManager?.playSfx("sfx_ui_click")
                     onNavigate(GameState.ARCHIVE)
                 }
-                StationIcon(iconRes = R.drawable.ic_station_inf, label = "INF", color = SciFiCyan) {
+                StationIcon(iconRes = R.drawable.ic_station_inf, label = "INF", color = SciFiCyan, hapticManager = hapticManager) {
                     soundManager?.playSfx("sfx_ui_click")
                     onNavigate(GameState.ABOUT)
                 }
@@ -390,7 +472,7 @@ fun MainMenuScreen(
                     AscensionInsignia(rank = progressionManager.currentRank, insigniaSize = 16.dp)
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "RANK ${progressionManager.currentRank.title.split(" ").last()} \u2014 ${progressionManager.currentMasteryPoints} MP",
+                        text = "RANK: ${progressionManager.currentRank.title.uppercase()} \u2014 ${progressionManager.currentMasteryPoints} MP",
                         color = SciFiGold.copy(alpha = 0.6f),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
@@ -400,6 +482,15 @@ fun MainMenuScreen(
             }
             
             Spacer(Modifier.height(8.dp))
+
+            Text(
+                "POWERED BY ASHWATH.AI // 2026",
+                color = SciFiWhite.copy(alpha = 0.3f),
+                letterSpacing = 1.sp,
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
 
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
                 Text(
@@ -413,6 +504,8 @@ fun MainMenuScreen(
                 val shareContext = LocalContext.current
                 IconButton(
                     onClick = {
+                        soundManager?.playSfx("sfx_ui_click")
+                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
                         val intent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, "Explore the skies in Jump Droid! 🚀\nhttps://jump-droid.vercel.app")
@@ -430,6 +523,7 @@ fun MainMenuScreen(
             AddCreditDialog(
                 progressionManager = progressionManager,
                 soundManager = soundManager,
+                hapticManager = hapticManager,
                 analytics = analytics,
                 onDismiss = { showCreditDialog = false }
             )
@@ -445,6 +539,8 @@ fun MainMenuScreen(
                 text = { Text("Are you sure you want to disconnect your fleet profile?") },
                 confirmButton = {
                     TextButton(onClick = {
+                        soundManager?.playSfx("sfx_ui_confirm")
+                        hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
                         loginManager.signOut()
                         showSignOutConfirm = false
                     }) {
@@ -452,7 +548,11 @@ fun MainMenuScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showSignOutConfirm = false }) {
+                    TextButton(onClick = { 
+                        soundManager?.playSfx("sfx_ui_back")
+                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                        showSignOutConfirm = false 
+                    }) {
                         Text("CANCEL", color = SciFiWhite.copy(alpha = 0.5f))
                     }
                 }
@@ -467,6 +567,7 @@ private fun StationIcon(
     label: String,
     color: Color,
     badgeCount: Int = 0,
+    hapticManager: HapticManager? = null,
     onClick: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "BadgeTransition")
@@ -479,10 +580,37 @@ private fun StationIcon(
         ),
         label = "BadgePulse"
     )
+    
+    // Occasional wiggle for ARC if unread
+    val wiggleRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 8000 // Every 8 seconds
+                0f at 0
+                0f at 7000
+                10f at 7100
+                -10f at 7300
+                10f at 7500
+                -10f at 7700
+                0f at 7900
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "WiggleRotation"
+    )
+    
+    val rotation = if (label == "ARC" && badgeCount > 0) wiggleRotation else 0f
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier
+            .graphicsLayer(rotationZ = rotation)
+            .clickable { 
+                hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                onClick() 
+            }
     ) {
         Box(
             modifier = Modifier
@@ -500,14 +628,21 @@ private fun StationIcon(
                 val scale = if (label == "ARC") badgePulse else 1.0f
                 Box(
                     Modifier
-                        .size(16.dp)
+                        .size(18.dp) // Slightly larger pulse ball
                         .scale(scale)
                         .background(Color.Red, CircleShape)
                         .align(Alignment.TopEnd)
-                        .offset(4.dp, (-4).dp),
+                        .offset(x = 6.dp, y = (-6).dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("$badgeCount", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                    Text(
+                        text = "$badgeCount", 
+                        color = Color.White, 
+                        fontSize = 10.sp, 
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 1.dp) // Visual vertical centering
+                    )
                 }
             }
         }
@@ -523,6 +658,7 @@ private fun GhostButton(
     borderPulse: Float,
     shape: RoundedCornerShape,
     soundManager: SoundManager?,
+    hapticManager: HapticManager? = null,
     badgeCount: Int = 0,
     iconRes: Int? = null,
     onClick: () -> Unit
@@ -530,6 +666,7 @@ private fun GhostButton(
     Button(
         onClick = {
             soundManager?.playSfx("sfx_ui_click")
+            hapticManager?.vibrate(HapticManager.HapticType.TICK)
             onClick()
         },
         modifier = Modifier.fillMaxWidth().height(44.dp),
@@ -572,6 +709,7 @@ private fun GhostButton(
 private fun AddCreditDialog(
     progressionManager: ProgressionManager,
     soundManager: SoundManager?,
+    hapticManager: HapticManager? = null,
     analytics: GameAnalytics,
     onDismiss: () -> Unit
 ) {
@@ -660,6 +798,8 @@ private fun AddCreditDialog(
                 Button(
                     onClick = {
                         analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
+                        soundManager?.playSfx("sfx_ui_click")
+                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
                         RewardedAdHelper.show(context as Activity,
                             analytics = analytics,
                             onReward = { progressionManager.addCredits(1) },
@@ -683,16 +823,14 @@ private fun AddCreditDialog(
 
                 Spacer(Modifier.height(12.dp))
 
-                val bosses = progressionManager.lifetimeBossesDefeated
-                val currentRate = when {
-                    bosses >= 15 -> 800
-                    bosses >= 10 -> 400
-                    bosses >= 5 -> 200
-                    else -> 100
-                }
+                val currentRate = progressionManager.getCurrentCreditRate()
                 val canBuy = progressionManager.totalCash >= currentRate && progressionManager.creditBalance < progressionManager.maxCredits
                 Button(
-                    onClick = { progressionManager.cashToCredits(currentRate) },
+                    onClick = { 
+                        soundManager?.playSfx("sfx_ui_confirm")
+                        hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                        progressionManager.cashToCredits(currentRate) 
+                    },
                     enabled = canBuy,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(8.dp),
@@ -743,10 +881,113 @@ private fun AddCreditDialog(
                 Spacer(Modifier.height(24.dp))
 
                 TextButton(
-                    onClick = onDismiss,
+                    onClick = {
+                        soundManager?.playSfx("sfx_ui_back")
+                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                        onDismiss()
+                    },
                     modifier = Modifier.height(40.dp)
                 ) {
                     Text("DISCONNECT", color = SciFiRed.copy(alpha = 0.7f), fontWeight = FontWeight.Bold, letterSpacing = 2.sp, fontSize = 11.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ZenCommandConsole(
+    isUnlocked: Boolean,
+    progressionManager: ProgressionManager?,
+    borderPulse: Float,
+    ft: Float,
+    hapticManager: HapticManager?,
+    soundManager: SoundManager?,
+    onLaunchZen: () -> Unit
+) {
+    val accent = if (isUnlocked) SciFiPurple else SciFiRed
+    val panelAlpha = if (isUnlocked) 0.15f else 0.08f
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth(0.9f)
+            .padding(vertical = 8.dp),
+        color = accent.copy(alpha = panelAlpha),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = borderPulse * 0.4f))
+    ) {
+        Box(Modifier.padding(12.dp)) {
+            // Animated Corners
+            Box(Modifier.matchParentSize()) {
+                val bracketSize = 10.dp
+                val bracketAlpha = (0.3f + borderPulse * 0.4f).coerceIn(0f, 1f)
+                // Top Left
+                Box(Modifier.size(bracketSize).align(Alignment.TopStart).border(BorderStroke(2.dp, accent.copy(alpha = bracketAlpha)), RoundedCornerShape(topStart = 4.dp)))
+                // Bottom Right
+                Box(Modifier.size(bracketSize).align(Alignment.BottomEnd).border(BorderStroke(2.dp, accent.copy(alpha = bracketAlpha)), RoundedCornerShape(bottomEnd = 4.dp)))
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isUnlocked) "ZEN PROTOCOL // AUTHORIZED" else "SECURE CHANNEL // ENCRYPTED",
+                        color = accent,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp
+                    )
+                    if (!isUnlocked) {
+                        Text(
+                            text = "DECRYPTING...",
+                            color = accent.copy(alpha = 0.6f),
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                if (isUnlocked) {
+                    Button(
+                        onClick = {
+                            soundManager?.playSfx("sfx_ui_confirm")
+                            hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                            onLaunchZen()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(42.dp),
+                        shape = RoundedCornerShape(4.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = accent.copy(alpha = 0.2f), contentColor = SciFiWhite),
+                        border = BorderStroke(1.5.dp, accent.copy(alpha = 0.8f))
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            val pulse = sin(ft * 4f) * 0.2f + 0.8f
+                            Box(Modifier.size(8.dp).graphicsLayer(scaleX = pulse, scaleY = pulse).background(accent, CircleShape))
+                            Spacer(Modifier.width(12.dp))
+                            Text("SYNC & DEPLOY ZEN MODE", fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 11.sp)
+                        }
+                    }
+                } else {
+                    val requirements = progressionManager?.getZenRequirements() ?: emptyList()
+                    requirements.forEach { (label, status, progress) ->
+                        Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(label, color = SciFiWhite.copy(alpha = 0.6f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                Text(status, color = accent, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                            }
+                            Spacer(Modifier.height(2.dp))
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.fillMaxWidth().height(2.dp),
+                                color = accent.copy(alpha = 0.6f),
+                                trackColor = Color.Black.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
                 }
             }
         }

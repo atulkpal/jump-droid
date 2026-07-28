@@ -104,6 +104,14 @@ class LoginManager(private val activity: Activity) {
             .putString("player_name", displayName)
             .putString("player_id", playerId)
             .apply()
+        
+        if (prefs.getBoolean("gpg_requested", false)) {
+            tryUpgradeToPlayGames()
+        }
+    }
+
+    fun triggerPlayGamesSignIn() {
+        prefs.edit().putBoolean("gpg_requested", true).apply()
         tryUpgradeToPlayGames()
     }
 

@@ -65,7 +65,23 @@ Mastery Points represent account-level progression and determine the player's **
 
 ---
 
-## 4. Visual Identity (Cyber-Packet)
+## 4. Credit Economy (The Recovery Path)
+
+Continue Credits allow players to salvage a failed run. They can be earned via rewarded ads or purchased using Jump Credits (JC).
+
+### Tiered Exchange Rates
+The cost to purchase a credit increases as the player defeats more bosses, ensuring long-term challenge.
+
+| Bosses Defeated | Exchange Rate (JC → 1 Credit) |
+| :--- | :--- |
+| **0 - 4** | 250 JC |
+| **5 - 9** | 500 JC |
+| **10 - 14** | 1,000 JC |
+| **15+** | 2,000 JC |
+
+---
+
+## 5. Visual Identity (Cyber-Packet)
 
 Scoring events are communicated through high-fidelity "Cyber-Packets" that fly from the world to the HUD.
 

@@ -498,6 +498,18 @@ class SoundManager(context: Context) {
         playMusic(R.raw.bgm_boss)
     }
 
+    fun playSpecificTrackByName(resName: String) {
+        if (resName == "DYNAMIC") {
+            currentZone?.let { playZoneMusic(it) }
+            return
+        }
+        val context = appContext ?: return
+        val resId = context.resources.getIdentifier(resName, "raw", context.packageName)
+        if (resId != 0) {
+            playMusic(resId)
+        }
+    }
+
     fun playMenuMusic() {
         isBossMusicPlaying = false
         playMusic(R.raw.bgm_menu)

@@ -1,5 +1,6 @@
 package com.ashwathai.jump_droid
 
+import android.util.Log
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -23,15 +24,25 @@ class LeaderboardManager(val loginManager: LoginManager) {
     fun isOnline(): Boolean = loginManager.isSignedIn && userId != null && FirebaseAuth.getInstance().currentUser != null
 
     suspend fun submitScore(score: Int, localHighScore: Int): Boolean {
-        if (!isOnline() || score <= 0) return false
-        if (score < localHighScore) return false // Primary guard: Must at least match local best
+        Log.d("LeaderboardManager", "Submitting score: $score (Local High: $localHighScore)")
+        if (!isOnline()) {
+            Log.w("LeaderboardManager", "Submission failed: Not online")
+            return false
+        }
+        if (score <= 0) return false
+        if (score < localHighScore) {
+            Log.d("LeaderboardManager", "Score $score is less than local high score $localHighScore. Skipping.")
+            return false 
+        }
         val id = userId ?: return false
         return try {
             val ref = firestore.collection("leaderboard").document(id)
-            // Still check remote to be safe, but only if local guard passes
             val existing = ref.get().await()
             val remoteBest = if (existing.exists()) (existing.getLong("highScore") ?: 0).toInt() else 0
-            if (score <= remoteBest) return false
+            if (score <= remoteBest) {
+                Log.d("LeaderboardManager", "Score $score not better than remote best $remoteBest. Skipping.")
+                return false
+            }
             ref.set(
                 mapOf(
                     "displayName" to (loginManager.displayName ?: loginManager.playerId ?: "Unknown"),
@@ -40,8 +51,10 @@ class LeaderboardManager(val loginManager: LoginManager) {
                 ),
                 SetOptions.merge()
             ).await()
+            Log.i("LeaderboardManager", "Score $score successfully submitted to Global Terminal.")
             true
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("LeaderboardManager", "Score submission failed: ${e.message}")
             false
         }
     }

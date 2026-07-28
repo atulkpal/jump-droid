@@ -73,7 +73,11 @@ private val zoneColors = listOf(
 )
 
 @Composable
-fun TitleScreen(onNavigate: (GameState) -> Unit, soundManager: SoundManager? = null) {
+fun TitleScreen(
+    onNavigate: (GameState) -> Unit,
+    soundManager: SoundManager? = null,
+    hapticManager: HapticManager? = null
+) {
     val density = LocalDensity.current
     val infiniteTransition = rememberInfiniteTransition(label = "TitleTransition")
     val glowAlpha by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "GlowAlpha")
@@ -363,6 +367,7 @@ fun TitleScreen(onNavigate: (GameState) -> Unit, soundManager: SoundManager? = n
             Button(
                 onClick = { 
                     soundManager?.playSfx("sfx_ui_confirm")
+                    hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
                     onNavigate(GameState.MAIN_MENU) 
                 },
                 modifier = Modifier.width(240.dp).height(56.dp),
@@ -372,7 +377,7 @@ fun TitleScreen(onNavigate: (GameState) -> Unit, soundManager: SoundManager? = n
                 Text("INITIATE ASCENT", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
             }
             Spacer(Modifier.height(16.dp))
-            GlobalAdBanner()
+            // GlobalAdBanner() // REMOVED FROM TITLE
         }
 
         Column(
@@ -384,7 +389,13 @@ fun TitleScreen(onNavigate: (GameState) -> Unit, soundManager: SoundManager? = n
         ) {
             Text("THE ASCENSION PROGRAM // EST. 1984", color = SciFiWhite.copy(alpha = 0.3f), letterSpacing = 1.sp, fontSize = 10.sp)
             Spacer(Modifier.height(4.dp))
-            Text("POWERED BY ASHWATH.AI // V1.5.0", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp)
+            Text(
+                "POWERED BY ASHWATH.AI // RELEASE V2.0.0", 
+                color = SciFiWhite.copy(alpha = 0.45f), 
+                letterSpacing = 1.sp, 
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }

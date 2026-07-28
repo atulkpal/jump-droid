@@ -33,6 +33,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Surface
 import androidx.navigation.NavController
 import com.ashwathai.jump_droid.Constants.ROCKET_HEIGHT
 import com.ashwathai.jump_droid.ui.theme.*
@@ -55,6 +62,7 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
         when (gameState) {
             GameState.PAUSED -> navController.navigate("pause")
             GameState.GAMEOVER -> navController.navigate("game_over")
+            GameState.EXPEDITION_REWARDS -> navController.navigate("expedition_rewards")
             GameState.TUTORIAL -> if (engine.activeDiscovery != null) navController.navigate("tutorial")
             GameState.HELP -> navController.navigate("help")
             GameState.UNLOCK -> if (engine.currentUnlockEvent != null) navController.navigate("unlock")
@@ -71,7 +79,7 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
 
     DisposableEffect(gameState) {
         val window = activity?.window ?: return@DisposableEffect onDispose {}
-        val isActive = gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL || gameState == GameState.PAUSED
+        val isActive = gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL || gameState == GameState.PAUSED || gameState == GameState.ZEN || gameState == GameState.EXPEDITION_REWARDS
         if (isActive) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
@@ -88,7 +96,7 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
             .pointerInput(Unit) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
-                    if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL) {
+                    if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
                         engine.isThrusting = true
                         engine.soundManager.startThrust()
                         engine.thrustTarget = down.position
@@ -117,9 +125,9 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
             engine.groundY = h - ROCKET_HEIGHT - 50f
             
             // Critical Recovery: Ensure game is initialized with correct dimensions
-            if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL) {
+            if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
                 if (engine.platforms.isEmpty()) {
-                    engine.restartGame()
+                    engine.restartGame(engine.gameMode)
                 }
             }
         }
@@ -192,7 +200,7 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
 
         // --- Overlays (Transient/Visual Only - Mutually Exclusive) ---
         // Only render these background alerts if the game is actively running
-        if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL) {
+        if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL || gameState == GameState.ZEN) {
             when {
                 engine.zoneTransitionTimer > 0 -> {
                     ZoneTransitionOverlay(
@@ -294,7 +302,7 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
             zone = altitudeManager.currentZone
         )
 
-        if (engine.gameState != GameState.GAMEOVER) {
+        if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
             MissionProgressCard(
                 activeMissions = engine.missionManager.activeMissions,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp)
@@ -309,6 +317,14 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
                 discoveryManager = engine.discoveryManager,
                 onNavigateArchive = onNavigateArchive,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(bottom = 80.dp)
+            )
+        }
+
+        if (engine.gameState == GameState.ZEN) {
+            ZenMusicSelector(
+                unlockedTracks = engine.progressionManager.unlockedMusicTracks,
+                onTrackSelected = { engine.soundManager.playSpecificTrackByName(it) },
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 150.dp)
             )
         }
 
@@ -383,6 +399,51 @@ private fun ZoneTransitionOverlay(
             Box(
                 Modifier.width(120.dp).height(2.dp).background(zoneAccent.copy(alpha = 0.4f * textPulse))
             )
+        }
+    }
+}
+
+@Composable
+fun ZenMusicSelector(
+    unlockedTracks: Set<String>,
+    onTrackSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        Button(
+            onClick = { expanded = !expanded },
+            colors = ButtonDefaults.buttonColors(containerColor = SciFiPurple.copy(alpha = 0.6f)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.height(36.dp)
+        ) {
+            Text("MUSIC \u25B2", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Surface(
+                color = Color.Black.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, SciFiPurple.copy(alpha = 0.4f)),
+                modifier = Modifier.padding(top = 4.dp).width(160.dp)
+            ) {
+                Column(Modifier.padding(8.dp)) {
+                    val tracks = listOf("DYNAMIC") + unlockedTracks.toList().sorted()
+                    tracks.forEach { track ->
+                        Text(
+                            text = track.replace("bgm_", "").uppercase(),
+                            color = SciFiWhite,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onTrackSelected(track); expanded = false }
+                                .padding(vertical = 6.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

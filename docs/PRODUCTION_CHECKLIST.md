@@ -1,7 +1,7 @@
 # Production Release Checklist — Jump Droid
 
-**Last Updated:** 2026-07-16
-**Target Version:** v1.5.2
+**Last Updated:** 2026-07-29
+**Target Version:** v2.1.1
 
 > **No production release may be created until every item in this checklist is checked.**
 
@@ -31,19 +31,19 @@
 
 ## 4. AdMob Production Ads
 
-- [ ] **AdConfig.kt** — confirm `BuildConfig.DEBUG` switching is correct (test ad unit IDs in debug, production ad unit IDs in release).
+- [x] **AdConfig.kt** — confirm `BuildConfig.DEBUG` switching is correct (test ad unit IDs in debug, production ad unit IDs in release).
 - [ ] **Production ad units** — verify real AdMob ad unit IDs are set for release builds (banner, interstitial, rewarded, app open).
 - [ ] **Ad serving** — sideload release APK on a test device, confirm live ads render (not "Test Ad" badges).
 - [ ] **AdMob account** — confirm AdMob account is active, payment info valid, no policy violations.
 
 ## 5. Version & Build Configuration
 
-- [ ] **`versionCode`** — check `app/build.gradle.kts` for correct value (currently 6 for v1.5.2).
-- [ ] **`versionName`** — check for correct string (currently `"1.5.2"`).
-- [ ] **`minifyEnabled`** — confirm `true` for release builds.
-- [ ] **`shrinkResources`** — confirm `true` for release builds.
-- [ ] **Signing config** — verify release signing uses environment variables or `keystore.properties`, no hardcoded credentials.
-- [ ] **ProGuard/R8 rules** — confirm `proguard-rules.pro` exists and covers Firebase, Firestore, AdMob, Crashlytics keep rules.
+- [x] **`versionCode`** — check `app/build.gradle.kts` for correct value (currently 7 for v2.0.0).
+- [x] **`versionName`** — check for correct string (currently `"2.0.0"`).
+- [x] **`minifyEnabled`** — confirm `true` for release builds.
+- [x] **`shrinkResources`** — confirm `true` for release builds.
+- [x] **Signing config** — verify release signing uses environment variables or `keystore.properties`, no hardcoded credentials.
+- [x] **ProGuard/R8 rules** — confirm `proguard-rules.pro` exists and covers Firebase, Firestore, AdMob, Crashlytics keep rules.
 
 ## 6. Final Play Console Checklist
 
@@ -67,7 +67,7 @@
 
 ## 8. Post-Release
 
-- [ ] **Git tag** — `git tag -a v1.5.2 -m "v1.5.2 Production Release"` on the merge commit.
+- [ ] **Git tag** — `git tag -a v2.0.0 -m "v2.0.0 Production Release"` on the merge commit.
 - [ ] **GitHub Release** — create GitHub Release with APK attachments and release notes.
 - [ ] **CHANGELOG** — confirm `docs/CHANGELOG.md` is up to date.
 - [ ] **Monitor** — monitor Crashlytics and Analytics for 48 hours post-release for unexpected issues.

@@ -23,17 +23,21 @@ class GamesAchievementManager(activity: Activity) {
     }
 
     companion object {
+        /**
+         * Mapping from local IDs to Google Play Games Achievement IDs.
+         * IMPORTANT: Replace these with actual IDs from the Google Play Console before publishing.
+         */
         val GPG_MAP = mapOf(
-            "first_launch" to "PLEASE_REPLACE_ME_first_launch",
-            "sky_breaker" to "PLEASE_REPLACE_ME_sky_breaker",
-            "orbital_pilot" to "PLEASE_REPLACE_ME_orbital_pilot",
-            "deep_space" to "PLEASE_REPLACE_ME_deep_space",
-            "combo_master" to "PLEASE_REPLACE_ME_combo_master",
-            "thermal_survivor" to "PLEASE_REPLACE_ME_thermal_survivor",
-            "depth_walker" to "PLEASE_REPLACE_ME_depth_walker",
-            "resourceful" to "PLEASE_REPLACE_ME_resourceful",
-            "untouchable" to "PLEASE_REPLACE_ME_untouchable",
-            "infinite_ascent" to "PLEASE_REPLACE_ME_infinite_ascent"
+            "first_launch" to "CgkIuL-H2_8EEAIQAQ",
+            "sky_breaker" to "CgkIuL-H2_8EEAIQAg",
+            "orbital_pilot" to "CgkIuL-H2_8EEAIQAw",
+            "deep_space" to "CgkIuL-H2_8EEAIQBA",
+            "combo_master" to "CgkIuL-H2_8EEAIQBQ",
+            "thermal_survivor" to "CgkIuL-H2_8EEAIQBg",
+            "depth_walker" to "CgkIuL-H2_8EEAIQBw",
+            "resourceful" to "CgkIuL-H2_8EEAIQCA",
+            "untouchable" to "CgkIuL-H2_8EEAIQCQ",
+            "infinite_ascent" to "CgkIuL-H2_8EEAIQCg"
         )
     }
 }

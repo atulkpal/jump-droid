@@ -519,12 +519,15 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 # EPIC 13 — Production Deployment & Store Listing
 
-**Status: IN PROGRESS 🚀**
+**Status: IN PROGRESS 🚀 (Polish Finalized)**
 
 ## Phase 1 — Production Readiness
 - [x] Version Bump (v2.0.0, Code 7)
-- [x] Play Billing Library Upgrade (v9.1.0)
-- [x] Protocol Screen Overhaul (AboutScreen.kt)
+- [x] Play Billing Library Upgrade (v9.1.0 + Retry Logic)
+- [x] Protocol Screen Overhaul (AboutScreen.kt + Layout Fix)
+- [x] Non-Intrusive Connectivity (GPG Opt-in)
+- [x] High-Fidelity HUD Polish (Fly-in "Thud")
+- [x] Shop Grid Optimization (FlowRow)
 - [x] Build Signed Release AAB
 - [x] Build Signed Release APK
 - [x] Generate Production Release Notes

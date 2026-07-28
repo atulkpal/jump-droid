@@ -66,6 +66,7 @@
 *   `app/src/main/java/com/ashwathai/jump_droid/PlayerAnalyticsManager.kt`: Firestore-backed tester analytics decorator (Beta Analytics V0).
 *   `app/src/main/java/com/ashwathai/jump_droid/AdConfig.kt`: Centralized AdMob unit IDs with debug/release switching.
 *   `app/src/main/java/com/ashwathai/jump_droid/AdComponents.kt`: Banner ad composable + Rewarded ad helper.
+*   `app/proguard-rules.pro`: Production R8/ProGuard rules.
 *   `app/google-services.json`: Firebase project configuration.
 
 ## Website & Community Platform

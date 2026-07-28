@@ -15,6 +15,7 @@ data class GameStats(
     val currentCombo: Int = 0,
     val comboMaintainTime: Float = 0f,
     val bossesDefeated: Int = 0,
+    val miniBossesDefeated: Int = 0,
     val codexUnlocked: Int = 0,
     val maxAltitudeMeters: Int = 0,
     val totalScore: Int = 0,

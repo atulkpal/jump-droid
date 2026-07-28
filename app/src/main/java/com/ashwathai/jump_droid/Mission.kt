@@ -59,6 +59,7 @@ class Mission(
     val icon: String = "",
     val isHidden: Boolean = false,
     val crypticHint: String = "",
+    val debrief: String = "",
     initialProgress: Int = 0
 ) {
     var currentProgress by mutableIntStateOf(initialProgress)

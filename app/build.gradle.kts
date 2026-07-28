@@ -13,8 +13,8 @@ android {
         applicationId = "com.ashwathai.jump_droid"
         minSdk = 24
         targetSdk = 37
-        versionCode = 7
-        versionName = "2.0.0"
+        versionCode = 8
+        versionName = "2.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -52,10 +52,13 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.findByName("release")
-            optimization {
-                enable = false
-            }
         }
     }
     compileOptions {

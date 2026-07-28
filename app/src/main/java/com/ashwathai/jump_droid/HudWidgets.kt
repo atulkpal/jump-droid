@@ -1,7 +1,13 @@
 package com.ashwathai.jump_droid
 
+import androidx.compose.animation.AnimatedVisibility
+import android.view.animation.OvershootInterpolator
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.runtime.key
+import kotlin.random.Random
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -822,42 +828,80 @@ fun AchievementDeck(
 
     Column(
         modifier = modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy((-24).dp) // Stacked effect
+        verticalArrangement = Arrangement.spacedBy((-16).dp) // Tighter stacked effect
     ) {
         pendingUnlocks.takeLast(3).forEachIndexed { i, event ->
             val scale = 1f - (2 - i) * 0.05f
-            Surface(
-                color = SciFiSurface.copy(alpha = 0.9f),
-                shape = RoundedCornerShape(4.dp),
-                border = BorderStroke(1.dp, event.accentColor.copy(alpha = pulseAlpha)),
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(40.dp)
-                    .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        alpha = if (i == pendingUnlocks.takeLast(3).lastIndex) 1f else 0.7f
-                    )
-            ) {
-                Row(
-                    Modifier.padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            
+            key(event) {
+                AnimatedVisibility(
+                    visible = true,
+                    enter = slideInHorizontally(
+                        initialOffsetX = { -it },
+                        animationSpec = tween(500, easing = { OvershootInterpolator(1.2f).getInterpolation(it) })
+                    ) + fadeIn()
                 ) {
-                    Box(
-                        Modifier.size(6.dp).background(event.accentColor, CircleShape)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = event.title,
-                        color = SciFiWhite,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Surface(
+                        color = SciFiSurface.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(2.dp),
+                        border = BorderStroke(0.5.dp, event.accentColor.copy(alpha = pulseAlpha)),
+                        modifier = Modifier
+                            .width(100.dp)
+                            .height(32.dp)
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                alpha = if (i == pendingUnlocks.takeLast(3).lastIndex) 1f else 0.7f
+                            )
+                    ) {
+                        // Category-specific flourish
+                        val flourishAlpha = if (i == pendingUnlocks.takeLast(3).lastIndex) (pulseAlpha - 0.6f) / 0.4f else 0f
+                        Canvas(Modifier.fillMaxSize()) {
+                            when (event) {
+                                is UnlockEvent.Mission -> {
+                                    // Heat glow at edges
+                                    drawRect(
+                                        brush = Brush.horizontalGradient(listOf(SciFiRed.copy(alpha = 0.15f * flourishAlpha), Color.Transparent)),
+                                        size = Size(20f, size.height)
+                                    )
+                                }
+                                is UnlockEvent.Discovery -> {
+                                    // Digital glitch line
+                                    drawLine(SciFiCyan.copy(alpha = 0.3f * flourishAlpha), Offset(Random.nextFloat() * size.width, 0f), Offset(Random.nextFloat() * size.width, size.height), 1f)
+                                }
+                                else -> {}
+                            }
+                        }
+
+                        Row(
+                            Modifier.padding(horizontal = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = when(event) {
+                                    is UnlockEvent.Mission -> "\u2638" // Biohazard/Mission
+                                    is UnlockEvent.Discovery -> "\u25C8" // Diamond/Signal
+                                    is UnlockEvent.Rocket -> "\u25B3" // Blueprint
+                                    else -> "\u272A" // Star
+                                },
+                                color = event.accentColor,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = event.title,
+                                color = SciFiWhite,
+                                fontSize = 7.sp,
+                                fontWeight = FontWeight.Black,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
-

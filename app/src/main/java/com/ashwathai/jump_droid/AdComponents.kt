@@ -65,7 +65,14 @@ object RewardedAdHelper {
 
     fun show(activity: Activity, analytics: GameAnalytics, onReward: () -> Unit, onFailed: () -> Unit) {
         loadedAd?.let { ad ->
-            analytics.logAdImpression("rewarded", AdConfig.REWARDED_UNIT_ID)
+            ad.fullScreenContentCallback = object : com.google.android.gms.ads.FullScreenContentCallback() {
+                override fun onAdImpression() {
+                    analytics.logAdImpression("rewarded", AdConfig.REWARDED_UNIT_ID)
+                }
+                override fun onAdClicked() {
+                    analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
+                }
+            }
             ad.show(activity) { onReward() }
             loadedAd = null
         } ?: onFailed()

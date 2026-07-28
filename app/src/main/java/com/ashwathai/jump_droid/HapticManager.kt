@@ -36,7 +36,7 @@ class HapticManager(context: Context) {
             HapticType.SUCCESS -> playEffect(longArrayOf(0, 50, 60, 50), intArrayOf(0, 200, 0, 255), -1)
             HapticType.WARNING -> playEffect(longArrayOf(0, 300), intArrayOf(0, 150), -1)
             HapticType.EXPLOSION -> playEffect(longArrayOf(0, 500), intArrayOf(0, 255), -1)
-            HapticType.TICK -> playEffect(longArrayOf(0, 20), intArrayOf(0, 120), -1)
+            HapticType.TICK -> playEffect(longArrayOf(0, 10), intArrayOf(0, 150), -1)
         }
     }
 

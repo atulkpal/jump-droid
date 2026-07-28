@@ -2,68 +2,39 @@ package com.ashwathai.jump_droid
 
 import android.app.Activity
 import android.content.Intent
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ashwathai.jump_droid.ui.theme.SciFiBorder
-import com.ashwathai.jump_droid.ui.theme.SciFiCyan
-import com.ashwathai.jump_droid.ui.theme.SciFiGold
-import com.ashwathai.jump_droid.ui.theme.SciFiGreen
-import com.ashwathai.jump_droid.ui.theme.SciFiPurple
-import com.ashwathai.jump_droid.ui.theme.SciFiRed
-import com.ashwathai.jump_droid.ui.theme.SciFiSurface
-import com.ashwathai.jump_droid.ui.theme.SciFiWhite
+import androidx.compose.ui.zIndex
+import com.ashwathai.jump_droid.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.sin
 import kotlin.random.Random
+
+private data class FlyingUiReward(
+    val id: Long,
+    val color: Color,
+    val isCredit: Boolean
+)
+
 @Composable
 fun GameOverOverlay(
     score: Int,
@@ -78,11 +49,9 @@ fun GameOverOverlay(
     isPremiumUser: Boolean = false,
     runBossesDefeated: Int = 0,
     bestComboThisRun: Int = 0,
-    pendingUnlocks: List<UnlockEvent> = emptyList(),
     onContinue: () -> Unit,
     onRestart: () -> Unit,
-    onMainMenu: () -> Unit,
-    onClaimRewards: () -> Unit = {}
+    onMainMenu: () -> Unit
 ) {
     val analytics = LocalAnalytics.current
     val infiniteTransition = rememberInfiniteTransition(label = "GameOverTransition")
@@ -91,6 +60,8 @@ fun GameOverOverlay(
     val titleGlow by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "TitleGlow")
 
     val frameTime = remember { mutableStateOf(0L) }
+    val flyingUiRewards = remember { mutableStateListOf<FlyingUiReward>() }
+
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(50)
@@ -100,12 +71,25 @@ fun GameOverOverlay(
 
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
         StarfieldBackground(Modifier.fillMaxSize(), starCount = 50, alphaRange = 0.1f..0.4f, starColor = Color(0xFFD32F2F))
+        
+        // --- TOP CURRENCY HUD ---
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(16.dp)
+                .statusBarsPadding(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            CurrencyBadge(label = "CREDITS", value = progressionManager.creditBalance.toString(), color = SciFiGold)
+            CurrencyBadge(label = "CASH", value = progressionManager.totalCash.toString(), color = SciFiGreen)
+        }
+
         Canvas(Modifier.fillMaxSize()) {
             val ft = frameTime.value / 1000f
             val w = size.width
             val h = size.height
 
-            // Glitch particles overlay
             repeat(20) {
                 val x = Random.nextFloat() * w + sin(ft * 2f + it * 1.3f) * 2f
                 val y = Random.nextFloat() * h
@@ -118,7 +102,7 @@ fun GameOverOverlay(
             modifier = Modifier
                 .safeDrawingPadding()
                 .fillMaxWidth()
-                .padding(24.dp)
+                .padding(horizontal = 24.dp, vertical = 12.dp)
         ) {
             Text(
                 text = "COMMUNICATION LOST",
@@ -155,7 +139,7 @@ fun GameOverOverlay(
                 maxLines = 1
             )
 
-            Spacer(Modifier.height(36.dp))
+            Spacer(Modifier.height(16.dp))
 
             Surface(
                 color = SciFiSurface,
@@ -163,13 +147,25 @@ fun GameOverOverlay(
                 border = BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    val isNewRecord = score > highScore && highScore > 0
+                    
                     Text("TOTAL SCORE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
-                    Text("$score", color = SciFiWhite, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
+                    Text(
+                        "$score",
+                        color = if (isNewRecord) SciFiGold else SciFiWhite,
+                        style = MaterialTheme.typography.displayMedium.copy(
+                            shadow = if (isNewRecord) Shadow(SciFiGold.copy(alpha = titleGlow), blurRadius = 25f) else null
+                        ),
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    if (isNewRecord) {
+                        Text("NEW PERSONAL BEST", color = SciFiGold, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                    }
                     
                     Spacer(Modifier.height(12.dp))
                     
-                    // Breakdown Row
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -183,6 +179,9 @@ fun GameOverOverlay(
                     Spacer(Modifier.height(16.dp))
                     Text("RECORD SCORE", color = SciFiGold.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
                     Text("$highScore", color = SciFiGold, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+
+                    Spacer(Modifier.height(12.dp))
+                    Text("TELEMETRY PROCESSED BY ASHWATH.AI", color = SciFiWhite.copy(alpha = 0.15f), fontSize = 7.sp, letterSpacing = 1.sp)
 
                     Spacer(Modifier.height(16.dp))
                     HorizontalDivider(color = SciFiBorder.copy(alpha = 0.3f), thickness = 1.dp)
@@ -207,84 +206,7 @@ fun GameOverOverlay(
                 }
             }
 
-            // FLIGHT LOG (Achievements/Missions)
-            if (pendingUnlocks.isNotEmpty()) {
-                Spacer(Modifier.height(24.dp))
-                Text("FLIGHT LOG — EXPEDITION DATA ACQUIRED", color = SciFiCyan, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(12.dp))
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp)
-                ) {
-                    items(pendingUnlocks) { event ->
-                        Surface(
-                            color = SciFiSurface,
-                            shape = RoundedCornerShape(4.dp),
-                            border = BorderStroke(1.dp, event.accentColor.copy(alpha = 0.4f)),
-                            modifier = Modifier.width(160.dp).height(120.dp)
-                        ) {
-                            Column(Modifier.padding(12.dp)) {
-                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(
-                                        text = when(event) {
-                                            is UnlockEvent.Mission -> "MISSION"
-                                            is UnlockEvent.Module -> "MODULE"
-                                            is UnlockEvent.Rocket -> "BLUEPRINT"
-                                            is UnlockEvent.Achievement -> "ACHIEVEMENT"
-                                            is UnlockEvent.Discovery -> "SIGNAL"
-                                        },
-                                        color = event.accentColor,
-                                        fontSize = 8.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    if (event is UnlockEvent.Mission) {
-                                        Text(event.mission.tier.displayName, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp)
-                                    }
-                                }
-                                Text(
-                                    text = event.title,
-                                    color = SciFiWhite,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = event.description,
-                                    color = SciFiWhite.copy(alpha = 0.5f),
-                                    fontSize = 8.sp,
-                                    lineHeight = 10.sp,
-                                    maxLines = 2
-                                )
-                                if (event is UnlockEvent.Mission && event.mission.tier != MissionTier.TIER_4) {
-                                    Spacer(Modifier.weight(1f))
-                                    Text(
-                                        "NEXT GOAL: ${MissionTier.entries[event.mission.tier.ordinal + 1].displayName}",
-                                        color = event.accentColor.copy(alpha = 0.6f),
-                                        fontSize = 7.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = onClaimRewards,
-                    modifier = Modifier.height(32.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SciFiGreen.copy(alpha = 0.2f), contentColor = SciFiGreen),
-                    border = BorderStroke(1.dp, SciFiGreen.copy(alpha = 0.4f))
-                ) {
-                    Text("CLAIM ALL LOG REWARDS", fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 1.sp)
-                }
-            }
-
-            Spacer(Modifier.height(36.dp))
+            Spacer(Modifier.height(16.dp))
 
             val earnedContinues = (runBossesDefeated / 5) + (bestComboThisRun / 15)
             val maxContinues = (if (isPremiumUser) 5 else 3) + earnedContinues
@@ -302,16 +224,6 @@ fun GameOverOverlay(
                     LaunchedEffect(retryCount, continuesUsed) { RewardedAdHelper.load(context) }
                 }
 
-                val failureMessage = if (!hasCredits && !isFreeContinue) {
-                    when (retryCount) {
-                        0 -> null
-                        1 -> "AD UNAVAILABLE — LINK WEAK"
-                        2 -> "ONE ATTEMPT REMAINING"
-                        else -> null
-                    }
-                } else null
-
-                // Continue via credit (PRIMARY path)
                 if (hasCredits) {
                     Button(
                         onClick = {
@@ -339,7 +251,6 @@ fun GameOverOverlay(
                     }
                 }
 
-                // Continue via watch ad (FALLBACK when no credits)
                 if (!hasCredits) {
                     Button(
                         onClick = {
@@ -359,12 +270,10 @@ fun GameOverOverlay(
                                         onFailed = {
                                             if (retryCount >= 2) {
                                                 isAdLoading = false
-                                                onContinue() // Grant free reward
+                                                onContinue()
                                             } else {
                                                 retryCount++
-                                                // Automatic retry logic
                                                 RewardedAdHelper.load(context)
-                                                // Keep spinner visible and try showing again after a short delay
                                                 scope.launch {
                                                     delay(1000)
                                                     RewardedAdHelper.show(activity,
@@ -386,7 +295,7 @@ fun GameOverOverlay(
                                     )
                                 } else {
                                     isAdLoading = false
-                                    onContinue() // Emergency fallback
+                                    onContinue()
                                 }
                             }
                         },
@@ -400,14 +309,12 @@ fun GameOverOverlay(
                         if (isAdLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.Black, strokeWidth = 2.dp)
                         } else if (isFreeContinue) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("FREE CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                            }
+                            Text("FREE CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text("[AD]", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp)
                                 Spacer(Modifier.padding(start = 8.dp))
-                                Text(if (retryCount >= 2) "FORCED RELINK" else "WATCH AD TO CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                Text("WATCH AD TO CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                             }
                         }
                     }
@@ -418,17 +325,6 @@ fun GameOverOverlay(
                         text = "Continue ${continuesUsed + 1} of $maxContinues",
                         color = SciFiWhite.copy(alpha = 0.4f),
                         fontSize = 11.sp,
-                        letterSpacing = 1.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-
-                if (failureMessage != null) {
-                    Text(
-                        text = failureMessage,
-                        color = SciFiRed.copy(alpha = 0.7f),
-                        fontSize = 10.sp,
                         letterSpacing = 1.sp,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 4.dp)
@@ -467,42 +363,17 @@ fun GameOverOverlay(
                         if (activity != null) {
                             RewardedAdHelper.show(activity,
                                 analytics = analytics,
-                                onReward = {
-                                    progressionManager.addCredits(1)
-                                },
+                                onReward = { progressionManager.addCredits(1) },
                                 onFailed = {}
                             )
-                        } else {
-                            // Fallback if activity not found
-                            progressionManager.addCredits(1)
                         }
                     },
                     modifier = Modifier.height(32.dp),
                     shape = RoundedCornerShape(4.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = SciFiCyan.copy(alpha = 0.2f),
-                        contentColor = SciFiCyan
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f), contentColor = SciFiCyan),
                     border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.4f))
                 ) {
                     Text("+1 CREDIT [AD]", fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 1.sp)
-                }
-                if (progressionManager.totalCash >= 100 && progressionManager.creditBalance < progressionManager.maxCredits) {
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            progressionManager.cashToCredits(100)
-                        },
-                        modifier = Modifier.height(32.dp),
-                        shape = RoundedCornerShape(4.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = SciFiGold.copy(alpha = 0.15f),
-                            contentColor = SciFiGold
-                        ),
-                        border = BorderStroke(1.dp, SciFiGold.copy(alpha = 0.3f))
-                    ) {
-                        Text("100 CASH → 1 CREDIT", fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 1.sp)
-                    }
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -528,22 +399,56 @@ fun GameOverOverlay(
                 ) {
                     Text("RETURN TO BASE", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
                 }
-                val shareContext = LocalContext.current
-                IconButton(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, "I scored $score points in Jump Droid! 🚀 Can you beat me?\nhttps://jump-droid.vercel.app")
-                        }
-                        shareContext.startActivity(Intent.createChooser(intent, "Share Jump Droid"))
-                    },
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Text("⇧", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                }
             }
             Spacer(Modifier.height(8.dp))
             GlobalAdBanner()
+        }
+
+        // --- FLYING REWARD ANIMATIONS ---
+        flyingUiRewards.forEach { fr ->
+            var animProgress by remember { mutableStateOf(0f) }
+            LaunchedEffect(fr.id) {
+                animate(0f, 1f, animationSpec = tween(800, easing = FastOutSlowInEasing)) { value, _ ->
+                    animProgress = value
+                }
+                flyingUiRewards.remove(fr)
+            }
+            
+            val startX = 0.dp
+            val startY = 100.dp
+            val targetX = if (fr.isCredit) (-140).dp else 140.dp
+            val targetY = (-300).dp
+            
+            Box(
+                modifier = Modifier
+                    .offset(
+                        x = startX + (targetX - startX) * animProgress,
+                        y = startY + (targetY - startY) * animProgress
+                    )
+                    .size(16.dp)
+                    .background(fr.color, CircleShape)
+                    .graphicsLayer(
+                        scaleX = 1f + animProgress,
+                        scaleY = 1f + animProgress,
+                        alpha = 1f - animProgress
+                    )
+                    .zIndex(100f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CurrencyBadge(label: String, value: String, color: Color) {
+    Surface(
+        color = Color.Black.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(4.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
+    ) {
+        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, color = color.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(Modifier.width(8.dp))
+            Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Black)
         }
     }
 }

@@ -9,7 +9,11 @@ import com.ashwathai.jump_droid.ui.theme.SciFiRed
 import kotlin.math.*
 
 enum class GameState {
-    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS, ASCENSION_PROTOCOL, SHOP, CONTINUE_READY
+    TITLE, MAIN_MENU, HANGAR, LOADOUT, ARCHIVE, ABOUT, LEADERBOARD, PLAYING, GAMEOVER, TUTORIAL, SETTINGS, PAUSED, HELP, UNLOCK, MISSIONS, ASCENSION_PROTOCOL, SHOP, CONTINUE_READY, ZEN, EXPEDITION_REWARDS
+}
+
+enum class GameMode {
+    STANDARD, ZEN
 }
 
 sealed class UnlockEvent {
@@ -17,12 +21,15 @@ sealed class UnlockEvent {
     abstract val description: String
     abstract val destinationLabel: String
     abstract val accentColor: Color
+    open val insigniaRes: Int? = null
+    open val loreText: String? = null
 
     data class Rocket(val type: RocketType) : UnlockEvent() {
         override val title get() = type.title.uppercase()
         override val description get() = "${type.traitName}: ${type.traitDescription}"
         override val destinationLabel get() = "VIEW IN HANGAR"
         override val accentColor get() = SciFiCyan
+        override val insigniaRes get() = R.drawable.ic_btn_hangar
     }
 
     data class Module(val module: com.ashwathai.jump_droid.Module) : UnlockEvent() {
@@ -30,6 +37,14 @@ sealed class UnlockEvent {
         override val description get() = module.description
         override val destinationLabel get() = "VIEW IN HANGAR"
         override val accentColor get() = module.iconColor
+        override val insigniaRes get() = when(module.category) {
+            ModuleCategory.HULL -> R.drawable.ic_hud_hull
+            ModuleCategory.SHIELD -> R.drawable.ic_hud_shield
+            ModuleCategory.ENGINE -> R.drawable.ic_cat_engine
+            ModuleCategory.HEAT -> R.drawable.ic_hud_heat
+            ModuleCategory.UTILITY -> R.drawable.ic_station_sys
+        }
+        override val loreText get() = "Advanced subsystem acquired. Deploy via Hangar to enhance droid performance."
     }
 
     data class Achievement(val achievement: com.ashwathai.jump_droid.Achievement) : UnlockEvent() {
@@ -37,13 +52,17 @@ sealed class UnlockEvent {
         override val description get() = achievement.description
         override val destinationLabel get() = "VIEW IN ARCHIVE"
         override val accentColor get() = SciFiGold
+        override val insigniaRes get() = R.drawable.ic_premium_star
+        override val loreText get() = "A legendary feat recorded in the Ascension Archives. Prestige levels increased."
     }
 
     data class Mission(val mission: com.ashwathai.jump_droid.Mission) : UnlockEvent() {
         override val title get() = mission.name.uppercase()
         override val description get() = "Mission objective completed."
         override val destinationLabel get() = "VIEW IN MISSIONS"
-        override val accentColor get() = SciFiCyan
+        override val accentColor get() = MissionRegistry.getTrackForCategory(mission.category)?.color ?: SciFiCyan
+        override val insigniaRes get() = MissionRegistry.getTrackForCategory(mission.category)?.iconRes
+        override val loreText get() = mission.debrief
     }
 
     data class Discovery(val type: com.ashwathai.jump_droid.DiscoveryType) : UnlockEvent() {
@@ -51,6 +70,8 @@ sealed class UnlockEvent {
         override val description get() = "New entry archived."
         override val destinationLabel get() = "VIEW IN ARCHIVE"
         override val accentColor get() = SciFiPurple
+        override val insigniaRes get() = R.drawable.ic_station_arc
+        override val loreText get() = type.lore
     }
 }
 

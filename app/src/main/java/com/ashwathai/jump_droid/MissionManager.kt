@@ -118,6 +118,7 @@ class MissionManager(private val progressionService: ProgressionService) {
                 icon = template.icon,
                 isHidden = template.isHidden,
                 crypticHint = template.crypticHint,
+                debrief = template.debrief,
                 initialProgress = progressionService.getMissionProgress(template.id)
             )
 

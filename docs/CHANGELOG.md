@@ -4,6 +4,61 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-29
+
+**Version:** v2.1.1 — Tactical Polish Update
+
+**Status:** Implementation Complete — branch `master`
+
+### Added — Zen Mode Protocol
+- **Zen Command Console**: Replaced the sloppy button with a high-fidelity holographic terminal. Features detailed decryption progress bars for Altitude, Bosses, and Combo requirements.
+- **Endless Atmosphere**: A pressure-free gameplay mode with no threats or bosses, focused on exploration and music.
+- **Music Selector**: Floating UI in Zen Mode allowing players to toggle between all unlocked zone tracks and boss BGM.
+
+### Added — High-Impact Reward Flow
+- **Stacked Card Deck**: Replaced the static horizontal list with a Tinder-style stacked deck for rewards.
+- **Swipe-to-Sync**: Implemented satisfying "flick" physics for claiming expedition data.
+- **Currency HUD**: Added a top-bar HUD to the Game Over screen to provide a visual destination for flying reward icons.
+- **Expedition Recovery Modal**: Separated rewards into a dedicated modal to eliminate scrolling and focus on narrative payoff.
+
+### Fixed — Mission Architecture & Polish
+- **Operation Debriefs**: Wrote 48 unique narrative debriefs that appear upon mission completion, tying actions into the core lore.
+- **Insignia Watermarks**: Added high-opacity background insignias to mission cards for a premium "Certified" look.
+- **Category Restoration**: Fixed the "Ghost Claimable" bug by exposing the missing `OVERHEAT` and `LANDINGS` categories in the Mission Log.
+
+### Changed — Production Hardening
+- **Feature Lockdown**: Sealed the unfinished Cosmetics and Leaderboard (TRM) sections behind high-fidelity maintenance protocols ("SYSTEM UPGRADE" / "TERMINAL OFFLINE").
+- **Menu Vitality**: The ARC station icon now performs a tactical nudge wiggle when unread logs are detected. Badge counts are now perfectly centered in their pulse balls.
+- **Gameplay Variance**: Randomized initial platform direction and introduced rare "Wrap-around" teleporting platforms.
+
+---
+
+## 2026-07-28
+
+**Version:** v2.0.0 — Production Polish Finalized
+
+**Status:** Implementation Complete — branch `master`
+
+### Added — High-Fidelity UI Action
+- **HUD "Thud" Fly-in**: Achievement and mission cards now slide in from the left with a physical **Overshoot** animation, making unlocks feel heavy and earned.
+- **Category Visual Flourishes**: Added neon flourishes to HUD cards: Red "Heat" glow for Missions and Cyan "Digital Glitch" lines for Signals/Discoveries.
+- **Main Menu Vitality**: Added expanding neon **Scan Rings** from the central rocket and 15 layers of drifting space debris/particles for a cinematic background.
+- **Personal Best Glow**: Implemented a pulsating gold "New Record" glow on the Game Over screen when breaking high scores.
+
+### Changed — Connectivity & Economy
+- **Non-Intrusive GPG Login**: Restricted interactive Google Play Games sign-in popups to manual triggers only (via "CONNECT PILOT ID"). Silent sign-in remains active for connected players.
+- **Play Billing Hardening**: Implemented connection retry logic and comprehensive `BillingResponseCode` logging to handle flaky network conditions during purchases.
+- **Steeper Credit Economy**: Rebalanced Continue Credit costs to a tiered model (250, 500, 1000, 2000 JC) based on boss kills, ensuring credits remain a valuable mid-to-late game resource.
+- **Shop Grid Refactor**: Cosmetic items (Trails/Paint) are now arranged in a responsive **2-column grid** using `FlowRow`, reducing vertical scrolling by 50%.
+
+### Fixed — Layout & Branding
+- **About Protocol Overlay**: Restructured the "Technical Data" section from a `Box` to a `Column`, resolving the overlapping text bug.
+- **GameOver Button Clipping**: Added `verticalScroll` to the Game Over screen to ensure the "Return to Base" button is reachable on smaller devices.
+- **Branding Reinforcement**: Strengthened "Powered by Ashwath AI" branding across Title, Menu, About, and Game Over footers.
+- **Community Removal**: Removed the placeholder "Community" link from the About screen.
+
+---
+
 ## 2026-07-27
 
 **Version:** v2.0.0 — Production Ascension
@@ -86,6 +141,32 @@ All notable changes to this project are recorded as dated engineering events.
 ### Fixed
 - **Missing Boss Scores**: Resolved root cause where boss destruction never triggered the `onScoreUpdate` callback.
 - **Persistence Ambiguity**: Added `highAltitude` (meters) to SharedPreferences to track lifetime best distance separately from `highScore` (points).
+
+---
+
+## 2026-07-28
+
+**Version:** v2.0.0 — Production Polish Finalized
+
+**Status:** Implementation Complete — branch `master`
+
+### Added — High-Fidelity UI Action
+- **HUD "Thud" Fly-in**: Achievement and mission cards now slide in from the left with a physical **Overshoot** animation, making unlocks feel heavy and earned.
+- **Category Visual Flourishes**: Added neon flourishes to HUD cards: Red "Heat" glow for Missions and Cyan "Digital Glitch" lines for Signals/Discoveries.
+- **Main Menu Vitality**: Added expanding neon **Scan Rings** from the central rocket and 15 layers of drifting space debris/particles for a cinematic background.
+- **Personal Best Glow**: Implemented a pulsating gold "New Record" glow on the Game Over screen when breaking high scores.
+
+### Changed — Connectivity & Economy
+- **Non-Intrusive GPG Login**: Restricted interactive Google Play Games sign-in popups to manual triggers only (via "CONNECT PILOT ID"). Silent sign-in remains active for connected players.
+- **Play Billing Hardening**: Implemented connection retry logic and comprehensive `BillingResponseCode` logging to handle flaky network conditions during purchases.
+- **Steeper Credit Economy**: Rebalanced Continue Credit costs to a tiered model (250, 500, 1000, 2000 JC) based on boss kills, ensuring credits remain a valuable mid-to-late game resource.
+- **Shop Grid Refactor**: Cosmetic items (Trails/Paint) are now arranged in a responsive **2-column grid** using `FlowRow`, reducing vertical scrolling by 50%.
+
+### Fixed — Layout & Branding
+- **About Protocol Overlay**: Restructured the "Technical Data" section from a `Box` to a `Column`, resolving the overlapping text bug.
+- **GameOver Button Clipping**: Added `verticalScroll` to the Game Over screen to ensure the "Return to Base" button is reachable on smaller devices.
+- **Branding Reinforcement**: Strengthened "Powered by Ashwath AI" branding across Title, Menu, About, and Game Over footers.
+- **Community Removal**: Removed the placeholder "Community" link from the About screen.
 
 ---
 
@@ -175,6 +256,32 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-28
+
+**Version:** v2.0.0 — Production Polish Finalized
+
+**Status:** Implementation Complete — branch `master`
+
+### Added — High-Fidelity UI Action
+- **HUD "Thud" Fly-in**: Achievement and mission cards now slide in from the left with a physical **Overshoot** animation, making unlocks feel heavy and earned.
+- **Category Visual Flourishes**: Added neon flourishes to HUD cards: Red "Heat" glow for Missions and Cyan "Digital Glitch" lines for Signals/Discoveries.
+- **Main Menu Vitality**: Added expanding neon **Scan Rings** from the central rocket and 15 layers of drifting space debris/particles for a cinematic background.
+- **Personal Best Glow**: Implemented a pulsating gold "New Record" glow on the Game Over screen when breaking high scores.
+
+### Changed — Connectivity & Economy
+- **Non-Intrusive GPG Login**: Restricted interactive Google Play Games sign-in popups to manual triggers only (via "CONNECT PILOT ID"). Silent sign-in remains active for connected players.
+- **Play Billing Hardening**: Implemented connection retry logic and comprehensive `BillingResponseCode` logging to handle flaky network conditions during purchases.
+- **Steeper Credit Economy**: Rebalanced Continue Credit costs to a tiered model (250, 500, 1000, 2000 JC) based on boss kills, ensuring credits remain a valuable mid-to-late game resource.
+- **Shop Grid Refactor**: Cosmetic items (Trails/Paint) are now arranged in a responsive **2-column grid** using `FlowRow`, reducing vertical scrolling by 50%.
+
+### Fixed — Layout & Branding
+- **About Protocol Overlay**: Restructured the "Technical Data" section from a `Box` to a `Column`, resolving the overlapping text bug.
+- **GameOver Button Clipping**: Added `verticalScroll` to the Game Over screen to ensure the "Return to Base" button is reachable on smaller devices.
+- **Branding Reinforcement**: Strengthened "Powered by Ashwath AI" branding across Title, Menu, About, and Game Over footers.
+- **Community Removal**: Removed the placeholder "Community" link from the About screen.
+
+---
+
 ## 2026-07-27
 
 **Version:** v2.0.0 — Production Ascension
@@ -257,6 +364,32 @@ All notable changes to this project are recorded as dated engineering events.
 ### Fixed
 - **Missing Boss Scores**: Resolved root cause where boss destruction never triggered the `onScoreUpdate` callback.
 - **Persistence Ambiguity**: Added `highAltitude` (meters) to SharedPreferences to track lifetime best distance separately from `highScore` (points).
+
+---
+
+## 2026-07-28
+
+**Version:** v2.0.0 — Production Polish Finalized
+
+**Status:** Implementation Complete — branch `master`
+
+### Added — High-Fidelity UI Action
+- **HUD "Thud" Fly-in**: Achievement and mission cards now slide in from the left with a physical **Overshoot** animation, making unlocks feel heavy and earned.
+- **Category Visual Flourishes**: Added neon flourishes to HUD cards: Red "Heat" glow for Missions and Cyan "Digital Glitch" lines for Signals/Discoveries.
+- **Main Menu Vitality**: Added expanding neon **Scan Rings** from the central rocket and 15 layers of drifting space debris/particles for a cinematic background.
+- **Personal Best Glow**: Implemented a pulsating gold "New Record" glow on the Game Over screen when breaking high scores.
+
+### Changed — Connectivity & Economy
+- **Non-Intrusive GPG Login**: Restricted interactive Google Play Games sign-in popups to manual triggers only (via "CONNECT PILOT ID"). Silent sign-in remains active for connected players.
+- **Play Billing Hardening**: Implemented connection retry logic and comprehensive `BillingResponseCode` logging to handle flaky network conditions during purchases.
+- **Steeper Credit Economy**: Rebalanced Continue Credit costs to a tiered model (250, 500, 1000, 2000 JC) based on boss kills, ensuring credits remain a valuable mid-to-late game resource.
+- **Shop Grid Refactor**: Cosmetic items (Trails/Paint) are now arranged in a responsive **2-column grid** using `FlowRow`, reducing vertical scrolling by 50%.
+
+### Fixed — Layout & Branding
+- **About Protocol Overlay**: Restructured the "Technical Data" section from a `Box` to a `Column`, resolving the overlapping text bug.
+- **GameOver Button Clipping**: Added `verticalScroll` to the Game Over screen to ensure the "Return to Base" button is reachable on smaller devices.
+- **Branding Reinforcement**: Strengthened "Powered by Ashwath AI" branding across Title, Menu, About, and Game Over footers.
+- **Community Removal**: Removed the placeholder "Community" link from the About screen.
 
 ---
 
@@ -345,6 +478,32 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-28
+
+**Version:** v2.0.0 — Production Polish Finalized
+
+**Status:** Implementation Complete — branch `master`
+
+### Added — High-Fidelity UI Action
+- **HUD "Thud" Fly-in**: Achievement and mission cards now slide in from the left with a physical **Overshoot** animation, making unlocks feel heavy and earned.
+- **Category Visual Flourishes**: Added neon flourishes to HUD cards: Red "Heat" glow for Missions and Cyan "Digital Glitch" lines for Signals/Discoveries.
+- **Main Menu Vitality**: Added expanding neon **Scan Rings** from the central rocket and 15 layers of drifting space debris/particles for a cinematic background.
+- **Personal Best Glow**: Implemented a pulsating gold "New Record" glow on the Game Over screen when breaking high scores.
+
+### Changed — Connectivity & Economy
+- **Non-Intrusive GPG Login**: Restricted interactive Google Play Games sign-in popups to manual triggers only (via "CONNECT PILOT ID"). Silent sign-in remains active for connected players.
+- **Play Billing Hardening**: Implemented connection retry logic and comprehensive `BillingResponseCode` logging to handle flaky network conditions during purchases.
+- **Steeper Credit Economy**: Rebalanced Continue Credit costs to a tiered model (250, 500, 1000, 2000 JC) based on boss kills, ensuring credits remain a valuable mid-to-late game resource.
+- **Shop Grid Refactor**: Cosmetic items (Trails/Paint) are now arranged in a responsive **2-column grid** using `FlowRow`, reducing vertical scrolling by 50%.
+
+### Fixed — Layout & Branding
+- **About Protocol Overlay**: Restructured the "Technical Data" section from a `Box` to a `Column`, resolving the overlapping text bug.
+- **GameOver Button Clipping**: Added `verticalScroll` to the Game Over screen to ensure the "Return to Base" button is reachable on smaller devices.
+- **Branding Reinforcement**: Strengthened "Powered by Ashwath AI" branding across Title, Menu, About, and Game Over footers.
+- **Community Removal**: Removed the placeholder "Community" link from the About screen.
+
+---
+
 ## 2026-07-27
 
 **Version:** v2.0.0 — Production Ascension
@@ -427,6 +586,32 @@ All notable changes to this project are recorded as dated engineering events.
 ### Fixed
 - **Missing Boss Scores**: Resolved root cause where boss destruction never triggered the `onScoreUpdate` callback.
 - **Persistence Ambiguity**: Added `highAltitude` (meters) to SharedPreferences to track lifetime best distance separately from `highScore` (points).
+
+---
+
+## 2026-07-28
+
+**Version:** v2.0.0 — Production Polish Finalized
+
+**Status:** Implementation Complete — branch `master`
+
+### Added — High-Fidelity UI Action
+- **HUD "Thud" Fly-in**: Achievement and mission cards now slide in from the left with a physical **Overshoot** animation, making unlocks feel heavy and earned.
+- **Category Visual Flourishes**: Added neon flourishes to HUD cards: Red "Heat" glow for Missions and Cyan "Digital Glitch" lines for Signals/Discoveries.
+- **Main Menu Vitality**: Added expanding neon **Scan Rings** from the central rocket and 15 layers of drifting space debris/particles for a cinematic background.
+- **Personal Best Glow**: Implemented a pulsating gold "New Record" glow on the Game Over screen when breaking high scores.
+
+### Changed — Connectivity & Economy
+- **Non-Intrusive GPG Login**: Restricted interactive Google Play Games sign-in popups to manual triggers only (via "CONNECT PILOT ID"). Silent sign-in remains active for connected players.
+- **Play Billing Hardening**: Implemented connection retry logic and comprehensive `BillingResponseCode` logging to handle flaky network conditions during purchases.
+- **Steeper Credit Economy**: Rebalanced Continue Credit costs to a tiered model (250, 500, 1000, 2000 JC) based on boss kills, ensuring credits remain a valuable mid-to-late game resource.
+- **Shop Grid Refactor**: Cosmetic items (Trails/Paint) are now arranged in a responsive **2-column grid** using `FlowRow`, reducing vertical scrolling by 50%.
+
+### Fixed — Layout & Branding
+- **About Protocol Overlay**: Restructured the "Technical Data" section from a `Box` to a `Column`, resolving the overlapping text bug.
+- **GameOver Button Clipping**: Added `verticalScroll` to the Game Over screen to ensure the "Return to Base" button is reachable on smaller devices.
+- **Branding Reinforcement**: Strengthened "Powered by Ashwath AI" branding across Title, Menu, About, and Game Over footers.
+- **Community Removal**: Removed the placeholder "Community" link from the About screen.
 
 ---
 

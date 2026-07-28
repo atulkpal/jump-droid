@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-27
-**Current Version:** v2.0.0 — Production Ascension
+**Last Updated:** 2026-07-29
+**Current Version:** v2.1.1 — Tactical Polish Update
 **Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
-**Current Stable Tag:** `v2.0.0`
+**Current Stable Tag:** `v2.1.1`
 **Branch:** `master` (protected — no direct commits)
 **Base Commit:** `HEAD`
 
@@ -34,10 +34,10 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 ## 2. Current Project State
 
 *   **Current Branch**: `master`
-*   **Current Stable Tag**: `v2.0.0`
-*   **Current Version**: v2.0.0 — Production Ascension
-*   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **IN PROGRESS 🚀**
-*   **Current Status**: **EPIC 12 Finalized**. Transitioning to **EPIC 13**. All systems verified for production. v2.0.0 includes full fleet expansion, cosmetic economy, and performance-optimized rendering. Ready for Play Store listing.
+*   **Current Stable Tag**: `v2.1.1`
+*   **Current Version**: v2.1.1 — Tactical Polish Update
+*   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **POLISH FINALIZED 🚀**
+*   **Current Status**: **EPIC 12 Finalized**. Transitioning to **EPIC 13**. All systems verified for production. v2.0.0 includes full fleet expansion, cosmetic economy, performance-optimized rendering, and high-fidelity visual action. Ready for Play Store listing.
 *   **Known Issues**: 
     *   `GamesAchievementManager.kt` uses placeholder GPG achievement IDs (`PLEASE_REPLACE_ME_*`) — must replace with real Google Play Console IDs before production.
 *   **Current Priorities**: EPIC 13 — Production deployment and Play Store listing.
