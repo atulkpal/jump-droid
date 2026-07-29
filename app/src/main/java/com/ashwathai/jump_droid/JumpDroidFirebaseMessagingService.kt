@@ -36,8 +36,13 @@ class JumpDroidFirebaseMessagingService : FirebaseMessagingService() {
             val channel = NotificationChannel(
                 channelId,
                 "Jump Droid Alerts",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply { description = "Game updates, lore discoveries, and mission alerts" }
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply { 
+                description = "Game updates, lore discoveries, and mission alerts" 
+                enableLights(true)
+                lightColor = android.graphics.Color.CYAN
+                enableVibration(true)
+            }
             manager.createNotificationChannel(channel)
         }
 
@@ -53,6 +58,8 @@ class JumpDroidFirebaseMessagingService : FirebaseMessagingService() {
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()

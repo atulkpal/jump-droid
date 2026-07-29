@@ -1,7 +1,7 @@
 # Production Release Checklist — Jump Droid
 
 **Last Updated:** 2026-07-29
-**Target Version:** v2.1.2
+**Target Version:** v2.1.3
 
 > **No production release may be created until every item in this checklist is checked.**
 

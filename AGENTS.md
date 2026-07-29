@@ -1,10 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
 **Last Updated:** 2026-07-29
-**Current Version:** v2.1.2 — Startup Stability & Meta Polish
+**Current Version:** v2.1.3 — Remote Intelligence Protocol
 **Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
 **Current Stable Tag:** `v2.1.2`
-**Branch:** `bugfix/workmanager-crash` (Active Hotfix)
+**Branch:** `feature/remote-announcements` (Feature Extension)
 **Base Commit:** `HEAD`
 
 ---

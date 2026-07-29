@@ -1,11 +1,7 @@
-- `[x]` Create bugfix branch `bugfix/workmanager-crash` (previous task)
-- `[x]` Add WorkManager/Room keep rules to `app/proguard-rules.pro`
-- `[x]` Verify build with `assembleRelease`
+- `[x]` Create branch `feature/remote-announcements`
+- `[x]` **Feature: Remote Announcement System**
+    - `[x]` Update `RemoteConfigManager.kt` to listen for Firestore announcements
+    - `[x]` Update `GameEngine.kt` to handle and display remote announcements
+    - `[x]` (Optional) Cleanup `JumpDroidFirebaseMessagingService.kt`
+- `[x]` Verify build
 - `[x]` Finalize walkthrough
-- `[x]` Enhancement: Session Summary & Zen Mode Fix
-- `[x]` Release Preparation (v2.1.2)
-    - `[x]` Bump version and version code in `build.gradle.kts`
-    - `[x]` Update `CHANGELOG.md` and `AGENTS.md`
-    - `[x]` Update `PRODUCTION_CHECKLIST.md`
-    - `[x]` Build Debug/Release APK and AAB
-    - `[x]` Commit and Push to `bugfix/workmanager-crash`

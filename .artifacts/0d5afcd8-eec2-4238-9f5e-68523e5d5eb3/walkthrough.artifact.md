@@ -1,38 +1,37 @@
-# Walkthrough - v2.1.2 Hotfix Release Preparation
+# Walkthrough - Remote Announcement System
 
-This release addresses the critical startup crash reported in `v2.1.1` and includes significant gameplay enhancements and logic fixes.
+I have implemented a Remote Announcement System that allows you to display messages to active players by updating a Firestore document, eliminating the need for app rebuilds for news or events.
 
-## Release Metadata
-- **Version Name**: `2.1.2`
-- **Version Code**: `9`
-- **Branch**: `bugfix/workmanager-crash`
-- **Merge Target**: `master` (via PR)
+## New Branch: `feature/remote-announcements`
+This feature was developed in a dedicated branch to maintain the stability of the main development line.
 
-## Changes Implemented
+## Changes Made
 
-### 1. Critical Stability Fix
-- **R8 Proguard Fix**: Added missing keep rules for `androidx.work` and `androidx.room`. This resolves the `Failed to create an instance of androidx.work.impl.WorkDatabase` crash that occurred on all release builds.
+### Infrastructure
 
-### 2. Gameplay & Logic Enhancements
-- **Zen Mode Logic**: Corrected `StatRecorder` to properly persist cumulative altitude and max combo across sessions. Progress is now accurately tracked.
-- **Session Summary**: Added a new summary screen following reward collection, providing a tactical debrief of the run, Lore completion percentage, and Zen calibration status.
+#### [MODIFY] [RemoteConfigManager.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/RemoteConfigManager.kt)
+- Added a listener for `announcement_id`, `announcement_text`, and `announcement_priority` in the Firestore config document.
+- Implemented state tracking to ensure players only see a specific announcement once.
+- Added a callback `onAnnouncementReceived` to pipe data to the UI layer.
 
-### 3. Documentation & Standards
-- **Changelog**: Updated [CHANGELOG.md](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/docs/CHANGELOG.md) with `v2.1.2` details.
-- **Agent Manual**: Updated [AGENTS.md](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/AGENTS.md) to reflect current version and branch.
-- **Production Checklist**: Updated [PRODUCTION_CHECKLIST.md](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/docs/PRODUCTION_CHECKLIST.md) to include a mandatory check for R8 startup stability.
+#### [MODIFY] [GameEngine.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameEngine.kt)
+- Connected the `RemoteConfigManager` callback to the in-game HUD.
+- Announcements are now displayed immediately using `notificationManager.showImmediately` with a 4-second duration.
 
-## Build Artifacts Generated
-The following artifacts have been successfully built and are ready for deployment:
-- **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk`
-- **Release APK**: `app/build/outputs/apk/release/app-release.apk`
-- **Debug Bundle**: `app/build/outputs/bundle/debug/app-debug.aab`
-- **Release Bundle (AAB)**: `app/build/outputs/bundle/release/app-release.aab`
+#### [MODIFY] [JumpDroidFirebaseMessagingService.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/JumpDroidFirebaseMessagingService.kt)
+- Upgraded notification priority to `HIGH` and added visual enhancements (Cyan light, vibration) to ensure push notifications are noticed on modern Android versions.
 
-## Git Operations
-- All changes staged and committed to `bugfix/workmanager-crash`.
-- Branch pushed to remote.
-- **Action Required**: Open a Pull Request on GitHub to merge `bugfix/workmanager-crash` into `master`.
+## How to use (Firestore)
+To send a message to all active users:
+1.  Navigate to `server_config/remote_config` in your Firebase Console.
+2.  Set `announcement_id` to a unique string (e.g., "event_v1").
+3.  Set `announcement_text` to your message (e.g., "Weekend XP Boost Active!").
+4.  Set `announcement_priority` to `CRITICAL` or `TACTICAL`.
 
-> [!CAUTION]
-> The `v2.1.1` release was unstable due to the R8 crash. `v2.1.2` is a mandatory update for all production players.
+## Verification Results
+
+### Automated Tests
+- Ran `gradle_build(":app:assembleDebug")`: **PASSED**
+
+> [!TIP]
+> This system supplements the existing Firebase Cloud Messaging (FCM). FCM is for background users; this system is for players currently inside the game.

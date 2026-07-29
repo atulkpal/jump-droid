@@ -244,9 +244,14 @@ class GameEngine(
         progressionManager.onBlueprintUnlocked = { type ->
             showUnlockEvent(UnlockEvent.Rocket(RocketType.entries.find { it.title.equals(type.displayName, ignoreCase = true) } ?: RocketType.BALANCED))
         }
-        remoteConfigManager.init { credits ->
-            progressionManager.addCredits(credits)
-        }
+        remoteConfigManager.init(
+            onCreditGranted = { credits ->
+                progressionManager.addCredits(credits)
+            },
+            onAnnouncementReceived = { message, priority ->
+                notificationManager.showImmediately(message, priority = priority, duration = 4.0f)
+            }
+        )
     }
 
     fun getGameStats() = GameStats(

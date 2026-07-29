@@ -4,6 +4,22 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-29 (Feature)
+
+**Version:** v2.1.3 — Remote Intelligence Protocol
+
+**Status:** Implementation Complete — branch `feature/remote-announcements`
+
+### Added — Remote Announcement System
+- **Firestore Intelligence Feed**: Implemented a real-time listener for the `server_config/remote_config` document. Allows for dynamic, code-free news and event updates.
+- **Announcement Persistence**: Integrated local state tracking to ensure "One-Time Read" behavior for remote messages, preventing HUD clutter.
+- **Dynamic HUD Priority**: Announcements respect the `NotificationPriority` engine, allowing for `CRITICAL` (preemptive) or `TACTICAL` (queued) remote alerts.
+
+### Changed — Background Connectivity
+- **FCM Hardening**: Upgraded `JumpDroidFirebaseMessagingService` with `IMPORTANCE_HIGH` channels and cyan-glow visual alerts to ensure mission-critical push notifications reach pilots on all modern Android versions.
+
+---
+
 ## 2026-07-29 (Hotfix)
 
 **Version:** v2.1.2 — Startup Stability & Meta Polish
