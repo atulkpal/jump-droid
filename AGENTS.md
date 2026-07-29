@@ -1,7 +1,7 @@
 # Jump Droid — Authoritative Agent Manual
 
 **Last Updated:** 2026-07-29
-**Current Version:** v2.1.3 — Remote Intelligence Protocol
+**Current Version:** v2.2.0 — Fleet Terminal & Hangar Ascension
 **Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
 **Current Stable Tag:** `v2.1.2`
 **Branch:** `feature/remote-announcements` (Feature Extension)

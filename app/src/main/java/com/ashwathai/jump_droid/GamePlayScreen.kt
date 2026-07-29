@@ -2,6 +2,7 @@ package com.ashwathai.jump_droid
 
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -57,6 +58,13 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
     val density = LocalDensity.current
     val context = LocalContext.current
     val activity = remember { context as? ComponentActivity }
+
+    // Intercept back button during end-of-run states to prevent regressions
+    if (gameState == GameState.EXPEDITION_REWARDS || gameState == GameState.GAMEOVER) {
+        BackHandler {
+            onMainMenu()
+        }
+    }
 
     LaunchedEffect(gameState) {
         when (gameState) {

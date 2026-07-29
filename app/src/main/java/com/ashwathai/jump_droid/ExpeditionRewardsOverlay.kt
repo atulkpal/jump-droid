@@ -34,6 +34,7 @@ fun ExpeditionRewardsOverlay(
     onAllClaimed: () -> Unit
 ) {
     var currentIndex by remember { mutableStateOf(0) }
+    var showSummary by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -68,24 +69,28 @@ fun ExpeditionRewardsOverlay(
             } else {
                 Box(
                     modifier = Modifier
-                        .height(300.dp)
+                        .height(320.dp)
                         .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Show up to 3 cards in the stack
-                    for (i in (minOf(currentIndex + 2, pendingUnlocks.size - 1) downTo currentIndex)) {
-                        val event = pendingUnlocks[i]
-                        val isTop = i == currentIndex
+                    // Use a key to ensure proper state resetting between cards
+                    key(currentIndex) {
+                        // Show up to 3 cards in the stack
+                        val endIdx = minOf(currentIndex + 2, pendingUnlocks.size - 1)
+                        for (i in (endIdx downTo currentIndex)) {
+                            val event = pendingUnlocks[i]
+                            val isTop = i == currentIndex
 
-                        RewardCardLarge(
-                            event = event,
-                            isTop = isTop,
-                            onDismiss = {
-                                onClaimReward(event)
-                                currentIndex++
-                            },
-                            modifier = Modifier.zIndex((pendingUnlocks.size - i).toFloat())
-                        )
+                            RewardCardLarge(
+                                event = event,
+                                isTop = isTop,
+                                onDismiss = {
+                                    onClaimReward(event)
+                                    currentIndex++
+                                },
+                                modifier = Modifier.zIndex((pendingUnlocks.size - i).toFloat())
+                            )
+                        }
                     }
                 }
 
@@ -109,11 +114,23 @@ private fun SessionSummary(
     sessionStats: GameStats,
     onFinish: () -> Unit
 ) {
+    var isExiting by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    
+    val exitOffset by animateFloatAsState(
+        targetValue = if (isExiting) -1000f else 0f,
+        animationSpec = tween(500, easing = FastOutSlowInEasing),
+        label = "SummaryExit"
+    )
+
     Surface(
         color = SciFiSurface.copy(alpha = 0.8f),
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, SciFiBorder),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset(y = exitOffset.dp)
+            .graphicsLayer(alpha = if (isExiting) 0f else 1f)
     ) {
         Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
@@ -194,7 +211,13 @@ private fun SessionSummary(
 
             Spacer(Modifier.height(32.dp))
             Button(
-                onClick = onFinish,
+                onClick = {
+                    scope.launch {
+                        isExiting = true
+                        delay(500)
+                        onFinish()
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = SciFiGreen, contentColor = Color.Black),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth().height(48.dp)
@@ -222,6 +245,11 @@ private fun RewardCardLarge(
 ) {
     val offsetX = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    var isDismissed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isTop) {
+        if (!isTop) offsetX.snapTo(0f)
+    }
 
     Surface(
         modifier = modifier
@@ -232,8 +260,8 @@ private fun RewardCardLarge(
                 rotationZ = offsetX.value / 15f,
                 alpha = (1f - kotlin.math.abs(offsetX.value) / 500f).coerceIn(0f, 1f)
             )
-            .pointerInput(isTop) {
-                if (!isTop) return@pointerInput
+            .pointerInput(isTop, isDismissed) {
+                if (!isTop || isDismissed) return@pointerInput
                 awaitPointerEventScope {
                     val down = awaitFirstDown()
                     while (true) {
@@ -245,6 +273,7 @@ private fun RewardCardLarge(
                             change.consume()
                         } else {
                             if (kotlin.math.abs(offsetX.value) > 130f) {
+                                isDismissed = true
                                 scope.launch {
                                     offsetX.animateTo(if (offsetX.value > 0) 700f else -700f, tween(300))
                                     onDismiss()

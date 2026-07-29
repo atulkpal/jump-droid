@@ -4,6 +4,31 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-29 (Feature & Fix)
+
+**Version:** v2.2.0 — Fleet Terminal & Hangar Ascension
+
+**Status:** Implementation Complete — branch `feature/remote-announcements`
+
+### Added — High-Efficiency Fleet Terminal
+- **Firestore Aggregate Sync**: Replaced full-collection reads with `count()` aggregate queries for global ranking, reducing read costs by 99%.
+- **Write-Squelching**: Implemented local best-score caching to prevent redundant Firestore writes unless a new global record is achieved.
+- **Uplink HUD**: Added a live connection status panel to the terminal (ACTIVE / SEVERED) and an immersive CTA for unlinked pilots.
+
+### Added — Hangar "Full Glory" Restoration
+- **Pentagon Stat Chart**: Re-integrated the high-fidelity radar chart with dynamic 5-axis telemetry (Thrust, Fuel, Thermal, Hull, Steering).
+- **Consolidated Console**: Integrated the Chassis Variant selector directly into the Performance Analytics panel for a unified Command Console experience.
+- **Ergonomic Layout**: Removed vertical scrolling by optimizing panel density, fitting the full hangar interface onto a single screen.
+
+### Improved — Zen Mode Immersion
+- **Secure Terminal UI**: Overhauled the locked Zen state with immersive "Binary Rain" backgrounds, flickering decryption telemetry, and "Unauthorized Pilot" alerts.
+- **Intelligence Network Fixes**: Fixed a critical bug where falling off the screen bypassed lifetime stat commitment. All game-over states now correctly contribute to Zen unlock progress.
+
+### Fixed — Mission Reward Stability
+- **Card Flow Lockdown**: Refactored the `RewardCardLarge` gesture state machine to prevent intermittent UI freezes on repeated runs.
+
+---
+
 ## 2026-07-29 (Feature)
 
 **Version:** v2.1.3 — Remote Intelligence Protocol

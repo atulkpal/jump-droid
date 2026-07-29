@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Jump Droid</string>
+    <!-- Replace with your actual Web Client ID from Firebase Console / google-services.json -->
+    <string name="default_web_client_id">17868070038-om0v8iai7vq045rajlm7dc0fkdtlujc0.apps.googleusercontent.com</string>
 </resources>

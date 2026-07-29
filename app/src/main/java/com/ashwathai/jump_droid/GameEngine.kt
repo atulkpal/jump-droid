@@ -52,7 +52,7 @@ class GameEngine(
     val remoteConfigManager = RemoteConfigManager(activity)
     val loginManager = LoginManager(activity)
     val cloudSyncManager = CloudSyncManager(loginManager, progressionManager, loadoutManager, sharedPrefs)
-    val leaderboardManager = LeaderboardManager(loginManager)
+    val leaderboardManager = LeaderboardManager(loginManager, sharedPrefs)
     val gamesAchievementManager = GamesAchievementManager(activity)
 
     val platforms = mutableStateListOf<Platform>()
@@ -421,6 +421,13 @@ class GameEngine(
                 saveHighAltitude(runAltitude)
                 progressionManager.commitSessionStats(getGameStats())
                 analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "structural_failure")
+                
+                // Submit to Global Terminal only on record improvement (Minimal Firestore writes)
+                if (score >= progressionManager.highScore) {
+                    GlobalScope.launch {
+                        leaderboardManager.submitScore(score, progressionManager.highScore)
+                    }
+                }
                 
                 if (pendingUnlocks.isNotEmpty()) {
                     gameState = GameState.EXPEDITION_REWARDS
@@ -1190,7 +1197,15 @@ class GameEngine(
             
             saveHighScore(score)
             saveHighAltitude(runAltitude)
+            progressionManager.commitSessionStats(getGameStats())
             analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "off_screen_fall")
+
+            // Submit to Global Terminal only on record improvement (Minimal Firestore writes)
+            if (score >= progressionManager.highScore) {
+                GlobalScope.launch {
+                    leaderboardManager.submitScore(score, progressionManager.highScore)
+                }
+            }
             
             if (pendingUnlocks.isNotEmpty()) {
                 gameState = GameState.EXPEDITION_REWARDS

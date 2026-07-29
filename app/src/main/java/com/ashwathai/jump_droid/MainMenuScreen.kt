@@ -18,18 +18,10 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -906,90 +898,148 @@ private fun ZenCommandConsole(
     onLaunchZen: () -> Unit
 ) {
     val accent = if (isUnlocked) SciFiPurple else SciFiRed
-    val panelAlpha = if (isUnlocked) 0.15f else 0.08f
+    val panelAlpha = if (isUnlocked) 0.15f else 0.12f
 
     Surface(
         modifier = Modifier
             .fillMaxWidth(0.9f)
             .padding(vertical = 8.dp),
-        color = accent.copy(alpha = panelAlpha),
+        color = Color.Black.copy(alpha = 0.8f),
         shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, accent.copy(alpha = borderPulse * 0.4f))
+        border = BorderStroke(1.dp, accent.copy(alpha = borderPulse * 0.5f))
     ) {
-        Box(Modifier.padding(12.dp)) {
-            // Animated Corners
-            Box(Modifier.matchParentSize()) {
-                val bracketSize = 10.dp
-                val bracketAlpha = (0.3f + borderPulse * 0.4f).coerceIn(0f, 1f)
-                // Top Left
-                Box(Modifier.size(bracketSize).align(Alignment.TopStart).border(BorderStroke(2.dp, accent.copy(alpha = bracketAlpha)), RoundedCornerShape(topStart = 4.dp)))
-                // Bottom Right
-                Box(Modifier.size(bracketSize).align(Alignment.BottomEnd).border(BorderStroke(2.dp, accent.copy(alpha = bracketAlpha)), RoundedCornerShape(bottomEnd = 4.dp)))
-            }
-
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (isUnlocked) "ZEN PROTOCOL // AUTHORIZED" else "SECURE CHANNEL // ENCRYPTED",
-                        color = accent,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp
-                    )
-                    if (!isUnlocked) {
-                        Text(
-                            text = "DECRYPTING...",
-                            color = accent.copy(alpha = 0.6f),
-                            fontSize = 7.sp,
-                            fontWeight = FontWeight.Bold
+        Box(Modifier.height(IntrinsicSize.Min)) {
+            // Immersive Terminal Background (Locked Only)
+            if (!isUnlocked) {
+                Canvas(Modifier.fillMaxSize()) {
+                    val w = size.width
+                    val h = size.height
+                    // Matrix-style falling binary
+                    repeat(15) { col ->
+                        val seed = col * 99L
+                        val prng = Random(seed)
+                        val speed = 30f + prng.nextFloat() * 60f
+                        val charX = (col * (w / 15f)) + 10f
+                        val charY = (ft * speed) % (h + 40f) - 20f
+                        
+                        val paint = android.graphics.Paint().apply {
+                            color = accent.copy(alpha = 0.15f).toArgb()
+                            textSize = 24f
+                            typeface = android.graphics.Typeface.MONOSPACE
+                        }
+                        drawContext.canvas.nativeCanvas.drawText(
+                            if (prng.nextBoolean()) "0" else "1",
+                            charX, charY, paint
                         )
                     }
                 }
+            }
 
-                Spacer(Modifier.height(10.dp))
+            Box(Modifier.padding(12.dp).background(accent.copy(alpha = panelAlpha))) {
+                // Animated Corners
+                Box(Modifier.matchParentSize()) {
+                    val bracketSize = 12.dp
+                    val bracketAlpha = (0.4f + borderPulse * 0.4f).coerceIn(0f, 1f)
+                    // Top Left
+                    Box(Modifier.size(bracketSize).align(Alignment.TopStart).border(BorderStroke(2.dp, accent.copy(alpha = bracketAlpha)), RoundedCornerShape(topStart = 4.dp)))
+                    // Bottom Right
+                    Box(Modifier.size(bracketSize).align(Alignment.BottomEnd).border(BorderStroke(2.dp, accent.copy(alpha = bracketAlpha)), RoundedCornerShape(bottomEnd = 4.dp)))
+                }
 
-                if (isUnlocked) {
-                    Button(
-                        onClick = {
-                            soundManager?.playSfx("sfx_ui_confirm")
-                            hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
-                            onLaunchZen()
-                        },
-                        modifier = Modifier.fillMaxWidth().height(42.dp),
-                        shape = RoundedCornerShape(4.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = accent.copy(alpha = 0.2f), contentColor = SciFiWhite),
-                        border = BorderStroke(1.5.dp, accent.copy(alpha = 0.8f))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val pulse = sin(ft * 4f) * 0.2f + 0.8f
-                            Box(Modifier.size(8.dp).graphicsLayer(scaleX = pulse, scaleY = pulse).background(accent, CircleShape))
-                            Spacer(Modifier.width(12.dp))
-                            Text("SYNC & DEPLOY ZEN MODE", fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 11.sp)
-                        }
-                    }
-                } else {
-                    val requirements = progressionManager?.getZenRequirements() ?: emptyList()
-                    requirements.forEach { (label, status, progress) ->
-                        Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(label, color = SciFiWhite.copy(alpha = 0.6f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
-                                Text(status, color = accent, fontSize = 8.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                        Column {
+                            Text(
+                                text = if (isUnlocked) "ZEN PROTOCOL // AUTHORIZED" else "SECURE CHANNEL // ENCRYPTED",
+                                color = accent,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 2.sp
+                            )
+                            if (!isUnlocked) {
+                                Text(
+                                    text = "UNAUTHORIZED PILOT DETECTED",
+                                    color = accent.copy(alpha = 0.4f),
+                                    fontSize = 7.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
-                            Spacer(Modifier.height(2.dp))
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier.fillMaxWidth().height(2.dp),
-                                color = accent.copy(alpha = 0.6f),
-                                trackColor = Color.Black.copy(alpha = 0.3f)
+                        }
+                        if (!isUnlocked) {
+                            val blink = if ((ft * 4).toInt() % 2 == 0) 1f else 0.2f
+                            Text(
+                                text = "DECRYPTING...",
+                                color = accent.copy(alpha = 0.8f * blink),
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.graphicsLayer(alpha = blink)
                             )
                         }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    if (isUnlocked) {
+                        Button(
+                            onClick = {
+                                soundManager?.playSfx("sfx_ui_confirm")
+                                hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                                onLaunchZen()
+                            },
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            shape = RoundedCornerShape(4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = accent.copy(alpha = 0.2f), contentColor = SciFiWhite),
+                            border = BorderStroke(1.5.dp, accent.copy(alpha = 0.8f))
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val pulse = sin(ft * 4f) * 0.2f + 0.8f
+                                Box(Modifier.size(10.dp).graphicsLayer(scaleX = pulse, scaleY = pulse).background(accent, CircleShape))
+                                Spacer(Modifier.width(12.dp))
+                                Text("SYNC & DEPLOY ZEN MODE", fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 12.sp)
+                            }
+                        }
+                    } else {
+                        val requirements = progressionManager?.getZenRequirements() ?: emptyList()
+                        requirements.forEach { (label, status, progress) ->
+                            val flicker = if (Random.nextFloat() > 0.95f) 0.5f else 1f
+                            Column(Modifier.fillMaxWidth().padding(vertical = 3.dp).graphicsLayer(alpha = flicker)) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(label, color = SciFiWhite.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                    Text(status, color = accent, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                                }
+                                Spacer(Modifier.height(3.dp))
+                                Box(Modifier.fillMaxWidth().height(4.dp).background(Color.Black.copy(alpha = 0.5f))) {
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth(progress)
+                                            .fillMaxHeight()
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(accent.copy(alpha = 0.3f), accent)
+                                                )
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "ENCRYPTION STRENGTH: ${(12.8f + sin(ft)*2f).format(1)} EB // VOLATILE",
+                            color = accent.copy(alpha = 0.3f),
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
                     }
                 }
             }
         }
     }
 }
+
+private fun Float.format(digits: Int) = "%.${digits}f".format(this)
