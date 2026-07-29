@@ -1,41 +1,38 @@
-# Walkthrough - GameOver Enhancements & Zen Mode Fix
+# Walkthrough - v2.1.2 Hotfix Release Preparation
 
-I have implemented several enhancements to the Game Over / Rewards flow and fixed the underlying logic for Zen Mode unlocking.
+This release addresses the critical startup crash reported in `v2.1.1` and includes significant gameplay enhancements and logic fixes.
 
-## Changes Made
+## Release Metadata
+- **Version Name**: `2.1.2`
+- **Version Code**: `9`
+- **Branch**: `bugfix/workmanager-crash`
+- **Merge Target**: `master` (via PR)
 
-### Persistence & Logic
+## Changes Implemented
 
-#### [MODIFY] [StatRecorder.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/StatRecorder.kt)
-- Added `lifetimeAltitude` and `maxComboEver` fields.
-- Implemented saving and loading of these stats from `SharedPreferences`.
-- `commitSessionStats` now correctly accumulates altitude across all runs and preserves the highest combo ever achieved.
+### 1. Critical Stability Fix
+- **R8 Proguard Fix**: Added missing keep rules for `androidx.work` and `androidx.room`. This resolves the `Failed to create an instance of androidx.work.impl.WorkDatabase` crash that occurred on all release builds.
 
-#### [MODIFY] [ProgressionManager.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/ProgressionManager.kt)
-- Refactored `getZenRequirements()` and `getZenUnlockProgress()` to use the new persistent stats.
-- Updated `checkZenModeUnlock()` to properly evaluate cumulative altitude (10km), bosses defeated (5), and max combo (50) across the player's history.
+### 2. Gameplay & Logic Enhancements
+- **Zen Mode Logic**: Corrected `StatRecorder` to properly persist cumulative altitude and max combo across sessions. Progress is now accurately tracked.
+- **Session Summary**: Added a new summary screen following reward collection, providing a tactical debrief of the run, Lore completion percentage, and Zen calibration status.
 
-### UI Enhancements
+### 3. Documentation & Standards
+- **Changelog**: Updated [CHANGELOG.md](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/docs/CHANGELOG.md) with `v2.1.2` details.
+- **Agent Manual**: Updated [AGENTS.md](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/AGENTS.md) to reflect current version and branch.
+- **Production Checklist**: Updated [PRODUCTION_CHECKLIST.md](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/docs/PRODUCTION_CHECKLIST.md) to include a mandatory check for R8 startup stability.
 
-#### [MODIFY] [ExpeditionRewardsOverlay.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/ExpeditionRewardsOverlay.kt)
-- Transformed the final state of the rewards screen into a **Session Summary**.
-- Added a `SessionSummary` component that displays:
-    - **Session Performance**: Altitude reached, Bosses defeated, and Total Score.
-    - **Lore Sync Status**: A dedicated progress bar showing the percentage of total Codex/Archive entries discovered.
-    - **Zen Mode Calibration**: A secondary progress bar (if Zen Mode is still locked) showing how close the player is to unlocking it.
-- Added `verticalScroll` to ensure accessibility on smaller devices.
+## Build Artifacts Generated
+The following artifacts have been successfully built and are ready for deployment:
+- **Debug APK**: `app/build/outputs/apk/debug/app-debug.apk`
+- **Release APK**: `app/build/outputs/apk/release/app-release.apk`
+- **Debug Bundle**: `app/build/outputs/bundle/debug/app-debug.aab`
+- **Release Bundle (AAB)**: `app/build/outputs/bundle/release/app-release.aab`
 
-#### [MODIFY] [MainActivity.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/MainActivity.kt)
-- Updated navigation to pass `ProgressionManager` and session `GameStats` to the rewards overlay.
+## Git Operations
+- All changes staged and committed to `bugfix/workmanager-crash`.
+- Branch pushed to remote.
+- **Action Required**: Open a Pull Request on GitHub to merge `bugfix/workmanager-crash` into `master`.
 
-## Verification Results
-
-### Automated Tests
-- Ran `gradle_build(":app:assembleDebug")`: **PASSED**
-
-### Manual Verification Path
-1.  **Zen Progress**: Cumulative altitude is now correctly tracked. Players can see their progress toward the 10,000m goal in the Session Summary.
-2.  **Summary Screen**: After swiping away the last reward card, the player is presented with a detailed breakdown of their run and their overall Lore completion percentage.
-
-> [!TIP]
-> The Lore Sync Status bar uses the `SciFiPurple` color scheme to distinguish it from tactical combat data, emphasizing its role in the game's narrative discovery.
+> [!CAUTION]
+> The `v2.1.1` release was unstable due to the R8 crash. `v2.1.2` is a mandatory update for all production players.

@@ -3,8 +3,9 @@
 - `[x]` Verify build with `assembleRelease`
 - `[x]` Finalize walkthrough
 - `[x]` Enhancement: Session Summary & Zen Mode Fix
-    - `[x]` Update `StatRecorder.kt` to persist lifetime altitude and max combo
-    - `[x]` Update `ProgressionManager.kt` to use improved stats for Zen logic
-    - `[x]` Update `ExpeditionRewardsOverlay.kt` with Session Summary & Lore Bar
-    - `[x]` Update `MainActivity.kt` to pass summary data
-    - `[x]` Verify build and logic
+- `[x]` Release Preparation (v2.1.2)
+    - `[x]` Bump version and version code in `build.gradle.kts`
+    - `[x]` Update `CHANGELOG.md` and `AGENTS.md`
+    - `[x]` Update `PRODUCTION_CHECKLIST.md`
+    - `[x]` Build Debug/Release APK and AAB
+    - `[x]` Commit and Push to `bugfix/workmanager-crash`
