@@ -1,0 +1,10 @@
+- `[x]` Create bugfix branch `bugfix/workmanager-crash` (previous task)
+- `[x]` Add WorkManager/Room keep rules to `app/proguard-rules.pro`
+- `[x]` Verify build with `assembleRelease`
+- `[x]` Finalize walkthrough
+- `[x]` Enhancement: Session Summary & Zen Mode Fix
+    - `[x]` Update `StatRecorder.kt` to persist lifetime altitude and max combo
+    - `[x]` Update `ProgressionManager.kt` to use improved stats for Zen logic
+    - `[x]` Update `ExpeditionRewardsOverlay.kt` with Session Summary & Lore Bar
+    - `[x]` Update `MainActivity.kt` to pass summary data
+    - `[x]` Verify build and logic

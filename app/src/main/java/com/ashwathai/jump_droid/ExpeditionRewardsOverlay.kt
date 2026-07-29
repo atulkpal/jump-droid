@@ -28,6 +28,8 @@ import kotlin.random.Random
 @Composable
 fun ExpeditionRewardsOverlay(
     pendingUnlocks: List<UnlockEvent>,
+    progressionManager: ProgressionManager,
+    sessionStats: GameStats,
     onClaimReward: (UnlockEvent) -> Unit,
     onAllClaimed: () -> Unit
 ) {
@@ -41,7 +43,7 @@ fun ExpeditionRewardsOverlay(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(24.dp)
+            modifier = Modifier.padding(24.dp).verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = "EXPEDITION DATA RECOVERED",
@@ -58,32 +60,18 @@ fun ExpeditionRewardsOverlay(
                 letterSpacing = 4.sp
             )
 
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(32.dp))
 
-            Box(
-                modifier = Modifier
-                    .height(300.dp)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                if (currentIndex >= pendingUnlocks.size) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "ALL REWARDS SYNCED",
-                            color = SciFiGreen,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 2.sp
-                        )
-                        Spacer(Modifier.height(24.dp))
-                        Button(
-                            onClick = onAllClaimed,
-                            colors = ButtonDefaults.buttonColors(containerColor = SciFiGreen, contentColor = Color.Black),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("FINISH REVIEW", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                } else {
+            if (currentIndex >= pendingUnlocks.size) {
+                // --- SESSION SUMMARY SCREEN ---
+                SessionSummary(progressionManager, sessionStats, onAllClaimed)
+            } else {
+                Box(
+                    modifier = Modifier
+                        .height(300.dp)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
                     // Show up to 3 cards in the stack
                     for (i in (minOf(currentIndex + 2, pendingUnlocks.size - 1) downTo currentIndex)) {
                         val event = pendingUnlocks[i]
@@ -100,11 +88,9 @@ fun ExpeditionRewardsOverlay(
                         )
                     }
                 }
-            }
 
-            Spacer(Modifier.height(32.dp))
-            
-            if (currentIndex < pendingUnlocks.size) {
+                Spacer(Modifier.height(32.dp))
+                
                 Text(
                     "ITEM ${currentIndex + 1} OF ${pendingUnlocks.size}",
                     color = SciFiWhite.copy(alpha = 0.4f),
@@ -114,6 +100,116 @@ fun ExpeditionRewardsOverlay(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SessionSummary(
+    progressionManager: ProgressionManager,
+    sessionStats: GameStats,
+    onFinish: () -> Unit
+) {
+    Surface(
+        color = SciFiSurface.copy(alpha = 0.8f),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, SciFiBorder),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "SESSION SUMMARY",
+                color = SciFiGold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 2.sp
+            )
+            Spacer(Modifier.height(16.dp))
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                SummaryStat("ALTITUDE", "${sessionStats.maxAltitudeMeters}m", SciFiCyan)
+                SummaryStat("BOSSES", "${sessionStats.bossesDefeated}", SciFiGold)
+                SummaryStat("SCORE", "${sessionStats.totalScore}", SciFiGreen)
+            }
+
+            Spacer(Modifier.height(24.dp))
+            HorizontalDivider(color = SciFiBorder.copy(alpha = 0.3f))
+            Spacer(Modifier.height(16.dp))
+
+            // LORE COMPLETION BAR
+            val lorePercent = progressionManager.getTotalCompletionPercentage()
+            Text(
+                "LORE SYNC STATUS: $lorePercent%",
+                color = SciFiPurple,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp
+            )
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { lorePercent / 100f },
+                modifier = Modifier.fillMaxWidth().height(8.dp),
+                color = SciFiPurple,
+                trackColor = SciFiPurple.copy(alpha = 0.1f),
+                strokeCap = StrokeCap.Round
+            )
+            Text(
+                "ARCHIVE ENTRIES REMAIN LOCKED IN THE VOID",
+                color = SciFiWhite.copy(alpha = 0.3f),
+                fontSize = 8.sp,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            // ZEN MODE PROGRESS
+            if (!progressionManager.isZenModeUnlocked) {
+                val zenProgress = progressionManager.getZenUnlockProgress()
+                Text(
+                    "ZEN MODE CALIBRATION",
+                    color = SciFiCyan.copy(alpha = 0.7f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { zenProgress },
+                    modifier = Modifier.fillMaxWidth().height(4.dp),
+                    color = SciFiCyan,
+                    trackColor = SciFiCyan.copy(alpha = 0.1f)
+                )
+                Text(
+                    "REMAINING: ${(100 - zenProgress * 100).toInt()}%",
+                    color = SciFiCyan.copy(alpha = 0.4f),
+                    fontSize = 8.sp,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            } else {
+                Text(
+                    "ZEN MODE: CALIBRATED",
+                    color = SciFiGreen,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black
+                )
+            }
+
+            Spacer(Modifier.height(32.dp))
+            Button(
+                onClick = onFinish,
+                colors = ButtonDefaults.buttonColors(containerColor = SciFiGreen, contentColor = Color.Black),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Text("PROCEED TO DEBRIEF", fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryStat(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, color = SciFiWhite.copy(alpha = 0.4f), fontSize = 8.sp, letterSpacing = 1.sp)
+        Text(value, color = color, fontSize = 16.sp, fontWeight = FontWeight.Black)
     }
 }
 

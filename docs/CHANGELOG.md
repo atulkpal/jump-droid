@@ -4,6 +4,25 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-29 (Hotfix)
+
+**Version:** v2.1.2 — Startup Stability & Meta Polish
+
+**Status:** Implementation Complete — branch `bugfix/workmanager-crash`
+
+### Fixed — Critical Startup Crash
+- **R8 Proguard Lockdown**: Fixed a fatal `RuntimeException` where WorkManager's Room database implementation was being stripped in release builds. Added explicit `-keep` rules for `androidx.room` and `androidx.work` to ensure production stability.
+
+### Fixed — Zen Mode Persistence
+- **Lifetime Stat Sync**: Fixed the `StatRecorder` failure to persist cumulative altitude and max combo across sessions. Zen Mode now correctly tracks lifetime progress toward the 10,000m and 50x combo goals.
+
+### Added — Post-Expedition Summary
+- **Session Summary Screen**: Replaced the empty state after reward collection with a comprehensive performance debrief.
+- **Lore Sync Status**: Added a visual progress bar tracking total Codex/Archive completion percentage (0-100%).
+- **Calibration HUD**: Added a Zen Mode calibration bar to the summary screen to show real-time progress toward the next unlock while Zen Mode remains locked.
+
+---
+
 ## 2026-07-29
 
 **Version:** v2.1.1 — Tactical Polish Update

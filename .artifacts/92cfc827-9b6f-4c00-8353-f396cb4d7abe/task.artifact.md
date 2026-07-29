@@ -1,0 +1,18 @@
+- [x] Final Production Audit & Optimization
+    - [x] 1. Clean up Google Play Games Achievement IDs
+    - [x] 2. Enable Build Optimizations (Minification & Shrinking)
+    - [x] 3. Formalize ProGuard/R8 rules
+    - [x] 4. Refine Analytics Event Symmetry
+    - [x] 5. Fix Rewarded Ad Impression Logging
+    - [x] 6. Address Data Extraction Rules TODO
+    - [x] 7. Formalize Documentation (ANALYTICS.md & INVENTORY.md)
+- [x] Final Polish & Juice (Tactile Feel)
+    - [x] 1. Refine HapticManager TICK effect
+    - [x] 2. UI Polish: TitleScreen (Haptics + SFX)
+    - [x] 3. UI Polish: MainMenu (Haptics + SFX + Rank Text)
+    - [x] 4. UI Polish: Hangar (Haptics + Back SFX)
+    - [x] 5. UI Polish: Settings (Haptics + Back SFX)
+    - [x] 6. Impact Polish: GameEngine (Signal Discovery + Achievement weight)
+- [x] Verification & Build
+    - [x] Run gradle assembleRelease
+    - [x] Verify UI Haptics in Logcat (simulated)

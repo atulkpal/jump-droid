@@ -335,19 +335,18 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         if (isZenModeUnlocked) return
 
         // Requirements: 10,000m Cumulative Altitude, 5 Bosses Defeated, 50x Max Combo
-        val cumulativeAltitude = sharedPrefs.getInt("stat_lifetime_altitude", 0) + stats.maxAltitudeMeters
-        if (cumulativeAltitude >= 10000 && totalBossesKilled >= 5 && stats.maxCombo >= 50) {
+        if (statRecorder.lifetimeAltitude >= 10000 && totalBossesKilled >= 5 && statRecorder.maxComboEver >= 50) {
             isZenModeUnlocked = true
             sharedPrefs.edit { putBoolean("zen_unlocked", true) }
         }
     }
 
     fun getZenRequirements(): List<Triple<String, String, Float>> {
-        val cumulativeAltitude = sharedPrefs.getInt("stat_lifetime_altitude", 0)
-        val maxComboEver = sharedPrefs.getInt("stat_max_combo", 0)
+        val cumulativeAltitude = statRecorder.lifetimeAltitude
+        val maxComboEver = statRecorder.maxComboEver
         
         return listOf(
-            Triple("ALTITUDE", "${(cumulativeAltitude/1000f).toInt()}K / 10K", (cumulativeAltitude.toFloat() / 10000f).coerceIn(0f, 1f)),
+            Triple("ALTITUDE", "${cumulativeAltitude}m / 10K", (cumulativeAltitude.toFloat() / 10000f).coerceIn(0f, 1f)),
             Triple("BOSSES", "$totalBossesKilled / 5", (totalBossesKilled.toFloat() / 5f).coerceIn(0f, 1f)),
             Triple("MAX COMBO", "$maxComboEver / 50", (maxComboEver.toFloat() / 50f).coerceIn(0f, 1f))
         )
@@ -355,11 +354,10 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
 
     fun getZenUnlockProgress(): Float {
         if (isZenModeUnlocked) return 1f
-        val cumulativeAltitude = sharedPrefs.getInt("stat_lifetime_altitude", 0)
+        val cumulativeAltitude = statRecorder.lifetimeAltitude
         val altProgress = (cumulativeAltitude.toFloat() / 10000f).coerceIn(0f, 1f)
         val bossProgress = (totalBossesKilled.toFloat() / 5f).coerceIn(0f, 1f)
-        // Note: Max combo is per-run, we might want to track lifetime max combo too
-        val maxComboEver = sharedPrefs.getInt("stat_max_combo", 0)
+        val maxComboEver = statRecorder.maxComboEver
         val comboProgress = (maxComboEver.toFloat() / 50f).coerceIn(0f, 1f)
         
         return (altProgress + bossProgress + comboProgress) / 3f
@@ -471,6 +469,8 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
             hazards = maxOf(lifetimeHazards, (data["lifetimeHazards"] as? Long)?.toInt() ?: 0),
             artifacts = maxOf(lifetimeArtifacts, (data["lifetimeArtifacts"] as? Long)?.toInt() ?: 0),
             landings = maxOf(lifetimeLandings, (data["lifetimeLandings"] as? Long)?.toInt() ?: 0),
+            altitude = maxOf(statRecorder.lifetimeAltitude, (data["lifetimeAltitude"] as? Long)?.toInt() ?: 0),
+            maxCombo = maxOf(statRecorder.maxComboEver, (data["maxComboEver"] as? Long)?.toInt() ?: 0),
             missions = maxOf(lifetimeMissionsCompleted, (data["lifetimeMissionsCompleted"] as? Long)?.toInt() ?: 0)
         )
 
@@ -502,6 +502,8 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
             putInt("stat_lifetime_hazards", lifetimeHazards)
             putInt("stat_lifetime_artifacts", lifetimeArtifacts)
             putInt("stat_lifetime_landings", lifetimeLandings)
+            putInt("stat_lifetime_altitude", statRecorder.lifetimeAltitude)
+            putInt("stat_max_combo", statRecorder.maxComboEver)
             putInt("missions_completed", lifetimeMissionsCompleted)
             putStringSet("owned_modules", ownedModuleIds)
             putStringSet("completed_missions", completedMissionIds)

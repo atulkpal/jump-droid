@@ -450,6 +450,8 @@ fun JumpDroidApp(
         ) {
             ExpeditionRewardsOverlay(
                 pendingUnlocks = engine.pendingUnlocks,
+                progressionManager = engine.progressionManager,
+                sessionStats = engine.getGameStats(),
                 onClaimReward = { event ->
                     if (event is UnlockEvent.Mission) {
                         engine.missionManager.claimMissionRewards(event.mission.id, engine.player)
