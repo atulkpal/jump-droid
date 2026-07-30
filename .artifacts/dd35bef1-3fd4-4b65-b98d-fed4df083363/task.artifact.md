@@ -1,17 +1,16 @@
-# Task List - Final Zen Mode Hardening
+# Task List - Final Zen Mode Hardening (v2)
 
-- [x] Rename and Refactor Engine State
-    - [x] `GameEngine.kt`: Rename `gameMode` to `activeGameMode` and update all usages.
-- [x] Harden Encounter Logic
-    - [x] `EncounterDirector.kt`: Add redundant guards for all boss/mini-boss spawning paths.
-- [x] Silence UI Ceremonies
-    - [x] `GameEngine.kt`: Suppress achievement and discovery UI triggers in Zen mode.
-- [x] Implement Visual mode indicator
-    - [x] `HudWidgets.kt`: Create `ZenModeIndicator` component.
-    - [x] `GamePlayScreen.kt`: Integrate indicator into HUD layer.
-- [x] Overhaul GameOver UI
-    - [x] `GameOverOverlay.kt`: Hide continue section, credits, and ad-links in Zen mode.
-    - [x] `GameOverOverlay.kt`: Add "RE-DEPLOY ZEN MODE" button and mode-specific header.
+- [x] Robust State Reset (`GameEngine.kt`)
+    - [x] Refactor `restartGame` to ensure platforms and stats are cleared even if screen dimensions aren't ready.
+- [x] Fix Incomplete Mode Propagation (`MainActivity.kt`)
+    - [x] Update Pause, Hangar, and Game Over restart lambdas to pass `activeGameMode`.
+- [x] Harden Encounter Logic (`EncounterDirector.kt`)
+    - [x] Verified redundant guards for all boss/mini-boss spawning paths.
+- [x] UI Mode Visibility (`GamePlayScreen.kt`)
+    - [x] Wired `ZenModeIndicator` to `activeGameMode`.
+    - [x] Hidden mission and achievement cards when in Zen mode.
+- [x] One-Life Lockdown (`GameOverOverlay.kt`)
+    - [x] Strictly hidden continue section and credits for Zen runs.
 - [x] Verification
-    - [x] Final `gradle_build`.
-    - [x] Manual confirmation of boss-free Zen gameplay.
+    - [x] Full `gradle_build` success.
+    - [x] Logical proof of mode persistence.

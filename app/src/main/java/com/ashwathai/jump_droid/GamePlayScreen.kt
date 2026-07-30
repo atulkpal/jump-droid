@@ -318,7 +318,7 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
             zone = altitudeManager.currentZone
         )
 
-        if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
+        if (engine.activeGameMode != GameMode.ZEN && (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN)) {
             MissionProgressCard(
                 activeMissions = engine.missionManager.activeMissions,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp)

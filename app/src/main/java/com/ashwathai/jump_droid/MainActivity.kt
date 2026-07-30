@@ -295,7 +295,7 @@ fun JumpDroidApp(
                     when (state) {
                         GameState.PLAYING -> {
                             engine.gameState = GameState.PLAYING
-                            engine.restartGame()
+                            engine.restartGame(engine.activeGameMode)
                             navController.navigate("game")
                         }
                         GameState.MAIN_MENU -> navController.navigate("main_menu")
@@ -406,7 +406,7 @@ fun JumpDroidApp(
                     navController.popBackStack() 
                 },
                 onRestart = { 
-                    engine.restartGame()
+                    engine.restartGame(engine.activeGameMode)
                     navController.popBackStack() 
                 },
                 onMainMenu = {
@@ -443,7 +443,7 @@ fun JumpDroidApp(
                     navController.popBackStack()
                 },
                 onRestart = { 
-                    engine.restartGame()
+                    engine.restartGame(engine.activeGameMode)
                     navController.popBackStack()
                 },
                 onMainMenu = {
@@ -558,7 +558,7 @@ fun JumpDroidApp(
                     when (state) {
                         GameState.PLAYING -> { 
                             engine.gameState = GameState.PLAYING
-                            engine.restartGame()
+                            engine.restartGame(engine.activeGameMode)
                             navController.navigate("game") 
                         }
                         GameState.MAIN_MENU -> navController.navigate("main_menu")

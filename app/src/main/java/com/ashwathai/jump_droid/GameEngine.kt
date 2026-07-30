@@ -209,7 +209,7 @@ class GameEngine(
             }
         }
         threatManager.onThreatDestroyed = { def ->
-            if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
+            if (activeGameMode != GameMode.ZEN && (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS)) {
                 totalBossesDefeated++
                 if (def.type == ThreatType.BOSS) runBossesDefeated++ else runMiniBossesDefeated++
                 
@@ -1260,28 +1260,16 @@ class GameEngine(
     fun generatePlatform(lastY: Float): Platform = platformManager.generate(runAltitude, screenWidth, lastY)
 
     fun restartGame(mode: GameMode = GameMode.STANDARD) {
-        if (screenWidth <= 0f) return
         activeGameMode = mode
         analytics.logGameStart(player.rocketType)
-        player.x = screenWidth / 2f
-        player.y = groundY
-        player.velocityX = 0f; player.velocityY = 0f
         
-        // RE-INITIALIZE ROCKET STATS (Fix for restart regression)
-        player.maxFuel = com.ashwathai.jump_droid.Constants.BASE_FUEL_CAPACITY * player.rocketType.fuelMult
-        player.fuel = player.maxFuel
-        player.maxIntegrity = progressionManager.permanentMaxIntegrity + progressionManager.getHullBonusAmount()
-        player.integrity = player.maxIntegrity
-        player.maxShield = progressionManager.permanentMaxShield
-        player.shield = player.maxShield
-        player.maxHeat = com.ashwathai.jump_droid.Constants.MAX_HEAT * player.rocketType.heatMult
-
+        // --- Core State Reset (Must happen even if screenWidth is 0) ---
+        player.velocityX = 0f; player.velocityY = 0f
         player.isOverheated = false; player.lastPlatform = null; player.combo = 0
         player.invulnerabilityTimer = 0f
         player.destructionTimer = 0f
         score = 0; visualScore = 0; runAltitude = 0; cameraY = 0f; baseAltitude = 0f; continuesUsed = 0; runBossesDefeated = 0; runMiniBossesDefeated = 0; airborneTimer = 0f; noOverheatTimer = 0f
         altitudePoints = 0; platformPoints = 0; bossPoints = 0; comboPoints = 0
-        highestYReached = player.y
         zoneLoreTeasers.clear()
         artifactLoreType = null
         artifactLoreTimer = 0f
@@ -1291,13 +1279,29 @@ class GameEngine(
         powerUpManager.powerUps.clear(); threatManager.clear(); projectileManager.clear(); bossesSpawned.clear()
         bossArrivalTimer = 0f; bossArrivalEvent = null; zoneTransitionTimer = 0f
         
-        var currentY = groundY - 250f
-        repeat(15) { generatePlatform(currentY).let { platforms.add(it); currentY = it.y } }
-        
+        // Re-initialize rocket stats
+        player.maxFuel = com.ashwathai.jump_droid.Constants.BASE_FUEL_CAPACITY * player.rocketType.fuelMult
+        player.fuel = player.maxFuel
+        player.maxIntegrity = progressionManager.permanentMaxIntegrity + progressionManager.getHullBonusAmount()
+        player.integrity = player.maxIntegrity
+        player.maxShield = progressionManager.permanentMaxShield
+        player.shield = player.maxShield
+        player.maxHeat = com.ashwathai.jump_droid.Constants.MAX_HEAT * player.rocketType.heatMult
+
         altitudeManager.updateAltitude(0)
         soundManager.playZoneMusic(AltitudeZone.EARTH)
         progressionManager.unlockMusicTrack("bgm_earth")
         gameState = if (activeGameMode == GameMode.ZEN) GameState.ZEN else GameState.PLAYING
+
+        // --- World Generation (Requires valid dimensions) ---
+        if (screenWidth <= 0f) return
+        
+        player.x = screenWidth / 2f
+        player.y = groundY
+        highestYReached = player.y
+        
+        var currentY = groundY - 250f
+        repeat(15) { generatePlatform(currentY).let { platforms.add(it); currentY = it.y } }
     }
 
     // --- Developer Cheats ---
