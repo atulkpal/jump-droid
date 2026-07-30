@@ -230,6 +230,11 @@ All changes MUST go through an appropriate branch and be merged via pull request
 ### Violations
 Any agent committing directly to `master` will have their changes reverted. The correct branch must be created and a PR opened.
 
+### Semantic Versioning Policy
+- **Patch (Bug) version**: Increment for any bug fix.
+- **Minor version**: Increment for any feature addition, removal, or update.
+- **Major version & Version Code**: Only change when explicitly instructed by the user.
+
 ---
 
 ## 15. Design Library First Rule
