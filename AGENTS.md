@@ -147,9 +147,18 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 3.  **Visual Validation**: Mandatory for UI. Provide **BEFORE** and **AFTER** screenshots saved to `docs/screenshots/`.
 
 ### Skill-Driven Execution
-Before implementing any task, the agent MUST check `agents-skill.md` and the
-`skills/` directory. If a skill matches the intent, invoke it via the `skill`
-tool and follow its workflow exactly. Bypassing skills is never valid.
+
+Skills are constitutional requirements, not optional guidance.
+
+For EVERY request:
+
+1. Read `agents-skill.md`.
+2. Resolve applicable skills.
+3. Read every matching `skills/<skill>/SKILL.md`.
+4. Announce the selected skill(s) before implementation.
+5. Execute the selected workflow exactly as written.
+
+Bypassing Skill Resolution or implementing before loading the required skills is a protocol violation.
 
 ### Documentation Preservation Policy
 *   **No Silent Deletions**: Consolidation is encouraged; removal of knowledge is prohibited.
@@ -171,11 +180,19 @@ Agent-specific files (e.g. `agent-opencode.md`) are **OPTIONAL**. They may suppl
 ---
 
 ## 11. Onboarding Flow
-1.  Read **`AGENTS.md`** (this file) for constitution and memory.
-2.  Consult **`docs/JumpDroid_EPIC_Tracker.md`** for current milestone status.
-3.  Review **`docs/INVENTORY.md`** to locate relevant technical specs.
-4.  Load relevant skills from **`agents-skill.md`** — check `skills/` for matching workflows.
-5.  Execute a **`gradle_build`** to ensure a stable environment.
+1. Read **`AGENTS.md`** (this file) completely. This document is the constitutional authority for the project.
+2. Read **`agents-skill.md`** completely before any reasoning or implementation.
+3. Perform **Skill Resolution (MANDATORY)**:
+   - Determine whether one or more skills apply to the current request.
+   - Read every matching `skills/<skill>/SKILL.md` in full.
+   - State the selected skill(s) before proceeding.
+   - Follow every selected skill exactly.
+   - If no skill applies, explicitly state that no applicable skill exists.
+4. Consult **`docs/JumpDroid_EPIC_Tracker.md`** for current milestone status.
+5. Review **`docs/INVENTORY.md`** to locate relevant technical specifications and supporting documentation.
+6. Execute a **`gradle_build`** to ensure the project is in a stable state before making changes.
+
+**Protocol Violation:** Beginning planning, reasoning, coding, documentation, or refactoring before completing Skill Resolution is a violation of this constitution.
 
 ---
 

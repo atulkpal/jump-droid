@@ -74,19 +74,21 @@ fun GameOverOverlay(
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
-        StarfieldBackground(Modifier.fillMaxSize(), starCount = 50, alphaRange = 0.1f..0.4f, starColor = Color(0xFFD32F2F))
+        StarfieldBackground(Modifier.fillMaxSize(), starCount = 50, alphaRange = 0.1f..0.4f, starColor = if (isZenMode) SciFiPurple else Color(0xFFD32F2F))
         
-        // --- TOP CURRENCY HUD ---
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(16.dp)
-                .statusBarsPadding(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            CurrencyBadge(label = "CREDITS", value = progressionManager.creditBalance.toString(), color = SciFiGold)
-            CurrencyBadge(label = "CASH", value = progressionManager.totalCash.toString(), color = SciFiGreen)
+        // --- TOP CURRENCY HUD (Hidden in Zen) ---
+        if (!isZenMode) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .statusBarsPadding(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                CurrencyBadge(label = "CREDITS", value = progressionManager.creditBalance.toString(), color = SciFiGold)
+                CurrencyBadge(label = "CASH", value = progressionManager.totalCash.toString(), color = SciFiGreen)
+            }
         }
 
         Canvas(Modifier.fillMaxSize()) {
@@ -97,7 +99,7 @@ fun GameOverOverlay(
             repeat(20) {
                 val x = Random.nextFloat() * w + sin(ft * 2f + it * 1.3f) * 2f
                 val y = Random.nextFloat() * h
-                drawCircle(SciFiRed.copy(alpha = 0.06f), radius = 0.5f + Random.nextFloat(), center = Offset(x, y))
+                drawCircle((if (isZenMode) SciFiPurple else SciFiRed).copy(alpha = 0.06f), radius = 0.5f + Random.nextFloat(), center = Offset(x, y))
             }
         }
 
@@ -155,13 +157,13 @@ fun GameOverOverlay(
             Surface(
                 color = SciFiSurface,
                 shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse)),
+                border = BorderStroke(1.dp, (if (isZenMode) SciFiPurple else SciFiBorder).copy(alpha = borderPulse)),
                 modifier = Modifier.fillMaxWidth().graphicsLayer(scaleX = contentAnim, scaleY = contentAnim, alpha = contentAlpha)
             ) {
                 Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     val isNewRecord = score > highScore && highScore > 0
                     
-                    Text("TOTAL SCORE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                    Text(if (isZenMode) "ZEN SCORE" else "TOTAL SCORE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
                     Text(
                         "$score",
                         color = if (isNewRecord) SciFiGold else SciFiWhite,
@@ -188,14 +190,14 @@ fun GameOverOverlay(
                     }
 
                     Spacer(Modifier.height(16.dp))
-                    Text("RECORD SCORE", color = SciFiGold.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                    Text(if (isZenMode) "ZEN RECORD" else "RECORD SCORE", color = SciFiGold.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
                     Text("$highScore", color = SciFiGold, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
                     Spacer(Modifier.height(12.dp))
                     Text("TELEMETRY PROCESSED BY ASHWATH.AI", color = SciFiWhite.copy(alpha = 0.15f), fontSize = 7.sp, letterSpacing = 1.sp)
 
                     Spacer(Modifier.height(16.dp))
-                    HorizontalDivider(color = SciFiBorder.copy(alpha = 0.3f), thickness = 1.dp)
+                    HorizontalDivider(color = (if (isZenMode) SciFiPurple else SciFiBorder).copy(alpha = 0.3f), thickness = 1.dp)
                     Spacer(Modifier.height(16.dp))
 
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
@@ -358,20 +360,9 @@ fun GameOverOverlay(
                         )
                         Spacer(Modifier.height(12.dp))
                     }
-                } else {
-                    // ZEN MODE HEADER
-                    Text(
-                        text = "ZEN MODE EXPEDITION ENDED",
-                        color = SciFiPurple,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
                 }
 
-                // Credit management row (Only for standard)
+                // Credit management row (Hidden in Zen)
                 if (!isZenMode) {
                     Spacer(Modifier.height(4.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {

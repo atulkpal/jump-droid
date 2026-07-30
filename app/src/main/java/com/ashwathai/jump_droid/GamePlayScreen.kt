@@ -135,7 +135,7 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
             // Critical Recovery: Ensure game is initialized with correct dimensions
             if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
                 if (engine.platforms.isEmpty()) {
-                    engine.restartGame(engine.gameMode)
+                    engine.restartGame(engine.activeGameMode)
                 }
             }
         }
@@ -256,6 +256,14 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
             highScore = engine.progressionManager.highScore,
             zone = altitudeManager.currentZone
         )
+
+        if (engine.activeGameMode == GameMode.ZEN) {
+            ZenModeIndicator(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 110.dp)
+            )
+        }
 
         TopRightUtilityButtons(
             modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).statusBarsPadding(),

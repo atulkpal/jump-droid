@@ -1,42 +1,59 @@
-# Implementation Plan - Hard Mode Isolation (Zen Mode Fixes)
+# Implementation Plan - Zen Mode Hardening (Final)
 
-This plan fixes the leakage of bosses, achievements, and continues into Zen Mode, ensuring a truly "Peaceful Glide" experience.
+This plan applies "Nuke it from orbit" guards to Zen Mode to ensure a 100% boss-free, achievement-free, and continue-free experience, while adding clear visual feedback during gameplay.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Zen Mode Purity**: I am applying stricter guards across the engine to ensure that **no bosses** (including random mini-boss fallbacks) can spawn in Zen mode.
+> **Active Mode State**: I am renaming the internal mode state to `activeGameMode` to eliminate any possible shadowing or ambiguity in the logic.
 >
-> **Zero Interruptions**: Achievements and discovery ceremonies will be completely silenced during Zen runs. These will remain exclusive to the Standard mode.
+> **Encounter Hardening**: The `EncounterDirector` will now have explicit, redundant guards for all boss-spawning paths.
 
 ## Proposed Changes
 
-### 1. Engine & Logic (Isolation)
-
-#### [MODIFY] [EncounterDirector.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/EncounterDirector.kt)
-- Wrap the following spawning paths in `if (gameMode != GameMode.ZEN)`:
-    - **Fallback Mini-Bosses**: Prevents random mini-bosses from appearing when no main boss is active.
-    - **Reinforcements**: Prevents bosses (if any somehow spawned) from summoning escorts or hazards.
-    - **Recurrence Logic**: (Already partially guarded, but will double-check).
+### 1. Data & Logic Hardening
 
 #### [MODIFY] [GameEngine.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameEngine.kt)
-- **Silence Ceremonies**: Update `showUnlockEvent` to return early if `currentMode == GameMode.ZEN`. This prevents any achievement or mission completion popups.
-- **Discovery Guard**: Update `checkDiscovery` to skip rank updates and notification/ceremony triggers if in Zen mode. (Discoveries will still be recorded in the background but won't interrupt flight).
+- Rename `gameMode` property to `activeGameMode` for absolute clarity.
+- Update `showUnlockEvent` to return early if `activeGameMode == ZEN`.
+- Update `checkDiscovery` to skip ALL UI/Progression side effects if `activeGameMode == ZEN`.
+- Update `update()` loop to strictly skip mission progress if `activeGameMode == ZEN`.
+- Update `endRun()` to correctly route to `commitZenStats` and prevent boss-kill attribution if in Zen mode.
+- Update `restartGame()` to correctly set `activeGameMode`.
+
+#### [MODIFY] [EncounterDirector.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/EncounterDirector.kt)
+- Add explicit, separate guards for:
+    - **Milestone Bosses**: Skip entirely in Zen mode.
+    - **Fallback Mini-Bosses**: Skip entirely in Zen mode.
+    - **Boss Recurrence**: Skip entirely in Zen mode.
+    - **Reinforcements**: Skip entirely in Zen mode.
 
 ---
 
-### 2. UI Layer (GameOver Cleanup)
+### 2. UI Hardening & Visual Feedback
+
+#### [NEW] [HudWidgets.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/HudWidgets.kt)
+- Add `ZenModeIndicator()`: A minimalist, centered HUD element.
+- Display "ZEN MODE // PEACEFUL GLIDE" in SciFiPurple with a slow, calming pulse animation.
+- Positioned right below the primary Altitude Display.
+
+#### [MODIFY] [GamePlayScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GamePlayScreen.kt)
+- Integrate the `ZenModeIndicator` into the HUD layer when `engine.activeGameMode == ZEN`.
 
 #### [MODIFY] [GameOverOverlay.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameOverOverlay.kt)
-- **Total Continue Suppression**: Ensure the entire "Credits" and "Ad-Link" UI is hidden when `isZenMode` is true.
-- **Header Refinement**: Update the "COMMUNICATION LOST" header to "EXPEDITION COMPLETE" or similar when in Zen mode to differentiate it from the "Failure" feel of standard mode.
+- Explicitly hide the **Entire Continue Section** and **Credit Row** if `isZenMode` is true.
+- Add a purple-themed "RE-DEPLOY ZEN MODE" button that replaces the standard restart button to provide clear mode feedback.
+
+#### [MODIFY] [MainActivity.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/MainActivity.kt)
+- Ensure `isZenMode` parameter for `GameOverOverlay` is correctly wired to `engine.activeGameMode`.
 
 ## Verification Plan
 
 ### Automated Tests
-- `gradle_build` to verify UI hierarchy remains valid.
+- `gradle_build` to verify syntax and consistency.
 
 ### Manual Verification
-1.  **Zen Run (10km+)**: Fly past 10,000m in Zen mode. Verify zero bosses appear.
-2.  **Achievement Test**: Perform an action that would trigger an achievement (e.g., land on a new platform type). Verify no popup appear.
-3.  **Death Flow**: Crash the ship. Verify no "Continue" buttons or "Credits" are visible; only the "Re-Deploy" and "Return to Base" options should remain.
+1.  **Zen Purity Test**: Reach 20,000m in Zen mode. Verify 0 bosses, 0 mini-bosses, and 0 achievement popups.
+2.  **Visual Indicator**: During Zen gameplay, verify the purple "ZEN MODE" indicator is visible below the altitude.
+3.  **Death Protocol**: Crash in Zen mode. Verify the Game Over screen has NO continue buttons, NO credits, and shows "ZEN EXPEDITION ENDED".
+4.  **Mode Switch**: Start a standard run. Verify bosses and achievements work normally.

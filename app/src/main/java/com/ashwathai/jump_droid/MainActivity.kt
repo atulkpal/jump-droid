@@ -437,7 +437,7 @@ fun JumpDroidApp(
                 isPremiumUser = engine.isPremiumUser,
                 runBossesDefeated = engine.runBossesDefeated,
                 bestComboThisRun = engine.comboManager.bestComboThisRun,
-                isZenMode = engine.gameMode == GameMode.ZEN,
+                isZenMode = engine.activeGameMode == GameMode.ZEN,
                 onContinue = { 
                     engine.continueRun()
                     navController.popBackStack()

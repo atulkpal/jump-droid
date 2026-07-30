@@ -1,14 +1,17 @@
-# Task List - Hard Mode Isolation (Zen Mode Fixes)
+# Task List - Final Zen Mode Hardening
 
-- [x] Hardening Engine Isolation (`EncounterDirector.kt`)
-    - [x] Wrap fallback mini-boss spawning in Zen Mode check
-    - [x] Wrap boss reinforcements in Zen Mode check
-- [x] Silence Ceremonies (`GameEngine.kt`)
-    - [x] Suppress `showUnlockEvent` in Zen mode
-    - [x] Suppress `checkDiscovery` notifications/ranks in Zen mode
-- [x] UI Hardening (`GameOverOverlay.kt`)
-    - [x] Hide all continue and credit UI in Zen mode
-    - [x] Update header for Zen Mode completion
+- [x] Rename and Refactor Engine State
+    - [x] `GameEngine.kt`: Rename `gameMode` to `activeGameMode` and update all usages.
+- [x] Harden Encounter Logic
+    - [x] `EncounterDirector.kt`: Add redundant guards for all boss/mini-boss spawning paths.
+- [x] Silence UI Ceremonies
+    - [x] `GameEngine.kt`: Suppress achievement and discovery UI triggers in Zen mode.
+- [x] Implement Visual mode indicator
+    - [x] `HudWidgets.kt`: Create `ZenModeIndicator` component.
+    - [x] `GamePlayScreen.kt`: Integrate indicator into HUD layer.
+- [x] Overhaul GameOver UI
+    - [x] `GameOverOverlay.kt`: Hide continue section, credits, and ad-links in Zen mode.
+    - [x] `GameOverOverlay.kt`: Add "RE-DEPLOY ZEN MODE" button and mode-specific header.
 - [x] Verification
-    - [x] Run `gradle_build`
-    - [x] Manual verification of Zen mode purity
+    - [x] Final `gradle_build`.
+    - [x] Manual confirmation of boss-free Zen gameplay.

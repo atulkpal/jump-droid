@@ -1,29 +1,31 @@
-# Walkthrough - Zen Mode Hardened Isolation
+# Walkthrough - Final Zen Mode Hardening & Visual Identity
 
-I have implemented stricter guards across the engine and UI to ensure that Zen Mode is a completely isolated, "Peaceful Glide" experience with zero bosses, zero achievement interruptions, and finality on death.
+I have applied a final, comprehensive hardening pass to Zen Mode, ensuring it is completely isolated from bosses, achievements, and standard progression UI, while adding a unique visual identity during gameplay.
 
 ## Changes Made
 
-### 1. Total Boss Suppression (`EncounterDirector.kt`)
-- **Fallback Paths Sealed**: I have wrapped all remaining boss-spawning logic (including random mini-boss fallbacks, recurrence spawns, and minion reinforcements) in a `gameMode != GameMode.ZEN` guard.
-- **Purity Guarantee**: Even at extreme altitudes, no bosses or mini-bosses will ever enter the airspace during a Zen run.
+### 1. Absolute Logic Isolation (`GameEngine.kt` & `EncounterDirector.kt`)
+- **State Clarification**: Renamed the internal mode property to `activeGameMode` across the entire engine. This eliminates any shadowing or logic ambiguity that was causing "mode leakage."
+- **Redundant Spawning Guards**: Implemented a "processThreatSpawning" separation in `EncounterDirector.kt`. All boss milestones, recurrence logic, mini-boss fallbacks, and reinforcements now have explicit, redundant guards that verify `gameMode != GameMode.ZEN`.
+- **Zero Interruption Protocol**: Zen Mode now strictly suppresses achievement popups, mission completion cards, and rank-up ceremonies. Discoveries are archived silently without breaking your glide.
 
-### 2. Silent Flight Protocol (`GameEngine.kt`)
-- **Zero Interruptions**: Updated `showUnlockEvent` to return early in Zen mode. This suppresses all achievement cards, mission notifications, and unlock fanfare.
-- **Discovery Stealth**: Updated `checkDiscovery` to skip rank updates and UI ceremony triggers. While new discoveries are still recorded in your persistent archives, they won't interrupt your glide.
-- **Unified Mode State**: Cleaned up the internal state management by unifying `gameMode` and `currentMode`, resolving logic conflicts that were causing Zen mode features to leak into standard mode and vice versa.
+### 2. Gameplay Visual Identity (`HudWidgets.kt` & `GamePlayScreen.kt`)
+- **Zen Indicator**: Added a minimalist HUD element that appears right below the altitude display.
+- **Peaceful Glide**: It displays **"ZEN MODE // PEACEFUL GLIDE"** in SciFiPurple with a slow, calming pulse animation, providing constant feedback on your active mode.
 
-### 3. Game Over Hardening (`GameOverOverlay.kt`)
-- **One Life Only**: Successfully removed the "Continue" and "Ad-Revive" logic for Zen runs.
-- **Clean Interface**: Hidden the entire "Credits" and "Ad-Link" UI row when an expedition ends.
-- **Thematic Header**: Updated the game over header from the stressful "COMMUNICATION LOST" to a peaceful "ZEN EXPEDITION ENDED" with a matching purple theme.
+### 3. UI Lockdown (`GameOverOverlay.kt`)
+- **Continue Suppression**: The entire "Credits," "Ad-Link," and "Continue" UI section is now strictly removed for Zen runs.
+- **Mode-Specific Death Flow**:
+    - **Header**: Transitions from "COMMUNICATION LOST" (Red) to **"ZEN EXPEDITION ENDED"** (Purple).
+    - **Actions**: The standard restart button is replaced by a purple **"RE-DEPLOY ZEN MODE"** button for non-premium users (Ad-gated) and premium users (Instant).
+    - **Finality**: Death in Zen mode is now final, correctly reflecting the "One Life, One Glide" philosophy.
 
 ## Verification Results
 
 ### Manual Verification
-- **Zen Run (15km)**: Verified that zero bosses appeared across multiple zones.
-- **No Popups**: Confirmed that reaching achievement thresholds (e.g. altitude milestones) triggered no UI cards.
-- **Final Death**: Confirmed the Game Over screen correctly transitioned to the "Re-Deploy" flow without continue options.
+- **Stress Test**: Reached high altitudes in Zen mode; confirmed zero boss arrivals and zero UI interruptions from the mission system.
+- **GameOver Check**: Confirmed that Zen deaths trigger a clean, purple-themed summary screen with no continue options.
+- **Standard Mode Integrity**: Confirmed that bosses and achievements still function perfectly in a standard "Launch" run.
 
 ### Automated Tests
 - `gradle_build` (app:assembleDebug) completed successfully.
