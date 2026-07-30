@@ -25,7 +25,8 @@ All notable changes to this project are recorded as dated engineering events.
 - **Intelligence Network Fixes**: Fixed a critical bug where falling off the screen bypassed lifetime stat commitment. All game-over states now correctly contribute to Zen unlock progress.
 
 ### Fixed — Mission Reward Stability
-- **Card Flow Lockdown**: Refactored the `RewardCardLarge` gesture state machine to prevent intermittent UI freezes on repeated runs.
+- **Hardened Flick Gestures**: Replaced legacy pointer loop with `VelocityTracker` and `detectHorizontalDragGestures` in the Reward Card deck. Resolved "breaking" flick bug by implementing speed-sensitive dismissal logic and physics-based throw animations.
+- **Card Flow Lockdown**: Fixed intermittent UI freezes on repeated runs by ensuring proper state reset between card transitions.
 
 ---
 

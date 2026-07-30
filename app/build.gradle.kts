@@ -79,6 +79,7 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
+    implementation(libs.google.play.services.database)
     implementation(libs.google.play.services.auth)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)

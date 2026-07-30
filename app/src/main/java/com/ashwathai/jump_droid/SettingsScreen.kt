@@ -42,6 +42,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -52,6 +57,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import android.content.Context
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
+import androidx.core.app.NotificationCompat
 import com.ashwathai.jump_droid.ui.theme.SciFiBackground
 import com.ashwathai.jump_droid.ui.theme.SciFiBorder
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
@@ -392,6 +404,38 @@ fun SettingsScreen(
                     )
                 }
                 Spacer(Modifier.height(16.dp))
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { isGranted ->
+                    if (isGranted) {
+                        showTestNotification(context)
+                    } else {
+                        android.widget.Toast.makeText(context, "Notification permission denied", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        soundManager?.playSfx("sfx_ui_confirm")
+                        hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                        
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                                showTestNotification(context)
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        } else {
+                            showTestNotification(context)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.1f), contentColor = SciFiCyan),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.3f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("TRIGGER TEST NOTIFICATION", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 11.sp)
+                }
+                Spacer(Modifier.height(16.dp))
                 GlobalAdBanner()
                 Spacer(Modifier.weight(1f))
                 Button(
@@ -411,6 +455,45 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+fun showTestNotification(context: Context) {
+    val channelId = "jump_droid_general"
+    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channel = NotificationChannel(
+            channelId,
+            "Jump Droid Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Game updates, lore discoveries, and mission alerts"
+            enableLights(true)
+            lightColor = android.graphics.Color.CYAN
+            enableVibration(true)
+        }
+        manager.createNotificationChannel(channel)
+    }
+
+    val intent = Intent(context, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+    }
+    val pendingIntent = PendingIntent.getActivity(
+        context, 0, intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    val notification = NotificationCompat.Builder(context, channelId)
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setContentTitle("JUMP DROID // INCOMING")
+        .setContentText("Tactical update received. The Singularity is approaching.")
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+        .setAutoCancel(true)
+        .setContentIntent(pendingIntent)
+        .build()
+
+    manager.notify(System.currentTimeMillis().toInt(), notification)
 }
 
 @Composable

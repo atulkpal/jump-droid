@@ -337,6 +337,7 @@ fun JumpDroidApp(
                         GameState.MISSIONS -> navController.navigate("missions")
                         GameState.LEADERBOARD -> navController.navigate("leaderboard")
                         GameState.SHOP -> navController.navigate("shop")
+                        GameState.MULTIPLAYER -> navController.navigate("multiplayer")
                         else -> {}
                     }
                 },
@@ -641,6 +642,18 @@ fun JumpDroidApp(
                 progressionManager = engine.progressionManager,
                 purchaseManager = engine.purchaseManager,
                 soundManager = engine.soundManager,
+                onDismiss = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = "multiplayer",
+            enterTransition = { slideInHorizontally { it } + fadeIn(animationSpec = tween(300)) },
+            exitTransition = { slideOutHorizontally { -it } + fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
+        ) {
+            MultiplayerScreen(
+                engine = engine,
                 onDismiss = { navController.popBackStack() }
             )
         }

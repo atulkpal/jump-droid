@@ -11,8 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.input.pointer.*
-import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.*
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -262,29 +264,41 @@ private fun RewardCardLarge(
             )
             .pointerInput(isTop, isDismissed) {
                 if (!isTop || isDismissed) return@pointerInput
-                awaitPointerEventScope {
-                    val down = awaitFirstDown()
-                    while (true) {
-                        val pointerEvent = awaitPointerEvent()
-                        val change = pointerEvent.changes.first()
-                        if (change.pressed) {
-                            val dragAmount = change.position.x - change.previousPosition.x
-                            scope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
-                            change.consume()
-                        } else {
-                            if (kotlin.math.abs(offsetX.value) > 130f) {
-                                isDismissed = true
-                                scope.launch {
-                                    offsetX.animateTo(if (offsetX.value > 0) 700f else -700f, tween(300))
-                                    onDismiss()
-                                }
-                            } else {
-                                scope.launch { offsetX.animateTo(0f, SpringSpec(dampingRatio = Spring.DampingRatioMediumBouncy)) }
+                val velocityTracker = VelocityTracker()
+                detectHorizontalDragGestures(
+                    onDragStart = { velocityTracker.resetTracking() },
+                    onHorizontalDrag = { change, dragAmount ->
+                        scope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
+                        velocityTracker.addPosition(change.uptimeMillis, change.position)
+                        change.consume()
+                    },
+                    onDragEnd = {
+                        val velocity = velocityTracker.calculateVelocity().x
+                        val currentOffset = offsetX.value
+                        val shouldDismiss = currentOffset > 140f || currentOffset < -140f || velocity > 800f || velocity < -800f
+                        
+                        if (shouldDismiss) {
+                            isDismissed = true
+                            scope.launch {
+                                offsetX.animateTo(
+                                    targetValue = if (offsetX.value > 0 || (offsetX.value == 0f && velocity > 0)) 800f else -800f,
+                                    initialVelocity = velocity,
+                                    animationSpec = tween(350, easing = LinearOutSlowInEasing)
+                                )
+                                onDismiss()
                             }
-                            break
+                        } else {
+                            scope.launch {
+                                offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+                            }
+                        }
+                    },
+                    onDragCancel = {
+                        scope.launch {
+                            offsetX.animateTo(0f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
                         }
                     }
-                }
+                )
             },
         color = Color(0xFF1A1A1A),
         shape = RoundedCornerShape(16.dp),

@@ -4,6 +4,25 @@ All official releases with build artifacts and key changes.
 
 ---
 
+## v2.2.0 — Fleet Terminal & Hangar Ascension
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-29 |
+| **Version Code** | 11 |
+| **Tag** | `v2.2.0` |
+| **Branch** | `feature/remote-announcements` |
+| **Status** | 🚀 Production Deployment |
+
+### Highlights
+- **Fleet Terminal**: Firestore aggregate sync (99% read reduction) and write-squelching.
+- **Hangar Restoration**: Pentagon stat chart and consolidated Command Console.
+- **Hardened Gestures**: Velocity-sensitive flick physics for expedition reward cards.
+- **Zen Immersion**: Binary rain backgrounds and flickering telemetry for locked states.
+- **Intelligence Fixes**: Lifetime stat commitment during all game-over scenarios.
+
+---
+
 ## v2.1.1 — Tactical Polish Update
 
 | Field | Value |

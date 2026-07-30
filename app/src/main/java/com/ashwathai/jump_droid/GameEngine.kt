@@ -54,6 +54,7 @@ class GameEngine(
     val cloudSyncManager = CloudSyncManager(loginManager, progressionManager, loadoutManager, sharedPrefs)
     val leaderboardManager = LeaderboardManager(loginManager, sharedPrefs)
     val gamesAchievementManager = GamesAchievementManager(activity)
+    val multiplayerManager = MultiplayerManager(loginManager)
 
     val platforms = mutableStateListOf<Platform>()
     val flyingRewards = mutableStateListOf<FlyingReward>()

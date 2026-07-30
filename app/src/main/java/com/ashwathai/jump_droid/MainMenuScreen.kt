@@ -409,6 +409,10 @@ fun MainMenuScreen(
                 exit = shrinkVertically()
             ) {
                 Column {
+                    if (BuildConfig.DEBUG) {
+                        GhostButton("MULTIPLAYER", SciFiCyan, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_station_trm) { onNavigate(GameState.MULTIPLAYER) }
+                        Spacer(Modifier.height(8.dp))
+                    }
                     GhostButton("HANGAR", SciFiGold, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_hangar) { onNavigate(GameState.HANGAR) }
                     Spacer(Modifier.height(8.dp))
                     GhostButton("MISSIONS", SciFiCyan, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_missions) { onNavigate(GameState.MISSIONS) }
