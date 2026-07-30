@@ -4,6 +4,27 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-30 (Intelligence Integrity & Terminal Mastery)
+
+**Version:** v2.2.2 — Intelligence Integrity & Tactical Polish
+
+**Status:** Implementation Complete — branch `bugfix/telemetry-integrity-overhaul`
+
+### Added — Statistical Integrity & Migration
+- **Self-Correction Engine**: Updated `StatRecorder.kt` with an intelligence layer that detects and fixes data inconsistencies (e.g., Total Distance < Best Ascent). Migrates legacy data to ensure cumulative stats reflect actual flight history.
+- **Expedition Tracker**: Activated the `totalRuns` metric across the persistence and cloud-sync layers to track every unique pilot sortie.
+
+### Improved — Fleet Terminal Overhaul
+- **Score vs. Ascent Separation**: Overhauled the Telemetry Grid to explicitly distinguish between **BEST ASCENT** (physical height record) and **MAX SCORE** (pilot mastery record).
+- **Metric Expansion**: Added **TOTAL DISTANCE**, **EXPEDITIONS**, **MAX COMBO**, **ARTIFACTS**, **CASH EARNED**, and **PERFECT LANDINGS** to the core dashboard.
+- **Log Precision**: Updated the Historical Expedition Log to **PILOT MASTERY** and removed misleading meter units from skill-based scores.
+- **Hierarchy Refinement**: Repositioned the **Boss Discovery Progress** bar above the Threat Log for a more logical top-down intelligence flow.
+- **Vertical Balance**: Restored ergonomic component scaling (56dp cards) and re-enabled vertical scrolling to maintain a premium, balanced layout on all device sizes.
+
+### Changed — Settings Optimization & Security
+- **Clean Command**: Removed the defunct "Render Mode" toggle from system settings.
+- **Debug Hardening**: Wrapped the "Trigger Test Notification" button in a `BuildConfig.DEBUG` guard to prevent production exposure while maintaining developer testing tools.
+
 ## 2026-07-30 (Polish & Analytics)
 
 **Version:** v2.2.1 — Tactical Terminal & Boss Intelligence

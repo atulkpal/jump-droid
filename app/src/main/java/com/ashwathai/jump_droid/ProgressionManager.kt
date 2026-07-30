@@ -276,6 +276,14 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         missionTracker.recordMissionCompletion(missionId)
     }
 
+    fun commitZenStats(score: Int, maxCombo: Int) {
+        statRecorder.commitZenSession(score, maxCombo)
+    }
+
+    fun commitMpResult(won: Boolean) {
+        statRecorder.recordMpResult(won)
+    }
+
     override fun recordMissionClaim(missionId: String) {
         missionTracker.recordMissionClaim(missionId)
     }
@@ -498,6 +506,15 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         put("lifetimeArtifacts", lifetimeArtifacts)
         put("lifetimeLandings", lifetimeLandings)
         put("lifetimeMissionsCompleted", lifetimeMissionsCompleted)
+        put("totalRuns", statRecord.totalRuns)
+        
+        // Zen & MP
+        put("zenMaxCombo", statRecord.zenMaxCombo)
+        put("zenTopRuns", statRecord.zenTopRuns.toList())
+        put("mpGamesPlayed", statRecord.mpGamesPlayed)
+        put("mpWins", statRecord.mpWins)
+        put("mpLosses", statRecord.mpLosses)
+
         put("ownedModuleIds", ownedModuleIds.toList())
         put("completedMissionIds", completedMissionIds.toList())
         put("claimedMissionIds", claimedMissionIds.toList())
@@ -532,7 +549,8 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
             landings = maxOf(lifetimeLandings, (data["lifetimeLandings"] as? Long)?.toInt() ?: 0),
             altitude = maxOf(statRecorder.lifetimeAltitude, (data["lifetimeAltitude"] as? Long)?.toInt() ?: 0),
             maxCombo = maxOf(statRecorder.maxComboEver, (data["maxComboEver"] as? Long)?.toInt() ?: 0),
-            missions = maxOf(lifetimeMissionsCompleted, (data["lifetimeMissionsCompleted"] as? Long)?.toInt() ?: 0)
+            missions = maxOf(lifetimeMissionsCompleted, (data["lifetimeMissionsCompleted"] as? Long)?.toInt() ?: 0),
+            runs = maxOf(statRecorder.totalRuns, (data["totalRuns"] as? Long)?.toInt() ?: 0)
         )
 
         val cloudModules = (data["ownedModuleIds"] as? List<*>)?.mapNotNull { it as? String }?.toSet() ?: emptySet()
@@ -566,6 +584,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
             putInt("stat_lifetime_altitude", statRecorder.lifetimeAltitude)
             putInt("stat_max_combo", statRecorder.maxComboEver)
             putInt("missions_completed", lifetimeMissionsCompleted)
+            putInt("stat_total_runs", statRecorder.totalRuns)
             putStringSet("owned_modules", ownedModuleIds)
             putStringSet("completed_missions", completedMissionIds)
             putStringSet("claimed_missions", claimedMissionIds)
@@ -655,6 +674,22 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
 
     fun isAchievementUnlocked(id: String): Boolean {
         return sharedPrefs.getBoolean("achievement_$id", false)
+    }
+
+    /**
+     * DEBUG: Instantly unlocks Zen Mode.
+     */
+    fun debugUnlockZen() {
+        isZenModeUnlocked = true
+        sharedPrefs.edit { putBoolean("zen_unlocked", true) }
+    }
+
+    /**
+     * DEBUG: Instantly unlocks Multiplayer Mode.
+     */
+    fun debugUnlockMultiplayer() {
+        isMultiplayerUnlocked = true
+        sharedPrefs.edit { putBoolean("multiplayer_unlocked", true) }
     }
 }
 

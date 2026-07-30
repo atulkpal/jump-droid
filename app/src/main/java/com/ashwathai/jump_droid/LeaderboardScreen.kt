@@ -200,9 +200,12 @@ private fun LocalTelemetryContent(progressionManager: ProgressionManager, modifi
             )
         }
 
-        // 2x4 MAIN TELEMETRY GRID WITH RADAR & ENTRANCE
-        val allBossesList = remember { ThreatRegistry.getAll().filter { it.type == ThreatType.BOSS || it.type == ThreatType.MINI_BOSS } }
-        val bossesYetToBeat = allBossesList.count { (stats.uniqueBossesKilled[it.id] ?: 0) == 0 }
+        // 2x4 MAIN TELEMETRY GRID
+        val totalDistStr = if (stats.lifetimeAltitude >= 10000) {
+            String.format(java.util.Locale.US, "%.1fkm", stats.lifetimeAltitude / 1000f)
+        } else {
+            "${stats.lifetimeAltitude}m"
+        }
 
         Box(Modifier.fillMaxWidth()) {
             // Radar Background Effect
@@ -221,14 +224,14 @@ private fun LocalTelemetryContent(progressionManager: ProgressionManager, modifi
 
             TelemetryGrid(
                 listOf(
-                    TelemetryItem("MAX ALTITUDE", "${stats.lifetimeAltitude}m", SciFiCyan),
+                    TelemetryItem("BEST ASCENT", "${progressionManager.highAltitude}m", SciFiCyan),
+                    TelemetryItem("TOTAL DISTANCE", totalDistStr, SciFiGreen),
+                    TelemetryItem("EXPEDITIONS", "${stats.totalRuns}", SciFiGold),
+                    TelemetryItem("MAX SCORE", "${progressionManager.highScore}", SciFiPurple),
                     TelemetryItem("MAX COMBO", "${stats.maxComboEver}x", SciFiGreen),
-                    TelemetryItem("BOSSES SLAYED", "${stats.lifetimeBossesDefeated}", SciFiGold),
-                    TelemetryItem("YET TO BEAT", "$bossesYetToBeat", SciFiPurple),
-                    TelemetryItem("TOTAL CONTINUES", "${stats.lifetimeContinuesUsed}", SciFiOrange),
+                    TelemetryItem("ARTIFACTS", "${stats.lifetimeArtifacts}", SciFiGold),
                     TelemetryItem("CASH EARNED", "${stats.lifetimeCashEarned} JC", SciFiGold),
-                    TelemetryItem("PERFECT LANDINGS", "${stats.perfectLandings}", SciFiCyan),
-                    TelemetryItem("DEATH DEFIED", "${stats.nearDeathEscapes}", SciFiRed)
+                    TelemetryItem("PERFECT LANDINGS", "${stats.perfectLandings}", SciFiCyan)
                 )
             )
         }
@@ -251,7 +254,7 @@ private fun LocalTelemetryContent(progressionManager: ProgressionManager, modifi
                     letterSpacing = 1.sp
                 )
                 Spacer(Modifier.height(12.dp))
-                stats.topRuns.forEachIndexed { index, score ->
+                stats.topRuns.take(3).forEachIndexed { index, score ->
                     Row(
                         Modifier.fillMaxWidth().padding(vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -267,20 +270,64 @@ private fun LocalTelemetryContent(progressionManager: ProgressionManager, modifi
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                if (score > 0) "SUCCESSFUL ASCENT" else "NO DATA",
+                                if (score > 0) "PILOT MASTERY" else "NO DATA",
                                 color = SciFiWhite.copy(alpha = if (score > 0) 0.8f else 0.2f),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                         Text(
-                            if (score > 0) "${score}m" else "---",
+                            if (score > 0) "${score}" else "---",
                             color = if (score > 0) SciFiWhite else SciFiWhite.copy(alpha = 0.2f),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Black
                         )
                     }
                     if (index < 2) HorizontalDivider(color = SciFiBorder.copy(alpha = 0.1f), thickness = 0.5.dp)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+        
+        // BOSS DISCOVERY PROGRESS
+        val allBossesList = remember { ThreatRegistry.getAll().filter { it.type == ThreatType.BOSS || it.type == ThreatType.MINI_BOSS } }
+        val totalBosses = allBossesList.size
+        val encounteredCount = allBossesList.count { 
+            stats.uniqueBossesKilled.containsKey(it.id) || 
+            stats.uniqueBossesEscaped.containsKey(it.id) || 
+            stats.killedByBossMap.containsKey(it.id) 
+        }
+        val discoveryProgress = encounteredCount.toFloat() / totalBosses.toFloat()
+        
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = SciFiSurface.copy(alpha = 0.1f),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Column(Modifier.padding(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("THREAT DISCOVERY PROGRESS", color = SciFiPurple, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                    Text("$encounteredCount / $totalBosses", color = SciFiPurple, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                }
+                Spacer(Modifier.height(8.dp))
+                Box(Modifier.fillMaxWidth().height(4.dp)) {
+                    LinearProgressIndicator(
+                        progress = { discoveryProgress },
+                        modifier = Modifier.fillMaxSize(),
+                        color = SciFiPurple,
+                        trackColor = SciFiPurple.copy(alpha = 0.1f)
+                    )
+                    // Scanning Particle
+                    Canvas(Modifier.fillMaxSize()) {
+                        val particleX = size.width * discoveryProgress * ((sin(ft * 4f) * 0.5f + 0.5f))
+                        drawCircle(
+                            color = Color.White,
+                            radius = 2.dp.toPx(),
+                            center = Offset(particleX, size.height / 2),
+                            alpha = 0.8f
+                        )
+                    }
                 }
             }
         }
@@ -374,50 +421,6 @@ private fun LocalTelemetryContent(progressionManager: ProgressionManager, modifi
                         )
                     }
                     HorizontalDivider(color = SciFiBorder.copy(alpha = 0.05f), thickness = 0.5.dp)
-                }
-            }
-        }
-
-        Spacer(Modifier.height(24.dp))
-        
-        // BOSS DISCOVERY PROGRESS
-        val allBosses = remember { ThreatRegistry.getAll().filter { it.type == ThreatType.BOSS || it.type == ThreatType.MINI_BOSS } }
-        val totalBosses = allBosses.size
-        val encounteredCount = allBosses.count { 
-            stats.uniqueBossesKilled.containsKey(it.id) || 
-            stats.uniqueBossesEscaped.containsKey(it.id) || 
-            stats.killedByBossMap.containsKey(it.id) 
-        }
-        val discoveryProgress = encounteredCount.toFloat() / totalBosses.toFloat()
-        
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = SciFiSurface.copy(alpha = 0.1f),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Column(Modifier.padding(12.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("THREAT DISCOVERY PROGRESS", color = SciFiPurple, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                    Text("$encounteredCount / $totalBosses", color = SciFiPurple, fontSize = 9.sp, fontWeight = FontWeight.Black)
-                }
-                Spacer(Modifier.height(8.dp))
-                Box(Modifier.fillMaxWidth().height(4.dp)) {
-                    LinearProgressIndicator(
-                        progress = { discoveryProgress },
-                        modifier = Modifier.fillMaxSize(),
-                        color = SciFiPurple,
-                        trackColor = SciFiPurple.copy(alpha = 0.1f)
-                    )
-                    // Scanning Particle
-                    Canvas(Modifier.fillMaxSize()) {
-                        val particleX = size.width * discoveryProgress * ((sin(ft * 4f) * 0.5f + 0.5f))
-                        drawCircle(
-                            color = Color.White,
-                            radius = 2.dp.toPx(),
-                            center = Offset(particleX, size.height / 2),
-                            alpha = 0.8f
-                        )
-                    }
                 }
             }
         }

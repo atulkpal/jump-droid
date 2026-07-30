@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
 **Last Updated:** 2026-07-30
-**Current Version:** v2.2.1 — Tactical Terminal & Boss Intelligence
+**Current Version:** v2.2.2 — Intelligence Integrity & Terminal Mastery
 **Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
-**Current Stable Tag:** `v2.2.0`
+**Current Stable Tag:** `v2.2.1`
 **Branch:** `feature/remote-announcements` (Feature Extension)
 **Base Commit:** `HEAD`
 
@@ -34,13 +34,13 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 ## 2. Current Project State
 
 *   **Current Branch**: `master`
-*   **Current Stable Tag**: `v2.1.1`
-*   **Current Version**: v2.1.1 — Tactical Polish Update
+*   **Current Stable Tag**: `v2.2.1`
+*   **Current Version**: v2.2.2 — Intelligence Integrity Update
 *   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **POLISH FINALIZED 🚀**
-*   **Current Status**: **EPIC 12 Finalized**. Transitioning to **EPIC 13**. All systems verified for production. v2.0.0 includes full fleet expansion, cosmetic economy, performance-optimized rendering, and high-fidelity visual action. Ready for Play Store listing.
+*   **Current Status**: **EPIC 12 Finalized**. Transitioning to **EPIC 13**. All systems verified for production. v2.2.0+ includes full fleet expansion, cosmetic economy, performance-optimized rendering, and high-fidelity visual action. Ready for Play Store listing.
 *   **Known Issues**: 
     *   `GamesAchievementManager.kt` uses placeholder GPG achievement IDs (`PLEASE_REPLACE_ME_*`) — must replace with real Google Play Console IDs before production.
-*   **Current Priorities**: EPIC 13 — Production deployment and Play Store listing.
+*   **Current Priorities**: EPIC 13 — Production deployment and Play Store listing. Finalize GPG IDs.
 
 ---
 
@@ -87,9 +87,9 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Mission Dashboard** | Provide high-level summary (Completion %, Claims). | Faster UX for checking account status. |
 | **SharedPreferences Unification** | DataStore transition in EPIC 8 prototype caused sync debt. | Reverted to `SharedPreferences` as the Single Source of Truth. |
 | **Combo Ring Top-Left** | Avoid overlap with system UI and Pause/Help buttons. | Cleanest possible HUD for high-speed flight. |
-| **Decoupled Altitude/Score** | Altitude-only scoring lacked performance variance. | `runAltitude` (meters) drives physical progress; `score` (points) reflects skill mastery. |
+| **Decoupled Altitude/Score** | Altitude-only scoring lacked performance variance. | `runAltitude` (meters) drives physical progress; `score` (points) reflects skill mastery. Explicitly separated in Telemetry as "BEST ASCENT" vs "MAX SCORE". |
 | **Vector-Scope Console** | Color-cycling disco boxes were distracting and sloppy. | Monochrome CRT aesthetic with scanlines and waveforms for a tactical look. |
-| **Known Intelligence Log** | Placeholder classified rows cluttered the terminal. | Filtered Threat Log to show encountered bosses only, preserving mystery. |
+| **Intelligence Integrity** | Cumulative stats (Total Distance) could lag behind personal records after updates. | Implemented self-correction logic in `StatRecorder` to migrate and normalize lifetime data based on high scores. |
 | **Safe Resume Safety** | Back-navigation could freeze the game state. | Mandatory `onDispose` handlers ensure game resumes if Pause/Help overlays are dismissed. |
 
 ---

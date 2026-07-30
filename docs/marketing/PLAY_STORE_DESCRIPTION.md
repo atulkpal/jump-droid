@@ -1,7 +1,7 @@
 # Jump Droid — Play Store Description
 
-**Last Updated:** 2026-07-29
-**Version:** v2.1.1
+**Last Updated:** 2026-07-30
+**Version:** v2.2.0
 
 ---
 

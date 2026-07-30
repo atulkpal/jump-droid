@@ -331,7 +331,10 @@ fun MainMenuScreen(
                 ft = ft,
                 hapticManager = hapticManager,
                 soundManager = soundManager,
-                onLaunchZen = onLaunchZen
+                onLaunchZen = onLaunchZen,
+                onLaunchUplink = { onNavigate(GameState.MULTIPLAYER) },
+                onDebugUnlockZen = { progressionManager?.debugUnlockZen() },
+                onDebugUnlockMultiplayer = { progressionManager?.debugUnlockMultiplayer() }
             )
 
             Spacer(Modifier.height(8.dp))
@@ -915,7 +918,10 @@ private fun ZenCommandConsole(
     ft: Float,
     hapticManager: HapticManager?,
     soundManager: SoundManager?,
-    onLaunchZen: () -> Unit
+    onLaunchZen: () -> Unit,
+    onLaunchUplink: () -> Unit,
+    onDebugUnlockZen: () -> Unit = {},
+    onDebugUnlockMultiplayer: () -> Unit = {}
 ) {
     val isMultiplayerUnlocked = progressionManager?.isMultiplayerUnlocked == true
     val showMultiplayerCalibration = isUnlocked && !isMultiplayerUnlocked
@@ -972,6 +978,30 @@ private fun ZenCommandConsole(
             }
 
             Box(Modifier.padding(16.dp)) {
+                if (BuildConfig.DEBUG) {
+                    Row(
+                        modifier = Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = (-8).dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "\u26A1", // Lightning
+                            modifier = Modifier
+                                .clickable { onDebugUnlockZen() }
+                                .padding(4.dp)
+                                .graphicsLayer(alpha = 0.3f),
+                            fontSize = 10.sp
+                        )
+                        Text(
+                            text = "\uD83C\uDF10", // Globe
+                            modifier = Modifier
+                                .clickable { onDebugUnlockMultiplayer() }
+                                .padding(4.dp)
+                                .graphicsLayer(alpha = 0.3f),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val headerText = when {
                         isMultiplayerUnlocked -> "UPLINK PROTOCOL // AUTHORIZED"
@@ -1018,7 +1048,7 @@ private fun ZenCommandConsole(
 
                     Spacer(Modifier.height(16.dp))
 
-                    if (isUnlocked && !showMultiplayerCalibration) {
+                    if (isUnlocked) {
                         Button(
                             onClick = {
                                 soundManager?.playSfx("sfx_ui_confirm")
@@ -1027,12 +1057,40 @@ private fun ZenCommandConsole(
                             },
                             modifier = Modifier.fillMaxWidth().height(44.dp),
                             shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = protocolColor.copy(alpha = 0.1f), contentColor = SciFiWhite),
-                            border = BorderStroke(1.dp, protocolColor.copy(alpha = 0.8f))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isMultiplayerUnlocked) protocolColor.copy(alpha = 0.05f) else protocolColor.copy(alpha = 0.1f), 
+                                contentColor = if (isMultiplayerUnlocked) protocolColor.copy(alpha = 0.7f) else SciFiWhite
+                            ),
+                            border = BorderStroke(1.dp, if (isMultiplayerUnlocked) protocolColor.copy(alpha = 0.3f) else protocolColor.copy(alpha = 0.8f))
                         ) {
                             Text("DEPLOY ZEN MODE", fontWeight = FontWeight.Black, letterSpacing = 3.sp, fontSize = 12.sp)
                         }
-                    } else {
+                        
+                        if (isMultiplayerUnlocked) {
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    soundManager?.playSfx("sfx_ui_confirm")
+                                    hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                                    onLaunchUplink()
+                                },
+                                modifier = Modifier.fillMaxWidth().height(44.dp),
+                                shape = RoundedCornerShape(2.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f), contentColor = SciFiWhite),
+                                border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.8f))
+                            ) {
+                                Text("DEPLOY UPLINK", fontWeight = FontWeight.Black, letterSpacing = 3.sp, fontSize = 12.sp)
+                            }
+                        }
+                    }
+
+                    if (!isUnlocked || showMultiplayerCalibration) {
+                        if (isUnlocked) {
+                            Spacer(Modifier.height(16.dp))
+                            HorizontalDivider(color = protocolColor.copy(alpha = 0.1f), thickness = 0.5.dp)
+                            Spacer(Modifier.height(12.dp))
+                        }
+
                         val requirements = if (!isUnlocked) {
                             progressionManager?.getZenRequirements() ?: emptyList()
                         } else {

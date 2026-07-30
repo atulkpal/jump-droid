@@ -53,6 +53,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -154,7 +156,8 @@ fun SettingsScreen(
                         soundManager?.sfxVolume = it
                         hapticManager?.vibrate(HapticManager.HapticType.TICK)
                     },
-                    accent = SciFiCyan
+                    accent = SciFiCyan,
+                    contentDescription = "SFX Volume"
                 )
                 Spacer(Modifier.height(16.dp))
                 Text("MUSIC", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 2.sp, fontSize = 10.sp)
@@ -165,7 +168,8 @@ fun SettingsScreen(
                         soundManager?.musicVolume = it
                         hapticManager?.vibrate(HapticManager.HapticType.TICK)
                     },
-                    accent = SciFiGold
+                    accent = SciFiGold,
+                    contentDescription = "Music Volume"
                 )
                 Spacer(Modifier.height(16.dp))
                 Row(Modifier.fillMaxWidth(0.6f), horizontalArrangement = Arrangement.Center) {
@@ -207,28 +211,6 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(if (!hapticEnabled) "HAPTIC OFF" else "HAPTIC ON", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(0.6f), horizontalArrangement = Arrangement.Center) {
-                    val assetMode = sharedPrefs.getBoolean("render_mode_assets", false)
-                    Button(
-                        onClick = { 
-                            val newState = !assetMode
-                            sharedPrefs.edit { putBoolean("render_mode_assets", newState) }
-                            DevConfig.RENDER_MODE_ASSETS = newState
-                            soundManager?.playSfx("sfx_ui_click")
-                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                            if (newState) hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (!assetMode) SciFiWhite.copy(alpha = 0.1f) else SciFiPurple.copy(alpha = 0.3f),
-                            contentColor = if (!assetMode) SciFiWhite.copy(alpha = 0.6f) else SciFiPurple
-                        ),
-                        modifier = Modifier.height(36.dp).fillMaxWidth(),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(if (!assetMode) "RENDER: PROCEDURAL" else "RENDER: ASSETS (BETA)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -403,37 +385,40 @@ fun SettingsScreen(
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
                 }
-                Spacer(Modifier.height(16.dp))
-                val permissionLauncher = rememberLauncherForActivityResult(
-                    ActivityResultContracts.RequestPermission()
-                ) { isGranted ->
-                    if (isGranted) {
-                        showTestNotification(context)
-                    } else {
-                        android.widget.Toast.makeText(context, "Notification permission denied", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-                Button(
-                    onClick = {
-                        soundManager?.playSfx("sfx_ui_confirm")
-                        hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
-                        
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                                showTestNotification(context)
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                        } else {
+                
+                if (BuildConfig.DEBUG) {
+                    Spacer(Modifier.height(16.dp))
+                    val permissionLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.RequestPermission()
+                    ) { isGranted ->
+                        if (isGranted) {
                             showTestNotification(context)
+                        } else {
+                            android.widget.Toast.makeText(context, "Notification permission denied", android.widget.Toast.LENGTH_SHORT).show()
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.1f), contentColor = SciFiCyan),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.3f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("TRIGGER TEST NOTIFICATION", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 11.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            soundManager?.playSfx("sfx_ui_confirm")
+                            hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                            
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                                    showTestNotification(context)
+                                } else {
+                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            } else {
+                                showTestNotification(context)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.1f), contentColor = SciFiCyan),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("TRIGGER TEST NOTIFICATION", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 11.sp)
+                    }
                 }
                 Spacer(Modifier.height(16.dp))
                 GlobalAdBanner()
@@ -553,10 +538,12 @@ private fun BenefitItem(title: String, desc: String, isPremium: Boolean) {
 private fun AudioSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
-    accent: Color = SciFiCyan
+    accent: Color = SciFiCyan,
+    contentDescription: String? = null
 ) {
     Row(
-        Modifier.fillMaxWidth(0.6f).height(24.dp),
+        Modifier.fillMaxWidth(0.6f).height(24.dp)
+            .semantics { if (contentDescription != null) this.contentDescription = contentDescription },
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

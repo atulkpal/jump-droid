@@ -102,11 +102,19 @@ Scoring events are communicated through high-fidelity "Cyber-Packets" that fly f
 ## 4. Persistence & Governance
 
 ### Dual Metric Tracking
-To prevent skill points from breaking distance-based missions, two metrics are saved:
-1.  **`highScore`**: Total cumulative points (Leaderboards).
-2.  **`highAltitude`**: Physical meters reached (Missions/Unlocks).
+To prevent skill points from breaking distance-based missions, and to provide comprehensive pilot telemetry, multiple metrics are saved:
+1.  **`highScore`**: Total cumulative points (Mastery / Leaderboards).
+2.  **`highAltitude`**: Physical meters reached (Progress / Missions / Unlocks).
+3.  **`lifetimeAltitude`**: Total cumulative distance flown across all expeditions.
+4.  **`totalRuns`**: Total number of unique sorties initiated.
+
+### Statistical Self-Correction
+The `StatRecorder` includes a migration layer to maintain data integrity across updates:
+*   If `lifetimeAltitude` (Cumulative) is less than `highAltitude` (Record), it is automatically corrected to the sum of top runs.
+*   `totalRuns` is initialized from the non-zero entry count in the top-run history if it appears uninitialized.
 
 ### Agent Rules
 *   Never use `score` for zone gating or boss spawns. Use `runAltitude`.
+*   Always display the unit **"m"** for Altitude/Ascent metrics and **raw numbers** for Score/Mastery metrics in the UI.
 *   Any new boss added to `ThreatRegistry.kt` **must** include a `scoreAward` entry.
 *   Platform score is strictly limited to the **first** landing on a specific platform instance.

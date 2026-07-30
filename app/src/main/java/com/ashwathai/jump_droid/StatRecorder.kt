@@ -44,6 +44,21 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         private set
     var perfectLandings by mutableIntStateOf(0)
         private set
+    var totalRuns by mutableIntStateOf(0)
+        private set
+
+    // Zen Mode Stats
+    var zenTopRuns = mutableStateListOf<Int>(0, 0, 0)
+    var zenMaxCombo by mutableIntStateOf(0)
+        private set
+
+    // Multiplayer Stats
+    var mpGamesPlayed by mutableIntStateOf(0)
+        private set
+    var mpWins by mutableIntStateOf(0)
+        private set
+    var mpLosses by mutableIntStateOf(0)
+        private set
 
     var topRuns = mutableStateListOf<Int>(0, 0, 0)
     var uniqueBossesKilled = mutableStateMapOf<String, Int>()
@@ -73,6 +88,19 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         lifetimeCashSpent = sharedPrefs.getInt("stat_cash_spent", 0)
         nearDeathEscapes = sharedPrefs.getInt("stat_near_death_escapes", 0)
         perfectLandings = sharedPrefs.getInt("stat_perfect_landings", 0)
+        totalRuns = sharedPrefs.getInt("stat_total_runs", 0)
+        
+        // Zen Mode
+        zenTopRuns.clear()
+        zenTopRuns.add(sharedPrefs.getInt("zen_run_1", 0))
+        zenTopRuns.add(sharedPrefs.getInt("zen_run_2", 0))
+        zenTopRuns.add(sharedPrefs.getInt("zen_run_3", 0))
+        zenMaxCombo = sharedPrefs.getInt("zen_max_combo", 0)
+        
+        // Multiplayer
+        mpGamesPlayed = sharedPrefs.getInt("mp_games", 0)
+        mpWins = sharedPrefs.getInt("mp_wins", 0)
+        mpLosses = sharedPrefs.getInt("mp_losses", 0)
 
         topRuns.clear()
         topRuns.add(sharedPrefs.getInt("top_run_1", 0))
@@ -90,6 +118,15 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
                 key.startsWith("boss_killed_player_") -> killedByBossMap[key.removePrefix("boss_killed_player_")] = (value as? Int) ?: 0
             }
         }
+
+        // Statistical Self-Correction (Migration logic)
+        val bestRun = topRuns.firstOrNull() ?: 0
+        if (lifetimeAltitude < bestRun && bestRun > 0) {
+            lifetimeAltitude = topRuns.sum()
+        }
+        if (totalRuns == 0 && bestRun > 0) {
+            totalRuns = topRuns.count { it > 0 }
+        }
     }
 
     fun syncStats(
@@ -101,7 +138,8 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         landings: Int,
         altitude: Int,
         maxCombo: Int,
-        missions: Int
+        missions: Int,
+        runs: Int = 0
     ) {
         lifetimeFlightTime = flightTime
         lifetimePlatformTime = platformTime
@@ -112,6 +150,7 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         lifetimeAltitude = altitude
         maxComboEver = maxCombo
         lifetimeMissionsCompleted = missions
+        if (runs > 0) totalRuns = runs
     }
 
     fun commitSessionStats(stats: GameStats, missionsCompleted: Int) {
@@ -124,6 +163,7 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         lifetimeAltitude += stats.maxAltitudeMeters
         maxComboEver = maxOf(maxComboEver, stats.maxCombo)
         lifetimeMissionsCompleted = missionsCompleted
+        totalRuns++
         
         // New stats
         lifetimeCombosOver15 += stats.combosOver15
@@ -157,6 +197,7 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
             putInt("stat_cash_spent", lifetimeCashSpent)
             putInt("stat_near_death_escapes", nearDeathEscapes)
             putInt("stat_perfect_landings", perfectLandings)
+            putInt("stat_total_runs", totalRuns)
             
             if (topRuns.size >= 3) {
                 putInt("top_run_1", topRuns[0])
@@ -207,6 +248,31 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         sharedPrefs.edit { putInt("stat_continues_used", lifetimeContinuesUsed) }
     }
 
+    fun commitZenSession(score: Int, maxCombo: Int) {
+        val newTop = (zenTopRuns + score).sortedDescending().take(3)
+        zenTopRuns.clear()
+        zenTopRuns.addAll(newTop)
+        zenMaxCombo = maxOf(zenMaxCombo, maxCombo)
+        
+        sharedPrefs.edit {
+            putInt("zen_run_1", zenTopRuns[0])
+            putInt("zen_run_2", zenTopRuns[1])
+            putInt("zen_run_3", zenTopRuns[2])
+            putInt("zen_max_combo", zenMaxCombo)
+        }
+    }
+
+    fun recordMpResult(won: Boolean) {
+        mpGamesPlayed++
+        if (won) mpWins++ else mpLosses++
+        
+        sharedPrefs.edit {
+            putInt("mp_games", mpGamesPlayed)
+            putInt("mp_wins", mpWins)
+            putInt("mp_losses", mpLosses)
+        }
+    }
+
     fun clear() {
         lifetimeFlightTime = 0f
         lifetimePlatformTime = 0f
@@ -226,6 +292,14 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         lifetimeCashSpent = 0
         nearDeathEscapes = 0
         perfectLandings = 0
+        totalRuns = 0
+        
+        zenTopRuns.fill(0)
+        zenMaxCombo = 0
+        mpGamesPlayed = 0
+        mpWins = 0
+        mpLosses = 0
+
         topRuns.fill(0)
         uniqueBossesKilled.clear()
         uniqueBossesEscaped.clear()
