@@ -343,7 +343,7 @@ class EncounterDirector {
                 .filter { it.type == ThreatType.MINI_BOSS && it.spawnRules.spawnChance > 0f }
                 .shuffled()
             val activeMiniBossIds = activeThreats.map { it.definition.id }
-            if (activeThreats.none { it.definition.type == ThreatType.MINI_BOSS }) {
+            if (gameMode != GameMode.ZEN && activeThreats.none { it.definition.type == ThreatType.MINI_BOSS }) {
                 for (bossDef in miniBossFallbacks) {
                     if (bossDef.id !in activeMiniBossIds && bossesSpawned.none { it.startsWith("MINI_BOSS") }) {
                         val zoneMod = if (currentZone in bossDef.spawnRules.allowedZones) 0.6f else 0.1f
@@ -364,7 +364,7 @@ class EncounterDirector {
 
             // 2.5 Boss Reinforcements — data-driven: any active boss with tier >= TIER_4 may spawn escorts
             val activeBoss = activeThreats.find { it.definition.type == ThreatType.MINI_BOSS || it.definition.type == ThreatType.BOSS }
-            if (activeBoss != null && activeBoss.definition.tier >= ThreatTier.TIER_4 && activeBoss.phase >= 3) {
+            if (gameMode != GameMode.ZEN && activeBoss != null && activeBoss.definition.tier >= ThreatTier.TIER_4 && activeBoss.phase >= 3) {
                 if (Random.nextFloat() < 0.08f) {
                     val escort = eligible.filter { it.type == ThreatType.ENEMY && it.tier <= ThreatTier.TIER_2 }.randomOrNull()
                     escort?.let { def ->

@@ -1,78 +1,42 @@
-# Implementation Plan - Zen & Multiplayer Overhaul (Phase 2)
+# Implementation Plan - Hard Mode Isolation (Zen Mode Fixes)
 
-This plan overhauls the game modes to strictly separate Zen Mode (peaceful flight) and Uplink Protocol (Multiplayer), implements ceremonies for new mode unlocks, and enables high-fidelity mode-specific tracking.
+This plan fixes the leakage of bosses, achievements, and continues into Zen Mode, ensuring a truly "Peaceful Glide" experience.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Zen Mode Isolation**: Zen Mode is now a "Peaceful Glide" mode. It will have **no bosses**, isolated scores/combos, and no continue logic. Every death in Zen mode requires a fresh start (via Ad or Premium).
+> **Zen Mode Purity**: I am applying stricter guards across the engine to ensure that **no bosses** (including random mini-boss fallbacks) can spawn in Zen mode.
 >
-> **Main Menu UI**: Launch buttons for Zen and Multiplayer will appear ceremoniously **below** the Command Center toggle once unlocked, matching the scale of the primary Launch button.
+> **Zero Interruptions**: Achievements and discovery ceremonies will be completely silenced during Zen runs. These will remain exclusive to the Standard mode.
 
 ## Proposed Changes
 
-### 1. Data Layer: Advanced Mode Tracking
-
-#### [MODIFY] [StatRecorder.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/StatRecorder.kt)
-- Add storage for:
-    - **Zen Mode**: `zenTopRuns` (List of Top 3), `zenMaxCombo`.
-    - **Multiplayer**: `mpGamesPlayed`, `mpWins`, `mpLosses`.
-- Update `loadStats`, `commitSessionStats`, and `clear` to handle these new fields.
-
-#### [MODIFY] [ProgressionManager.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/ProgressionManager.kt)
-- Expose the new Zen and Multiplayer metrics.
-- Add commit methods: `commitZenStats(score, combo)` and `commitMpResult(won: Boolean)`.
-
----
-
-### 2. Main Menu: Ceremonious Mode Unlocks
-
-#### [MODIFY] [MainMenuScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/MainMenuScreen.kt)
-- **Primary Actions Area**:
-    - Add a new section below the `COMMAND CENTER` toggle.
-    - Implement **Full-Scale Launch Buttons** for Zen and Multiplayer.
-    - **Zen Button**: Purple theme, visible only when unlocked.
-    - **Uplink Button**: Cyan theme, visible only when unlocked.
-    - Wrap in `AnimatedVisibility` for a slide/fade entry ceremony.
-- **Tactical Console Refactor**:
-    - Revert the console to a pure **Calibration & Intelligence** readout.
-    - It will exclusively show unlock requirements and calibration progress.
-    - If a mode is authorized, the console for that tier will display a "PROTOCOL ACTIVE" status message instead of a button.
-
----
-
-### 3. Gameplay: Peaceful Glide (Zen) & Mastery (MP)
+### 1. Engine & Logic (Isolation)
 
 #### [MODIFY] [EncounterDirector.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/EncounterDirector.kt)
-- Update `update()` logic to completely skip boss milestone checks and recurrence spawns when `gameMode == ZEN`.
+- Wrap the following spawning paths in `if (gameMode != GameMode.ZEN)`:
+    - **Fallback Mini-Bosses**: Prevents random mini-bosses from appearing when no main boss is active.
+    - **Reinforcements**: Prevents bosses (if any somehow spawned) from summoning escorts or hazards.
+    - **Recurrence Logic**: (Already partially guarded, but will double-check).
 
 #### [MODIFY] [GameEngine.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameEngine.kt)
-- **Zen Mode Rules**:
-    - Disable achievement triggers and mission progression during Zen runs.
-    - Disable the REVIVE/CONTINUE logic. Hull destruction in Zen mode leads directly to the summary screen.
-    - Ensure Zen runs use the `commitZenStats` path for persistence.
-- **Multiplayer Scoring**:
-    - Implement distinct scoring logic for VS matches to be surfaced in global telemetry.
+- **Silence Ceremonies**: Update `showUnlockEvent` to return early if `currentMode == GameMode.ZEN`. This prevents any achievement or mission completion popups.
+- **Discovery Guard**: Update `checkDiscovery` to skip rank updates and notification/ceremony triggers if in Zen mode. (Discoveries will still be recorded in the background but won't interrupt flight).
 
 ---
 
-### 4. Telemetry: Side-by-Side Intelligence
+### 2. UI Layer (GameOver Cleanup)
 
-#### [MODIFY] [LeaderboardScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/LeaderboardScreen.kt)
-- **Split Expedition Log**:
-    - Redesign the historical log as a two-column view (Standard on Left, Zen on Right).
-    - Each column displays its respective **Top 3** scores.
-- **Mode Highlights Row**:
-    - Add a footer to the logs showing **ZEN MAX COMBO** to track long-term glide mastery.
-- **Global Telemetry**:
-    - Add a dedicated "MULTIPLAYER COMMAND" section with **GAMES PLAYED**, **W/L RECORD**, and **RANKING**.
+#### [MODIFY] [GameOverOverlay.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameOverOverlay.kt)
+- **Total Continue Suppression**: Ensure the entire "Credits" and "Ad-Link" UI is hidden when `isZenMode` is true.
+- **Header Refinement**: Update the "COMMUNICATION LOST" header to "EXPEDITION COMPLETE" or similar when in Zen mode to differentiate it from the "Failure" feel of standard mode.
 
 ## Verification Plan
 
 ### Automated Tests
-- `gradle_build` to ensure code integrity.
+- `gradle_build` to verify UI hierarchy remains valid.
 
 ### Manual Verification
-1.  **Zen Flow**: Unlock Zen via debug button. Verify the new purple launch button appears below the toggle. Start a run and confirm **no bosses** appear and **death is final** (no continue).
-2.  **Stat Isolation**: Verify Zen scores appear only in the Zen column of the Fleet Terminal and don't affect the standard Best Ascent.
-3.  **Console Status**: Confirm the Tactical Console correctly shows "PROTOCOL AUTHORIZED" without the redundant launch button.
+1.  **Zen Run (10km+)**: Fly past 10,000m in Zen mode. Verify zero bosses appear.
+2.  **Achievement Test**: Perform an action that would trigger an achievement (e.g., land on a new platform type). Verify no popup appear.
+3.  **Death Flow**: Crash the ship. Verify no "Continue" buttons or "Credits" are visible; only the "Re-Deploy" and "Return to Base" options should remain.

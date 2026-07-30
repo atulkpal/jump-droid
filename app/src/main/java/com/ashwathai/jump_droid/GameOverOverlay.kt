@@ -112,13 +112,13 @@ fun GameOverOverlay(
             
             Column(Modifier.offset(y = titleAnim.dp).graphicsLayer(alpha = if (startAnims) 1f else 0f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "COMMUNICATION LOST",
-                    color = SciFiRed,
+                    text = if (isZenMode) "ZEN EXPEDITION ENDED" else "COMMUNICATION LOST",
+                    color = if (isZenMode) SciFiPurple else SciFiRed,
                     style = MaterialTheme.typography.displaySmall.copy(
-                        fontSize = 28.sp,
+                        fontSize = if (isZenMode) 22.sp else 28.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 1.sp,
-                        shadow = Shadow(SciFiRed.copy(alpha = titleGlow * 0.5f), blurRadius = 16f)
+                        shadow = Shadow((if (isZenMode) SciFiPurple else SciFiRed).copy(alpha = titleGlow * 0.5f), blurRadius = 16f)
                     ),
                     textAlign = TextAlign.Center,
                     maxLines = 1,
@@ -129,8 +129,8 @@ fun GameOverOverlay(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "TELEMETRY DATA ENDED",
-                    color = SciFiRed.copy(alpha = 0.6f),
+                    text = if (isZenMode) "FLIGHT PROTOCOL COMPLETED" else "TELEMETRY DATA ENDED",
+                    color = (if (isZenMode) SciFiPurple else SciFiRed).copy(alpha = 0.6f),
                     style = MaterialTheme.typography.labelMedium,
                     letterSpacing = 4.sp,
                     textAlign = TextAlign.Center,
@@ -139,8 +139,8 @@ fun GameOverOverlay(
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "SIGNAL LOST AT ${altitude}m",
-                color = SciFiRed.copy(alpha = 0.3f),
+                text = if (isZenMode) "TOTAL DISTANCE: ${altitude}m" else "SIGNAL LOST AT ${altitude}m",
+                color = (if (isZenMode) SciFiPurple else SciFiRed).copy(alpha = 0.3f),
                 style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 2.sp,
                 textAlign = TextAlign.Center,

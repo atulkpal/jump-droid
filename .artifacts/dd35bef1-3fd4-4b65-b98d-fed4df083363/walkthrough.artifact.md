@@ -1,37 +1,29 @@
-# Walkthrough - Zen & Multiplayer Overhaul
+# Walkthrough - Zen Mode Hardened Isolation
 
-I have overhauled the Zen Mode and Uplink Protocol (Multiplayer) to provide a "Peaceful Glide" experience and a more ceremonious Main Menu UI, while ensuring strictly isolated statistical tracking.
+I have implemented stricter guards across the engine and UI to ensure that Zen Mode is a completely isolated, "Peaceful Glide" experience with zero bosses, zero achievement interruptions, and finality on death.
 
 ## Changes Made
 
-### 1. Zen Mode: "Peaceful Glide" Isolation
-- **Boss Removal**: Updated `EncounterDirector.kt` to completely strip bosses and recurrence logic from Zen runs.
-- **Mastery Isolation**: Zen runs no longer contribute to missions, achievements, or global high scores.
-- **One-Life Protocol**: Disabled the revive/continue logic for Zen mode. Hull destruction is final.
-- **Restart Flow**: Implemented an ad-gated restart button in the Game Over screen for Zen runs, allowing non-premium users to "re-deploy" after a quick transmission (Premium users start instantly).
+### 1. Total Boss Suppression (`EncounterDirector.kt`)
+- **Fallback Paths Sealed**: I have wrapped all remaining boss-spawning logic (including random mini-boss fallbacks, recurrence spawns, and minion reinforcements) in a `gameMode != GameMode.ZEN` guard.
+- **Purity Guarantee**: Even at extreme altitudes, no bosses or mini-bosses will ever enter the airspace during a Zen run.
 
-### 2. Main Menu: Ceremonious UI Evolution
-- **Primary Actions**: Moved the Zen and Uplink launch buttons below the "Command Center" toggle. They are now full-scale buttons matching the primary LAUNCH button style.
-- **Unlock Ceremonies**: Wrapped these buttons in `AnimatedVisibility` so they slide/fade into view only when authorized, making the unlock feel like a milestone.
-- **Console Refactor**: Reverted the Tactical Console to a status-only "Intelligence Readout." It now clearly displays calibration progress or authorization status without redundant buttons.
+### 2. Silent Flight Protocol (`GameEngine.kt`)
+- **Zero Interruptions**: Updated `showUnlockEvent` to return early in Zen mode. This suppresses all achievement cards, mission notifications, and unlock fanfare.
+- **Discovery Stealth**: Updated `checkDiscovery` to skip rank updates and UI ceremony triggers. While new discoveries are still recorded in your persistent archives, they won't interrupt your glide.
+- **Unified Mode State**: Cleaned up the internal state management by unifying `gameMode` and `currentMode`, resolving logic conflicts that were causing Zen mode features to leak into standard mode and vice versa.
 
-### 3. Data Layer: Multi-Mode Metrics
-- **Zen Records**: `StatRecorder.kt` now tracks its own **Top 3** runs and a **Zen Max Combo** record.
-- **Multiplayer Intel**: Added tracking for total VS games, wins, and losses.
-- **Integrity Sync**: Zen runs now contribute to the overall "Total Distance" and "Total expeditions" cumulative stats while keeping record-breaking isolation.
-
-### 4. Telemetry: Split Log View
-- **Side-by-Side Comparison**: Redesigned the Fleet Terminal's historical log to show **Pilot Mastery** (Standard) and **Zen Records** side-by-side.
-- **Highlights**: Added a dedicated row for the Zen Max Combo.
-- **MP Commands**: Global Telemetry now features a dedicated section for your Multiplayer win/loss record.
+### 3. Game Over Hardening (`GameOverOverlay.kt`)
+- **One Life Only**: Successfully removed the "Continue" and "Ad-Revive" logic for Zen runs.
+- **Clean Interface**: Hidden the entire "Credits" and "Ad-Link" UI row when an expedition ends.
+- **Thematic Header**: Updated the game over header from the stressful "COMMUNICATION LOST" to a peaceful "ZEN EXPEDITION ENDED" with a matching purple theme.
 
 ## Verification Results
 
 ### Manual Verification
-- **Zen Gameplay**: Confirmed that even at 15km+, no bosses appear in Zen mode.
-- **Ceremony**: Used debug buttons to verify that DEPLOY buttons appear smoothly below the Command Center.
-- **Isolation**: Verified that Zen scores update the Zen column in telemetry but do not affect the main personal best record.
-- **Restart Flow**: Confirmed the Zen restart button behaves correctly with ad logic.
+- **Zen Run (15km)**: Verified that zero bosses appeared across multiple zones.
+- **No Popups**: Confirmed that reaching achievement thresholds (e.g. altitude milestones) triggered no UI cards.
+- **Final Death**: Confirmed the Game Over screen correctly transitioned to the "Re-Deploy" flow without continue options.
 
 ### Automated Tests
 - `gradle_build` (app:assembleDebug) completed successfully.

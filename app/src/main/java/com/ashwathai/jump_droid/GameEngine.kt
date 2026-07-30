@@ -106,6 +106,8 @@ class GameEngine(
     val pendingUnlocks = mutableStateListOf<UnlockEvent>()
 
     fun showUnlockEvent(event: UnlockEvent) {
+        if (gameMode == GameMode.ZEN) return // Zen Mode Silence
+        
         // Refactored to be non-blocking "Flight Log" style
         pendingUnlocks.add(event)
         
@@ -153,7 +155,7 @@ class GameEngine(
     val bossesSpawned = mutableStateSetOf<String>()
     var majorWarningText by mutableStateOf<String?>(null)
     var majorWarningTimer by mutableFloatStateOf(0f)
-    var currentMode by mutableStateOf(GameMode.STANDARD)
+    var gameMode by mutableStateOf(GameMode.STANDARD)
     var hazardEdgeGlow by mutableFloatStateOf(0f)
     var zoneTransitionTimer by mutableFloatStateOf(0f)
     var zoneTransitionFrom by mutableStateOf(AltitudeZone.EARTH)
@@ -172,8 +174,6 @@ class GameEngine(
 
     var lastFrameTime = 0L
     val zoneLoreTeasers = mutableStateSetOf<AltitudeZone>()
-
-    var gameMode by mutableStateOf(GameMode.STANDARD)
 
     init {
         altitudeManager.onZoneChanged = { zone ->
@@ -310,7 +310,7 @@ class GameEngine(
             progressionManager.recordArtifactDiscovery(type, score, altitudeManager.currentZone)
             totalArtifactsCollected++
         }
-        if (isNew) {
+        if (isNew && gameMode != GameMode.ZEN) {
             progressionManager.updateRank()
             codexNotification = type
             activeDiscovery = type
@@ -387,7 +387,7 @@ class GameEngine(
     }
 
     fun checkUnlock(newScore: Int) {
-        if (gameState == GameState.ZEN) return // No unlocks in Zen mode
+        if (gameMode == GameMode.ZEN) return // No unlocks in Zen mode
         
         progressionManager.checkUnlocks(
             stats = getGameStats(),
@@ -421,7 +421,7 @@ class GameEngine(
         survivalManager.applyDamage(
             amount = amount,
             player = player,
-            isGameOver = gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL,
+            isGameOver = gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL && gameState != GameState.ZEN,
             onGameOver = { endRun("structural_failure") },
             onVisualFeedback = { shake, flash -> screenShake = shake; impactFlashAlpha = flash },
             onBurst = { x, y, count, color, speed -> spawnBurst(x, y, count, color, speed) },
@@ -444,34 +444,33 @@ class GameEngine(
         
         // --- BOSS KILL PLAYER DETECTION ---
         val activeBoss = threatManager.activeThreats.find { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }
-        if (gameState != GameState.ZEN) {
+        if (gameMode != GameMode.ZEN) {
             activeBoss?.let { boss ->
                 progressionManager.statRecord.recordKilledByBoss(boss.definition.id)
             }
         }
 
-        if (gameState == GameState.ZEN) {
+        if (gameMode == GameMode.ZEN) {
             progressionManager.commitZenStats(score, comboManager.bestComboThisRun, runAltitude)
             gameState = GameState.GAMEOVER // Zen deaths are final
         } else {
             saveHighScore(score)
             saveHighAltitude(runAltitude)
+            analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, cause)
             progressionManager.commitSessionStats(getGameStats())
-            gameState = GameState.GAMEOVER
-        }
-        analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, cause)
-        
-        // Submit to Global Terminal only on record improvement (Minimal Firestore writes)
-        if (score >= progressionManager.highScore) {
-            GlobalScope.launch {
-                leaderboardManager.submitScore(score, progressionManager.highScore)
+
+            if (pendingUnlocks.isNotEmpty()) {
+                gameState = GameState.EXPEDITION_REWARDS
+            } else {
+                gameState = GameState.GAMEOVER
             }
         }
         
-        if (pendingUnlocks.isNotEmpty()) {
-            gameState = GameState.EXPEDITION_REWARDS
-        } else {
-            gameState = GameState.GAMEOVER
+        // Submit to Global Terminal only on record improvement (Minimal Firestore writes)
+        if (gameMode != GameMode.ZEN && score >= progressionManager.highScore) {
+            GlobalScope.launch {
+                leaderboardManager.submitScore(score, progressionManager.highScore)
+            }
         }
     }
 
@@ -794,7 +793,7 @@ class GameEngine(
     }
 
     fun update(dt: Float) {
-        if (gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL) return
+        if (gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL && gameState != GameState.ZEN) return
         if (screenWidth <= 0f) return
 
         // EPIC 7: Module Update Hook
@@ -919,7 +918,7 @@ class GameEngine(
         comboPoints = comboManager.comboScoreBonus
         
         // Missions
-        if (gameState != GameState.ZEN && (runAltitude > 10 || totalPlatformLandings > 0)) {
+        if (gameMode != GameMode.ZEN && (runAltitude > 10 || totalPlatformLandings > 0)) {
             val stats = getGameStats()
             missionManager.updateProgressAll(stats)
             missionManager.checkUnlocks()
@@ -957,7 +956,7 @@ class GameEngine(
                 soundManager.stopThrust()
                 soundManager.fadeOutAndPlayGameOver { soundManager.playSfx("sfx_gameover") }
                 
-                if (gameState == GameState.ZEN) {
+                if (gameMode == GameMode.ZEN) {
                     progressionManager.commitZenStats(score, comboManager.bestComboThisRun, runAltitude)
                     gameState = GameState.GAMEOVER
                 } else {
@@ -1085,7 +1084,7 @@ class GameEngine(
                     onMajorWarning = { m, d -> majorWarningText = m; majorWarningTimer = d },
                     onFloatingText = { m, x, y, c, cr, l -> floatingTextManager.add(FloatingText(m, x, y, life = l, color = c, isCritical = cr)) },
                     onDiscovery = { checkDiscovery(it) },
-                    onBurst = { x, y, c, cl, s -> spawnBurst(x, y, c, cl, s) },
+                    onBurst = { x, y, c, cl, s -> spawnBurst(x, y, count = c, color = cl, speed = s) },
                     onScoreUpdate = { 
                         bossPoints += it
                         flyingScores.add(FlyingScore(it, threat.x, threat.y - cameraY, Color(0xFFFFD700), scale = 1.0f))
@@ -1281,7 +1280,6 @@ class GameEngine(
         altitudeManager.updateAltitude(0)
         soundManager.playZoneMusic(AltitudeZone.EARTH)
         progressionManager.unlockMusicTrack("bgm_earth")
-        currentMode = gameMode
         gameState = if (gameMode == GameMode.ZEN) GameState.ZEN else GameState.PLAYING
     }
 
@@ -1450,7 +1448,7 @@ class GameEngine(
         val dt = min(0.033f, (currentTime - lastFrameTime) / 1_000_000_000f)
         lastFrameTime = currentTime
 
-        if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL) {
+        if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL || gameState == GameState.ZEN) {
             val singularity = threatManager.activeThreats.find { it.definition.id == "BOSS_SINGULARITY" }
             inputProcessor.glitchFactor = singularity?.hudPullFactor ?: 0f
 
