@@ -1,48 +1,58 @@
-# Website Content Overhaul — v2.2.3 Update
+# Website Design Evolution — Staging Plan (/new)
 
-The current website for Jump Droid reflects version v1.5.2 and misses many major features introduced in EPICs 10, 11, 12, and 13. This plan outlines the update to reflect the "Zen Mastery & Impossible Uplink" era (v2.2.3).
+This plan outlines the creation of a new interactive landing page at `/new`. To keep the project organized, all new logic and components will be isolated within the `app/new/` directory.
+
+## User Review Required
+
+> [!IMPORTANT]
+> All new files will be nested under `website/site/app/new/`. This includes components, logic, and the main page entry.
+>
+> [!CAUTION]
+> Integrating live community data requires that the Firebase project and `NEXT_PUBLIC_APP_URL` are correctly configured in the target environment (Vercel).
 
 ## Proposed Changes
 
-### [Website Data]
-Update the core data structure to reflect the current game state.
+### [Isolated Structure]
+
+#### [NEW] [page.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/page.tsx)
+- The entry point for the new design.
+
+#### [NEW] [PilotFeed.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/PilotFeed.tsx)
+- Live transmission ticker.
+
+#### [NEW] [ZoneAscension.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/ZoneAscension.tsx)
+- Vertical scroll parallax journey through 12 zones.
+
+#### [NEW] [FleetHangar.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/FleetHangar.tsx)
+- Interactive rocket variant selector and radar chart.
+
+#### [NEW] [CommunityStats.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/CommunityStats.tsx)
+- Aggregated metrics display.
+
+### [Data & API]
 
 #### [MODIFY] [site-content.ts](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/data/site-content.ts)
-- Update `HERO` tagline to "ZEN MASTERY & IMPOSSIBLE UPLINK".
-- Update `HERO` description: "8 atmospheric zones" → "12 atmospheric zones".
-- Update `HERO.features`:
-    - Replace "Celestial Conflict" with "Zen & Impossible Modes" (mentioning the new ways to play).
-    - Add/update features to mention "Fleet Expansion" and "Mastery Points".
-- Update `ENTITY_DESCRIPTIONS`:
-    - Add descriptions for new zones: `THE_FOUNDRY`, `CHRONO_RIFT`, `THE_BEYOND`, `STELLAR_GATE`, `ANCIENT_CONSTRUCT`, `SINGULARITY`.
-    - Add descriptions for new bosses: `STAR_EATER`, `ENTROPY_CORE`, `THE_ARCHITECT`, `THE_SINGULARITY`.
-    - Add descriptions for new threats/hazards: `PHASE_WRAITH`, `VOID_HARVESTER`, `GRAVITY_RAM`, `SHIELD_PLATFORM`.
-- Update `GAME_CATEGORIES`:
-    - `platforms`: Change title to "18+ Platform Types" (reflecting the expanded library).
-    - `bosses`: Change title to "12 Boss Encounters". Add the new bosses to the entity list.
-    - `rockets`: Change title to "12 Fleet Variants".
-    - `threats`: Change title to "36+ Threat Variants".
-- Update `DOWNLOADS`: version `v1.5.2` → `v2.2.3`.
+- Add `ZONE_THEMES` definition.
 
-#### [MODIFY] [constants.ts](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/lib/constants.ts)
-- Update `FEATURES` list to include "Zen Mode" and "Fleet Mastery".
-- Ensure screenshot captions match the latest gameplay focus.
-
-### [Website Layout & Components]
-Minor adjustments to accommodate the new content.
-
-#### [MODIFY] [HeroSignal.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/components/screens/HeroSignal.tsx)
-- Check if any hardcoded version strings or counts exist.
-
-#### [MODIFY] [GameplayCards.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/components/screens/GameplayCards.tsx)
-- Ensure the cycling entity list includes the new visual types if SVGs are available.
+#### [NEW] [route.ts](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/api/community/stats/route.ts)
+- API to fetch aggregated Firestore data.
 
 ## Verification Plan
 
 ### Automated Tests
-- `npm run build` in `website/site` to ensure no TypeScript or build errors after data changes.
+- `npm run build` to ensure isolation works and no regressions occur.
 
 ### Manual Verification
-- Check the local development server to verify that the new descriptions and titles render correctly.
-- Verify that the "Zen Mode" and "12 Zones" mentions appear in the Hero section.
-- Ensure the version number is updated in the download section.
+- Access `/new` and verify all nested components load correctly.
+- Verify that background transitions and interactive elements are scoped to the `/new` path.
+
+## Verification Plan
+
+### Automated Tests
+- `npm run build` in `website/site` to ensure no regressions in existing pages or type errors in new components.
+
+### Manual Verification
+- Access `/new` on local development server.
+- Verify parallax scroll behavior in `ZoneAscension`.
+- Verify stat radar chart updates in `FleetHangar`.
+- Check `PilotFeed` with mock data to ensure scrolling is smooth.

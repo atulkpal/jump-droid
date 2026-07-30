@@ -100,6 +100,47 @@ export const ENTITY_DESCRIPTIONS: Record<string, string> = {
   SINGULARITY: "The end of the climb. Non-Euclidean white-noise space where physics and thrust values fluctuate wildly.",
 };
 
+export interface ZoneTheme {
+  id: string;
+  name: string;
+  altitude: string;
+  color: string;
+  glow: string;
+  entities: EntitySpec[];
+}
+
+export const ZONE_THEMES: ZoneTheme[] = [
+  { id: "EARTH", name: "Earth", altitude: "0m", color: "#FFD700", glow: "rgba(255, 215, 0, 0.1)", entities: [{ visual: "threat", type: "SURVEYOR_PROBE" }] },
+  { id: "CLOUDS", name: "Cloud Layer", altitude: "1,000m", color: "#00E5FF", glow: "rgba(0, 229, 255, 0.1)", entities: [{ visual: "threat", type: "SKY_RAY" }] },
+  { id: "UPPER", name: "Upper Atmosphere", altitude: "4,000m", color: "#D500F9", glow: "rgba(213, 0, 249, 0.1)", entities: [{ visual: "threat", type: "AEROSOL_SWARM" }] },
+  { id: "ORBIT", name: "Orbit", altitude: "8,000m", color: "#FFFFFF", glow: "rgba(255, 255, 255, 0.05)", entities: [{ visual: "threat", type: "DEFENSE_NODE" }] },
+  { id: "DEEP_SPACE", name: "Deep Space", altitude: "12,000m", color: "#2979FF", glow: "rgba(41, 121, 255, 0.1)", entities: [{ visual: "threat", type: "VOID_WHALE" }] },
+  { id: "VOID", name: "The Void", altitude: "16,000m", color: "#6200EA", glow: "rgba(98, 0, 234, 0.15)", entities: [{ visual: "threat", type: "SHADOW_ENTITY" }] },
+  { id: "FOUNDRY", name: "The Foundry", altitude: "20,000m", color: "#00B0FF", glow: "rgba(0, 176, 255, 0.1)", entities: [{ visual: "threat", type: "THE_ARCHITECT" }] },
+  { id: "CHRONO_RIFT", name: "Chrono-Rift", altitude: "24,000m", color: "#AA00FF", glow: "rgba(170, 0, 255, 0.15)", entities: [{ visual: "threat", type: "PHASE_WRAITH" }] },
+  { id: "BEYOND", name: "The Beyond", altitude: "30,000m", color: "#00E676", glow: "rgba(0, 230, 118, 0.1)", entities: [{ visual: "threat", type: "VOID_HARVESTER" }] },
+  { id: "STELLAR_GATE", name: "Stellar Gate", altitude: "40,000m", color: "#FFD600", glow: "rgba(255, 214, 0, 0.1)", entities: [{ visual: "threat", type: "ENTROPY_CORE" }] },
+  { id: "CONSTRUCT", name: "Ancient Construct", altitude: "80,000m", color: "#651FFF", glow: "rgba(101, 31, 255, 0.15)", entities: [{ visual: "threat", type: "VOID_TRACKER" }] },
+  { id: "SINGULARITY", name: "Singularity", altitude: "100,000m", color: "#FFFFFF", glow: "rgba(255, 255, 255, 0.2)", entities: [{ visual: "threat", type: "THE_SINGULARITY" }] },
+];
+
+export interface ChassisStats {
+  thrust: number;
+  shield: number;
+  heat: number;
+  hull: number;
+  speed: number;
+}
+
+export const CHASSIS_DATA: Record<string, ChassisStats> = {
+  BALANCED: { thrust: 60, shield: 60, heat: 60, hull: 60, speed: 60 },
+  SCOUT: { thrust: 90, shield: 30, heat: 80, hull: 30, speed: 100 },
+  TANK: { thrust: 40, shield: 100, heat: 40, hull: 100, speed: 30 },
+  EXPERIMENTAL: { thrust: 100, shield: 20, heat: 100, hull: 20, speed: 90 },
+  STEALTH: { thrust: 50, shield: 40, heat: 20, hull: 40, speed: 80 },
+  REFLECTOR: { thrust: 40, shield: 90, heat: 50, hull: 80, speed: 40 },
+};
+
 export const TRANSMISSION_LINES = [
   "A transmission was detected",
   "at the edge of known space.",

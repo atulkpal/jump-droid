@@ -1,27 +1,37 @@
-# Website Update Walkthrough — v2.2.3
+# Website Staging Evolution — v2.2.3 Walkthrough
 
-The Jump Droid website has been updated to reflect the latest game state, specifically the "Zen Mastery & Impossible Uplink" era.
+I have implemented the new interactive landing page at `/new`. This design transforms the Jump Droid web presence into a more immersive, data-driven experience.
 
-## Changes Made
+## Key Features
 
-### Tagline and Branding
-- **Hero Tagline**: Updated to "ZEN MASTERY & IMPOSSIBLE UPLINK".
-- **Hero Features**: Now highlights "Zen Mode" and "Fleet Mastery" alongside the core tactical loop.
-- **Version**: Bumped from `v1.5.2` to `v2.2.3` in the download section.
+### 1. Parallax Zone Ascension
+- **Location**: `app/new/components/ZoneAscension.tsx`
+- **Behavior**: A scroll-driven journey through all 12 atmospheric zones.
+- **Visuals**: Background colors and glow effects transition dynamically as you "climb." Floating threat SVGs appear in their respective zones.
 
-### Content Accuracy
-- **Zones**: Increased count to 12. Added descriptions for `The Foundry`, `Chrono-Rift`, `The Beyond`, `Stellar Gate`, `Ancient Construct`, and `Singularity`.
-- **Bosses**: Increased count to 12. Added detailed descriptions for endgame bosses like `The Architect`, `Entropy Core`, `Star-Eater`, and `The Singularity`.
-- **Threats**: Updated count to 32+ and added new descriptions for entities like `Phase Wraith`, `Void Harvester`, and `Gravity Ram`.
-- **Platforms**: Updated to 18+ types, including `Cooling`, `Stability`, and `Mimic` platforms.
-- **Fleet**: Updated to "12 Rocket Variants" to reflect the expanded fleet system.
+### 2. Live Pilot Transmission Feed
+- **Location**: `app/new/components/PilotFeed.tsx`
+- **Behavior**: A real-time marquee ticker that displays recent activities from the beta community.
+- **Logic**: Fetches the latest entries from the `activityLog` via the new `/api/community/activity` endpoint.
 
-### Features Section
-- Added a dedicated "Zen Mode" feature card.
-- Updated "Adapt or Fall" and "Endless Ascent" descriptions to reflect the current variety of threats and mastery systems.
+### 3. Interactive Fleet Hangar
+- **Location**: `app/new/components/FleetHangar.tsx`
+- **Behavior**: Allows users to preview all 12 rocket variants.
+- **Intelligence**: Features a dynamic Radar Chart that visualizes the Thrust, Shield, Heat, Hull, and Speed stats for each chassis.
 
-## Verification
-- Verified that all entity types added to `site-content.ts` have corresponding SVG implementations in `ThreatSVG.tsx` and `PlatformSVG.tsx`.
-- Ensured all copy aligns with the design libraries in `docs/design/`.
+### 4. Community Mastery Dashboard
+- **Location**: `app/new/components/CommunityStats.tsx`
+- **Behavior**: Displays aggregated fleet metrics like "Total Distance Climbed" and "Active Pilots."
+- **Source**: Powered by the new `/api/community/stats` server-side route.
 
-The website now accurately represents the depth and scale of the Jump Droid production release.
+## Technical Details
+
+- **Isolation**: All new components are nested in `app/new/components/` to ensure zero impact on the production site.
+- **Build Verified**: The project successfully compiles with zero warnings.
+- **Staging URL**: Access the new design at `https://[your-domain]/new` once deployed.
+
+> [!TIP]
+> To replace the old site with the new one, simply swap the contents of `app/page.tsx` with `app/new/page.tsx`.
+
+> [!IMPORTANT]
+> The "Live" features require `FIREBASE_SERVICE_ACCOUNT_KEY` to be configured in Vercel to fetch real data from Firestore.
