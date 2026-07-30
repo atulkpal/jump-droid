@@ -211,13 +211,22 @@ class GameEngine(
             if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
                 totalBossesDefeated++
                 if (def.type == ThreatType.BOSS) runBossesDefeated++ else runMiniBossesDefeated++
+                
+                progressionManager.statRecord.recordBossKill(def.id)
+                
                 analytics.logBossDefeated(def, altitudeManager.currentZone)
                 val celebrationX = player.x
                 val celebrationY = cameraY + screenHeight * 0.3f
                 spawnBurst(celebrationX, celebrationY, 50, SciFiGold, 400f)
                 spawnBurst(celebrationX - 80f, celebrationY + 30f, 25, SciFiCyan, 300f)
                 spawnBurst(celebrationX + 80f, celebrationY + 30f, 25, SciFiCyan, 300f)
-                floatingTextManager.add(FloatingText("BOSS DEFEATED", celebrationX, celebrationY - 50f, color = SciFiGold, isCritical = true, life = 2.0f))
+                floatingTextManager.add(FloatingText("${def.name.uppercase()} NEUTRALIZED", celebrationX, celebrationY - 50f, color = SciFiGold, isCritical = true, life = 2.0f))
+            }
+        }
+        threatManager.onThreatEscaped = { def ->
+            if (def.type == ThreatType.BOSS || def.type == ThreatType.MINI_BOSS) {
+                progressionManager.statRecord.recordBossEscape(def.id)
+                notificationManager.post("${def.name.uppercase()} ESCAPED", NotificationPriority.TACTICAL)
             }
         }
         missionManager.onMissionCompleted = { mission ->
@@ -264,6 +273,7 @@ class GameEngine(
         platformLandings = totalPlatformLandings,
         maxCombo = comboManager.bestComboThisRun,
         currentCombo = comboManager.currentCombo,
+        combosOver15 = comboManager.combosOver15Count,
         comboMaintainTime = comboMaintainTimer,
         bossesDefeated = runBossesDefeated,
         miniBossesDefeated = runMiniBossesDefeated,
@@ -277,6 +287,7 @@ class GameEngine(
         dashesPerRun = totalDashes,
         overheatCount = player.totalOverheats,
         wasNearDeath = wasNearDeath,
+        continuesUsed = continuesUsed,
         consecutiveWins = consecutiveWins
     )
 
@@ -408,39 +419,49 @@ class GameEngine(
             amount = amount,
             player = player,
             isGameOver = gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL,
-            onGameOver = {
-                soundManager.setBossActive(false)
-                soundManager.stopAllLoops()
-                soundManager.fadeOutAndPlayGameOver {
-                    soundManager.playSfx("sfx_gameover")
-                }
-                soundManager.stopThrust()
-                spawnBurst(player.x, player.y, 50, SciFiRed, 500f)
-                screenShake = 25f
-                
-                saveHighScore(score)
-                saveHighAltitude(runAltitude)
-                progressionManager.commitSessionStats(getGameStats())
-                analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "structural_failure")
-                
-                // Submit to Global Terminal only on record improvement (Minimal Firestore writes)
-                if (score >= progressionManager.highScore) {
-                    GlobalScope.launch {
-                        leaderboardManager.submitScore(score, progressionManager.highScore)
-                    }
-                }
-                
-                if (pendingUnlocks.isNotEmpty()) {
-                    gameState = GameState.EXPEDITION_REWARDS
-                } else {
-                    gameState = GameState.GAMEOVER
-                }
-            },
+            onGameOver = { endRun("structural_failure") },
             onVisualFeedback = { shake, flash -> screenShake = shake; impactFlashAlpha = flash },
             onBurst = { x, y, count, color, speed -> spawnBurst(x, y, count, color, speed) },
             onPlaySfx = { soundManager.playSfx(it) },
             onVibrate = { hapticManager.vibrate(it) }
         )
+    }
+
+    private fun endRun(cause: String) {
+        if (gameState != GameState.PLAYING && gameState != GameState.ASCENSION_PROTOCOL && gameState != GameState.ZEN) return
+        
+        soundManager.setBossActive(false)
+        soundManager.stopAllLoops()
+        soundManager.fadeOutAndPlayGameOver {
+            soundManager.playSfx("sfx_gameover")
+        }
+        soundManager.stopThrust()
+        spawnBurst(player.x, player.y, 50, SciFiRed, 500f)
+        screenShake = 25f
+        
+        // --- BOSS KILL PLAYER DETECTION ---
+        val activeBoss = threatManager.activeThreats.find { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }
+        activeBoss?.let { boss ->
+            progressionManager.statRecord.recordKilledByBoss(boss.definition.id)
+        }
+
+        saveHighScore(score)
+        saveHighAltitude(runAltitude)
+        progressionManager.commitSessionStats(getGameStats())
+        analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, cause)
+        
+        // Submit to Global Terminal only on record improvement (Minimal Firestore writes)
+        if (score >= progressionManager.highScore) {
+            GlobalScope.launch {
+                leaderboardManager.submitScore(score, progressionManager.highScore)
+            }
+        }
+        
+        if (pendingUnlocks.isNotEmpty()) {
+            gameState = GameState.EXPEDITION_REWARDS
+        } else {
+            gameState = GameState.GAMEOVER
+        }
     }
 
     fun handleLanding(platform: Platform?, yTop: Float) {
@@ -469,6 +490,16 @@ class GameEngine(
             platformPoints += 10
             flyingScores.add(FlyingScore(10, player.x, yTop - cameraY, Color(0xFF00FF41), scale = 1.0f))
             
+            // Perfect Landing Detection
+            if (platform != null) {
+                val centerDist = kotlin.math.abs(player.x - (platform.x + platform.width / 2))
+                if (centerDist < 12f) {
+                    progressionManager.statRecord.recordPerfectLanding()
+                    floatingTextManager.add(FloatingText("PERFECT LANDING", player.x, yTop - 40f, color = SciFiGold, life = 1.5f))
+                    spawnBurst(player.x, yTop, 10, SciFiGold, 180f)
+                }
+            }
+
             if (player.kineticBatteryTimer > 0f) {
                 player.fuel = min(player.maxFuel, player.fuel + 5f)
                 player.shield = min(player.maxShield, player.shield + 2f)
@@ -1189,30 +1220,7 @@ class GameEngine(
         score = altitudePoints + bossPoints + platformPoints + comboPoints
 
         if (player.y - (ROCKET_HEIGHT / 2) > cameraY + screenHeight && screenHeight > 0f) {
-            soundManager.setBossActive(false)
-            soundManager.stopAllLoops()
-            soundManager.stopThrust()
-            soundManager.fadeOutAndPlayGameOver { soundManager.playSfx("sfx_gameover") }
-            spawnBurst(player.x, player.y, 30, SciFiRed, 400f)
-            screenShake = 20f
-            
-            saveHighScore(score)
-            saveHighAltitude(runAltitude)
-            progressionManager.commitSessionStats(getGameStats())
-            analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "off_screen_fall")
-
-            // Submit to Global Terminal only on record improvement (Minimal Firestore writes)
-            if (score >= progressionManager.highScore) {
-                GlobalScope.launch {
-                    leaderboardManager.submitScore(score, progressionManager.highScore)
-                }
-            }
-            
-            if (pendingUnlocks.isNotEmpty()) {
-                gameState = GameState.EXPEDITION_REWARDS
-            } else {
-                gameState = GameState.GAMEOVER
-            }
+            endRun("off_screen_fall")
         }
     }
 
@@ -1412,6 +1420,7 @@ class GameEngine(
         soundManager.setBossActive(false)
         soundManager.playZoneMusic(altitudeManager.currentZone)
         continuesUsed++
+        progressionManager.statRecord.recordContinuesUsed(1)
         gameState = GameState.CONTINUE_READY
     }
 

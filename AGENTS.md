@@ -109,6 +109,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Inventory** | `docs/INVENTORY.md` | (Cross-Reference) |
 | **Production Checklist** | `docs/PRODUCTION_CHECKLIST.md` | Mandatory gate before any release |
 | **Website & Community Platform** | `docs/COMMUNITY_PLATFORM.md` | `website/site/AGENTS.md` |
+| **OpenCode Skills** | `agents-skill.md` | `skills/` |
 
 ---
 
@@ -122,6 +123,8 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 `docs/ARCHITECTURE.md` (System Architecture)
 `docs/ANALYTICS.md` (Analytics & Ads Reference)
 `docs/design/` (Gameplay Content Specs)
+`agents-skill.md` (OpenCode Skills & Agent Workflows)
+`skills/` (24 Skill Workflows)
 ↓
 `docs/analysis/` (Technical Context & Audits)
 ↓
@@ -139,6 +142,11 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 1.  **Gradle Build**: Mandatory after any structural or dependency change.
 2.  **Runtime Verification**: Mandatory for all logic. Manually launch and navigate to verify.
 3.  **Visual Validation**: Mandatory for UI. Provide **BEFORE** and **AFTER** screenshots saved to `docs/screenshots/`.
+
+### Skill-Driven Execution
+Before implementing any task, the agent MUST check `agents-skill.md` and the
+`skills/` directory. If a skill matches the intent, invoke it via the `skill`
+tool and follow its workflow exactly. Bypassing skills is never valid.
 
 ### Documentation Preservation Policy
 *   **No Silent Deletions**: Consolidation is encouraged; removal of knowledge is prohibited.
@@ -163,7 +171,8 @@ Agent-specific files (e.g. `agent-opencode.md`) are **OPTIONAL**. They may suppl
 1.  Read **`AGENTS.md`** (this file) for constitution and memory.
 2.  Consult **`docs/JumpDroid_EPIC_Tracker.md`** for current milestone status.
 3.  Review **`docs/INVENTORY.md`** to locate relevant technical specs.
-4.  Execute a **`gradle_build`** to ensure a stable environment.
+4.  Load relevant skills from **`agents-skill.md`** — check `skills/` for matching workflows.
+5.  Execute a **`gradle_build`** to ensure a stable environment.
 
 ---
 

@@ -21,12 +21,14 @@ sealed class UnlockEvent {
     abstract val description: String
     abstract val destinationLabel: String
     abstract val accentColor: Color
+    open val rewardValue: String? = null
     open val insigniaRes: Int? = null
     open val loreText: String? = null
 
     data class Rocket(val type: RocketType) : UnlockEvent() {
         override val title get() = type.title.uppercase()
         override val description get() = "${type.traitName}: ${type.traitDescription}"
+        override val rewardValue get() = "NEW CHASSIS"
         override val destinationLabel get() = "VIEW IN HANGAR"
         override val accentColor get() = SciFiCyan
         override val insigniaRes get() = R.drawable.ic_btn_hangar
@@ -35,6 +37,7 @@ sealed class UnlockEvent {
     data class Module(val module: com.ashwathai.jump_droid.Module) : UnlockEvent() {
         override val title get() = module.name.uppercase()
         override val description get() = module.description
+        override val rewardValue get() = "SUBSYSTEM UNLOCKED"
         override val destinationLabel get() = "VIEW IN HANGAR"
         override val accentColor get() = module.iconColor
         override val insigniaRes get() = when(module.category) {
@@ -50,6 +53,7 @@ sealed class UnlockEvent {
     data class Achievement(val achievement: com.ashwathai.jump_droid.Achievement) : UnlockEvent() {
         override val title get() = achievement.title.uppercase()
         override val description get() = achievement.description
+        override val rewardValue get() = "PRESTIGE GAINED"
         override val destinationLabel get() = "VIEW IN ARCHIVE"
         override val accentColor get() = SciFiGold
         override val insigniaRes get() = R.drawable.ic_premium_star
@@ -59,6 +63,17 @@ sealed class UnlockEvent {
     data class Mission(val mission: com.ashwathai.jump_droid.Mission) : UnlockEvent() {
         override val title get() = mission.name.uppercase()
         override val description get() = "Mission objective completed."
+        override val rewardValue get() = mission.rewards.firstOrNull { it !is MissionReward.None }?.let {
+            when (it) {
+                is MissionReward.Cash -> "+${it.amount} JC"
+                is MissionReward.ModuleUnlock -> "NEW MODULE"
+                is MissionReward.Artifact -> "ARTIFACT DISCOVERED"
+                is MissionReward.PowerUp -> "SUPPLY DROP"
+                is MissionReward.Unlock -> "ROCKET BLUEPRINT"
+                is MissionReward.Achievement -> "RANK XP"
+                else -> null
+            }
+        }
         override val destinationLabel get() = "VIEW IN MISSIONS"
         override val accentColor get() = MissionRegistry.getTrackForCategory(mission.category)?.color ?: SciFiCyan
         override val insigniaRes get() = MissionRegistry.getTrackForCategory(mission.category)?.iconRes
@@ -68,6 +83,7 @@ sealed class UnlockEvent {
     data class Discovery(val type: com.ashwathai.jump_droid.DiscoveryType) : UnlockEvent() {
         override val title get() = type.title.uppercase()
         override val description get() = "New entry archived."
+        override val rewardValue get() = "LORE LOG SYNCED"
         override val destinationLabel get() = "VIEW IN ARCHIVE"
         override val accentColor get() = SciFiPurple
         override val insigniaRes get() = R.drawable.ic_station_arc

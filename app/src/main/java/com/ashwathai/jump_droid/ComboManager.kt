@@ -42,6 +42,7 @@ class ComboManager {
 
     var currentCombo by mutableIntStateOf(0)
     var bestComboThisRun by mutableIntStateOf(0)
+    var combosOver15Count by mutableIntStateOf(0)
     var comboTimeRemaining by mutableLongStateOf(0L)
     var comboTarget by mutableIntStateOf(5)
     
@@ -107,6 +108,9 @@ class ComboManager {
 
     private fun breakCombo() {
         isNewHighReached = false
+        if (currentCombo >= 15) {
+            combosOver15Count++
+        }
         if (currentCombo > bestComboThisRun && currentCombo >= 5) {
             isNewHighReached = true
             lastFinalStreak = currentCombo
@@ -137,6 +141,7 @@ class ComboManager {
     fun reset() {
         currentCombo = 0
         bestComboThisRun = 0
+        combosOver15Count = 0
         comboTarget = 5
         comboTimeRemaining = 0L
         pendingReward = null

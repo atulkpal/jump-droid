@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import kotlin.random.Random
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -409,10 +410,25 @@ fun MainMenuScreen(
                 exit = shrinkVertically()
             ) {
                 Column {
-                    if (BuildConfig.DEBUG) {
-                        GhostButton("MULTIPLAYER", SciFiCyan, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_station_trm) { onNavigate(GameState.MULTIPLAYER) }
+                    val isZenUnlocked = progressionManager?.isZenModeUnlocked == true
+                    val isMultiplayerUnlocked = progressionManager?.isMultiplayerUnlocked == true
+                    
+                    if (isZenUnlocked || BuildConfig.DEBUG) {
+                        GhostButton(
+                            label = if (isMultiplayerUnlocked) "MULTIPLAYER" else "UPLINK PROTOCOL",
+                            accent = if (isMultiplayerUnlocked) SciFiCyan else SciFiGold.copy(alpha = 0.6f),
+                            borderPulse = borderPulse,
+                            shape = shape,
+                            soundManager = soundManager,
+                            hapticManager = hapticManager,
+                            iconRes = R.drawable.ic_station_trm,
+                            onClick = {
+                                if (isMultiplayerUnlocked || BuildConfig.DEBUG) onNavigate(GameState.MULTIPLAYER)
+                            }
+                        )
                         Spacer(Modifier.height(8.dp))
                     }
+
                     GhostButton("HANGAR", SciFiGold, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_hangar) { onNavigate(GameState.HANGAR) }
                     Spacer(Modifier.height(8.dp))
                     GhostButton("MISSIONS", SciFiCyan, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_missions) { onNavigate(GameState.MISSIONS) }
@@ -901,56 +917,69 @@ private fun ZenCommandConsole(
     soundManager: SoundManager?,
     onLaunchZen: () -> Unit
 ) {
-    val accent = if (isUnlocked) SciFiPurple else SciFiRed
-    val panelAlpha = if (isUnlocked) 0.15f else 0.12f
+    val isMultiplayerUnlocked = progressionManager?.isMultiplayerUnlocked == true
+    val showMultiplayerCalibration = isUnlocked && !isMultiplayerUnlocked
+    
+    // Protocol States: GREEN (Classic) -> AMBER (Calibration) -> PURPLE (Zen) -> CYAN (Uplink)
+    val protocolColor = when {
+        isMultiplayerUnlocked -> SciFiCyan
+        isUnlocked -> SciFiPurple
+        else -> {
+            val zenProgress = progressionManager?.getZenUnlockProgress() ?: 0f
+            if (zenProgress > 0f) Color(0xFFFFBF00) // Amber
+            else Color(0xFF00FF41) // Classic Terminal Green
+        }
+    }
 
     Surface(
         modifier = Modifier
             .fillMaxWidth(0.9f)
             .padding(vertical = 8.dp),
-        color = Color.Black.copy(alpha = 0.8f),
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, accent.copy(alpha = borderPulse * 0.5f))
+        color = Color.Black,
+        shape = RoundedCornerShape(4.dp),
+        border = BorderStroke(1.dp, protocolColor.copy(alpha = 0.3f))
     ) {
         Box(Modifier.height(IntrinsicSize.Min)) {
-            // Immersive Terminal Background (Locked Only)
-            if (!isUnlocked) {
-                Canvas(Modifier.fillMaxSize()) {
-                    val w = size.width
-                    val h = size.height
-                    // Matrix-style falling binary
-                    repeat(15) { col ->
-                        val seed = col * 99L
-                        val prng = Random(seed)
-                        val speed = 30f + prng.nextFloat() * 60f
-                        val charX = (col * (w / 15f)) + 10f
-                        val charY = (ft * speed) % (h + 40f) - 20f
-                        
-                        val paint = android.graphics.Paint().apply {
-                            color = accent.copy(alpha = 0.15f).toArgb()
-                            textSize = 24f
-                            typeface = android.graphics.Typeface.MONOSPACE
-                        }
-                        drawContext.canvas.nativeCanvas.drawText(
-                            if (prng.nextBoolean()) "0" else "1",
-                            charX, charY, paint
-                        )
-                    }
+            // Tactical Vector Visualizer
+            Canvas(Modifier.fillMaxSize()) {
+                val w = size.width
+                val h = size.height
+                val progress = if (isUnlocked) progressionManager?.getMultiplayerUnlockProgress() ?: 0f else progressionManager?.getZenUnlockProgress() ?: 0f
+                
+                // Scanlines
+                for (y in 0..h.toInt() step 8) {
+                    drawLine(protocolColor.copy(alpha = 0.05f), Offset(0f, y.toFloat()), Offset(w, y.toFloat()), 1f)
+                }
+
+                // Vector Waveform (Stabilizes as progress increases)
+                val path = Path()
+                val points = 50
+                val amplitude = (1f - progress) * 30f + 5f
+                val frequency = 2f + progress * 5f
+                
+                path.moveTo(0f, h / 2)
+                for (i in 0..points) {
+                    val x = (i.toFloat() / points) * w
+                    val y = h / 2 + sin(i * 0.5f * frequency + ft * 10f) * amplitude
+                    path.lineTo(x, y)
+                }
+                drawPath(path, protocolColor.copy(alpha = 0.4f), style = Stroke(width = 2f))
+                
+                // Monitor Flicker
+                if (Random.nextFloat() > 0.98f) {
+                    drawRect(protocolColor.copy(alpha = 0.1f), size = size)
                 }
             }
 
-            Box(Modifier.padding(12.dp).background(accent.copy(alpha = panelAlpha))) {
-                // Animated Corners
-                Box(Modifier.matchParentSize()) {
-                    val bracketSize = 12.dp
-                    val bracketAlpha = (0.4f + borderPulse * 0.4f).coerceIn(0f, 1f)
-                    // Top Left
-                    Box(Modifier.size(bracketSize).align(Alignment.TopStart).border(BorderStroke(2.dp, accent.copy(alpha = bracketAlpha)), RoundedCornerShape(topStart = 4.dp)))
-                    // Bottom Right
-                    Box(Modifier.size(bracketSize).align(Alignment.BottomEnd).border(BorderStroke(2.dp, accent.copy(alpha = bracketAlpha)), RoundedCornerShape(bottomEnd = 4.dp)))
-                }
-
+            Box(Modifier.padding(16.dp)) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val headerText = when {
+                        isMultiplayerUnlocked -> "UPLINK PROTOCOL // AUTHORIZED"
+                        showMultiplayerCalibration -> "UPLINK PROTOCOL // CALIBRATING"
+                        isUnlocked -> "ZEN PROTOCOL // AUTHORIZED"
+                        else -> "SECURE CHANNEL // CALIBRATING"
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -958,36 +987,38 @@ private fun ZenCommandConsole(
                     ) {
                         Column {
                             Text(
-                                text = if (isUnlocked) "ZEN PROTOCOL // AUTHORIZED" else "SECURE CHANNEL // ENCRYPTED",
-                                color = accent,
-                                fontSize = 9.sp,
+                                text = headerText,
+                                color = protocolColor,
+                                fontSize = 10.sp,
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 2.sp
-                            )
-                            if (!isUnlocked) {
-                                Text(
-                                    text = "UNAUTHORIZED PILOT DETECTED",
-                                    color = accent.copy(alpha = 0.4f),
-                                    fontSize = 7.sp,
-                                    fontWeight = FontWeight.Bold
+                                letterSpacing = 2.sp,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    shadow = Shadow(protocolColor.copy(alpha = 0.5f), blurRadius = 8f)
                                 )
-                            }
-                        }
-                        if (!isUnlocked) {
-                            val blink = if ((ft * 4).toInt() % 2 == 0) 1f else 0.2f
+                            )
+                            val progress = if (isUnlocked) progressionManager?.getMultiplayerUnlockProgress() ?: 0f else progressionManager?.getZenUnlockProgress() ?: 0f
                             Text(
-                                text = "DECRYPTING...",
-                                color = accent.copy(alpha = 0.8f * blink),
+                                text = "ENCRYPTION: ${(progress * 100).format(1)}% // VOLATILE",
+                                color = protocolColor.copy(alpha = 0.5f),
                                 fontSize = 8.sp,
-                                fontWeight = FontWeight.Black,
-                                modifier = Modifier.graphicsLayer(alpha = blink)
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
                             )
                         }
+                        
+                        val blink = if ((ft * 4).toInt() % 2 == 0) 1f else 0.3f
+                        Text(
+                            text = if (isUnlocked && !showMultiplayerCalibration) "LIVE" else "SYNCING",
+                            color = protocolColor.copy(alpha = blink),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.graphicsLayer(alpha = blink)
+                        )
                     }
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                    if (isUnlocked) {
+                    if (isUnlocked && !showMultiplayerCalibration) {
                         Button(
                             onClick = {
                                 soundManager?.playSfx("sfx_ui_confirm")
@@ -995,50 +1026,42 @@ private fun ZenCommandConsole(
                                 onLaunchZen()
                             },
                             modifier = Modifier.fillMaxWidth().height(44.dp),
-                            shape = RoundedCornerShape(4.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = accent.copy(alpha = 0.2f), contentColor = SciFiWhite),
-                            border = BorderStroke(1.5.dp, accent.copy(alpha = 0.8f))
+                            shape = RoundedCornerShape(2.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = protocolColor.copy(alpha = 0.1f), contentColor = SciFiWhite),
+                            border = BorderStroke(1.dp, protocolColor.copy(alpha = 0.8f))
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val pulse = sin(ft * 4f) * 0.2f + 0.8f
-                                Box(Modifier.size(10.dp).graphicsLayer(scaleX = pulse, scaleY = pulse).background(accent, CircleShape))
-                                Spacer(Modifier.width(12.dp))
-                                Text("SYNC & DEPLOY ZEN MODE", fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 12.sp)
-                            }
+                            Text("DEPLOY ZEN MODE", fontWeight = FontWeight.Black, letterSpacing = 3.sp, fontSize = 12.sp)
                         }
                     } else {
-                        val requirements = progressionManager?.getZenRequirements() ?: emptyList()
+                        val requirements = if (!isUnlocked) {
+                            progressionManager?.getZenRequirements() ?: emptyList()
+                        } else {
+                            progressionManager?.getMultiplayerRequirements() ?: emptyList()
+                        }
+                        
                         requirements.forEach { (label, status, progress) ->
-                            val flicker = if (Random.nextFloat() > 0.95f) 0.5f else 1f
-                            Column(Modifier.fillMaxWidth().padding(vertical = 3.dp).graphicsLayer(alpha = flicker)) {
+                            Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(label, color = SciFiWhite.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                                    Text(status, color = accent, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
+                                    Text(label, color = protocolColor.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                    Text(status, color = protocolColor, fontSize = 9.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
                                 }
-                                Spacer(Modifier.height(3.dp))
-                                Box(Modifier.fillMaxWidth().height(4.dp).background(Color.Black.copy(alpha = 0.5f))) {
-                                    Box(
-                                        Modifier
-                                            .fillMaxWidth(progress)
-                                            .fillMaxHeight()
-                                            .background(
-                                                Brush.horizontalGradient(
-                                                    listOf(accent.copy(alpha = 0.3f), accent)
-                                                )
-                                            )
-                                    )
+                                Spacer(Modifier.height(4.dp))
+                                // Tactical Segmented Bar
+                                Row(Modifier.fillMaxWidth().height(6.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    val segments = 10
+                                    repeat(segments) { i ->
+                                        val segmentProgress = (i + 1).toFloat() / segments
+                                        val isFilled = progress >= segmentProgress
+                                        Box(
+                                            Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight()
+                                                .background(if (isFilled) protocolColor else Color.White.copy(alpha = 0.05f))
+                                        )
+                                    }
                                 }
                             }
                         }
-                        
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "ENCRYPTION STRENGTH: ${(12.8f + sin(ft)*2f).format(1)} EB // VOLATILE",
-                            color = accent.copy(alpha = 0.3f),
-                            fontSize = 7.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
                     }
                 }
             }

@@ -8,12 +8,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ashwathai.jump_droid.ui.theme.SciFiCyan
+import com.ashwathai.jump_droid.ui.theme.SciFiSurface
 
 @Composable
 fun TopRightUtilityButtons(
@@ -28,20 +31,14 @@ fun TopRightUtilityButtons(
             .statusBarsPadding(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Button(
-            onClick = onHelp,
-            modifier = Modifier.size(36.dp),
-            contentPadding = PaddingValues(0.dp),
-            shape = CircleShape
-        ) { Text("?", fontWeight = FontWeight.Bold) }
-
-        if (gameState == GameState.PLAYING) {
+        if (gameState == GameState.PLAYING || gameState == GameState.ZEN) {
             Button(
                 onClick = onPause,
                 modifier = Modifier.size(36.dp),
                 contentPadding = PaddingValues(0.dp),
-                shape = CircleShape
-            ) { Text("||", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface.copy(alpha = 0.5f))
+            ) { Text("||", fontWeight = FontWeight.Black, fontSize = 14.sp, color = SciFiCyan) }
         }
     }
 }

@@ -377,6 +377,13 @@ fun JumpDroidApp(
             route = "pause",
             dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
+            DisposableEffect(Unit) {
+                onDispose {
+                    if (engine.gameState == GameState.PAUSED) {
+                        engine.gameState = engine.preOverlayState
+                    }
+                }
+            }
             PauseOverlay(
                 showDevMenu = engine.showDevMenu,
                 infiniteFuel = engine.infiniteFuel,
@@ -485,6 +492,13 @@ fun JumpDroidApp(
             route = "help",
             dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
+            DisposableEffect(Unit) {
+                onDispose {
+                    if (engine.gameState == GameState.HELP) {
+                        engine.gameState = engine.preOverlayState
+                    }
+                }
+            }
             HelpOverlay(onDismiss = { 
                 engine.gameState = engine.preOverlayState
                 navController.popBackStack() 
