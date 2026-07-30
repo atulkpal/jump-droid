@@ -1,4 +1,4 @@
-# Documentation Inventory — Milestone: v1.5.2 — Community Platform & Hero Redesign
+# Documentation Inventory — Milestone: v2.2.3 — Zen Mastery & Impossible Uplink
 
 ## Root
 *   `AGENTS.md`: Authoritative governance, memory, and onboarding manual.
@@ -68,16 +68,23 @@
 *   `website/site/app/beta-dashboard/page.tsx`: Admin dashboard — 8 KPI cards, tester table, sessions, daily summary, feedback, config modal.
 *   `website/site/app/beta-dashboard/recruitment/page.tsx`: Recruitment dashboard — Applicants tab + Outreach tab.
 *   `website/site/app/gmail/callback/page.tsx`: Gmail OAuth redirect handler.
+*   `website/site/app/new/page.tsx`: **Staging Interactive Homepage** — Zone Ascension, Hangar, Community Stats.
 
 ### API Routes
 *   `website/site/app/api/recruitment/register/route.ts`: POST — Register beta user + acknowledgement email.
+*   `website/site/app/api/community/stats/route.ts`: GET — Aggregated fleet metrics (with simulation fallback).
+*   `website/site/app/api/community/activity/route.ts`: GET — Recent pilot transmissions (with simulation fallback).
 *   `website/site/app/api/campaign/process/route.ts`: GET — Trigger campaign automation (cron).
 *   `website/site/app/api/gmail/send/route.ts`: POST — Send email(s) via Gmail API.
 *   `website/site/app/api/gmail/status/route.ts`: GET — Check Gmail auth status.
 *   `website/site/app/api/gmail/exchange/route.ts`: POST — Exchange OAuth code for tokens.
 *   `website/site/app/api/gmail/disconnect/route.ts`: POST — Delete Gmail OAuth tokens.
 
-### Beta Components (27 total)
+### Beta Components (31 total)
+*   `website/site/app/new/components/ZoneAscension.tsx`: Parallax zone climb.
+*   `website/site/app/new/components/FleetHangar.tsx`: Interactive rocket selector + radar chart.
+*   `website/site/app/new/components/PilotFeed.tsx`: Live marquee for community activity.
+*   `website/site/app/new/components/CommunityStats.tsx`: Aggregated metric cards.
 *   `website/site/components/beta/ActivityTimeline.tsx`: Vertical event timeline for recruitment audit trail.
 *   `website/site/components/beta/AddManualContact.tsx`: Modal — add single outreach contact with duplicate check.
 *   `website/site/components/beta/BetaAccordion.tsx`: FAQ accordion (Why Join, Rewards, Expectations, Code Jam).

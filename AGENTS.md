@@ -1,10 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-15
-**Current Version:** v1.5.2 — Closed Beta Release
-**Project Status:** EPIC 11 — Ascension (The End) — COMPLETE ✅ — Published to GitHub — Open Source (MIT)
-**Current Stable Tag:** `v1.5.2`
-**Branch:** `master` (protected — no direct commits)
+**Last Updated:** 2026-07-30
+**Current Version:** v2.2.3 — Zen Mastery & Impossible Uplink
+**Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
+**Current Stable Tag:** `v2.2.2`
+**Branch:** `website`
 **Base Commit:** `HEAD`
 
 ---
@@ -18,6 +18,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Physics-First**: Movement and collision are the heart of the experience. The loop uses 4 sub-steps per frame for absolute reliability.
 *   **Modular Progression**: The rocket is not a vehicle; it is a "Build." Players customize their experience via Classes and Modules.
 *   **Tactical HUD**: Critical information (Fuel, Heat, Shield, Hull) is prioritized. Clutter is aggressively minimized.
+*   **Interactive Web Staging**: The project maintains a high-fidelity web presence at `/new` featuring parallax ascension, fleet analysis hangar, and live community activity feeds (with simulation fallbacks).
 
 ### Monetization Philosophy
 *   **Ethical Revenue**: No pay-to-win. No purchasable power or progression. No mission skips.

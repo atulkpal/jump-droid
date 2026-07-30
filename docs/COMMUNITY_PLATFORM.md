@@ -71,6 +71,7 @@ All routes live under `website/site/app/` (Next.js App Router):
 | Route | File | Purpose |
 |-------|------|---------|
 | `/` | `page.tsx` | Marketing homepage — HeroSignal → Footer |
+| `/new` | `app/new/page.tsx` | **Interactive Homepage** — Parallax Ascension, Hangar, Live Feeds |
 | `/beta` | `app/beta/page.tsx` | **Tester Portal** — profile selector, stats, feedback |
 | `/beta-info` | `app/beta-info/page.tsx` | **Beta Info + Registration** — public landing with registration form + FAQ accordion |
 | `/privacy` | `app/privacy/page.tsx` | Privacy policy |
@@ -215,7 +216,23 @@ All beta components live in `website/site/components/beta/` — 27 components to
 
 ---
 
-## 5. Gmail OAuth Integration
+## 5. Simulation Engine (V2.2.3)
+
+To ensure the website remains immersive even with a small or new tester base, the platform includes a **Simulation Fallback** system for community-facing data.
+
+### Automated Mocking
+If the Firestore `testers` or `activityLog` collections are empty, the following API routes automatically serve "Legendary" community data:
+- `GET /api/community/stats`: Returns simulated fleet metrics (4.8M+ meters climbed, 12k+ bosses defeated).
+- `GET /api/community/activity`: Returns realistic mission log transmissions (e.g., "Pilot reached 100,000m").
+
+### UI Indicators
+The interactive frontend includes aesthetic elements to reinforce the "Live" feel:
+- **Pilot Feed**: Blinking `[Live Transmission]` indicator with masked pilot IDs.
+- **Mastery Dashboard**: Skeleton pulse loading states while establishing a database connection.
+
+---
+
+## 6. Gmail OAuth Integration
 
 ### Auth Flow
 
@@ -268,7 +285,7 @@ Called at the start of every processCampaign() run (every 8h via cron).
 
 ---
 
-## 6. Campaign Automation
+## 7. Campaign Automation
 
 ### Engine Pipeline
 
@@ -299,7 +316,7 @@ Vercel Cron (every 8h)
 
 ---
 
-## 7. Email Templates
+## 8. Email Templates
 
 All templates in `lib/emailTemplates/`:
 
@@ -323,7 +340,7 @@ Template rendering:
 
 ---
 
-## 8. Duplicate Detection (Outreach Add)
+## 9. Duplicate Detection (Outreach Add)
 
 `checkDuplicate(email)` in `lib/firebase/outreachService.ts` checks in order:
 
@@ -343,7 +360,7 @@ Returns strongly-typed `DuplicateCheckResult`:
 
 ---
 
-## 9. TypeScript Type System
+## 10. TypeScript Type System
 
 All type definitions in `website/site/types/`:
 
@@ -363,7 +380,7 @@ All type definitions in `website/site/types/`:
 
 ---
 
-## 10. Reuse Checklist
+## 11. Reuse Checklist
 
 To repurpose this platform for another project, change:
 
@@ -392,7 +409,7 @@ To repurpose this platform for another project, change:
 
 ---
 
-## 11. Setup Guide
+## 12. Setup Guide
 
 ### Prerequisites
 
@@ -447,7 +464,7 @@ On Hobby plan, use an external cron service (e.g., cron-job.org) to ping the end
 
 ---
 
-## 12. File Layout
+## 13. File Layout
 
 ```
 website/site/
