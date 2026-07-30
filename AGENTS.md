@@ -1,9 +1,9 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-29
-**Current Version:** v2.2.0 — Fleet Terminal & Hangar Ascension
+**Last Updated:** 2026-07-30
+**Current Version:** v2.2.1 — Tactical Terminal & Boss Intelligence
 **Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
-**Current Stable Tag:** `v2.1.2`
+**Current Stable Tag:** `v2.2.0`
 **Branch:** `feature/remote-announcements` (Feature Extension)
 **Base Commit:** `HEAD`
 
@@ -88,6 +88,9 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **SharedPreferences Unification** | DataStore transition in EPIC 8 prototype caused sync debt. | Reverted to `SharedPreferences` as the Single Source of Truth. |
 | **Combo Ring Top-Left** | Avoid overlap with system UI and Pause/Help buttons. | Cleanest possible HUD for high-speed flight. |
 | **Decoupled Altitude/Score** | Altitude-only scoring lacked performance variance. | `runAltitude` (meters) drives physical progress; `score` (points) reflects skill mastery. |
+| **Vector-Scope Console** | Color-cycling disco boxes were distracting and sloppy. | Monochrome CRT aesthetic with scanlines and waveforms for a tactical look. |
+| **Known Intelligence Log** | Placeholder classified rows cluttered the terminal. | Filtered Threat Log to show encountered bosses only, preserving mystery. |
+| **Safe Resume Safety** | Back-navigation could freeze the game state. | Mandatory `onDispose` handlers ensure game resumes if Pause/Help overlays are dismissed. |
 
 ---
 

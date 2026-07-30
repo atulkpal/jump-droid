@@ -4,6 +4,25 @@ All official releases with build artifacts and key changes.
 
 ---
 
+## v2.2.1 — Tactical Terminal & Boss Intelligence
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-30 |
+| **Version Code** | 12 |
+| **Tag** | `v2.2.1` |
+| **Branch** | `bugfix/zen-terminal-polish` |
+| **Status** | ✅ Implementation Complete |
+
+### Highlights
+- **Pilot Command Center**: Dense 2x4 telemetry grid with radar sweep and staggered animations.
+- **CRT Vector Console**: Tactical monitor aesthetic for Zen/Multiplayer protocols.
+- **Intelligent Boss Log**: Confirmed-only encounters (Slayed/Escaped/Defeated By) with "CLASSIFIED" filtering.
+- **Death Attribution**: Active bosses now claim player defeats in the permanent pilot record.
+- **UX Safety**: Automatic game resume on overlay dismissal (Back button hardening).
+
+---
+
 ## v2.2.0 — Fleet Terminal & Hangar Ascension
 
 | Field | Value |

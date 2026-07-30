@@ -4,6 +4,37 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-30 (Polish & Analytics)
+
+**Version:** v2.2.1 — Tactical Terminal & Boss Intelligence
+
+**Status:** Implementation Complete — branch `bugfix/zen-terminal-polish`
+
+### Added — High-Fidelity Pilot Command Center
+- **2x4 Telemetry Grid**: Overhauled the Local Terminal into a dense tactical dashboard tracking 8 skill-based metrics (Altitude, Combo, Bosses, Escapes, Continues, Cash, Perfect Landings, Death-Defying).
+- **Terminal Vitality**: Injected "life" into the UI with staggered card boot-up animations and a real-time vertical radar sweep effect.
+- **Threat Neutralization Log**: Implemented a filtered intelligence table that exclusively lists confirmed boss encounters (Slayed/Escaped/Defeated By), hiding "CLASSIFIED" data.
+- **Discovery Progress**: Added a glowing scan-particle animation to the threat database progress bar.
+
+### Added — Vector-Scope CRT Console
+- **Tactical Monitor UI**: Replaced the color-cycling Zen box with a monochrome CRT visualizer featuring scanlines, flickering, and a real-time vector waveform.
+- **Stable State Protocol**: Assigned meaningful, stable colors to protocol stages: Green (Secure), Amber (Calibrating), Purple (Zen Authorized), Cyan (Uplink Protocol Established).
+
+### Improved — Boss Interaction Logic
+- **Tactical Defeat Attribution**: Implemented presence-based detection. If a player fails (off-screen or damage) while a Boss is active, the boss now correctly "claims" the defeat in the permanent pilot record.
+- **Granular Escape Tracking**: Added individual ID-based escape counters to distinguish between bosses neutralised and those that successfully retreated.
+
+### Changed — "Archive Intelligence" Reward Flow
+- **The Droid Way**: Renamed the reward claim action to "ARCHIVE INTELLIGENCE" for thematic consistency.
+- **Reward Badges**: Integrated high-visibility value badges (e.g., "+500 JC") directly onto reward cards to clarify exactly what data is being synced.
+- **Buffer Flush Animation**: Polished the dissolution animation with a "SYNCING..." tactical overlay.
+
+### Fixed — UX & Navigation Safety
+- **Overlay State Lockdown**: Added `DisposableEffect` handlers to the `pause` and `help` dialog routes to ensure the game automatically resumes if the overlay is dismissed via system interaction (Back button/System gestures).
+- **HUD Clutter Reduction**: Removed the redundant `?` button from the top-left HUD; information is now consolidated in the Pause menu.
+
+---
+
 ## 2026-07-29 (Feature & Fix)
 
 **Version:** v2.2.0 — Fleet Terminal & Hangar Ascension
