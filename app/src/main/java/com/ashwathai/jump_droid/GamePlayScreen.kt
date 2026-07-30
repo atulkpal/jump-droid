@@ -265,14 +265,6 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
             zone = altitudeManager.currentZone
         )
 
-        if (engine.activeGameMode == GameMode.ZEN) {
-            ZenModeIndicator(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 110.dp)
-            )
-        }
-
         TopRightUtilityButtons(
             modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).statusBarsPadding(),
             gameState = engine.gameState,

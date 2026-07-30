@@ -32,6 +32,8 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         private set
     var lifetimeCombosOver20 by mutableIntStateOf(0)
         private set
+    var lifetimeCombosOver50 by mutableIntStateOf(0)
+        private set
     var bossesEscaped by mutableIntStateOf(0)
         private set
     var lifetimeContinuesUsed by mutableIntStateOf(0)
@@ -82,6 +84,7 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         
         lifetimeCombosOver15 = sharedPrefs.getInt("stat_combos_15", 0)
         lifetimeCombosOver20 = sharedPrefs.getInt("stat_combos_20", 0)
+        lifetimeCombosOver50 = sharedPrefs.getInt("stat_combos_50", 0)
         bossesEscaped = sharedPrefs.getInt("stat_bosses_escaped", 0)
         lifetimeContinuesUsed = sharedPrefs.getInt("stat_continues_used", 0)
         lifetimeCashEarned = sharedPrefs.getInt("stat_cash_earned", 0)
@@ -168,6 +171,7 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         // New stats
         lifetimeCombosOver15 += stats.combosOver15
         if (stats.maxCombo >= 20) lifetimeCombosOver20++
+        if (stats.maxCombo >= 50) lifetimeCombosOver50++
         lifetimeContinuesUsed += stats.continuesUsed
         
         lifetimeCashEarned += stats.totalScore / 10 
@@ -191,6 +195,7 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
             
             putInt("stat_combos_15", lifetimeCombosOver15)
             putInt("stat_combos_20", lifetimeCombosOver20)
+            putInt("stat_combos_50", lifetimeCombosOver50)
             putInt("stat_bosses_escaped", bossesEscaped)
             putInt("stat_continues_used", lifetimeContinuesUsed)
             putInt("stat_cash_earned", lifetimeCashEarned)
@@ -259,6 +264,7 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         // Also contribute to global lifetime stats
         totalRuns++
         lifetimeAltitude += altitude
+        if (maxCombo >= 50) lifetimeCombosOver50++
         
         sharedPrefs.edit {
             putInt("zen_run_1", zenTopRuns[0])
@@ -267,6 +273,7 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
             putInt("zen_max_combo", zenMaxCombo)
             putInt("stat_total_runs", totalRuns)
             putInt("stat_lifetime_altitude", lifetimeAltitude)
+            putInt("stat_combos_50", lifetimeCombosOver50)
         }
     }
 
@@ -294,6 +301,7 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         
         lifetimeCombosOver15 = 0
         lifetimeCombosOver20 = 0
+        lifetimeCombosOver50 = 0
         bossesEscaped = 0
         lifetimeContinuesUsed = 0
         lifetimeCashEarned = 0
