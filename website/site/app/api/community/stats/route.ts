@@ -8,23 +8,27 @@ export async function GET() {
     const db = getAdminFirestore();
     const testersSnap = await db.collection("testers").get();
 
-    let totalAltitude = 0;
+    let totalMetersClimbed = 0;
     let totalBossesDefeated = 0;
     let totalPilots = testersSnap.size;
     let totalPlayTime = 0;
 
+    if (testersSnap.empty) {
+      // Return Legendary Mock Data if no testers exist
+      return NextResponse.json({
+        totalMetersClimbed: 4850200,
+        totalBossesDefeated: 12402,
+        totalPilots: 842,
+        totalPlayTime: 4500000, // ~1,250h
+        isMock: true
+      });
+    }
+
     testersSnap.forEach((doc) => {
       const data = doc.data();
-      totalAltitude = Math.max(totalAltitude, data.highestScore || 0); // Actually using highestScore as altitude for simplicity in stats
-      totalBossesDefeated += data.bossesDefeated || 0; // Assuming this field exists or we add it
+      totalMetersClimbed += (data.highestScore || 0);
+      totalBossesDefeated += data.bossesDefeated || 0;
       totalPlayTime += data.totalGameplayTime || 0;
-    });
-
-    // In a real scenario, we might want the SUM of all altitudes if we mean "total meters climbed"
-    // Let's assume totalAltitude is sum of all pilots' high scores for a bigger "community" number
-    let totalMetersClimbed = 0;
-    testersSnap.forEach((doc) => {
-        totalMetersClimbed += (doc.data().highestScore || 0);
     });
 
     return NextResponse.json({
@@ -32,6 +36,7 @@ export async function GET() {
       totalBossesDefeated,
       totalPilots,
       totalPlayTime,
+      isMock: false
     });
   } catch (error) {
     console.error("Community stats error:", error);

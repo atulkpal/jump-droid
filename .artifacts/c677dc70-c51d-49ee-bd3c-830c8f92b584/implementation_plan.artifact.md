@@ -1,58 +1,41 @@
-# Website Design Evolution — Staging Plan (/new)
+# Website "Live Data" Mocking Plan
 
-This plan outlines the creation of a new interactive landing page at `/new`. To keep the project organized, all new logic and components will be isolated within the `app/new/` directory.
-
-## User Review Required
-
-> [!IMPORTANT]
-> All new files will be nested under `website/site/app/new/`. This includes components, logic, and the main page entry.
->
-> [!CAUTION]
-> Integrating live community data requires that the Firebase project and `NEXT_PUBLIC_APP_URL` are correctly configured in the target environment (Vercel).
+The user likes the `/new` concept but is seeing "no data" because the Firestore collections are either empty or the connection is missing in the local environment. This plan adds robust mock data fallbacks to the API and UI.
 
 ## Proposed Changes
 
-### [Isolated Structure]
+### [API Enhancement]
 
-#### [NEW] [page.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/page.tsx)
-- The entry point for the new design.
+#### [MODIFY] [route.ts (stats)](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/api/community/stats/route.ts)
+- Add a check for `testersSnap.empty`.
+- If empty or if `?mock=true` is passed, return "Legendary" community stats:
+  - Total Distance: 4,850,200m
+  - Bosses Defeated: 12,402
+  - Active Pilots: 842
+  - Mission Time: 1,250h
 
-#### [NEW] [PilotFeed.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/PilotFeed.tsx)
-- Live transmission ticker.
+#### [MODIFY] [route.ts (activity)](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/api/community/activity/route.ts)
+- Add a check for `activitySnap.empty`.
+- If empty or `?mock=true` is passed, return a list of "Simulation" activities:
+  - "Pilot ASH*** reached 100,000m (Ascension Protocol)"
+  - "Boss Star-Eater defeated by Pilot JON***"
+  - "New Fleet Record: 50x Combo by Pilot ZED***"
+  - "Deep Space Signal decoded in Zone 8"
 
-#### [NEW] [ZoneAscension.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/ZoneAscension.tsx)
-- Vertical scroll parallax journey through 12 zones.
+### [UI Enhancement]
 
-#### [NEW] [FleetHangar.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/FleetHangar.tsx)
-- Interactive rocket variant selector and radar chart.
+#### [MODIFY] [PilotFeed.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/PilotFeed.tsx)
+- Add a "TRANSMISSION LIVE" blinking indicator to make it feel more active.
+- Ensure it shows "Awaiting Signal..." if data is still loading.
 
-#### [NEW] [CommunityStats.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/CommunityStats.tsx)
-- Aggregated metrics display.
-
-### [Data & API]
-
-#### [MODIFY] [site-content.ts](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/data/site-content.ts)
-- Add `ZONE_THEMES` definition.
-
-#### [NEW] [route.ts](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/api/community/stats/route.ts)
-- API to fetch aggregated Firestore data.
-
-## Verification Plan
-
-### Automated Tests
-- `npm run build` to ensure isolation works and no regressions occur.
-
-### Manual Verification
-- Access `/new` and verify all nested components load correctly.
-- Verify that background transitions and interactive elements are scoped to the `/new` path.
+#### [MODIFY] [CommunityStats.tsx](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/website/site/app/new/components/CommunityStats.tsx)
+- Add an "Establishing Connection..." loading state with skeleton pulses.
 
 ## Verification Plan
 
 ### Automated Tests
-- `npm run build` in `website/site` to ensure no regressions in existing pages or type errors in new components.
+- `npm run build` to ensure no regressions.
 
 ### Manual Verification
-- Access `/new` on local development server.
-- Verify parallax scroll behavior in `ZoneAscension`.
-- Verify stat radar chart updates in `FleetHangar`.
-- Check `PilotFeed` with mock data to ensure scrolling is smooth.
+- Access `/new?mock=true` to force the simulation data.
+- Verify that the page feels "alive" even without a database connection.

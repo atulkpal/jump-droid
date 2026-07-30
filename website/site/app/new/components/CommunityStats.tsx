@@ -34,7 +34,23 @@ export default function CommunityStats() {
     </div>
   );
 
-  if (!stats) return null;
+  const LoadingItem = ({ label }: { label: string }) => (
+    <div className="flex flex-col items-center">
+      <p className="font-mono text-[10px] tracking-[0.3em] text-cyan-400/20 uppercase mb-2">{label}</p>
+      <div className="w-24 h-8 bg-white/5 rounded animate-pulse" />
+    </div>
+  );
+
+  if (!stats) {
+    return (
+      <section className="py-20 px-6 w-full max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12">
+        <LoadingItem label="Total Distance" />
+        <LoadingItem label="Bosses Defeated" />
+        <LoadingItem label="Active Pilots" />
+        <LoadingItem label="Mission Time" />
+      </section>
+    );
+  }
 
   return (
     <section className="py-20 px-6 w-full max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12">

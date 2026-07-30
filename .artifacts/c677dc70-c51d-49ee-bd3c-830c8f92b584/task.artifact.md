@@ -8,4 +8,6 @@
 - `[x]` Implement `FleetHangar.tsx` (Rocket selector + Radar chart)
 - `[x]` Implement `CommunityStats.tsx` (Data visualization)
 - `[x]` Implement `app/new/page.tsx` (The new staging page)
-- `[x]` Verification: `npm run build`
+- `[/]` Inject Mock Data Fallbacks into API
+- `[ ]` Enhance UI with Loading/Simulation states
+- `[ ]` Verification: `npm run build`
