@@ -323,7 +323,7 @@ fun MainMenuScreen(
 
             Spacer(Modifier.weight(1f))
 
-            // REDESIGNED ZEN COMMAND CONSOLE
+            // REDESIGNED ZEN COMMAND CONSOLE (STATUS ONLY)
             ZenCommandConsole(
                 isUnlocked = progressionManager?.isZenModeUnlocked == true,
                 progressionManager = progressionManager,
@@ -331,8 +331,6 @@ fun MainMenuScreen(
                 ft = ft,
                 hapticManager = hapticManager,
                 soundManager = soundManager,
-                onLaunchZen = onLaunchZen,
-                onLaunchUplink = { onNavigate(GameState.MULTIPLAYER) },
                 onDebugUnlockZen = { progressionManager?.debugUnlockZen() },
                 onDebugUnlockMultiplayer = { progressionManager?.debugUnlockMultiplayer() }
             )
@@ -413,25 +411,6 @@ fun MainMenuScreen(
                 exit = shrinkVertically()
             ) {
                 Column {
-                    val isZenUnlocked = progressionManager?.isZenModeUnlocked == true
-                    val isMultiplayerUnlocked = progressionManager?.isMultiplayerUnlocked == true
-                    
-                    if (isZenUnlocked || BuildConfig.DEBUG) {
-                        GhostButton(
-                            label = if (isMultiplayerUnlocked) "MULTIPLAYER" else "UPLINK PROTOCOL",
-                            accent = if (isMultiplayerUnlocked) SciFiCyan else SciFiGold.copy(alpha = 0.6f),
-                            borderPulse = borderPulse,
-                            shape = shape,
-                            soundManager = soundManager,
-                            hapticManager = hapticManager,
-                            iconRes = R.drawable.ic_station_trm,
-                            onClick = {
-                                if (isMultiplayerUnlocked || BuildConfig.DEBUG) onNavigate(GameState.MULTIPLAYER)
-                            }
-                        )
-                        Spacer(Modifier.height(8.dp))
-                    }
-
                     GhostButton("HANGAR", SciFiGold, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_hangar) { onNavigate(GameState.HANGAR) }
                     Spacer(Modifier.height(8.dp))
                     GhostButton("MISSIONS", SciFiCyan, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_missions) { onNavigate(GameState.MISSIONS) }
@@ -452,6 +431,50 @@ fun MainMenuScreen(
                             }
                         }
                     }
+                }
+            }
+
+            // MODE CEREMONIES (Unlocked modes appear here)
+            val isZenUnlocked = progressionManager?.isZenModeUnlocked == true
+            val isMpUnlocked = progressionManager?.isMultiplayerUnlocked == true
+            
+            AnimatedVisibility(
+                visible = isZenUnlocked,
+                enter = androidx.compose.animation.fadeIn() + expandVertically(),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                Button(
+                    onClick = {
+                        soundManager?.playSfx("sfx_ui_confirm")
+                        hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                        onLaunchZen()
+                    },
+                    modifier = Modifier.fillMaxWidth(0.75f).height(52.dp),
+                    shape = RoundedCornerShape(30.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SciFiPurple.copy(alpha = 0.9f), contentColor = Color.White),
+                    border = BorderStroke(2.dp, SciFiPurple.copy(alpha = borderPulse))
+                ) {
+                    Text("DEPLOY ZEN MODE", fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 14.sp)
+                }
+            }
+
+            AnimatedVisibility(
+                visible = isMpUnlocked,
+                enter = androidx.compose.animation.fadeIn() + expandVertically(),
+                modifier = Modifier.padding(top = 8.dp)
+            ) {
+                Button(
+                    onClick = {
+                        soundManager?.playSfx("sfx_ui_confirm")
+                        hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                        onNavigate(GameState.MULTIPLAYER)
+                    },
+                    modifier = Modifier.fillMaxWidth(0.75f).height(52.dp),
+                    shape = RoundedCornerShape(30.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.9f), contentColor = Color.White),
+                    border = BorderStroke(2.dp, SciFiCyan.copy(alpha = borderPulse))
+                ) {
+                    Text("DEPLOY UPLINK", fontWeight = FontWeight.Black, letterSpacing = 2.sp, fontSize = 14.sp)
                 }
             }
 
@@ -918,8 +941,6 @@ private fun ZenCommandConsole(
     ft: Float,
     hapticManager: HapticManager?,
     soundManager: SoundManager?,
-    onLaunchZen: () -> Unit,
-    onLaunchUplink: () -> Unit,
     onDebugUnlockZen: () -> Unit = {},
     onDebugUnlockMultiplayer: () -> Unit = {}
 ) {
@@ -1046,47 +1067,9 @@ private fun ZenCommandConsole(
                         )
                     }
 
-                    Spacer(Modifier.height(16.dp))
-
-                    if (isUnlocked) {
-                        Button(
-                            onClick = {
-                                soundManager?.playSfx("sfx_ui_confirm")
-                                hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
-                                onLaunchZen()
-                            },
-                            modifier = Modifier.fillMaxWidth().height(44.dp),
-                            shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isMultiplayerUnlocked) protocolColor.copy(alpha = 0.05f) else protocolColor.copy(alpha = 0.1f), 
-                                contentColor = if (isMultiplayerUnlocked) protocolColor.copy(alpha = 0.7f) else SciFiWhite
-                            ),
-                            border = BorderStroke(1.dp, if (isMultiplayerUnlocked) protocolColor.copy(alpha = 0.3f) else protocolColor.copy(alpha = 0.8f))
-                        ) {
-                            Text("DEPLOY ZEN MODE", fontWeight = FontWeight.Black, letterSpacing = 3.sp, fontSize = 12.sp)
-                        }
-                        
-                        if (isMultiplayerUnlocked) {
-                            Spacer(Modifier.height(8.dp))
-                            Button(
-                                onClick = {
-                                    soundManager?.playSfx("sfx_ui_confirm")
-                                    hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
-                                    onLaunchUplink()
-                                },
-                                modifier = Modifier.fillMaxWidth().height(44.dp),
-                                shape = RoundedCornerShape(2.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f), contentColor = SciFiWhite),
-                                border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.8f))
-                            ) {
-                                Text("DEPLOY UPLINK", fontWeight = FontWeight.Black, letterSpacing = 3.sp, fontSize = 12.sp)
-                            }
-                        }
-                    }
-
                     if (!isUnlocked || showMultiplayerCalibration) {
+                        Spacer(Modifier.height(16.dp))
                         if (isUnlocked) {
-                            Spacer(Modifier.height(16.dp))
                             HorizontalDivider(color = protocolColor.copy(alpha = 0.1f), thickness = 0.5.dp)
                             Spacer(Modifier.height(12.dp))
                         }
@@ -1120,6 +1103,18 @@ private fun ZenCommandConsole(
                                 }
                             }
                         }
+                    } else {
+                        // Protocol Authorized message
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "STABLE UPLINK ESTABLISHED. ACCESS GRANTED BELOW.",
+                            color = protocolColor.copy(alpha = 0.6f),
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }

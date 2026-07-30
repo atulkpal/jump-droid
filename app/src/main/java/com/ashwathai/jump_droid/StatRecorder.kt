@@ -248,17 +248,25 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
         sharedPrefs.edit { putInt("stat_continues_used", lifetimeContinuesUsed) }
     }
 
-    fun commitZenSession(score: Int, maxCombo: Int) {
+    fun commitZenSession(score: Int, maxCombo: Int, altitude: Int) {
         val newTop = (zenTopRuns + score).sortedDescending().take(3)
         zenTopRuns.clear()
         zenTopRuns.addAll(newTop)
-        zenMaxCombo = maxOf(zenMaxCombo, maxCombo)
+        if (maxCombo > zenMaxCombo) {
+            zenMaxCombo = maxCombo
+        }
+        
+        // Also contribute to global lifetime stats
+        totalRuns++
+        lifetimeAltitude += altitude
         
         sharedPrefs.edit {
             putInt("zen_run_1", zenTopRuns[0])
             putInt("zen_run_2", zenTopRuns[1])
             putInt("zen_run_3", zenTopRuns[2])
             putInt("zen_max_combo", zenMaxCombo)
+            putInt("stat_total_runs", totalRuns)
+            putInt("stat_lifetime_altitude", lifetimeAltitude)
         }
     }
 

@@ -179,14 +179,17 @@ class EncounterDirector {
         onVisualFeedback: (shake: Float, flash: Float) -> Unit,
         onBossSpawned: (ThreatDefinition) -> Unit = {}
     ) {
-        if (gameMode == GameMode.ZEN) return
-
-        // Tick boss cooldowns
-        val iter = bossCooldowns.entries.iterator()
-        while (iter.hasNext()) {
-            val entry = iter.next()
-            entry.setValue(entry.value - dt)
-            if (entry.value <= 0f) iter.remove()
+        if (gameMode == GameMode.ZEN) {
+            // ZEN MODE: Glide in peace — No boss milestones or recurrence.
+            // Still process regular threat spawning below.
+        } else {
+            // Tick boss cooldowns
+            val iter = bossCooldowns.entries.iterator()
+            while (iter.hasNext()) {
+                val entry = iter.next()
+                entry.setValue(entry.value - dt)
+                if (entry.value <= 0f) iter.remove()
+            }
         }
 
         val config = zoneConfigs[currentZone] ?: return
@@ -194,58 +197,58 @@ class EncounterDirector {
         val zoneMultiplier = 0.8f + intensityFactor * 0.4f
 
         // 1. Milestone Spawning (Boss Progression)
-        val bossMilestones = listOf(
-            "MINI_BOSS_COMMANDER" to 1500,
-            "MINI_BOSS_THERMAL_HIVE" to 3000,
-            "BOSS_GATEKEEPER" to 4500,
-            "MINI_BOSS_FORGER" to 6500,
-            "BOSS_LEVIATHAN" to 8500,
-            "BOSS_STAR_EATER" to 11000,
-            "MINI_BOSS_GRAVITY_ANCHOR" to 14000,
-            "BOSS_VOID_ENGINE" to 17000,
-            "BOSS_SIGNAL" to 21000,
-            "BOSS_ARCHITECT" to 30000,
-            "BOSS_ENTROPY_CORE" to 50000,
-            "BOSS_SINGULARITY" to 100000
-        )
+        if (gameMode != GameMode.ZEN) {
+            val bossMilestones = listOf(
+                "MINI_BOSS_COMMANDER" to 1500,
+                "MINI_BOSS_THERMAL_HIVE" to 3000,
+                "BOSS_GATEKEEPER" to 4500,
+                "MINI_BOSS_FORGER" to 6500,
+                "BOSS_LEVIATHAN" to 8500,
+                "BOSS_STAR_EATER" to 11000,
+                "MINI_BOSS_GRAVITY_ANCHOR" to 14000,
+                "BOSS_VOID_ENGINE" to 17000,
+                "BOSS_SIGNAL" to 21000,
+                "BOSS_ARCHITECT" to 30000,
+                "BOSS_ENTROPY_CORE" to 50000,
+                "BOSS_SINGULARITY" to 100000
+            )
 
-        // Skip milestone spawning if a boss is already alive — one boss at a time
-        if (threatManager.activeThreats.any { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }) {
-            // Boss alive — skip milestone spawns
-        } else {
-            var spawnedThisFrame = false
-            bossMilestones.forEach { (id, threshold) ->
-                if (!spawnedThisFrame && score >= threshold && !bossesSpawned.contains(id) && !bossCooldowns.containsKey(id)) {
-                    ThreatRegistry.getById(id)?.let { def ->
-                        if (currentZone in def.spawnRules.allowedZones || def.spawnRules.allowedZones.isEmpty()) {
-                            spawnedThisFrame = true
-                            bossesSpawned.add(id)
-                            bossCooldowns[id] = 60f
-                            spawnAtConfigPosition(
-                                def, screenWidth, screenHeight, cameraY,
-                                threatManager, notificationManager, score,
-                                difficultyMultiplier = zoneMultiplier,
-                                message = "!!! ${def.name.uppercase()} ARRIVING !!!"
-                            )
-                            onBossSpawned(def)
-                            onVisualFeedback(50f, 1.0f)
+            // Skip milestone spawning if a boss is already alive — one boss at a time
+            if (threatManager.activeThreats.none { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }) {
+                var spawnedThisFrame = false
+                bossMilestones.forEach { (id, threshold) ->
+                    if (!spawnedThisFrame && score >= threshold && !bossesSpawned.contains(id) && !bossCooldowns.containsKey(id)) {
+                        ThreatRegistry.getById(id)?.let { def ->
+                            if (currentZone in def.spawnRules.allowedZones || def.spawnRules.allowedZones.isEmpty()) {
+                                spawnedThisFrame = true
+                                bossesSpawned.add(id)
+                                bossCooldowns[id] = 60f
+                                spawnAtConfigPosition(
+                                    def, screenWidth, screenHeight, cameraY,
+                                    threatManager, notificationManager, score,
+                                    difficultyMultiplier = zoneMultiplier,
+                                    message = "!!! ${def.name.uppercase()} ARRIVING !!!"
+                                )
+                                onBossSpawned(def)
+                                onVisualFeedback(50f, 1.0f)
 
-                            val discovery = when(id) {
-                                "MINI_BOSS_COMMANDER" -> DiscoveryType.THREAT_SENTINEL
-                                "MINI_BOSS_THERMAL_HIVE" -> DiscoveryType.THREAT_THERMAL_HIVE
-                                "BOSS_GATEKEEPER" -> DiscoveryType.THREAT_GATEKEEPER
-                                "MINI_BOSS_FORGER" -> DiscoveryType.THREAT_FORGER
-                                "BOSS_LEVIATHAN" -> DiscoveryType.THREAT_LEVIATHAN
-                                "MINI_BOSS_GRAVITY_ANCHOR" -> DiscoveryType.THREAT_GRAVITY_ANCHOR
-                                "BOSS_STAR_EATER" -> DiscoveryType.THREAT_STAR_EATER
-                                "BOSS_VOID_ENGINE" -> DiscoveryType.THREAT_VOID_ENGINE
-                                "BOSS_SIGNAL" -> DiscoveryType.THREAT_SIGNAL
-                                "BOSS_ARCHITECT" -> DiscoveryType.THREAT_ARCHITECT
-                                "BOSS_ENTROPY_CORE" -> DiscoveryType.THREAT_ENTROPY_CORE
-                                "BOSS_SINGULARITY" -> DiscoveryType.THREAT_SINGULARITY
-                                else -> null
+                                val discovery = when(id) {
+                                    "MINI_BOSS_COMMANDER" -> DiscoveryType.THREAT_SENTINEL
+                                    "MINI_BOSS_THERMAL_HIVE" -> DiscoveryType.THREAT_THERMAL_HIVE
+                                    "BOSS_GATEKEEPER" -> DiscoveryType.THREAT_GATEKEEPER
+                                    "MINI_BOSS_FORGER" -> DiscoveryType.THREAT_FORGER
+                                    "BOSS_LEVIATHAN" -> DiscoveryType.THREAT_LEVIATHAN
+                                    "MINI_BOSS_GRAVITY_ANCHOR" -> DiscoveryType.THREAT_GRAVITY_ANCHOR
+                                    "BOSS_STAR_EATER" -> DiscoveryType.THREAT_STAR_EATER
+                                    "BOSS_VOID_ENGINE" -> DiscoveryType.THREAT_VOID_ENGINE
+                                    "BOSS_SIGNAL" -> DiscoveryType.THREAT_SIGNAL
+                                    "BOSS_ARCHITECT" -> DiscoveryType.THREAT_ARCHITECT
+                                    "BOSS_ENTROPY_CORE" -> DiscoveryType.THREAT_ENTROPY_CORE
+                                    "BOSS_SINGULARITY" -> DiscoveryType.THREAT_SINGULARITY
+                                    else -> null
+                                }
+                                discovery?.let { onDiscovery(it) }
                             }
-                            discovery?.let { onDiscovery(it) }
                         }
                     }
                 }
@@ -380,7 +383,7 @@ class EncounterDirector {
             }
 
             // 2.6 Boss Recurrence — previously-defeated bosses reappear during dry spells
-            if (bossRecurrenceTimer > 3f
+            if (gameMode != GameMode.ZEN && bossRecurrenceTimer > 3f
                 && activeThreats.none { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }
             ) {
                 // Eligible: previously-defeated bosses that can spawn here + any mini-boss allowed in this zone

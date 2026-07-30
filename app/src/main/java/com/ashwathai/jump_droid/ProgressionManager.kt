@@ -276,8 +276,8 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         missionTracker.recordMissionCompletion(missionId)
     }
 
-    fun commitZenStats(score: Int, maxCombo: Int) {
-        statRecorder.commitZenSession(score, maxCombo)
+    fun commitZenStats(score: Int, maxCombo: Int, altitude: Int) {
+        statRecorder.commitZenSession(score, maxCombo, altitude)
     }
 
     fun commitMpResult(won: Boolean) {

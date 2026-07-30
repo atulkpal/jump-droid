@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontFamily
 import com.ashwathai.jump_droid.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlin.math.sin
@@ -238,53 +239,61 @@ private fun LocalTelemetryContent(progressionManager: ProgressionManager, modifi
 
         Spacer(Modifier.height(24.dp))
 
-        // HISTORICAL LOG (TOP 3)
+        // SPLIT HISTORICAL LOG (STANDARD vs ZEN)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Standard Log
+            Surface(
+                modifier = Modifier.weight(1f),
+                color = Color.Black.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.2f))
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text("PILOT MASTERY", color = SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                    Spacer(Modifier.height(8.dp))
+                    stats.topRuns.take(3).forEachIndexed { index, score ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("0${index+1}", color = if (score > 0) SciFiGold else SciFiWhite.copy(alpha = 0.2f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(if (score > 0) "$score" else "---", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        }
+                        if (index < 2) Spacer(Modifier.height(4.dp))
+                    }
+                }
+            }
+            
+            // Zen Log
+            Surface(
+                modifier = Modifier.weight(1f),
+                color = Color.Black.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, SciFiPurple.copy(alpha = 0.2f))
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text("ZEN RECORDS", color = SciFiPurple, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                    Spacer(Modifier.height(8.dp))
+                    stats.zenTopRuns.take(3).forEachIndexed { index, score ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("0${index+1}", color = if (score > 0) SciFiPurple else SciFiWhite.copy(alpha = 0.2f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(if (score > 0) "$score" else "---", color = SciFiWhite, fontSize = 10.sp, fontWeight = FontWeight.Black)
+                        }
+                        if (index < 2) Spacer(Modifier.height(4.dp))
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        
+        // MODE HIGHLIGHTS
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color.Black.copy(alpha = 0.4f),
+            color = SciFiSurface.copy(alpha = 0.1f),
             shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.2f))
+            border = BorderStroke(0.5.dp, SciFiPurple.copy(alpha = 0.2f))
         ) {
-            Column(Modifier.padding(16.dp)) {
-                Text(
-                    "HISTORICAL EXPEDITION LOG",
-                    color = SciFiWhite.copy(alpha = 0.6f),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
-                )
-                Spacer(Modifier.height(12.dp))
-                stats.topRuns.take(3).forEachIndexed { index, score ->
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "0${index + 1}",
-                                color = if (score > 0) SciFiGold else SciFiWhite.copy(alpha = 0.2f),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black,
-                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Text(
-                                if (score > 0) "PILOT MASTERY" else "NO DATA",
-                                color = SciFiWhite.copy(alpha = if (score > 0) 0.8f else 0.2f),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Text(
-                            if (score > 0) "${score}" else "---",
-                            color = if (score > 0) SciFiWhite else SciFiWhite.copy(alpha = 0.2f),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                    if (index < 2) HorizontalDivider(color = SciFiBorder.copy(alpha = 0.1f), thickness = 0.5.dp)
-                }
+            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("ZEN MAX COMBO", color = SciFiPurple, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
+                Text("${stats.zenMaxCombo}x", color = SciFiWhite, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
             }
         }
 
@@ -465,7 +474,7 @@ private fun TelemetryCard(item: TelemetryItem, modifier: Modifier = Modifier, in
         ) {
             Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Text(item.label, color = item.color.copy(alpha = 0.6f), fontSize = 8.sp, fontWeight = FontWeight.Black)
-                Text(item.value, color = SciFiWhite, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                Text(item.value, color = SciFiWhite, fontSize = 16.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
             }
         }
     }
@@ -550,64 +559,32 @@ private fun GlobalTerminalContent(
                     }
                 }
             }
-        } else if (entries.isEmpty()) {
-            // LOCAL TELEMETRY FALLBACK
-            Column(Modifier.fillMaxSize()) {
-                Text(
-                    "FETCHING CLOUD DATA...",
-                    color = SciFiWhite.copy(alpha = 0.3f),
-                    fontSize = 8.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = SciFiCyan.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.2f))
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "LOCAL",
-                            color = SciFiCyan,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            modifier = Modifier.width(40.dp)
-                        )
-                        Text(
-                            text = (leaderboardManager.loginManager.displayName ?: "YOU").uppercase(),
-                            color = SciFiWhite,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = "${progressionManager.highScore}m",
-                            color = SciFiGold,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black
-                        )
+        } else {
+            // Multiplayer Command Section (New)
+            Surface(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                color = SciFiCyan.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.3f))
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text("MULTIPLAYER COMMAND", color = SciFiCyan, fontSize = 9.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                    Spacer(Modifier.height(12.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        MpStatItem("GAMES", progressionManager.statRecord.mpGamesPlayed.toString())
+                        MpStatItem("WINS", progressionManager.statRecord.mpWins.toString())
+                        MpStatItem("LOSSES", progressionManager.statRecord.mpLosses.toString())
+                        val rate = if (progressionManager.statRecord.mpGamesPlayed > 0) {
+                            (progressionManager.statRecord.mpWins.toFloat() / progressionManager.statRecord.mpGamesPlayed * 100).toInt()
+                        } else 0
+                        MpStatItem("WIN %", "$rate%")
                     }
                 }
-                
-                Spacer(Modifier.height(24.dp))
-                Text(
-                    "NO REMOTE PILOTS DETECTED IN SECTOR",
-                    color = SciFiWhite.copy(alpha = 0.2f),
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
-        } else {
+
             // Leaderboard List
             Surface(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().weight(1f),
                 color = Color.Black.copy(alpha = 0.4f),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.2f))
@@ -649,7 +626,7 @@ private fun GlobalTerminalContent(
                                     color = SciFiGold,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Black,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                    fontFamily = FontFamily.Monospace
                                 )
                             }
                             HorizontalDivider(color = SciFiBorder.copy(alpha = 0.1f))
@@ -674,5 +651,13 @@ private fun GlobalTerminalContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MpStatItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, color = SciFiCyan.copy(alpha = 0.5f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = SciFiWhite, fontSize = 13.sp, fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace)
     }
 }

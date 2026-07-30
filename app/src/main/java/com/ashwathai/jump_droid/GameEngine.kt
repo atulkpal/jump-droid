@@ -153,6 +153,7 @@ class GameEngine(
     val bossesSpawned = mutableStateSetOf<String>()
     var majorWarningText by mutableStateOf<String?>(null)
     var majorWarningTimer by mutableFloatStateOf(0f)
+    var currentMode by mutableStateOf(GameMode.STANDARD)
     var hazardEdgeGlow by mutableFloatStateOf(0f)
     var zoneTransitionTimer by mutableFloatStateOf(0f)
     var zoneTransitionFrom by mutableStateOf(AltitudeZone.EARTH)
@@ -386,6 +387,8 @@ class GameEngine(
     }
 
     fun checkUnlock(newScore: Int) {
+        if (gameState == GameState.ZEN) return // No unlocks in Zen mode
+        
         progressionManager.checkUnlocks(
             stats = getGameStats(),
             player = player,
@@ -441,13 +444,21 @@ class GameEngine(
         
         // --- BOSS KILL PLAYER DETECTION ---
         val activeBoss = threatManager.activeThreats.find { it.definition.type == ThreatType.BOSS || it.definition.type == ThreatType.MINI_BOSS }
-        activeBoss?.let { boss ->
-            progressionManager.statRecord.recordKilledByBoss(boss.definition.id)
+        if (gameState != GameState.ZEN) {
+            activeBoss?.let { boss ->
+                progressionManager.statRecord.recordKilledByBoss(boss.definition.id)
+            }
         }
 
-        saveHighScore(score)
-        saveHighAltitude(runAltitude)
-        progressionManager.commitSessionStats(getGameStats())
+        if (gameState == GameState.ZEN) {
+            progressionManager.commitZenStats(score, comboManager.bestComboThisRun, runAltitude)
+            gameState = GameState.GAMEOVER // Zen deaths are final
+        } else {
+            saveHighScore(score)
+            saveHighAltitude(runAltitude)
+            progressionManager.commitSessionStats(getGameStats())
+            gameState = GameState.GAMEOVER
+        }
         analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, cause)
         
         // Submit to Global Terminal only on record improvement (Minimal Firestore writes)
@@ -908,35 +919,35 @@ class GameEngine(
         comboPoints = comboManager.comboScoreBonus
         
         // Missions
-        if (runAltitude > 10 || totalPlatformLandings > 0) {
+        if (gameState != GameState.ZEN && (runAltitude > 10 || totalPlatformLandings > 0)) {
             val stats = getGameStats()
             missionManager.updateProgressAll(stats)
             missionManager.checkUnlocks()
             missionManager.updateProgress(MissionType.EXPLORATION, absoluteValue = score)
-        }
-        
-        missionManager.activeMissions.forEach { mission ->
-            if (mission.isCompleted && !missionManager.isInCeremony(mission.id)) {
-                missionManager.startCeremony(mission.id)
-                notificationManager.post("MISSION COMPLETE: ${mission.name.uppercase()}", NotificationPriority.TACTICAL)
-                soundManager.duck(2000L)
-                soundManager.playSfx("sfx_fanfare_mission")
-                hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
-                val celebrationX = screenWidth / 2f
-                val celebrationY = cameraY + 80f
-                spawnBurst(celebrationX, celebrationY, 40, SciFiGold, 350f)
-                spawnBurst(celebrationX - 50f, celebrationY + 20f, 20, SciFiCyan, 250f)
-                spawnBurst(celebrationX + 50f, celebrationY + 20f, 20, SciFiCyan, 250f)
-                floatingTextManager.add(FloatingText("MISSION COMPLETE", celebrationX, celebrationY - 40f, color = SciFiGold, isCritical = true, life = 2.0f))
-                impactFlashAlpha = max(impactFlashAlpha, 0.6f)
-                screenShake = max(screenShake, 10f)
+            
+            missionManager.activeMissions.forEach { mission ->
+                if (mission.isCompleted && !missionManager.isInCeremony(mission.id)) {
+                    missionManager.startCeremony(mission.id)
+                    notificationManager.post("MISSION COMPLETE: ${mission.name.uppercase()}", NotificationPriority.TACTICAL)
+                    soundManager.duck(2000L)
+                    soundManager.playSfx("sfx_fanfare_mission")
+                    hapticManager.vibrate(HapticManager.HapticType.SUCCESS)
+                    val celebrationX = screenWidth / 2f
+                    val celebrationY = cameraY + 80f
+                    spawnBurst(celebrationX, celebrationY, 40, SciFiGold, 350f)
+                    spawnBurst(celebrationX - 50f, celebrationY + 20f, 20, SciFiCyan, 250f)
+                    spawnBurst(celebrationX + 50f, celebrationY + 20f, 20, SciFiCyan, 250f)
+                    floatingTextManager.add(FloatingText("MISSION COMPLETE", celebrationX, celebrationY - 40f, color = SciFiGold, isCritical = true, life = 2.0f))
+                    impactFlashAlpha = max(impactFlashAlpha, 0.6f)
+                    screenShake = max(screenShake, 10f)
+                }
             }
-        }
 
-        missionManager.updateCeremonies(dt).forEach { mid ->
-            missionManager.activeMissions.find { it.id == mid }?.ceremonyStage = CeremonyStage.REPLACING
+            missionManager.updateCeremonies(dt).forEach { mid ->
+                missionManager.activeMissions.find { it.id == mid }?.ceremonyStage = CeremonyStage.REPLACING
+            }
+            missionManager.selectNextMission()
         }
-        missionManager.selectNextMission()
 
         // Survival
         survivalManager.update(dt, player, gameTime, notificationManager,
@@ -946,14 +957,20 @@ class GameEngine(
                 soundManager.stopThrust()
                 soundManager.fadeOutAndPlayGameOver { soundManager.playSfx("sfx_gameover") }
                 
-                saveHighScore(score)
-                saveHighAltitude(runAltitude)
-                analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "hull_breach")
-
-                if (pendingUnlocks.isNotEmpty()) {
-                    gameState = GameState.EXPEDITION_REWARDS
-                } else {
+                if (gameState == GameState.ZEN) {
+                    progressionManager.commitZenStats(score, comboManager.bestComboThisRun, runAltitude)
                     gameState = GameState.GAMEOVER
+                } else {
+                    saveHighScore(score)
+                    saveHighAltitude(runAltitude)
+                    analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "hull_breach")
+                    progressionManager.commitSessionStats(getGameStats())
+
+                    if (pendingUnlocks.isNotEmpty()) {
+                        gameState = GameState.EXPEDITION_REWARDS
+                    } else {
+                        gameState = GameState.GAMEOVER
+                    }
                 }
             },
             onShake = { screenShake = max(screenShake, it) },
@@ -1264,6 +1281,7 @@ class GameEngine(
         altitudeManager.updateAltitude(0)
         soundManager.playZoneMusic(AltitudeZone.EARTH)
         progressionManager.unlockMusicTrack("bgm_earth")
+        currentMode = gameMode
         gameState = if (gameMode == GameMode.ZEN) GameState.ZEN else GameState.PLAYING
     }
 
