@@ -1,22 +1,33 @@
-# Walkthrough - UI Refinement & Impossible Uplink
+# Walkthrough - Zen Music Refinement
 
-I have streamlined the Zen Mode HUD and updated the Multiplayer "Uplink" protocol with an elite unlock threshold.
+I have refined the Zen Mode music selection experience by grouping similar tracks into "Albums" and adding discovery incentives.
 
 ## Changes Made
 
-### 1. HUD Cleanup (`GamePlayScreen.kt`)
-- **Minimalist Zen**: Removed the pulsing "ZEN MODE" indicator from the top center. The unique Zen Music Menu and the purple theme of the HUD now serve as the primary indicators, keeping the screen clean for peaceful glides.
+### 1. Music Album Grouping (`GamePlayScreen.kt`)
+- **De-Duplication**: I have grouped the 12 unlockable tracks into 6 distinct "Albums" because many zones share the same or very similar music files.
+    - **PLANETARY GLIDE**: Earth & Clouds
+    - **STRATOSPHERIC**: Atmosphere & Orbit
+    - **INDUSTRIAL VOID**: Foundry & Space
+    - **TEMPORAL RIFT**: Chrono-Rift & Void
+    - **ANCIENT ECHOES**: Beyond, Gate, & Construct
+    - **SINGULARITY**: The Singularity
+- **Simplified Menu**: Instead of 12 similar names, the music menu now shows these unique Album titles, making it much easier to navigate.
 
-### 2. Impossible Uplink Protocol (`ProgressionManager.kt` & `StatRecorder.kt`)
-- **Elite Requirement**: I have updated the Uplink unlock criteria to **3 runs with a 50x Combo**. This acts as a temporary "impossible" blocker while the multiplayer system is in development.
-- **Terminal Readout**: The Main Menu Command Console now displays the updated requirement: **COMBOS (50x) // X / 3**.
-- **New Stat Tracking**: Added a new persistent stat, `lifetimeCombosOver50`, to track these high-skill runs for the unlock.
+### 2. Discovery Incentive (`GamePlayScreen.kt`)
+- **Motivational Footer**: Added a new section at the bottom of the music dropdown that reads: **"KEEP EXPLORING HIGHER TO UNLOCK MORE MUSIC!"**
+- **Smart Visibility**: This message only appears if you haven't yet discovered all 12 tracks in the standard game mode.
+- **Visual Distinction**: The footer is styled in a subtle SciFiCyan italic font to differentiate it from the interactive track list.
+
+### 3. Dynamic Sector Cleanup
+- Renamed the "DYNAMIC" option to **"DYNAMIC SECTOR"** and added a visual divider to separate it from your permanent collection.
 
 ## Verification Results
 
 ### Logic Verification
-- Reached a 50x combo in a test run (Standard and Zen). Verified the `lifetimeCombosOver50` stat incremented correctly.
-- Confirmed the Uplink console in the Main Menu shows the correct 50x combo progress.
+- Verified that unlocking "Earth" makes the "PLANETARY GLIDE" album appear.
+- Verified that subsequently unlocking "Clouds" does not add a duplicate entry.
+- Verified the "KEEP EXPLORING..." message disappears once the full collection is archived.
 
 ### Automated Tests
 - `gradle_build` (app:assembleDebug) completed successfully.

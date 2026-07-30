@@ -1,10 +1,8 @@
-# Task List - UI Refinement & MP Criteria
+# Task List - Zen Music Refinement
 
-- [x] Stat Tracking Update
-    - [x] `StatRecorder.kt`: Add `lifetimeCombosOver50`.
-- [x] Progression Logic Update
-    - [x] `ProgressionManager.kt`: Set MP unlock to 3x 50 combo.
-- [x] UI Cleanup
-    - [x] `GamePlayScreen.kt`: Remove `ZenModeIndicator` call.
+- [x] Zen Music Album Grouping
+    - [x] `GamePlayScreen.kt`: Implement music track to Album mapping in `ZenMusicSelector`.
+    - [x] `GamePlayScreen.kt`: Filter and de-duplicate menu items based on Album names.
+    - [x] `GamePlayScreen.kt`: Add motivational footer to the music dropdown.
 - [x] Verification
-    - [x] Final `gradle_build` success.
+    - [x] Final `gradle_build`.

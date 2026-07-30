@@ -10,6 +10,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -427,6 +428,22 @@ fun ZenMusicSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    // Track grouping mapping to "Albums"
+    val albumMapping = mapOf(
+        "bgm_earth" to "PLANETARY GLIDE",
+        "bgm_clouds" to "PLANETARY GLIDE",
+        "bgm_atmosphere" to "STRATOSPHERIC",
+        "bgm_orbit" to "STRATOSPHERIC",
+        "bgm_foundry" to "INDUSTRIAL VOID",
+        "bgm_space" to "INDUSTRIAL VOID",
+        "bgm_chrono" to "TEMPORAL RIFT",
+        "bgm_void" to "TEMPORAL RIFT",
+        "bgm_beyond" to "ANCIENT ECHOES",
+        "bgm_gate" to "ANCIENT ECHOES",
+        "bgm_construct" to "ANCIENT ECHOES",
+        "bgm_singularity" to "SINGULARITY"
+    )
+
     Column(modifier = modifier) {
         Button(
             onClick = { expanded = !expanded },
@@ -445,17 +462,50 @@ fun ZenMusicSelector(
                 modifier = Modifier.padding(top = 4.dp).width(160.dp)
             ) {
                 Column(Modifier.padding(8.dp)) {
-                    val tracks = listOf("DYNAMIC") + unlockedTracks.toList().sorted()
-                    tracks.forEach { track ->
+                    // DYNAMIC TRACK (Always Available)
+                    Text(
+                        text = "DYNAMIC SECTOR",
+                        color = SciFiCyan,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onTrackSelected("DYNAMIC"); expanded = false }
+                            .padding(vertical = 6.dp)
+                    )
+
+                    HorizontalDivider(color = SciFiPurple.copy(alpha = 0.2f), thickness = 0.5.dp)
+
+                    // Group unlocked tracks into unique Album entries
+                    val unlockedAlbums = unlockedTracks
+                        .mapNotNull { res -> albumMapping[res]?.let { it to res } }
+                        .groupBy({ it.first }, { it.second })
+                        .toSortedMap()
+
+                    unlockedAlbums.forEach { (albumName, resNames) ->
                         Text(
-                            text = track.replace("bgm_", "").uppercase(),
+                            text = albumName,
                             color = SciFiWhite,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onTrackSelected(track); expanded = false }
+                                .clickable { onTrackSelected(resNames.first()); expanded = false }
                                 .padding(vertical = 6.dp)
+                        )
+                    }
+
+                    // Motivational message if collection is incomplete
+                    if (unlockedTracks.size < 12) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "KEEP EXPLORING HIGHER TO UNLOCK MORE MUSIC!",
+                            color = SciFiCyan.copy(alpha = 0.6f),
+                            fontSize = 7.sp,
+                            lineHeight = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         )
                     }
                 }
