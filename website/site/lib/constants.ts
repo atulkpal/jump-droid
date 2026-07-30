@@ -54,19 +54,19 @@ export const FEATURES = [
     icon: "🚀",
     title: "Precision Flight",
     description:
-      "Touch to thrust, steer by tilting. Master fuel, heat, and shield management through 8 atmospheric zones.",
+      "Touch to thrust, steer by tilting. Master fuel, heat, and shield management through 12 atmospheric zones.",
   },
   {
     icon: "⚔️",
     title: "Boss Encounters",
     description:
-      "Face 11 unique bosses with multi-phase attack patterns, weak point targeting, and distinct AI.",
+      "Face 12 unique bosses with multi-phase attack patterns, weak point targeting, and distinct AI.",
   },
   {
     icon: "🏗️",
     title: "Build Your Fleet",
     description:
-      "Choose from 6 rocket classes and customize with unlockable modules. Each build changes how you play.",
+      "Choose from 12 rocket variants and customize with unlockable modules. Each build changes how you play.",
   },
   {
     icon: "🌍",
@@ -78,12 +78,18 @@ export const FEATURES = [
     icon: "🛡️",
     title: "Adapt or Fall",
     description:
-      "14 platform types, 26+ threats, and environmental hazards keep every ascent unpredictable.",
+      "18+ platform types, 36+ threats, and environmental hazards keep every ascent unpredictable.",
+  },
+  {
+    icon: "🧘",
+    title: "Zen Mode",
+    description:
+      "A peaceful, endless ascent focused on rhythm and atmosphere without boss interruptions or pressure.",
   },
   {
     icon: "♾️",
     title: "Endless Ascent",
     description:
-      "Prestige system, Eternal Mode, and infinite scaling beyond 100,000m for endless replayability.",
+      "Prestige system, Eternal Mode, and infinite scaling beyond 100,000m for the ultimate test of mastery.",
   },
 ] as const;
