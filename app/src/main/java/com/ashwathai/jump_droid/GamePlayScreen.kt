@@ -66,6 +66,14 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
         }
     }
 
+    // Gameplay Pause via Back
+    if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL || gameState == GameState.ZEN) {
+        BackHandler {
+            engine.preOverlayState = engine.gameState
+            engine.gameState = GameState.PAUSED
+        }
+    }
+
     LaunchedEffect(gameState) {
         when (gameState) {
             GameState.PAUSED -> navController.navigate("pause")
@@ -269,13 +277,13 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
             modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).statusBarsPadding(),
             gameState = engine.gameState,
             onPause = { 
-                if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL) {
+                if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
                     engine.preOverlayState = engine.gameState
                     engine.gameState = GameState.PAUSED 
                 }
             },
             onHelp = {
-                if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL) {
+                if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
                     engine.preOverlayState = engine.gameState
                     engine.gameState = GameState.HELP
                 }

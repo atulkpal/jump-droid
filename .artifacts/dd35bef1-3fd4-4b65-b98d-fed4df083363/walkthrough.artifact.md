@@ -24,6 +24,10 @@ I have performed a deep-dive research into the state-leakage issues and implemen
 ### 4. Boss-Proofing (`EncounterDirector.kt`)
 - **Sealed the Airspace**: Verified that every single boss-spawning path (milestones, recurrences, and reinforcements) is behind a strict `gameMode != GameMode.ZEN` wall.
 
+### 5. Utility Fixes (`GamePlayScreen.kt`)
+- **Pause Functional**: Restored the Pause and Help buttons for Zen mode by adding `GameState.ZEN` to their state guards.
+- **Universal Back-to-Pause**: Added a global `BackHandler` that allows the system back button to correctly pause the game during any active flight (Standard or Zen).
+
 ## Verification Results
 
 ### Logic Verification
