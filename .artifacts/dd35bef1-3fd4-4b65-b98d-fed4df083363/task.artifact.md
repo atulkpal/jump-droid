@@ -1,8 +1,10 @@
-# Task List - Zen Music Refinement
+# Task List - Update & Build
 
-- [x] Zen Music Album Grouping
-    - [x] `GamePlayScreen.kt`: Implement music track to Album mapping in `ZenMusicSelector`.
-    - [x] `GamePlayScreen.kt`: Filter and de-duplicate menu items based on Album names.
-    - [x] `GamePlayScreen.kt`: Add motivational footer to the music dropdown.
+- [x] Implement Version Check
+    - [x] `RemoteConfigManager.kt`: Added `BuildConfig.VERSION_CODE` comparison logic to trigger the update alert.
+- [x] Generate Artifacts
+    - [x] Ran `app:assembleDebug` -> `app-debug.apk`
+    - [x] Ran `app:assembleRelease` -> `app-release.apk`
+    - [x] Ran `app:bundleRelease` -> `app-release.aab`
 - [x] Verification
-    - [x] Final `gradle_build`.
+    - [x] Confirmed all artifacts are present and build was successful.

@@ -44,6 +44,15 @@ class RemoteConfigManager(context: Context) {
                     prefs.edit().putString("last_announcement_id", announcementId).apply()
                 }
             }
+
+            // --- Remote Version Check ---
+            val remoteVersionCode = snapshot.getLong("latest_version_code")?.toInt() ?: 0
+            if (remoteVersionCode > BuildConfig.VERSION_CODE) {
+                onAnnouncementReceived?.invoke(
+                    "UPDATE AVAILABLE // New modes and tactical enhancements are live on the Play Store!",
+                    NotificationPriority.CRITICAL
+                )
+            }
         }.addOnFailureListener {
             android.util.Log.w("RemoteConfigManager", "Failed to read remote config", it)
         }

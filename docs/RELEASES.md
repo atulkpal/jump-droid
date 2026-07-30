@@ -4,6 +4,25 @@ All official releases with build artifacts and key changes.
 
 ---
 
+## v2.2.3 — Zen Mastery & Impossible Uplink
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-30 |
+| **Version Code** | 13 |
+| **Tag** | `v2.2.3` |
+| **Branch** | `feature/zen-mp-overhaul` |
+| **Status** | ✅ Implementation Complete |
+
+### Highlights
+- **Absolute Zen**: Hardened isolation with zero boss spawning and zero achievement popups.
+- **Album Curation**: Grouped Zen music into thematic albums with active selection highlighting.
+- **Elite Block**: Multiplayer unlock set to "3 runs with 50x Combo" as a temporary dev blocker.
+- **UX Safety**: Global system back button now correctly triggers the pause menu during any flight.
+- **Robust Reset**: Fixed state race conditions to ensure clean mode transitions every time.
+
+---
+
 ## v2.2.1 — Tactical Terminal & Boss Intelligence
 
 | Field | Value |

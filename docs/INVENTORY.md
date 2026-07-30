@@ -1,4 +1,4 @@
-# Documentation Inventory — Milestone: v2.0.0 — Production Ascension
+# Documentation Inventory — Milestone: v2.2.3 — Zen Mastery & Impossible Uplink
 
 ## Root
 *   `AGENTS.md`: Authoritative governance, memory, and onboarding manual.

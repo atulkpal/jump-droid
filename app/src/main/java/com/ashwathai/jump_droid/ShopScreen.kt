@@ -307,7 +307,7 @@ fun ShopScreen(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "V2.0.0 — FULL SHOP LAUNCH",
+                    "V2.2.3 — ZEN MASTERY UPDATE",
                     color = SciFiWhite.copy(alpha = 0.15f),
                     fontSize = 8.sp,
                     letterSpacing = 2.sp

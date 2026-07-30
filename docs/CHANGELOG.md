@@ -4,6 +4,33 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-30 (Zen Mastery & Impossible Uplink)
+
+**Version:** v2.2.3 — Zen Isolation & Elite Protocol
+
+**Status:** Implementation Complete — branch `feature/zen-mp-overhaul`
+
+### Added — Zen Mode "Peaceful Glide" Hardening
+- **Absolute Suppression**: Implemented redundant guards in `EncounterDirector.kt` to ensure 100% suppression of Bosses, Mini-Bosses, and Reinforcements during Zen runs.
+- **Silent Protocol**: Updated `GameEngine.kt` to skip all mission progress, achievement popups, and rank ceremonies in Zen mode. Discoveries are now archived silently.
+- **One-Life Death Flow**: Overhauled `GameOverOverlay.kt` for Zen mode to remove all continue/revive/credit logic. Death is now final, correctly reflecting the "One Life, One Glide" philosophy.
+
+### Improved — Zen Music Archives
+- **Album Grouping**: Grouped 12 repetitively-named tracks into 6 thematic "Albums" (Planetary, Stratospheric, Industrial, Temporal, Ancient, Singularity) for a cleaner selection menu.
+- **Motivational Footer**: Added a smart CTA in the music menu: "KEEP EXPLORING HIGHER TO UNLOCK MORE MUSIC!", appearing only when the collection is incomplete.
+- **Enhanced Collection**: Added "FLEET COMMAND" (Menu Theme) and "CRITICAL THREAT" (Boss Theme) as permanent options in the Zen list.
+- **Visual Feedback**: The active music selection is now highlighted in SciFiCyan for immediate recognition.
+
+### Changed — Multiplayer "Uplink" Protocol
+- **Elite Unlock Criteria**: Set a temporary "Impossible" threshold for Multiplayer access: **3 unique runs with a 50x Combo**. This acts as a skills-based blocker while VS systems are in development.
+- **Stat Tracking**: Added `lifetimeCombosOver50` to `StatRecorder.kt` to track these elite skill runs.
+
+### Fixed — Engine & UX
+- **State Race Condition**: Refactored `GameEngine.restartGame()` to ensure a full state wipe (clearing platforms and stats) happens instantly, even before screen layout is valid, preventing "leaked" state from previous runs.
+- **Pause/Help Restoration**: Fixed a bug where Pause and Help buttons were non-functional during Zen mode.
+- **Universal Back-Pause**: Implemented a global `BackHandler` so the system back button now correctly triggers the pause menu during any active flight (Standard or Zen).
+
+
 ## 2026-07-30 (Intelligence Integrity & Terminal Mastery)
 
 **Version:** v2.2.2 — Intelligence Integrity & Tactical Polish

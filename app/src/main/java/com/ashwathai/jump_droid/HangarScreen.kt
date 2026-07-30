@@ -457,7 +457,7 @@ private fun CosmeticsTab() {
                     shape = RoundedCornerShape(4.dp),
                     border = BorderStroke(1.dp, SciFiPurple.copy(alpha = 0.3f))
                 ) {
-                    Text("STATUS: RECONFIGURING // v2.1 READY", color = SciFiPurple, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                    Text("STATUS: RECONFIGURING // v2.2.3 READY", color = SciFiPurple, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                 }
             }
         }

@@ -113,6 +113,23 @@ The `StatRecorder` includes a migration layer to maintain data integrity across 
 *   If `lifetimeAltitude` (Cumulative) is less than `highAltitude` (Record), it is automatically corrected to the sum of top runs.
 *   `totalRuns` is initialized from the non-zero entry count in the top-run history if it appears uninitialized.
 
+---
+
+## 5. Elite Mode Protocols
+
+### 5.1 Multiplayer (Uplink) Unlock
+To maintain the prestige of the Uplink Protocol while systems are in development, the unlock threshold is set to an elite skill-based level.
+
+| Requirement | Value | Target |
+| :--- | :--- | :--- |
+| **Elite Runs** | Runs with 50x Combo | 3 Runs |
+| **Persistence** | `lifetimeCombosOver50` | Persistent |
+
+### 5.2 Zen Mode Isolation
+Zen Mode is a strictly non-progressive environment designed for focus and musical appreciation.
+*   **Suppression**: Zero score, zero altitude progress (meters are tracked but don't count for missions), and zero boss encounters.
+*   **Finality**: No continue or ad-revive options are provided upon destruction.
+
 ### Agent Rules
 *   Never use `score` for zone gating or boss spawns. Use `runAltitude`.
 *   Always display the unit **"m"** for Altitude/Ascent metrics and **raw numbers** for Score/Mastery metrics in the UI.

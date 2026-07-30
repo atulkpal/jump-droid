@@ -1,33 +1,33 @@
-# Walkthrough - Zen Music Refinement
+# Walkthrough - Update Notification & Production Artifacts
 
-I have refined the Zen Mode music selection experience by grouping similar tracks into "Albums" and adding discovery incentives.
+I have set up the automated update notification system and generated the production-ready artifacts for your Google Play Store submission.
 
 ## Changes Made
 
-### 1. Music Album Grouping (`GamePlayScreen.kt`)
-- **De-Duplication**: I have grouped the 12 unlockable tracks into 6 distinct "Albums" because many zones share the same or very similar music files.
-    - **PLANETARY GLIDE**: Earth & Clouds
-    - **STRATOSPHERIC**: Atmosphere & Orbit
-    - **INDUSTRIAL VOID**: Foundry & Space
-    - **TEMPORAL RIFT**: Chrono-Rift & Void
-    - **ANCIENT ECHOES**: Beyond, Gate, & Construct
-    - **SINGULARITY**: The Singularity
-- **Simplified Menu**: Instead of 12 similar names, the music menu now shows these unique Album titles, making it much easier to navigate.
+### 1. Remote Update Alert System (`RemoteConfigManager.kt`)
+- **Automated Check**: I added a version-monitoring layer that compares the local build's version against the `latest_version_code` field in your Firestore `remote_config`.
+- **In-Game Notification**: If an update is detected, the game will automatically post a **CRITICAL** tactical notification:
+  > *"UPDATE AVAILABLE // New modes and tactical enhancements are live on the Play Store!"*
 
-### 2. Discovery Incentive (`GamePlayScreen.kt`)
-- **Motivational Footer**: Added a new section at the bottom of the music dropdown that reads: **"KEEP EXPLORING HIGHER TO UNLOCK MORE MUSIC!"**
-- **Smart Visibility**: This message only appears if you haven't yet discovered all 12 tracks in the standard game mode.
-- **Visual Distinction**: The footer is styled in a subtle SciFiCyan italic font to differentiate it from the interactive track list.
+### 2. Production Artifact Generation
+I have successfully built the following artifacts using your production signing configuration (`keystore.properties`):
 
-### 3. Dynamic Sector Cleanup
-- Renamed the "DYNAMIC" option to **"DYNAMIC SECTOR"** and added a visual divider to separate it from your permanent collection.
+| Artifact Type | File Path |
+| :--- | :--- |
+| **Debug APK** | [app-debug.apk](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/build/outputs/apk/debug/app-debug.apk) |
+| **Release APK** | [app-release.apk](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/build/outputs/apk/release/app-release.apk) |
+| **App Bundle (AAB)** | [app-release.aab](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/build/outputs/bundle/release/app-release.aab) |
+
+## How to Trigger the Update Message
+
+Once this version (`v2.2.3` / `code 13`) is live on the Play Store, you can notify all players of the new modes by performing the following steps in the **Firebase Console**:
+
+1.  Navigate to **Firestore Database**.
+2.  Locate the document at: `server_config/remote_config`.
+3.  Set the field **`latest_version_code`** to **`13`**.
+4.  All devices running an older version will see the update notification the next time they launch the game.
 
 ## Verification Results
 
-### Logic Verification
-- Verified that unlocking "Earth" makes the "PLANETARY GLIDE" album appear.
-- Verified that subsequently unlocking "Clouds" does not add a duplicate entry.
-- Verified the "KEEP EXPLORING..." message disappears once the full collection is archived.
-
-### Automated Tests
-- `gradle_build` (app:assembleDebug) completed successfully.
+- **Build Stability**: All three Gradle tasks (`assembleDebug`, `assembleRelease`, `bundleRelease`) completed with zero errors.
+- **Signing Integrity**: The release artifacts were successfully signed using the provided keystore properties.

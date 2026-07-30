@@ -527,6 +527,8 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 - [x] Protocol Screen Overhaul (AboutScreen.kt + Layout Fix)
 - [x] Non-Intrusive Connectivity (GPG Opt-in)
 - [x] High-Fidelity HUD Polish (Fly-in "Thud")
+- [x] Zen Mode Hardening (Absolute Isolation + Curation)
+- [x] Impossible Uplink Protocol (Elite Unlock Gate)
 - [x] Shop Grid Optimization (FlowRow)
 - [x] Build Signed Release AAB
 - [x] Build Signed Release APK

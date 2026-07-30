@@ -1,10 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
 **Last Updated:** 2026-07-30
-**Current Version:** v2.2.2 — Intelligence Integrity & Terminal Mastery
+**Current Version:** v2.2.3 — Zen Mastery & Impossible Uplink
 **Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
-**Current Stable Tag:** `v2.2.1`
-**Branch:** `feature/remote-announcements` (Feature Extension)
+**Current Stable Tag:** `v2.2.2`
+**Branch:** `feature/zen-mp-overhaul`
 **Base Commit:** `HEAD`
 
 ---
@@ -91,6 +91,9 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Vector-Scope Console** | Color-cycling disco boxes were distracting and sloppy. | Monochrome CRT aesthetic with scanlines and waveforms for a tactical look. |
 | **Intelligence Integrity** | Cumulative stats (Total Distance) could lag behind personal records after updates. | Implemented self-correction logic in `StatRecorder` to migrate and normalize lifetime data based on high scores. |
 | **Safe Resume Safety** | Back-navigation could freeze the game state. | Mandatory `onDispose` handlers ensure game resumes if Pause/Help overlays are dismissed. |
+| **Zen Mode Hardening** | Feature leakage (bosses/achievements) during peaceful runs. | Applied "Nuke it from orbit" guards in `EncounterDirector` and `GameEngine` to ensure 100% isolation. Removed HUD clutter (Mission Cards) during Zen runs. |
+| **Impossible Uplink Block** | Multiplayer in development. | Set temporary unlock threshold to "3 runs with 50x Combo" to prevent premature access while maintaining thematic terminal requirements. |
+| **Zen Music Curation** | Repetitive track names in the Zen menu. | Grouped 12 tracks into 6 thematic "Albums" and added a motivational footer to encourage high-altitude discovery in the standard game. |
 
 ---
 

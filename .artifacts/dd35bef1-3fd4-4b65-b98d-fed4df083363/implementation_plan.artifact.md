@@ -1,31 +1,44 @@
-# Implementation Plan - Zen Music Refinement
+# Implementation Plan - Update Notification & Production Build
 
-This plan refines the Zen Mode music menu by grouping repeated tracks into "Albums" and adding a motivational footer to encourage exploration.
+This plan implements a remote version-check system to notify players of updates and generates the required production artifacts for the Google Play Console.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Triggering the Message**: Once you upload the AAB to the Play Store and it's approved, you must update the Firestore document at `server_config/remote_config` with `latest_version_code = 13` (or higher) to trigger the "Update Available" message on existing devices.
 
 ## Proposed Changes
 
-### 1. UI Refinement: Music Album Grouping
+### 1. Update Notification Logic
 
-#### [MODIFY] [GamePlayScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GamePlayScreen.kt)
-- Update `ZenMusicSelector`:
-    - Define a mapping of track resource names to "Album Names".
-    - Group tracks:
-        - `bgm_earth`, `bgm_clouds` -> **"PLANETARY GLIDE"**
-        - `bgm_atmosphere`, `bgm_orbit` -> **"STRATOSPHERIC"**
-        - `bgm_foundry`, `bgm_space` -> **"INDUSTRIAL VOID"**
-        - `bgm_chrono`, `bgm_void` -> **"TEMPORAL RIFT"**
-        - `bgm_beyond`, `bgm_gate`, `bgm_construct` -> **"ANCIENT ECHOES"**
-        - `bgm_singularity` -> **"SINGULARITY"**
-    - Ensure only one entry per Album appears in the menu if any track in that album is unlocked.
-    - Add a footer at the bottom of the music list: **"KEEP EXPLORING HIGHER TO UNLOCK MORE MUSIC!"** in a subtle, italicized SciFiCyan style.
-    - This footer only appears if not all 12 tracks have been discovered yet.
+#### [MODIFY] [RemoteConfigManager.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/RemoteConfigManager.kt)
+- Add version comparison logic.
+- Compare local `BuildConfig.VERSION_CODE` with remote `latest_version_code`.
+- If an update is detected, invoke the announcement callback with the message: **"UPDATE AVAILABLE // New modes and tactical enhancements are live on the Play Store!"**
+
+---
+
+### 2. Production Artifact Generation
+
+#### [BUILD] **Debug APK**
+- Execute: `gradle_build("app:assembleDebug")`
+- Output: `app/build/outputs/apk/debug/app-debug.apk`
+
+#### [BUILD] **Release APK**
+- Execute: `gradle_build("app:assembleRelease")`
+- Output: `app/build/outputs/apk/release/app-release.apk`
+
+#### [BUILD] **Android App Bundle (AAB)**
+- Execute: `gradle_build("app:bundleRelease")`
+- Output: `app/build/outputs/bundle/release/app-release.aab`
+
+---
 
 ## Verification Plan
 
 ### Automated Tests
-- `gradle_build` to verify syntax.
+- `gradle_build` will verify syntax and successful compilation of all artifacts.
 
 ### Manual Verification
-1.  **Album Check**: Start a Zen run with Earth and Clouds unlocked. Verify only "PLANETARY GLIDE" appears (instead of two separate entries).
-2.  **Motivational Footer**: Scroll to the bottom of the music menu. Verify the "KEEP EXPLORING..." message is visible.
-3.  **Playback**: Clicking an Album name correctly plays the associated BGM.
+1.  **Build Check**: Verify that the three files exist at their expected paths.
+2.  **Version Logic**: Verify that if we (temporarily) mock a higher remote version, the "Update Available" notification appears in the game HUD.

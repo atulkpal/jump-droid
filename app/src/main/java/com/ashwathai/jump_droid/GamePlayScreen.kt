@@ -427,9 +427,11 @@ fun ZenMusicSelector(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var selectedKey by remember { mutableStateOf("DYNAMIC") }
 
     // Track grouping mapping to "Albums"
     val albumMapping = mapOf(
+        "bgm_menu" to "FLEET COMMAND",
         "bgm_earth" to "PLANETARY GLIDE",
         "bgm_clouds" to "PLANETARY GLIDE",
         "bgm_atmosphere" to "STRATOSPHERIC",
@@ -441,7 +443,8 @@ fun ZenMusicSelector(
         "bgm_beyond" to "ANCIENT ECHOES",
         "bgm_gate" to "ANCIENT ECHOES",
         "bgm_construct" to "ANCIENT ECHOES",
-        "bgm_singularity" to "SINGULARITY"
+        "bgm_singularity" to "SINGULARITY",
+        "bgm_boss" to "CRITICAL THREAT"
     )
 
     Column(modifier = modifier) {
@@ -462,15 +465,35 @@ fun ZenMusicSelector(
                 modifier = Modifier.padding(top = 4.dp).width(160.dp)
             ) {
                 Column(Modifier.padding(8.dp)) {
-                    // DYNAMIC TRACK (Always Available)
+                    // 1. DYNAMIC TRACK (Always Available)
                     Text(
                         text = "DYNAMIC SECTOR",
-                        color = SciFiCyan,
+                        color = if (selectedKey == "DYNAMIC") SciFiCyan else SciFiWhite,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onTrackSelected("DYNAMIC"); expanded = false }
+                            .clickable { 
+                                selectedKey = "DYNAMIC"
+                                onTrackSelected("DYNAMIC")
+                                expanded = false 
+                            }
+                            .padding(vertical = 6.dp)
+                    )
+
+                    // 2. MENU THEME (Always Available)
+                    Text(
+                        text = "FLEET COMMAND",
+                        color = if (selectedKey == "bgm_menu") SciFiCyan else SciFiWhite,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { 
+                                selectedKey = "bgm_menu"
+                                onTrackSelected("bgm_menu")
+                                expanded = false 
+                            }
                             .padding(vertical = 6.dp)
                     )
 
@@ -483,14 +506,19 @@ fun ZenMusicSelector(
                         .toSortedMap()
 
                     unlockedAlbums.forEach { (albumName, resNames) ->
+                        val itemKey = resNames.first()
                         Text(
                             text = albumName,
-                            color = SciFiWhite,
+                            color = if (selectedKey == itemKey) SciFiCyan else SciFiWhite,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onTrackSelected(resNames.first()); expanded = false }
+                                .clickable { 
+                                    selectedKey = itemKey
+                                    onTrackSelected(itemKey)
+                                    expanded = false 
+                                }
                                 .padding(vertical = 6.dp)
                         )
                     }
