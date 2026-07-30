@@ -199,6 +199,23 @@ Agent-specific files (e.g. `agent-opencode.md`) are **OPTIONAL**. They may suppl
 
 ---
 
+## 12. Versioning Protocol (CRITICAL)
+
+> [!CAUTION]
+> **STRICT PROHIBITION ON UNAUTHORIZED VERSIONING**
+> Agents are strictly forbidden from modifying `versionCode` or `versionName` in `build.gradle.kts` without **EXPLICIT, VERBATIM APPROVAL** from the user.
+> 
+> *   **No Implicit Bumps**: Do not assume a version bump is required based on documentation updates or log entries.
+> *   **No Auto-Sync**: Do not "synchronize" the code version to match documentation versions unless specifically told to do so by the user.
+> *   **Approval Gating**:
+>     *   **Strictly Gated**: `versionCode` (Integer) and **Major Version** (`X.0.0`) must **NEVER** be modified without verbatim user approval.
+>     *   **Automatically Updatable**: Agents may automatically increment the **Minor Version** (`0.X.0`) for new features and the **Patch Version** (`0.0.X`) for bug fixes.
+> *   **Status Reporting**: Mismatches for strictly gated tiers should be reported as status, not fixed automatically.
+> 
+> Any violation of this protocol is a breach of the Authoritative Manual.
+
+---
+
 ## 13. Signing & Release Security
 
 ### Credential Resolution Order
@@ -251,9 +268,10 @@ All changes MUST go through an appropriate branch and be merged via pull request
 Any agent committing directly to `master` will have their changes reverted. The correct branch must be created and a PR opened.
 
 ### Semantic Versioning Policy
-- **Patch (Bug) version**: Increment for any bug fix.
-- **Minor version**: Increment for any feature addition, removal, or update.
-- **Major version & Version Code**: Only change when explicitly instructed by the user.
+Refer to **Section 12 (Versioning Protocol)** for strict approval requirements.
+- **Patch (Bug) version**: May be incremented automatically for any bug fix.
+- **Minor version**: May be incremented automatically for any feature addition, removal, or update.
+- **Major version & Version Code**: **STRICTLY GATED.** Only change when explicitly instructed by the user.
 
 ---
 

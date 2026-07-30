@@ -1,44 +1,21 @@
-# Implementation Plan - Update Notification & Production Build
+# Implementation Plan - Hardened Versioning Protocol in AGENTS.md
 
-This plan implements a remote version-check system to notify players of updates and generates the required production artifacts for the Google Play Console.
-
-## User Review Required
-
-> [!IMPORTANT]
-> **Triggering the Message**: Once you upload the AAB to the Play Store and it's approved, you must update the Firestore document at `server_config/remote_config` with `latest_version_code = 13` (or higher) to trigger the "Update Available" message on existing devices.
+This plan adds a high-visibility, critical warning to the `AGENTS.md` manual to prevent any unauthorized versioning changes in the future.
 
 ## Proposed Changes
 
-### 1. Update Notification Logic
+### 1. Authoritative Manual Hardening
 
-#### [MODIFY] [RemoteConfigManager.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/RemoteConfigManager.kt)
-- Add version comparison logic.
-- Compare local `BuildConfig.VERSION_CODE` with remote `latest_version_code`.
-- If an update is detected, invoke the announcement callback with the message: **"UPDATE AVAILABLE // New modes and tactical enhancements are live on the Play Store!"**
-
----
-
-### 2. Production Artifact Generation
-
-#### [BUILD] **Debug APK**
-- Execute: `gradle_build("app:assembleDebug")`
-- Output: `app/build/outputs/apk/debug/app-debug.apk`
-
-#### [BUILD] **Release APK**
-- Execute: `gradle_build("app:assembleRelease")`
-- Output: `app/build/outputs/apk/release/app-release.apk`
-
-#### [BUILD] **Android App Bundle (AAB)**
-- Execute: `gradle_build("app:bundleRelease")`
-- Output: `app/build/outputs/bundle/release/app-release.aab`
-
----
+#### [MODIFY] [AGENTS.md](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/AGENTS.md)
+- Insert a new section **"12. Versioning Protocol (CRITICAL)"**.
+- Add a `> [!CAUTION]` block with the following strict rules:
+    - **Strict Prohibition**: No modifying `versionCode` or `versionName` without verbatim user approval.
+    - **No Implicit Bumps**: Documentation updates do not grant permission to touch code versions.
+    - **No Auto-Sync**: Never "synchronize" code to match log versions unless specifically instructed.
+    - **Reporting Mode**: Version mismatches must be reported as status, not fixed automatically.
 
 ## Verification Plan
 
-### Automated Tests
-- `gradle_build` will verify syntax and successful compilation of all artifacts.
-
 ### Manual Verification
-1.  **Build Check**: Verify that the three files exist at their expected paths.
-2.  **Version Logic**: Verify that if we (temporarily) mock a higher remote version, the "Update Available" notification appears in the game HUD.
+1.  **Readability Check**: Verify the new section is impossible to miss when scrolling through `AGENTS.md`.
+2.  **Protocol Alignment**: Verify the language matches the user's specific requirement for "explicit approval."
