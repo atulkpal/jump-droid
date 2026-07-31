@@ -1,7 +1,7 @@
 # Production Release Checklist — Jump Droid
 
-**Last Updated:** 2026-07-29
-**Target Version:** v2.1.3
+**Last Updated:** 2026-07-31
+**Target Version:** v2.2.4
 
 > **No production release may be created until every item in this checklist is checked.**
 
@@ -38,8 +38,8 @@
 
 ## 5. Version & Build Configuration
 
-- [x] **`versionCode`** — check `app/build.gradle.kts` for correct value (currently 7 for v2.0.0).
-- [x] **`versionName`** — check for correct string (currently `"2.0.0"`).
+- [x] **`versionCode`** — check `app/build.gradle.kts` for correct value (currently 14 for v2.2.4).
+- [x] **`versionName`** — check for correct string (currently `"2.2.4"`).
 - [x] **`minifyEnabled`** — confirm `true` for release builds.
 - [x] **`shrinkResources`** — confirm `true` for release builds.
 - [x] **Signing config** — verify release signing uses environment variables or `keystore.properties`, no hardcoded credentials.

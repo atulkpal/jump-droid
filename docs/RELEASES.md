@@ -11,8 +11,8 @@ All official releases with build artifacts and key changes.
 | **Date** | 2026-07-31 |
 | **Version Code** | 14 |
 | **Tag** | `v2.2.4` |
-| **Branch** | `development` |
-| **Status** | ✅ Implementation Complete |
+| **Branch** | `master` |
+| **Status** | 🚀 Production Deployment |
 
 ### Highlights
 - **Engine Safety**: Fixed a fatal `RadialGradient` crash by guarding against `NaN` values and division by zero during engine initialization.
