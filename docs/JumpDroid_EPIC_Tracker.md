@@ -532,6 +532,7 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 - [x] Impossible Uplink Protocol (Elite Unlock Gate)
 - [x] Shop Grid Optimization (FlowRow)
 - [x] Notification Hardening (POST_NOTIFICATIONS + "all" Topic)
+- [x] Engine Stability Pass (RadialGradient Crash Fix)
 - [ ] Build Signed Release AAB
 - [ ] Build Signed Release APK
 - [ ] Generate Production Release Notes

@@ -25,6 +25,13 @@ All notable changes to this project are recorded as dated engineering events.
 - **Global Topic Subscription**: Automatically subscribes all pilots to the `"all"` FCM topic on launch, enabling reliable broadcast updates from the Firebase Console.
 - **Diagnostic Logging**: Added explicit FCM token and subscription status logging to Logcat for server-side verification.
 
+### Fixed — Engine Safety & Rendering Stability
+- **RadialGradient Crash Fix** (`IllegalArgumentException`): Implemented a three-tier safety system to prevent `NaN` values from reaching the native Skia shader engine.
+    - **Engine Layer**: Guarded player steering physics against division by zero when `screenWidth` is 0.
+    - **AI Layer**: Added non-finite value filters in `ThreatAIUpdater.kt` to halt `NaN` propagation.
+    - **Renderer Layer**: Added defensive checks in `ScoutDroneRenderer.kt` before calling `Brush.radialGradient`.
+- **Physics Stability**: Clamped `dt` to `(0..0.033f)` to ensure stable calculations even during frame spikes or cold starts.
+
 ---
 
 ## 2026-07-30 (Zen Mastery & Impossible Uplink)

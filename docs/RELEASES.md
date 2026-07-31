@@ -4,6 +4,24 @@ All official releases with build artifacts and key changes.
 
 ---
 
+## v2.2.4 — Elite Urgency & Global Delivery
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-31 |
+| **Version Code** | 14 |
+| **Tag** | `v2.2.4` |
+| **Branch** | `development` |
+| **Status** | ✅ Implementation Complete |
+
+### Highlights
+- **Engine Safety**: Fixed a fatal `RadialGradient` crash by guarding against `NaN` values and division by zero during engine initialization.
+- **Elite Monetization**: Added dynamic Play Store offer selection and native discount detection.
+- **Notification Hardening**: Restored Android 13+ background updates via mandatory permission flow.
+- **UI Polish**: Fixed footer accessibility in Settings and unified the "Elite Upgrade" flow.
+
+---
+
 ## v2.2.3 — Zen Mastery & Impossible Uplink
 
 | Field | Value |

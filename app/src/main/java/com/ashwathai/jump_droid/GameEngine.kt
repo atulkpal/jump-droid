@@ -695,7 +695,10 @@ class GameEngine(
             }
 
             val dx = effectiveTarget.x - player.x
-            player.velocityX += (dx / (screenWidth / 3f)).coerceIn(-1f, 1f) * currentThrust * 0.7f * steerMult * dt
+            val steerRange = screenWidth / 3f
+            if (steerRange > 0f) {
+                player.velocityX += (dx / steerRange).coerceIn(-1f, 1f) * currentThrust * 0.7f * steerMult * dt
+            }
         } else {
             var coolMult = 1.0f
             player.activeModules.forEach { coolMult *= it.onCooling(player, dt) }
@@ -1466,7 +1469,7 @@ class GameEngine(
             lastFrameTime = currentTime
             return
         }
-        val dt = min(0.033f, (currentTime - lastFrameTime) / 1_000_000_000f)
+        val dt = ((currentTime - lastFrameTime) / 1_000_000_000f).coerceIn(0f, 0.033f)
         lastFrameTime = currentTime
 
         if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL || gameState == GameState.ZEN) {
