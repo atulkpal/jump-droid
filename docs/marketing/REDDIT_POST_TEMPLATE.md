@@ -1,36 +1,41 @@
 # Reddit Post Templates
 
-**Last Updated:** 2026-07-14
+**Last Updated:** 2026-07-31
 
 ---
 
-## Template 1: Launch / Release Announcement
+## Template 1: Production Release Announcement (v2.2.4)
 
 **Subreddit:** r/AndroidGaming, r/IndieGaming, r/opensource, r/Kotlin
 
-**Title:** I built a vertical rocket exploration game entirely with Kotlin and Jetpack Compose — and it's open source 🚀
+**Title:** [OC] My open source rocket exploration game built with Jetpack Compose just hit v2.2.4 Production 🚀
 
 **Body:**
 
 Hey everyone!
 
-I've been working on Jump Droid — a precision vertical exploration game where you pilot a droid-piloted rocket through 12 hostile atmospheric zones.
+I've been working on Jump Droid — a precision vertical exploration game where you pilot a droid-piloted rocket through 12 hostile atmospheric zones. We just hit our production milestone with the v2.2.4 release!
 
-**What's in the game:**
+**What's new in v2.2.4:**
+- **Elite Command Protocol**: Unified upgrade flow with dynamic Play Store offers.
+- **Zen Mode Protocol**: Pressure-free exploration with a full music selector.
+- **Multiplayer Uplink**: Competitive fleet integration.
+- **Engine Hardening**: Critical stability and physics refinements.
+
+**Core Features:**
 - 12 atmospheric zones (Earth → The Singularity) with parallax backgrounds
 - 11 unique bosses with multi-phase fights
 - 26+ enemy and hazard types
 - 4 rocket classes + 17 modules for deep customization
 - 12-track mission system with tier progression
 - Prestige system and Eternal Mode for endgame
-- Secret missions, hidden lore, artifact set bonuses
 
 **Technical:**
 Built entirely with Kotlin and Jetpack Compose Canvas — no game engine. The complete source is open source under MIT.
 
 **Download:**
-Latest APK: [link to GitHub release]
-Source code: [link to GitHub repo]
+Play Store: [link]
+GitHub: [link]
 
 Happy to answer any questions about the development process, Compose Canvas game architecture, or anything else!
 
@@ -70,25 +75,26 @@ Happy to discuss architecture decisions or answer questions!
 
 ---
 
-## Template 3: Community Update (v1.5.2)
+## Template 3: Feature Update (v2.2.4)
 
 **Subreddit:** r/AndroidGaming
 
-**Title:** Jump Droid v1.5.2 is out — Closed Beta Update (Open Source)
+**Title:** Jump Droid v2.2.4 is out — Zen Mode, Elite Upgrades, and Multi-phase Bosses (Open Source)
 
 **Body:**
 
-Just published the v1.5.2 Closed Beta for Jump Droid. This update focuses on UX polish and AI behavior refinements.
+Just published v2.2.4 for Jump Droid. This release marks our full production deployment!
 
-**v1.5.2 Highlights:**
-- **Continue-Ready Overlay**: Added a safety buffer after ads/continues to prevent accidental deaths.
-- **Sharing System**: Integrated native Android share intent for altitude scores.
-- **Heat Bat 2.0**: Overhauled predatory AI with 4 distinct behavioral states.
-- **Archive "NEW" Badges**: Visual indicators for unread lore and artifact discoveries.
+**v2.2.4 Highlights:**
+- **Zen Mode Protocol**: A peaceful, threat-free mode to enjoy the 12-zone soundtrack.
+- **Elite Upgrade System**: Refined monetization with dynamic "Best Offer" detection.
+- **Multiplayer Uplink**: Preliminary competitive integration established.
+- **Physics Stability**: Fixed rendering crashes and clamped delta-time for smoother flight.
 
 If you haven't tried it yet — it's a vertical rocket game with 12 zones, 11 bosses, modular ship builds, and a full endgame. Free download, open source, no pay-to-win.
 
 [GitHub link]
+[Play Store link]
 
 ---
 

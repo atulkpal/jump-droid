@@ -1,1 +1,1 @@
-Ascend beyond the atmosphere in this precision vertical exploration simulator.
+Master precision propulsion, modular ship building, and high-intensity atmospheric discovery in Jump Droid.

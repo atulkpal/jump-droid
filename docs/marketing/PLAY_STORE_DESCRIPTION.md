@@ -1,7 +1,7 @@
 # Jump Droid — Play Store Description
 
-**Last Updated:** 2026-07-30
-**Version:** v2.2.0
+**Last Updated:** 2026-07-31
+**Version:** v2.2.4
 
 ---
 
@@ -18,8 +18,11 @@ Your rocket isn't just a vehicle—it’s a modular "Build." Customize your stra
 ### MASTER THE FLOW
 Harness the power of the **Combo System**. Chain landings on diverse platform types—Flux, Graviton, and more—to trigger survival rewards and keep your climb alive. 
 
-### NEW: ZEN MODE PROTOCOL
-Need a break from the chaos? Activate the **Zen Mode Protocol** for a pressure-free exploration experience. Toggle between unlocked soundtracks and ascend through the stars without threats or bosses.
+### NEW: ELITE COMMAND PROTOCOL
+Experience the ultimate ascent with our **Elite Command Protocol**. Access dynamic pricing offers, native discount detection, and a unified upgrade flow designed for the most dedicated pilots. 
+
+### ZEN MODE & MULTIPLAYER UPLINK
+Need a break from the chaos? Activate the **Zen Mode Protocol** for a pressure-free exploration experience. Ready for a challenge? Establish a **Multiplayer Uplink** and compete against the fleet in real-time.
 
 ### KEY FEATURES:
 - **Tactical Boss Encounters**: Defeat 11 massive bosses with multi-phase AI and destructible weak points.

@@ -1,6 +1,6 @@
 # Jump Droid — IndieDB Description
 
-**Last Updated:** 2026-07-14
+**Last Updated:** 2026-07-31
 
 ---
 
@@ -50,4 +50,4 @@ Jump Droid is fully open source under the MIT License. The complete codebase is 
 
 ### Status
 
-v1.5.2 — Closed Beta Update. Actively maintained. Open source.
+v2.2.4 — Production Release. Elite Monetization, Zen Protocol, and Multiplayer Uplink active. Open source.
