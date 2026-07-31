@@ -12,13 +12,16 @@ All official releases with build artifacts and key changes.
 | **Version Code** | 14 |
 | **Tag** | `v2.2.4` |
 | **Branch** | `master` |
-| **Status** | 🚀 Production Deployment |
+| **Status** | 🚀 Production Released on GitHub |
 
 ### Highlights
 - **Engine Safety**: Fixed a fatal `RadialGradient` crash by guarding against `NaN` values and division by zero during engine initialization.
 - **Elite Monetization**: Added dynamic Play Store offer selection and native discount detection.
 - **Notification Hardening**: Restored Android 13+ background updates via mandatory permission flow.
 - **UI Polish**: Fixed footer accessibility in Settings and unified the "Elite Upgrade" flow.
+
+### Downloads
+- [GitHub Release](https://github.com/atulkpal/jump-droid/releases/tag/v2.2.4)
 
 ---
 
