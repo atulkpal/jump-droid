@@ -1,0 +1,20 @@
+# Jump Droid v2.2.4 — Elite Urgency & Global Delivery
+
+### Added — Native "Elite" Sales & Urgency
+- **Dynamic Best-Offer Selection**: Updated PurchaseManager.kt to automatically select the lowest price from Google Play offers.
+- **Subtle Urgency Mode**: Smart countdown timer for sales ending in less than 3 days.
+- **Native Discount Detection**: Integration with Play Store metadata for official percentage labels.
+
+### Improved — Unified "Elite Upgrade" Flow
+- **Universal Dialog**: Shared EliteUpgradeDialog and EliteBenefitsList for UI consistency.
+- **Functional CTA Overhaul**: Clickable premium hints and functional "GO PREMIUM" buttons.
+- **Fixed Footer Layout**: Redesigned Settings screen with a fixed bottom container for accessibility.
+
+### Changed — Background Notification Recovery
+- **Runtime Permissions**: POST_NOTIFICATIONS flow for Android 13+.
+- **Global Topic Subscription**: Automatic subscription to the "all" FCM topic.
+- **Diagnostic Logging**: Explicit FCM token and subscription status logging.
+
+### Fixed — Engine Safety & Rendering Stability
+- **RadialGradient Crash Fix**: Three-tier safety system to prevent NaN values in the native Skia shader engine.
+- **Physics Stability**: Clamped dt for stable calculations during frame spikes.
