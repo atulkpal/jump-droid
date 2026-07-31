@@ -93,6 +93,7 @@ fun MainMenuScreen(
     archiveUnreadCount: Int = 0,
     progressionManager: ProgressionManager? = null,
     loginManager: LoginManager? = null,
+    purchaseManager: PurchaseManager? = null,
     onSignIn: () -> Unit = {}
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "MenuTransition")
@@ -415,7 +416,20 @@ fun MainMenuScreen(
                     Spacer(Modifier.height(8.dp))
                     GhostButton("MISSIONS", SciFiCyan, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_missions) { onNavigate(GameState.MISSIONS) }
                     Spacer(Modifier.height(8.dp))
-                    GhostButton("SHOP", SciFiGreen, borderPulse, shape, soundManager, hapticManager, iconRes = R.drawable.ic_btn_shop) { onNavigate(GameState.SHOP) }
+                    
+                    val isPremium = purchaseManager?.isPremiumUser ?: false
+                    GhostButton(
+                        label = "SHOP",
+                        accent = SciFiGreen,
+                        borderPulse = borderPulse,
+                        shape = shape,
+                        soundManager = soundManager,
+                        hapticManager = hapticManager,
+                        iconRes = R.drawable.ic_btn_shop,
+                        badgeCount = 0,
+                        showPremiumBadge = !isPremium
+                    ) { onNavigate(GameState.SHOP) }
+                    
                     if (loginManager != null) {
                         Spacer(Modifier.height(8.dp))
                         if (loginManager.isSignedIn) {
@@ -699,6 +713,7 @@ private fun GhostButton(
     hapticManager: HapticManager? = null,
     badgeCount: Int = 0,
     iconRes: Int? = null,
+    showPremiumBadge: Boolean = false,
     onClick: () -> Unit
 ) {
     Button(
@@ -738,6 +753,15 @@ private fun GhostButton(
                         fontWeight = FontWeight.Black
                     )
                 }
+            }
+            if (showPremiumBadge) {
+                Spacer(Modifier.width(8.dp))
+                Image(
+                    painter = painterResource(id = R.drawable.ic_premium_star),
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    colorFilter = ColorFilter.tint(SciFiGold.copy(alpha = 0.8f))
+                )
             }
         }
     }

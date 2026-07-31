@@ -4,6 +4,29 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-31 (Dynamic Monetization & Notification Hardening)
+
+**Version:** v2.2.4 — Elite Urgency & Global Delivery
+
+**Status:** Implementation Complete — branch `development`
+
+### Added — Native "Elite" Sales & Urgency
+- **Dynamic Best-Offer Selection**: Updated `PurchaseManager.kt` to iterate through all available Google Play offers and automatically select the lowest price (e.g., ₹160 vs standard ₹200).
+- **Subtle Urgency Mode**: Implemented a smart countdown timer that appears only when a sale is ending in less than 3 days. Displays contextual labels like "ENDS IN 2 DAYS" or "ENDING SOON" to drive conversion.
+- **Native Discount Detection**: Integrated with `discountDisplayInfo` to extract official percentage labels (e.g., "20% OFF") directly from Play Store metadata, with a fallback calculation engine.
+
+### Improved — Unified "Elite Upgrade" Flow
+- **Universal Dialog**: Created a shared `EliteUpgradeDialog` and `EliteBenefitsList` in `EliteComponents.kt` to ensure 100% UI consistency across all purchase touchpoints.
+- **Functional CTA Overhaul**: Wired the "GO PREMIUM" button in the System Protocol (About) screen and made the premium hints on the Game Over screen clickable.
+- **Fixed Footer Layout**: Redesigned the Settings screen with a fixed bottom container for the Return button and Ad Banner, ensuring they are always accessible regardless of scroll position.
+
+### Changed — Background Notification Recovery
+- **Runtime Permissions**: Implemented a mandatory `POST_NOTIFICATIONS` request flow for Android 13+ devices to resolve the "missing notification" issue.
+- **Global Topic Subscription**: Automatically subscribes all pilots to the `"all"` FCM topic on launch, enabling reliable broadcast updates from the Firebase Console.
+- **Diagnostic Logging**: Added explicit FCM token and subscription status logging to Logcat for server-side verification.
+
+---
+
 ## 2026-07-30 (Zen Mastery & Impossible Uplink)
 
 **Version:** v2.2.3 — Zen Isolation & Elite Protocol

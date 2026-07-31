@@ -61,32 +61,43 @@ class MultiplayerManager(
             status = RoomStatus.LOBBY
         )
         
-        firestore.collection("rooms").document(code).set(room).await()
-        currentRoom = room
-        observeRoom(code)
-        return code
+        try {
+            firestore.collection("rooms").document(code).set(room).await()
+            currentRoom = room
+            observeRoom(code)
+            return code
+        } catch (e: Exception) {
+            Log.e("MultiplayerManager", "Failed to create room: ${e.message}")
+            connectionStatus = "UPLINK FAILED"
+            return ""
+        }
     }
 
     suspend fun joinRoom(code: String): Boolean {
         val userId = loginManager.playerId ?: return false
-        val roomDoc = firestore.collection("rooms").document(code).get().await()
-        
-        if (!roomDoc.exists()) return false
-        
-        val room = roomDoc.toObject(MultiplayerRoom::class.java) ?: return false
-        if (room.guestId != null && room.guestId != userId) return false // Room full
-        
-        val updatedRoom = room.copy(
-            guestId = userId,
-            guestName = loginManager.displayName ?: "Guest",
-            status = RoomStatus.STARTING
-        )
-        
-        firestore.collection("rooms").document(code).set(updatedRoom).await()
-        currentRoom = updatedRoom
-        observeRoom(code)
-        startStateSync()
-        return true
+        return try {
+            val roomDoc = firestore.collection("rooms").document(code).get().await()
+            
+            if (!roomDoc.exists()) return false
+            
+            val room = roomDoc.toObject(MultiplayerRoom::class.java) ?: return false
+            if (room.guestId != null && room.guestId != userId) return false // Room full
+            
+            val updatedRoom = room.copy(
+                guestId = userId,
+                guestName = loginManager.displayName ?: "Guest",
+                status = RoomStatus.STARTING
+            )
+            
+            firestore.collection("rooms").document(code).set(updatedRoom).await()
+            currentRoom = updatedRoom
+            observeRoom(code)
+            startStateSync()
+            true
+        } catch (e: Exception) {
+            Log.e("MultiplayerManager", "Failed to join room: ${e.message}")
+            false
+        }
     }
 
     private fun observeRoom(code: String) {

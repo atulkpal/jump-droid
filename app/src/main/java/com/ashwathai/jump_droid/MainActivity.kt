@@ -49,6 +49,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import com.google.firebase.messaging.FirebaseMessaging
+import android.util.Log
+import android.os.Build
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -73,6 +79,7 @@ class MainActivity : ComponentActivity() {
         val sharedPrefs = getSharedPreferences("jump_droid_prefs", MODE_PRIVATE)
         DevConfig.RENDER_MODE_ASSETS = sharedPrefs.getBoolean("render_mode_assets", false)
 
+        setupNotifications()
         enableEdgeToEdge()
         setContent {
             val engine = remember { GameEngine(this, analytics) }
@@ -141,6 +148,34 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         playerAnalytics.onAppForeground()
         gameEngine?.soundManager?.resumeAll()
+    }
+
+    private fun setupNotifications() {
+        // 1. Request Permission (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+
+        // 2. Subscribe to "all" topic
+        FirebaseMessaging.getInstance().subscribeToTopic("all")
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("MainActivity", "FCM: Successfully subscribed to 'all' topic")
+                } else {
+                    Log.e("MainActivity", "FCM: Failed to subscribe to 'all' topic", task.exception)
+                }
+            }
+
+        // 3. Log FCM Token for debugging
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d("MainActivity", "FCM Token: ${task.result}")
+            } else {
+                Log.e("MainActivity", "FCM: Failed to get token", task.exception)
+            }
+        }
     }
 }
 
@@ -353,6 +388,7 @@ fun JumpDroidApp(
                 hasNewEntries = engine.codexNotification != null || engine.discoveryManager.getUnreadCount() > 0,
                 progressionManager = engine.progressionManager,
                 loginManager = engine.loginManager,
+                purchaseManager = engine.purchaseManager,
                 onSignIn = { signInLauncher.launch(engine.loginManager.getSignInIntent()) }
             )
         }
@@ -438,6 +474,7 @@ fun JumpDroidApp(
                 runBossesDefeated = engine.runBossesDefeated,
                 bestComboThisRun = engine.comboManager.bestComboThisRun,
                 isZenMode = engine.activeGameMode == GameMode.ZEN,
+                purchaseManager = engine.purchaseManager,
                 onContinue = { 
                     engine.continueRun()
                     navController.popBackStack()
@@ -617,7 +654,10 @@ fun JumpDroidApp(
             popEnterTransition = { slideInHorizontally { -it } + fadeIn(animationSpec = tween(300)) },
             popExitTransition = { slideOutHorizontally { it } + fadeOut(animationSpec = tween(300)) }
         ) {
-            AboutScreen(onDismiss = { navController.popBackStack() })
+            AboutScreen(
+                purchaseManager = engine.purchaseManager,
+                onDismiss = { navController.popBackStack() }
+            )
         }
         composable(
             route = "missions",

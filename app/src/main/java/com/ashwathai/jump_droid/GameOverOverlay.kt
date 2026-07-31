@@ -50,6 +50,7 @@ fun GameOverOverlay(
     runBossesDefeated: Int = 0,
     bestComboThisRun: Int = 0,
     isZenMode: Boolean = false,
+    purchaseManager: PurchaseManager? = null,
     onContinue: () -> Unit,
     onRestart: () -> Unit,
     onMainMenu: () -> Unit
@@ -61,6 +62,7 @@ fun GameOverOverlay(
     val titleGlow by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "TitleGlow")
 
     var startAnims by remember { mutableStateOf(false) }
+    var showUpgradeDialog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { startAnims = true }
 
     val frameTime = remember { mutableStateOf(0L) }
@@ -338,14 +340,37 @@ fun GameOverOverlay(
                         }
 
                         if (continuesRemaining > 0) {
-                            Text(
-                                text = "Continue ${continuesUsed + 1} of $maxContinues",
-                                color = SciFiWhite.copy(alpha = 0.4f),
-                                fontSize = 11.sp,
-                                letterSpacing = 1.sp,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Continue ${continuesUsed + 1} of $maxContinues",
+                                    color = SciFiWhite.copy(alpha = 0.4f),
+                                    fontSize = 11.sp,
+                                    letterSpacing = 1.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                if (!isPremiumUser) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.clickable { showUpgradeDialog = true }
+                                    ) {
+                                        Text(
+                                            text = "(GO PREMIUM FOR 5)",
+                                            color = SciFiGold.copy(alpha = 0.6f),
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 1.sp
+                                        )
+                                        if (purchaseManager?.hasOffer == true) {
+                                            Spacer(Modifier.width(6.dp))
+                                            DiscountFlyer(
+                                                text = purchaseManager.offerText,
+                                                urgencyText = purchaseManager.offerExpiryText
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         val nextBossTarget = ((runBossesDefeated / 5) + 1) * 5
@@ -437,7 +462,30 @@ fun GameOverOverlay(
                     } else {
                         val label = if (isZenMode) "RE-DEPLOY ZEN MODE" else "NEW EXPEDITION"
                         val adHint = if (isZenMode && !isPremiumUser) " [AD]" else ""
-                        Text(text = "$label$adHint", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = "$label$adHint", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            if (isZenMode && !isPremiumUser) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.clickable { showUpgradeDialog = true }
+                                ) {
+                                    Text(
+                                        "REMOVE ADS WITH PREMIUM",
+                                        color = SciFiGold.copy(alpha = 0.5f),
+                                        fontSize = 7.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 1.sp
+                                    )
+                                    if (purchaseManager?.hasOffer == true) {
+                                        Spacer(Modifier.width(6.dp))
+                                        DiscountFlyer(
+                                            text = purchaseManager.offerText,
+                                            urgencyText = purchaseManager.offerExpiryText
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -456,6 +504,13 @@ fun GameOverOverlay(
                 Spacer(Modifier.height(8.dp))
                 GlobalAdBanner()
             }
+        }
+
+        if (showUpgradeDialog) {
+            EliteUpgradeDialog(
+                purchaseManager = purchaseManager,
+                onDismiss = { showUpgradeDialog = false }
+            )
         }
 
         // --- FLYING REWARD ANIMATIONS ---

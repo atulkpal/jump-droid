@@ -40,6 +40,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -136,26 +139,33 @@ fun ShopScreen(
                             Image(
                                 painter = painterResource(id = R.drawable.ic_premium_star),
                                 contentDescription = null,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(24.dp),
+                                colorFilter = ColorFilter.tint(if (isPremium) SciFiGreen else SciFiGold)
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
-                                "PREMIUM UPGRADE",
+                                if (isPremium) "FLEET COMMAND ELITE" else "PREMIUM UPGRADE",
                                 color = if (isPremium) SciFiGreen else SciFiGold,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp,
                                 letterSpacing = 1.sp
                             )
                         }
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            if (isPremium) "All advertisements have been removed. Thank you for your support!"
-                            else "Remove all ads with a one-time purchase. Supports future development.",
-                            color = SciFiWhite.copy(alpha = 0.6f),
-                            fontSize = 11.sp,
-                            lineHeight = 16.sp
-                        )
-                        Spacer(Modifier.height(12.dp))
+                        
+                        if (!isPremium) {
+                            Spacer(Modifier.height(12.dp))
+                            EliteBenefitsList()
+                        } else {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                "All advertisements have been removed. Thank you for your support!",
+                                color = SciFiWhite.copy(alpha = 0.6f),
+                                fontSize = 11.sp,
+                                lineHeight = 16.sp
+                            )
+                        }
+
+                        Spacer(Modifier.height(16.dp))
                         Button(
                             onClick = {
                                 soundManager?.playSfx("sfx_ui_click")
@@ -176,11 +186,20 @@ fun ShopScreen(
                             ),
                             border = BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.3f) else SciFiGold.copy(alpha = 0.5f))
                         ) {
-                            Text(
-                                if (isPremium) "ADS REMOVED ✓" else "REMOVE ADS (\$1.99)",
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    if (isPremium) "ELITE STATUS ACTIVE ✓" else "REMOVE ADS (${purchaseManager?.premiumPrice ?: "$1.99"})",
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
+                                )
+                                if (!isPremium && (purchaseManager?.hasOffer == true)) {
+                                    Spacer(Modifier.width(8.dp))
+                                    DiscountFlyer(
+                                        text = purchaseManager.offerText,
+                                        urgencyText = purchaseManager.offerExpiryText
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -350,6 +369,7 @@ fun ShopScreen(
         }
     }
 }
+
 
 @Composable
 private fun CosmeticPurchaseCard(

@@ -109,6 +109,29 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // --- Jump Droid v2.2.0 Additions ---
+
+    // Players: Cloud sync data
+    match /players/{playerId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Leaderboard: High scores
+    match /leaderboard/{playerId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Rooms: Multiplayer matchmaking
+    match /rooms/{code} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Server Config: Remote announcements and versioning
+    match /server_config/{doc} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
     // Gmail auth tokens: no client access
     match /gmailAuth/{doc} {
       allow read, write: if false;
