@@ -11,6 +11,7 @@ class ThreatManager {
     val activeThreats = mutableStateListOf<ActiveThreat>()
 
     var onThreatDestroyed: ((ThreatDefinition) -> Unit)? = null
+    var onThreatEscaped: ((ThreatDefinition) -> Unit)? = null
 
     /**
      * Updates all active threats and handles cleanup.
@@ -33,6 +34,8 @@ class ThreatManager {
             if (threat.state == ThreatState.DESTROYED || isWayOffScreen) {
                 if (threat.state == ThreatState.DESTROYED) {
                     onThreatDestroyed?.invoke(threat.definition)
+                } else if (isWayOffScreen && threat.state != ThreatState.DESTROYED) {
+                    onThreatEscaped?.invoke(threat.definition)
                 }
                 iterator.remove()
             }

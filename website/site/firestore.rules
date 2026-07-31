@@ -22,48 +22,46 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // Testers + subcollections: public read; admins write
+    // Testers + subcollections: Authenticated read; Authenticated write
     match /testers/{docId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if request.auth != null;
       match /sessions/{sessionId} {
-        allow read: if true;
-        allow write: if request.auth != null;
+        allow read, write: if request.auth != null;
       }
       match /feedback/{feedbackId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null;
+        allow read, write: if request.auth != null;
       }
     }
 
-    // Collection group queries for sessions (used by fetchRecentSessions)
+    // Collection group queries for sessions
     match /{path=**}/sessions/{sessionId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
 
-    // Collection group for testerFeedback (used by FeedbackTable → fetchAllFeedback + FeedbackSection)
+    // Collection group for testerFeedback
     match /{path=**}/testerFeedback/{feedbackId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if request.auth != null;
     }
 
-    // Dashboard config: public read; admins write (used by fetchConfig)
+    // Dashboard config: Authenticated read; admins write
     match /dashboardConfig/{doc} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // Beta users: public read/write by email (doc ID = email, safe); admin list/delete
+    // Beta users: Authenticated create; admin list/delete
     match /betaUsers/{email} {
-      allow read, create, update: if true;
-      allow list, delete: if request.auth != null;
+      allow read, create, update: if request.auth != null;
+      allow list, delete: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // Recruitment contacts: public read/write by email (for matchRegistration); admin list/delete
+    // Recruitment contacts: Authenticated read/write; admin list/delete
     match /recruitmentContacts/{email} {
-      allow read, create, update: if true;
-      allow list, delete: if request.auth != null;
+      allow read, create, update: if request.auth != null;
+      allow list, delete: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // Email accounts: admins can read/write
@@ -84,11 +82,13 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // Activity log: admin can read; public can create (for logEvent)
+    // Activity log: admin can read; Authenticated can create
     match /activityLog/{doc} {
-      allow read: if request.auth != null;
-      allow create: if true;
-      allow update, delete: if request.auth != null;
+      allow read: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // Email template overrides: admins can read/write
@@ -105,6 +105,29 @@ service cloud.firestore {
 
     // Sender profiles: admins can read; writes via server-side
     match /senderProfiles/{doc} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // --- Jump Droid v2.2.0 Additions ---
+
+    // Players: Cloud sync data
+    match /players/{playerId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Leaderboard: High scores
+    match /leaderboard/{playerId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Rooms: Multiplayer matchmaking
+    match /rooms/{code} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Server Config: Remote announcements and versioning
+    match /server_config/{doc} {
       allow read: if request.auth != null;
       allow write: if false;
     }

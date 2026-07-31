@@ -152,6 +152,7 @@ runGameLoop(currentTime, isThrusting, thrustTarget, inputProcessor)
 |------|---------------|
 | `SurvivalManager.kt` | Centralizes damage distribution (Shield → Hull) and the 3-phase catastrophic destruction sequence. |
 | `EncounterDirector.kt` | The "AI Director": decides hazard spawn types, zone-specific weights, boss arrival thresholds, **Difficulty Scaling (HP/WP multipliers)**, **Escalation Logic (Minion Summons)**, **Boss Recurrence** (~3s timer picks from defeated bosses + zone mini-bosses), **Milestone guards** (one-boss-per-frame, no boss while alive). **Note**: Drives progression via `runAltitude` (meters). |
+| `StatRecorder.kt` | Persistence layer for pilot metrics. Implements **Intelligence Integrity** (self-correction logic) to ensure cumulative stats (Distance/Expeditions) stay synchronized with personal records across updates. |
 | `PlatformManager.kt` | Owns the mathematical generation of platforms and tracks streak counters (Breakable, Phase, Magnetic). |
 | `NotificationManager.kt` | Encapsulates the message queue, priority alerts, and alpha/timer fading logic. |
 | `FloatingTextManager.kt` | Manages the lifecycle and upward drift of status popups (e.g., "HULL IMPACT"). |

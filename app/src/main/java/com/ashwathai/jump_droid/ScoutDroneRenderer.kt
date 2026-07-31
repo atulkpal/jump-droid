@@ -44,15 +44,21 @@ class ScoutDroneRenderer : ThreatRenderer {
 
             val flicker = Random(gameTime / 50).nextFloat() * 10f
             val glowRadius = (30f + flicker).coerceAtLeast(0.01f)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(stateColor.copy(alpha = 0.4f), Color.Transparent),
-                    center = Offset(tx, ty + 20f),
-                    radius = glowRadius
-                ),
-                radius = glowRadius,
-                center = Offset(tx, ty + 20f)
-            )
+            
+            val centerX = tx
+            val centerY = ty + 20f
+            
+            if (centerX.isFinite() && centerY.isFinite() && glowRadius.isFinite()) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(stateColor.copy(alpha = 0.4f), Color.Transparent),
+                        center = Offset(centerX, centerY),
+                        radius = glowRadius
+                    ),
+                    radius = glowRadius,
+                    center = Offset(centerX, centerY)
+                )
+            }
 
             val bodyPath = Path().apply {
                 moveTo(tx - 20f, ty - 15f)

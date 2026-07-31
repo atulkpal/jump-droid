@@ -147,6 +147,36 @@ fun AltitudeDisplay(
 }
 
 @Composable
+fun ZenModeIndicator(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "ZenIndicator")
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "Pulse"
+    )
+
+    Column(
+        modifier = modifier.graphicsLayer(alpha = pulse),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "ZEN MODE // PEACEFUL GLIDE",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp,
+                shadow = Shadow(SciFiPurple.copy(alpha = 0.5f), blurRadius = 8f)
+            ),
+            color = SciFiPurple,
+            fontSize = 9.sp
+        )
+    }
+}
+
+@Composable
 fun FuelGauge(
     fuel: Float,
     maxFuel: Float,

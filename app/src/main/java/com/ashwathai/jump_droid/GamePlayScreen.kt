@@ -2,6 +2,7 @@ package com.ashwathai.jump_droid
 
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -9,6 +10,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +59,21 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
     val density = LocalDensity.current
     val context = LocalContext.current
     val activity = remember { context as? ComponentActivity }
+
+    // Intercept back button during end-of-run states to prevent regressions
+    if (gameState == GameState.EXPEDITION_REWARDS || gameState == GameState.GAMEOVER) {
+        BackHandler {
+            onMainMenu()
+        }
+    }
+
+    // Gameplay Pause via Back
+    if (gameState == GameState.PLAYING || gameState == GameState.ASCENSION_PROTOCOL || gameState == GameState.ZEN) {
+        BackHandler {
+            engine.preOverlayState = engine.gameState
+            engine.gameState = GameState.PAUSED
+        }
+    }
 
     LaunchedEffect(gameState) {
         when (gameState) {
@@ -127,7 +144,7 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
             // Critical Recovery: Ensure game is initialized with correct dimensions
             if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
                 if (engine.platforms.isEmpty()) {
-                    engine.restartGame(engine.gameMode)
+                    engine.restartGame(engine.activeGameMode)
                 }
             }
         }
@@ -253,13 +270,13 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
             modifier = Modifier.align(Alignment.TopEnd).padding(16.dp).statusBarsPadding(),
             gameState = engine.gameState,
             onPause = { 
-                if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL) {
+                if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
                     engine.preOverlayState = engine.gameState
                     engine.gameState = GameState.PAUSED 
                 }
             },
             onHelp = {
-                if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL) {
+                if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
                     engine.preOverlayState = engine.gameState
                     engine.gameState = GameState.HELP
                 }
@@ -302,7 +319,7 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
             zone = altitudeManager.currentZone
         )
 
-        if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
+        if (engine.activeGameMode != GameMode.ZEN && (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN)) {
             MissionProgressCard(
                 activeMissions = engine.missionManager.activeMissions,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 160.dp)
@@ -410,6 +427,25 @@ fun ZenMusicSelector(
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
+    var selectedKey by remember { mutableStateOf("DYNAMIC") }
+
+    // Track grouping mapping to "Albums"
+    val albumMapping = mapOf(
+        "bgm_menu" to "FLEET COMMAND",
+        "bgm_earth" to "PLANETARY GLIDE",
+        "bgm_clouds" to "PLANETARY GLIDE",
+        "bgm_atmosphere" to "STRATOSPHERIC",
+        "bgm_orbit" to "STRATOSPHERIC",
+        "bgm_foundry" to "INDUSTRIAL VOID",
+        "bgm_space" to "INDUSTRIAL VOID",
+        "bgm_chrono" to "TEMPORAL RIFT",
+        "bgm_void" to "TEMPORAL RIFT",
+        "bgm_beyond" to "ANCIENT ECHOES",
+        "bgm_gate" to "ANCIENT ECHOES",
+        "bgm_construct" to "ANCIENT ECHOES",
+        "bgm_singularity" to "SINGULARITY",
+        "bgm_boss" to "CRITICAL THREAT"
+    )
 
     Column(modifier = modifier) {
         Button(
@@ -429,17 +465,75 @@ fun ZenMusicSelector(
                 modifier = Modifier.padding(top = 4.dp).width(160.dp)
             ) {
                 Column(Modifier.padding(8.dp)) {
-                    val tracks = listOf("DYNAMIC") + unlockedTracks.toList().sorted()
-                    tracks.forEach { track ->
+                    // 1. DYNAMIC TRACK (Always Available)
+                    Text(
+                        text = "DYNAMIC SECTOR",
+                        color = if (selectedKey == "DYNAMIC") SciFiCyan else SciFiWhite,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { 
+                                selectedKey = "DYNAMIC"
+                                onTrackSelected("DYNAMIC")
+                                expanded = false 
+                            }
+                            .padding(vertical = 6.dp)
+                    )
+
+                    // 2. MENU THEME (Always Available)
+                    Text(
+                        text = "FLEET COMMAND",
+                        color = if (selectedKey == "bgm_menu") SciFiCyan else SciFiWhite,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { 
+                                selectedKey = "bgm_menu"
+                                onTrackSelected("bgm_menu")
+                                expanded = false 
+                            }
+                            .padding(vertical = 6.dp)
+                    )
+
+                    HorizontalDivider(color = SciFiPurple.copy(alpha = 0.2f), thickness = 0.5.dp)
+
+                    // Group unlocked tracks into unique Album entries
+                    val unlockedAlbums = unlockedTracks
+                        .mapNotNull { res -> albumMapping[res]?.let { it to res } }
+                        .groupBy({ it.first }, { it.second })
+                        .toSortedMap()
+
+                    unlockedAlbums.forEach { (albumName, resNames) ->
+                        val itemKey = resNames.first()
                         Text(
-                            text = track.replace("bgm_", "").uppercase(),
-                            color = SciFiWhite,
+                            text = albumName,
+                            color = if (selectedKey == itemKey) SciFiCyan else SciFiWhite,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onTrackSelected(track); expanded = false }
+                                .clickable { 
+                                    selectedKey = itemKey
+                                    onTrackSelected(itemKey)
+                                    expanded = false 
+                                }
                                 .padding(vertical = 6.dp)
+                        )
+                    }
+
+                    // Motivational message if collection is incomplete
+                    if (unlockedTracks.size < 12) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "KEEP EXPLORING HIGHER TO UNLOCK MORE MUSIC!",
+                            color = SciFiCyan.copy(alpha = 0.6f),
+                            fontSize = 7.sp,
+                            lineHeight = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         )
                     }
                 }

@@ -49,6 +49,8 @@ fun GameOverOverlay(
     isPremiumUser: Boolean = false,
     runBossesDefeated: Int = 0,
     bestComboThisRun: Int = 0,
+    isZenMode: Boolean = false,
+    purchaseManager: PurchaseManager? = null,
     onContinue: () -> Unit,
     onRestart: () -> Unit,
     onMainMenu: () -> Unit
@@ -58,6 +60,10 @@ fun GameOverOverlay(
     val glitchOffset by infiniteTransition.animateFloat(0f, 3f, infiniteRepeatable(tween(200), RepeatMode.Reverse), label = "GlitchOffset")
     val borderPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(1200), RepeatMode.Reverse), label = "BorderPulse")
     val titleGlow by infiniteTransition.animateFloat(0.3f, 1f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "TitleGlow")
+
+    var startAnims by remember { mutableStateOf(false) }
+    var showUpgradeDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { startAnims = true }
 
     val frameTime = remember { mutableStateOf(0L) }
     val flyingUiRewards = remember { mutableStateListOf<FlyingUiReward>() }
@@ -70,19 +76,21 @@ fun GameOverOverlay(
     }
 
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
-        StarfieldBackground(Modifier.fillMaxSize(), starCount = 50, alphaRange = 0.1f..0.4f, starColor = Color(0xFFD32F2F))
+        StarfieldBackground(Modifier.fillMaxSize(), starCount = 50, alphaRange = 0.1f..0.4f, starColor = if (isZenMode) SciFiPurple else Color(0xFFD32F2F))
         
-        // --- TOP CURRENCY HUD ---
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(16.dp)
-                .statusBarsPadding(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            CurrencyBadge(label = "CREDITS", value = progressionManager.creditBalance.toString(), color = SciFiGold)
-            CurrencyBadge(label = "CASH", value = progressionManager.totalCash.toString(), color = SciFiGreen)
+        // --- TOP CURRENCY HUD (Hidden in Zen) ---
+        if (!isZenMode) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .statusBarsPadding(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                CurrencyBadge(label = "CREDITS", value = progressionManager.creditBalance.toString(), color = SciFiGold)
+                CurrencyBadge(label = "CASH", value = progressionManager.totalCash.toString(), color = SciFiGreen)
+            }
         }
 
         Canvas(Modifier.fillMaxSize()) {
@@ -93,7 +101,7 @@ fun GameOverOverlay(
             repeat(20) {
                 val x = Random.nextFloat() * w + sin(ft * 2f + it * 1.3f) * 2f
                 val y = Random.nextFloat() * h
-                drawCircle(SciFiRed.copy(alpha = 0.06f), radius = 0.5f + Random.nextFloat(), center = Offset(x, y))
+                drawCircle((if (isZenMode) SciFiPurple else SciFiRed).copy(alpha = 0.06f), radius = 0.5f + Random.nextFloat(), center = Offset(x, y))
             }
         }
 
@@ -104,35 +112,39 @@ fun GameOverOverlay(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 12.dp)
         ) {
-            Text(
-                text = "COMMUNICATION LOST",
-                color = SciFiRed,
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp,
-                    shadow = Shadow(SciFiRed.copy(alpha = titleGlow * 0.5f), blurRadius = 16f)
-                ),
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier.offset(
-                    x = (glitchOffset * (if (sin(glitchOffset.toDouble()) > 0.5) 1 else -1)).dp
+            val titleAnim by animateFloatAsState(if (startAnims) 0f else -100f, tween(600, easing = FastOutSlowInEasing), label = "TitleAnim")
+            
+            Column(Modifier.offset(y = titleAnim.dp).graphicsLayer(alpha = if (startAnims) 1f else 0f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = if (isZenMode) "ZEN EXPEDITION ENDED" else "COMMUNICATION LOST",
+                    color = if (isZenMode) SciFiPurple else SciFiRed,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontSize = if (isZenMode) 22.sp else 28.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.sp,
+                        shadow = Shadow((if (isZenMode) SciFiPurple else SciFiRed).copy(alpha = titleGlow * 0.5f), blurRadius = 16f)
+                    ),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.offset(
+                        x = (glitchOffset * (if (sin(glitchOffset.toDouble()) > 0.5) 1 else -1)).dp
+                    )
                 )
-            )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = if (isZenMode) "FLIGHT PROTOCOL COMPLETED" else "TELEMETRY DATA ENDED",
+                    color = (if (isZenMode) SciFiPurple else SciFiRed).copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.labelMedium,
+                    letterSpacing = 4.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "TELEMETRY DATA ENDED",
-                color = SciFiRed.copy(alpha = 0.6f),
-                style = MaterialTheme.typography.labelMedium,
-                letterSpacing = 4.sp,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "SIGNAL LOST AT ${altitude}m",
-                color = SciFiRed.copy(alpha = 0.3f),
+                text = if (isZenMode) "TOTAL DISTANCE: ${altitude}m" else "SIGNAL LOST AT ${altitude}m",
+                color = (if (isZenMode) SciFiPurple else SciFiRed).copy(alpha = 0.3f),
                 style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 2.sp,
                 textAlign = TextAlign.Center,
@@ -141,16 +153,19 @@ fun GameOverOverlay(
 
             Spacer(Modifier.height(16.dp))
 
+            val contentAnim by animateFloatAsState(if (startAnims) 1f else 0.8f, tween(800, 200, FastOutSlowInEasing), label = "ContentAnim")
+            val contentAlpha by animateFloatAsState(if (startAnims) 1f else 0f, tween(800, 200), label = "ContentAlpha")
+
             Surface(
                 color = SciFiSurface,
                 shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse)),
-                modifier = Modifier.fillMaxWidth()
+                border = BorderStroke(1.dp, (if (isZenMode) SciFiPurple else SciFiBorder).copy(alpha = borderPulse)),
+                modifier = Modifier.fillMaxWidth().graphicsLayer(scaleX = contentAnim, scaleY = contentAnim, alpha = contentAlpha)
             ) {
                 Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     val isNewRecord = score > highScore && highScore > 0
                     
-                    Text("TOTAL SCORE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                    Text(if (isZenMode) "ZEN SCORE" else "TOTAL SCORE", color = SciFiWhite.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
                     Text(
                         "$score",
                         color = if (isNewRecord) SciFiGold else SciFiWhite,
@@ -177,14 +192,14 @@ fun GameOverOverlay(
                     }
 
                     Spacer(Modifier.height(16.dp))
-                    Text("RECORD SCORE", color = SciFiGold.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
+                    Text(if (isZenMode) "ZEN RECORD" else "RECORD SCORE", color = SciFiGold.copy(alpha = 0.5f), fontSize = 10.sp, letterSpacing = 2.sp)
                     Text("$highScore", color = SciFiGold, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
                     Spacer(Modifier.height(12.dp))
                     Text("TELEMETRY PROCESSED BY ASHWATH.AI", color = SciFiWhite.copy(alpha = 0.15f), fontSize = 7.sp, letterSpacing = 1.sp)
 
                     Spacer(Modifier.height(16.dp))
-                    HorizontalDivider(color = SciFiBorder.copy(alpha = 0.3f), thickness = 1.dp)
+                    HorizontalDivider(color = (if (isZenMode) SciFiPurple else SciFiBorder).copy(alpha = 0.3f), thickness = 1.dp)
                     Spacer(Modifier.height(16.dp))
 
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
@@ -208,200 +223,294 @@ fun GameOverOverlay(
 
             Spacer(Modifier.height(16.dp))
 
-            val earnedContinues = (runBossesDefeated / 5) + (bestComboThisRun / 15)
-            val maxContinues = (if (isPremiumUser) 5 else 3) + earnedContinues
-            val isFreeContinue = isPremiumUser && continuesUsed == 0
-            val continuesRemaining = maxContinues - continuesUsed
+            val buttonsAnim by animateFloatAsState(if (startAnims) 0f else 100f, tween(800, 400, FastOutSlowInEasing), label = "ButtonsAnim")
+            
+            Column(Modifier.offset(y = buttonsAnim.dp).graphicsLayer(alpha = if (startAnims) 1f else 0f), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (!isZenMode) {
+                    val earnedContinues = (runBossesDefeated / 5) + (bestComboThisRun / 15)
+                    val maxContinues = (if (isPremiumUser) 5 else 3) + earnedContinues
+                    val isFreeContinue = isPremiumUser && continuesUsed == 0
+                    val continuesRemaining = maxContinues - continuesUsed
 
-            if (continuesUsed < maxContinues) {
-                val context = LocalContext.current
-                val scope = rememberCoroutineScope()
-                var retryCount by remember { mutableStateOf(0) }
-                var isAdLoading by remember { mutableStateOf(false) }
-                val hasCredits = progressionManager.creditBalance > 0
+                    if (continuesUsed < maxContinues) {
+                        val context = LocalContext.current
+                        val scope = rememberCoroutineScope()
+                        var retryCount by remember { mutableStateOf(0) }
+                        var isAdLoading by remember { mutableStateOf(false) }
+                        val hasCredits = progressionManager.creditBalance > 0
 
-                if (!isFreeContinue && !hasCredits) {
-                    LaunchedEffect(retryCount, continuesUsed) { RewardedAdHelper.load(context) }
-                }
-
-                if (hasCredits) {
-                    Button(
-                        onClick = {
-                            if (progressionManager.spendCredit()) {
-                                onContinue()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = SciFiGold,
-                            contentColor = Color.Black
-                        )
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("CONTINUE (1 CREDIT)", fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "${progressionManager.creditBalance - 1} left",
-                                color = Color.Black.copy(alpha = 0.5f),
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        if (!isFreeContinue && !hasCredits) {
+                            LaunchedEffect(retryCount, continuesUsed) { RewardedAdHelper.load(context) }
                         }
+
+                        if (hasCredits) {
+                            Button(
+                                onClick = {
+                                    if (progressionManager.spendCredit()) {
+                                        onContinue()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = SciFiGold,
+                                    contentColor = Color.Black
+                                )
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("CONTINUE (1 CREDIT)", fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "${progressionManager.creditBalance - 1} left",
+                                        color = Color.Black.copy(alpha = 0.5f),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        if (!hasCredits) {
+                            Button(
+                                onClick = {
+                                    if (isFreeContinue) {
+                                        onContinue()
+                                    } else {
+                                        isAdLoading = true
+                                        analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
+                                        val activity = context.findActivity()
+                                        if (activity != null) {
+                                            RewardedAdHelper.show(activity,
+                                                analytics = analytics,
+                                                onReward = {
+                                                    isAdLoading = false
+                                                    onContinue()
+                                                },
+                                                onFailed = {
+                                                    if (retryCount >= 2) {
+                                                        isAdLoading = false
+                                                        onContinue()
+                                                    } else {
+                                                        retryCount++
+                                                        RewardedAdHelper.load(context)
+                                                        scope.launch {
+                                                            delay(1000)
+                                                            RewardedAdHelper.show(activity,
+                                                                analytics = analytics,
+                                                                onReward = { isAdLoading = false; onContinue() },
+                                                                onFailed = { 
+                                                                    if (retryCount >= 2) {
+                                                                        isAdLoading = false
+                                                                        onContinue()
+                                                                    } else {
+                                                                        retryCount++
+                                                                        isAdLoading = false
+                                                                    }
+                                                                }
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            )
+                                        } else {
+                                            isAdLoading = false
+                                            onContinue()
+                                        }
+                                    }
+                                },
+                                enabled = !isAdLoading,
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isFreeContinue) SciFiGold else SciFiCyan
+                                )
+                            ) {
+                                if (isAdLoading) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.Black, strokeWidth = 2.dp)
+                                } else if (isFreeContinue) {
+                                    Text("FREE CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                } else {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("[AD]", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp)
+                                        Spacer(Modifier.padding(start = 8.dp))
+                                        Text("WATCH AD TO CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        if (continuesRemaining > 0) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Continue ${continuesUsed + 1} of $maxContinues",
+                                    color = SciFiWhite.copy(alpha = 0.4f),
+                                    fontSize = 11.sp,
+                                    letterSpacing = 1.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                if (!isPremiumUser) {
+                                    Spacer(Modifier.width(6.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.clickable { showUpgradeDialog = true }
+                                    ) {
+                                        Text(
+                                            text = "(GO PREMIUM FOR 5)",
+                                            color = SciFiGold.copy(alpha = 0.6f),
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 1.sp
+                                        )
+                                        if (purchaseManager?.hasOffer == true) {
+                                            Spacer(Modifier.width(6.dp))
+                                            DiscountFlyer(
+                                                text = purchaseManager.offerText,
+                                                urgencyText = purchaseManager.offerExpiryText
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        val nextBossTarget = ((runBossesDefeated / 5) + 1) * 5
+                        val nextComboTarget = ((bestComboThisRun / 15) + 1) * 15
+                        Text(
+                            text = "Bosses: $runBossesDefeated/$nextBossTarget  ·  Best Combo: $bestComboThisRun/$nextComboTarget",
+                            color = SciFiWhite.copy(alpha = 0.25f),
+                            fontSize = 9.sp,
+                            letterSpacing = 1.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                        Spacer(Modifier.height(12.dp))
                     }
                 }
 
-                if (!hasCredits) {
-                    Button(
-                        onClick = {
-                            if (isFreeContinue) {
-                                onContinue()
-                            } else {
-                                isAdLoading = true
+                // Credit management row (Hidden in Zen)
+                if (!isZenMode) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        val creditContext = LocalContext.current
+                        Text(
+                            text = "CREDITS: ${progressionManager.creditBalance}",
+                            color = SciFiGold,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Button(
+                            onClick = {
                                 analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
-                                val activity = context.findActivity()
+                                val activity = creditContext.findActivity()
                                 if (activity != null) {
                                     RewardedAdHelper.show(activity,
                                         analytics = analytics,
-                                        onReward = {
-                                            isAdLoading = false
-                                            onContinue()
-                                        },
-                                        onFailed = {
-                                            if (retryCount >= 2) {
-                                                isAdLoading = false
-                                                onContinue()
-                                            } else {
-                                                retryCount++
-                                                RewardedAdHelper.load(context)
-                                                scope.launch {
-                                                    delay(1000)
-                                                    RewardedAdHelper.show(activity,
-                                                        analytics = analytics,
-                                                        onReward = { isAdLoading = false; onContinue() },
-                                                        onFailed = { 
-                                                            if (retryCount >= 2) {
-                                                                isAdLoading = false
-                                                                onContinue()
-                                                            } else {
-                                                                retryCount++
-                                                                isAdLoading = false
-                                                            }
-                                                        }
-                                                    )
-                                                }
-                                            }
-                                        }
+                                        onReward = { progressionManager.addCredits(1) },
+                                        onFailed = {}
                                     )
-                                } else {
-                                    isAdLoading = false
-                                    onContinue()
                                 }
+                            },
+                            modifier = Modifier.height(32.dp),
+                            shape = RoundedCornerShape(4.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f), contentColor = SciFiCyan),
+                            border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.4f))
+                        ) {
+                            Text("+1 CREDIT [AD]", fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 1.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                // NEW EXPEDITION BUTTON
+                val context = LocalContext.current
+                var isRestartAdLoading by remember { mutableStateOf(false) }
+
+                Button(
+                    onClick = {
+                        if (isZenMode && !isPremiumUser) {
+                            isRestartAdLoading = true
+                            val activity = context.findActivity()
+                            if (activity != null) {
+                                RewardedAdHelper.show(activity,
+                                    analytics = analytics,
+                                    onReward = {
+                                        isRestartAdLoading = false
+                                        onRestart()
+                                    },
+                                    onFailed = {
+                                        isRestartAdLoading = false
+                                        onRestart() // Fallback to free for now to avoid blocking
+                                    }
+                                )
+                            } else {
+                                onRestart()
                             }
-                        },
-                        enabled = !isAdLoading,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFreeContinue) SciFiGold else SciFiCyan
-                        )
-                    ) {
-                        if (isAdLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.Black, strokeWidth = 2.dp)
-                        } else if (isFreeContinue) {
-                            Text("FREE CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("[AD]", color = SciFiGold, fontWeight = FontWeight.Black, fontSize = 12.sp, letterSpacing = 1.sp)
-                                Spacer(Modifier.padding(start = 8.dp))
-                                Text("WATCH AD TO CONTINUE", color = Color.Black, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            onRestart()
+                        }
+                    },
+                    enabled = !isRestartAdLoading,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (isZenMode) SciFiPurple.copy(alpha = 0.2f) else SciFiSurface),
+                    border = BorderStroke(1.dp, if (isZenMode) SciFiPurple.copy(alpha = 0.5f) else SciFiBorder)
+                ) {
+                    if (isRestartAdLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = SciFiWhite, strokeWidth = 2.dp)
+                    } else {
+                        val label = if (isZenMode) "RE-DEPLOY ZEN MODE" else "NEW EXPEDITION"
+                        val adHint = if (isZenMode && !isPremiumUser) " [AD]" else ""
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = "$label$adHint", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            if (isZenMode && !isPremiumUser) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.clickable { showUpgradeDialog = true }
+                                ) {
+                                    Text(
+                                        "REMOVE ADS WITH PREMIUM",
+                                        color = SciFiGold.copy(alpha = 0.5f),
+                                        fontSize = 7.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 1.sp
+                                    )
+                                    if (purchaseManager?.hasOffer == true) {
+                                        Spacer(Modifier.width(6.dp))
+                                        DiscountFlyer(
+                                            text = purchaseManager.offerText,
+                                            urgencyText = purchaseManager.offerExpiryText
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
 
-                if (continuesRemaining > 0) {
-                    Text(
-                        text = "Continue ${continuesUsed + 1} of $maxContinues",
-                        color = SciFiWhite.copy(alpha = 0.4f),
-                        fontSize = 11.sp,
-                        letterSpacing = 1.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-
-                val nextBossTarget = ((runBossesDefeated / 5) + 1) * 5
-                val nextComboTarget = ((bestComboThisRun / 15) + 1) * 15
-                Text(
-                    text = "Bosses: $runBossesDefeated/$nextBossTarget  ·  Best Combo: $bestComboThisRun/$nextComboTarget",
-                    color = SciFiWhite.copy(alpha = 0.25f),
-                    fontSize = 9.sp,
-                    letterSpacing = 1.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
                 Spacer(Modifier.height(12.dp))
-            }
 
-            // Credit management row
-            Spacer(Modifier.height(4.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                val creditContext = LocalContext.current
-                Text(
-                    text = "CREDITS: ${progressionManager.creditBalance}",
-                    color = SciFiGold,
-                    fontSize = 11.sp,
-                    letterSpacing = 1.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.width(12.dp))
-                Button(
-                    onClick = {
-                        analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
-                        val activity = creditContext.findActivity()
-                        if (activity != null) {
-                            RewardedAdHelper.show(activity,
-                                analytics = analytics,
-                                onReward = { progressionManager.addCredits(1) },
-                                onFailed = {}
-                            )
-                        }
-                    },
-                    modifier = Modifier.height(32.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f), contentColor = SciFiCyan),
-                    border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.4f))
-                ) {
-                    Text("+1 CREDIT [AD]", fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 1.sp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onMainMenu,
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = SciFiWhite.copy(alpha = 0.5f))
+                    ) {
+                        Text("RETURN TO BASE", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
+                    }
                 }
+                Spacer(Modifier.height(8.dp))
+                GlobalAdBanner()
             }
-            Spacer(Modifier.height(8.dp))
+        }
 
-            Button(
-                onClick = onRestart,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
-                border = BorderStroke(1.dp, SciFiBorder)
-            ) {
-                Text("NEW EXPEDITION", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = onMainMenu,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = SciFiWhite.copy(alpha = 0.5f))
-                ) {
-                    Text("RETURN TO BASE", fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            GlobalAdBanner()
+        if (showUpgradeDialog) {
+            EliteUpgradeDialog(
+                purchaseManager = purchaseManager,
+                onDismiss = { showUpgradeDialog = false }
+            )
         }
 
         // --- FLYING REWARD ANIMATIONS ---

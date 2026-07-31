@@ -13,6 +13,7 @@ data class GameStats(
     val platformLandings: Int = 0,
     val maxCombo: Int = 0,
     val currentCombo: Int = 0,
+    val combosOver15: Int = 0,
     val comboMaintainTime: Float = 0f,
     val bossesDefeated: Int = 0,
     val miniBossesDefeated: Int = 0,
@@ -26,5 +27,6 @@ data class GameStats(
     val dashesPerRun: Int = 0,
     val overheatCount: Int = 0,
     val wasNearDeath: Boolean = false,
+    val continuesUsed: Int = 0,
     val consecutiveWins: Int = 0
 )

@@ -91,6 +91,11 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     var isZenModeUnlocked by mutableStateOf(false)
         private set
 
+    var isMultiplayerUnlocked by mutableStateOf(false)
+        private set
+
+    val statRecord get() = statRecorder
+
     val missionsCompleted: Int get() = missionTracker.completedMissionIds.size
 
     fun getCashBalance(): Int = totalCash
@@ -98,6 +103,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     fun spendCash(amount: Int): Boolean {
         if (totalCash >= amount) {
             totalCash -= amount
+            statRecorder.recordCashSpent(amount)
             sharedPrefs.edit { putInt("total_cash", totalCash) }
             return true
         }
@@ -144,7 +150,9 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         val available = maxCredits - creditBalance
         val actualBuy = minOf(maxBuy, available)
         if (actualBuy > 0) {
-            totalCash -= actualBuy * cashPerCredit
+            val totalSpent = actualBuy * cashPerCredit
+            totalCash -= totalSpent
+            statRecorder.recordCashSpent(totalSpent)
             creditBalance += actualBuy
             sharedPrefs.edit {
                 putInt("total_cash", totalCash)
@@ -201,6 +209,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         totalBossesKilled = sharedPrefs.getInt("total_bosses", 0)
         unlockedMusicTracks = sharedPrefs.getStringSet("unlocked_music", emptySet()) ?: emptySet()
         isZenModeUnlocked = sharedPrefs.getBoolean("zen_unlocked", false)
+        isMultiplayerUnlocked = sharedPrefs.getBoolean("multiplayer_unlocked", false)
 
         artifactManager.reevaluateSetBonuses()
     }
@@ -267,6 +276,14 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         missionTracker.recordMissionCompletion(missionId)
     }
 
+    fun commitZenStats(score: Int, maxCombo: Int, altitude: Int) {
+        statRecorder.commitZenSession(score, maxCombo, altitude)
+    }
+
+    fun commitMpResult(won: Boolean) {
+        statRecorder.recordMpResult(won)
+    }
+
     override fun recordMissionClaim(missionId: String) {
         missionTracker.recordMissionClaim(missionId)
     }
@@ -315,6 +332,7 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
 
         checkMusicUnlocks()
         checkZenModeUnlock(stats)
+        checkMultiplayerUnlock(stats)
     }
 
     private fun checkMusicUnlocks() {
@@ -334,35 +352,69 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     private fun checkZenModeUnlock(stats: GameStats) {
         if (isZenModeUnlocked) return
 
-        // Requirements: 10,000m Cumulative Altitude, 5 Bosses Defeated, 50x Max Combo
-        val cumulativeAltitude = sharedPrefs.getInt("stat_lifetime_altitude", 0) + stats.maxAltitudeMeters
-        if (cumulativeAltitude >= 10000 && totalBossesKilled >= 5 && stats.maxCombo >= 50) {
+        // Requirements: 10,000m Altitude + 5 Bosses + 5 Combos of 15x
+        val cumulativeAltitude = statRecorder.lifetimeAltitude
+        val bosses = totalBossesKilled
+        val combos = statRecorder.lifetimeCombosOver15
+
+        if (cumulativeAltitude >= 10000 && bosses >= 5 && combos >= 5) {
             isZenModeUnlocked = true
             sharedPrefs.edit { putBoolean("zen_unlocked", true) }
         }
     }
 
+    private fun checkMultiplayerUnlock(stats: GameStats) {
+        if (!isZenModeUnlocked || isMultiplayerUnlocked) return
+        
+        // Impossible Threshold: 3 runs with 50x Combo
+        val combos50 = statRecorder.lifetimeCombosOver50
+
+        if (combos50 >= 3) {
+            isMultiplayerUnlocked = true
+            sharedPrefs.edit { putBoolean("multiplayer_unlocked", true) }
+        }
+    }
+
     fun getZenRequirements(): List<Triple<String, String, Float>> {
-        val cumulativeAltitude = sharedPrefs.getInt("stat_lifetime_altitude", 0)
-        val maxComboEver = sharedPrefs.getInt("stat_max_combo", 0)
+        val cumulativeAltitude = statRecorder.lifetimeAltitude
+        val bosses = totalBossesKilled
+        val combos = statRecorder.lifetimeCombosOver15
         
         return listOf(
-            Triple("ALTITUDE", "${(cumulativeAltitude/1000f).toInt()}K / 10K", (cumulativeAltitude.toFloat() / 10000f).coerceIn(0f, 1f)),
-            Triple("BOSSES", "$totalBossesKilled / 5", (totalBossesKilled.toFloat() / 5f).coerceIn(0f, 1f)),
-            Triple("MAX COMBO", "$maxComboEver / 50", (maxComboEver.toFloat() / 50f).coerceIn(0f, 1f))
+            Triple("ALTITUDE", "${cumulativeAltitude}m / 10K", (cumulativeAltitude.toFloat() / 10000f).coerceIn(0f, 1f)),
+            Triple("BOSSES", "$bosses / 5", (bosses.toFloat() / 5f).coerceIn(0f, 1f)),
+            Triple("COMBOS (15x)", "$combos / 5", (combos.toFloat() / 5f).coerceIn(0f, 1f))
         )
     }
 
     fun getZenUnlockProgress(): Float {
         if (isZenModeUnlocked) return 1f
-        val cumulativeAltitude = sharedPrefs.getInt("stat_lifetime_altitude", 0)
+        val cumulativeAltitude = statRecorder.lifetimeAltitude
+        val bosses = totalBossesKilled
+        val combos = statRecorder.lifetimeCombosOver15
+        
         val altProgress = (cumulativeAltitude.toFloat() / 10000f).coerceIn(0f, 1f)
-        val bossProgress = (totalBossesKilled.toFloat() / 5f).coerceIn(0f, 1f)
-        // Note: Max combo is per-run, we might want to track lifetime max combo too
-        val maxComboEver = sharedPrefs.getInt("stat_max_combo", 0)
-        val comboProgress = (maxComboEver.toFloat() / 50f).coerceIn(0f, 1f)
+        val bossProgress = (bosses.toFloat() / 5f).coerceIn(0f, 1f)
+        val comboProgress = (combos.toFloat() / 5f).coerceIn(0f, 1f)
         
         return (altProgress + bossProgress + comboProgress) / 3f
+    }
+
+    fun getMultiplayerRequirements(): List<Triple<String, String, Float>> {
+        val combos50 = statRecorder.lifetimeCombosOver50
+        
+        return listOf(
+            Triple("COMBOS (50x)", "$combos50 / 3", (combos50.toFloat() / 3f).coerceIn(0f, 1f)),
+            Triple("UPLINK STATUS", "CALIBRATING...", 0f),
+            Triple("PROTOCOL", "RESTRICTED", 0f)
+        )
+    }
+
+    fun getMultiplayerUnlockProgress(): Float {
+        if (isMultiplayerUnlocked) return 1f
+        val combos50 = statRecorder.lifetimeCombosOver50
+        
+        return (combos50.toFloat() / 3f).coerceIn(0f, 1f)
     }
 
     fun unlockMusicTrack(resName: String) {
@@ -439,6 +491,15 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
         put("lifetimeArtifacts", lifetimeArtifacts)
         put("lifetimeLandings", lifetimeLandings)
         put("lifetimeMissionsCompleted", lifetimeMissionsCompleted)
+        put("totalRuns", statRecord.totalRuns)
+        
+        // Zen & MP
+        put("zenMaxCombo", statRecord.zenMaxCombo)
+        put("zenTopRuns", statRecord.zenTopRuns.toList())
+        put("mpGamesPlayed", statRecord.mpGamesPlayed)
+        put("mpWins", statRecord.mpWins)
+        put("mpLosses", statRecord.mpLosses)
+
         put("ownedModuleIds", ownedModuleIds.toList())
         put("completedMissionIds", completedMissionIds.toList())
         put("claimedMissionIds", claimedMissionIds.toList())
@@ -471,7 +532,10 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
             hazards = maxOf(lifetimeHazards, (data["lifetimeHazards"] as? Long)?.toInt() ?: 0),
             artifacts = maxOf(lifetimeArtifacts, (data["lifetimeArtifacts"] as? Long)?.toInt() ?: 0),
             landings = maxOf(lifetimeLandings, (data["lifetimeLandings"] as? Long)?.toInt() ?: 0),
-            missions = maxOf(lifetimeMissionsCompleted, (data["lifetimeMissionsCompleted"] as? Long)?.toInt() ?: 0)
+            altitude = maxOf(statRecorder.lifetimeAltitude, (data["lifetimeAltitude"] as? Long)?.toInt() ?: 0),
+            maxCombo = maxOf(statRecorder.maxComboEver, (data["maxComboEver"] as? Long)?.toInt() ?: 0),
+            missions = maxOf(lifetimeMissionsCompleted, (data["lifetimeMissionsCompleted"] as? Long)?.toInt() ?: 0),
+            runs = maxOf(statRecorder.totalRuns, (data["totalRuns"] as? Long)?.toInt() ?: 0)
         )
 
         val cloudModules = (data["ownedModuleIds"] as? List<*>)?.mapNotNull { it as? String }?.toSet() ?: emptySet()
@@ -502,7 +566,10 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
             putInt("stat_lifetime_hazards", lifetimeHazards)
             putInt("stat_lifetime_artifacts", lifetimeArtifacts)
             putInt("stat_lifetime_landings", lifetimeLandings)
+            putInt("stat_lifetime_altitude", statRecorder.lifetimeAltitude)
+            putInt("stat_max_combo", statRecorder.maxComboEver)
             putInt("missions_completed", lifetimeMissionsCompleted)
+            putInt("stat_total_runs", statRecorder.totalRuns)
             putStringSet("owned_modules", ownedModuleIds)
             putStringSet("completed_missions", completedMissionIds)
             putStringSet("claimed_missions", claimedMissionIds)
@@ -592,6 +659,22 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
 
     fun isAchievementUnlocked(id: String): Boolean {
         return sharedPrefs.getBoolean("achievement_$id", false)
+    }
+
+    /**
+     * DEBUG: Instantly unlocks Zen Mode.
+     */
+    fun debugUnlockZen() {
+        isZenModeUnlocked = true
+        sharedPrefs.edit { putBoolean("zen_unlocked", true) }
+    }
+
+    /**
+     * DEBUG: Instantly unlocks Multiplayer Mode.
+     */
+    fun debugUnlockMultiplayer() {
+        isMultiplayerUnlocked = true
+        sharedPrefs.edit { putBoolean("multiplayer_unlocked", true) }
     }
 }
 

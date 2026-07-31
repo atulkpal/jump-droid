@@ -56,8 +56,14 @@ import com.ashwathai.jump_droid.ui.theme.SciFiSurface
 import com.ashwathai.jump_droid.ui.theme.SciFiWhite
 
 @Composable
-fun AboutScreen(onDismiss: () -> Unit) {
+fun AboutScreen(
+    purchaseManager: PurchaseManager?,
+    onDismiss: () -> Unit
+) {
     val context = LocalContext.current
+    var showUpgradeDialog by remember { mutableStateOf(false) }
+    val isPremium = purchaseManager?.isPremiumUser ?: false
+
     Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
         Box {
             StarfieldBackground(Modifier.fillMaxSize(), starCount = 40, alphaRange = 0.15f..0.55f, starColor = SciFiCyan)
@@ -136,12 +142,31 @@ fun AboutScreen(onDismiss: () -> Unit) {
                         )
                         Spacer(Modifier.height(12.dp))
                         Button(
-                            onClick = { /* This will be handled in Settings/Shop usually, but providing a path */ },
+                            onClick = { 
+                                if (!isPremium) showUpgradeDialog = true 
+                            },
+                            enabled = !isPremium,
                             modifier = Modifier.fillMaxWidth().height(40.dp),
                             shape = RoundedCornerShape(6.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SciFiGold),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isPremium) SciFiGreen.copy(alpha = 0.2f) else SciFiGold,
+                                contentColor = if (isPremium) SciFiGreen else Color.Black
+                            ),
                         ) {
-                            Text("GO PREMIUM", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 11.sp)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    if (isPremium) "ELITE STATUS ACTIVE" else "GO PREMIUM",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp
+                                )
+                                if (!isPremium && purchaseManager?.hasOffer == true) {
+                                    Spacer(Modifier.width(8.dp))
+                                    DiscountFlyer(
+                                        text = purchaseManager.offerText,
+                                        urgencyText = purchaseManager.offerExpiryText
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -175,6 +200,13 @@ fun AboutScreen(onDismiss: () -> Unit) {
                     fontSize = 8.sp,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
+                )
+            }
+
+            if (showUpgradeDialog) {
+                EliteUpgradeDialog(
+                    purchaseManager = purchaseManager,
+                    onDismiss = { showUpgradeDialog = false }
                 )
             }
         }

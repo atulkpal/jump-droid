@@ -30,3 +30,16 @@
 
 # Lifecycle
 -keep class androidx.lifecycle.DefaultLifecycleObserver { *; }
+
+# Room — preserve generated implementation classes
+-keep class androidx.room.RoomDatabase { *; }
+-keep class * extends androidx.room.RoomDatabase { *; }
+-dontwarn androidx.room.**
+
+# WorkManager — preserve internal implementation for reflection
+-keep class androidx.work.impl.** { *; }
+-dontwarn androidx.work.**
+
+# Stability fix for Room/WorkManager on certain devices
+-keep class androidx.work.WorkDatabase { *; }
+-keep class * extends androidx.work.impl.WorkDatabase { *; }

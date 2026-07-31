@@ -390,7 +390,7 @@ fun TitleScreen(
             Text("THE ASCENSION PROGRAM // EST. 1984", color = SciFiWhite.copy(alpha = 0.3f), letterSpacing = 1.sp, fontSize = 10.sp)
             Spacer(Modifier.height(4.dp))
             Text(
-                "POWERED BY ASHWATH.AI // RELEASE V2.0.0", 
+                "POWERED BY ASHWATH.AI // RELEASE V2.2.3", 
                 color = SciFiWhite.copy(alpha = 0.45f), 
                 letterSpacing = 1.sp, 
                 fontSize = 9.sp,

@@ -1,7 +1,7 @@
 # Production Release Checklist — Jump Droid
 
-**Last Updated:** 2026-07-29
-**Target Version:** v2.1.1
+**Last Updated:** 2026-07-31
+**Target Version:** v2.2.4
 
 > **No production release may be created until every item in this checklist is checked.**
 
@@ -38,24 +38,25 @@
 
 ## 5. Version & Build Configuration
 
-- [x] **`versionCode`** — check `app/build.gradle.kts` for correct value (currently 7 for v2.0.0).
-- [x] **`versionName`** — check for correct string (currently `"2.0.0"`).
+- [x] **`versionCode`** — check `app/build.gradle.kts` for correct value (currently 14 for v2.2.4).
+- [x] **`versionName`** — check for correct string (currently `"2.2.4"`).
 - [x] **`minifyEnabled`** — confirm `true` for release builds.
 - [x] **`shrinkResources`** — confirm `true` for release builds.
 - [x] **Signing config** — verify release signing uses environment variables or `keystore.properties`, no hardcoded credentials.
 - [x] **ProGuard/R8 rules** — confirm `proguard-rules.pro` exists and covers Firebase, Firestore, AdMob, Crashlytics keep rules.
+- [x] **Startup Stability (R8)** — Confirm `androidx.work` and `androidx.room` keep rules are active to prevent startup crashes on `WorkDatabase` creation.
 
 ## 6. Final Play Console Checklist
 
 - [ ] **AAB uploaded** — `app/build/outputs/bundle/release/app-release.aab` uploaded to Google Play Console.
 - [ ] **App signing** — confirm Play App Signing is enabled (or upload key is correct for APK signing).
-- [ ] **Store listing** — verify description, screenshots, feature graphic, promo video, and category are complete.
+- [x] **Store listing** — verify description, screenshots, feature graphic, promo video, and category are complete.
 - [ ] **Content rating** — complete content rating questionnaire.
 - [ ] **Pricing & distribution** — confirm free vs. paid status, all target countries selected.
 - [ ] **In-app products** — if any, confirm SKUs are set up and active.
 - [ ] **Test tracks** — promote from Internal Testing → Closed Testing → Open Testing as needed before Production.
-- [ ] **Release notes** — write release notes per language (what's new in v1.5.2).
-- [ ] **APK size** — confirm AAB size is within acceptable limits (current: ~109 MB).
+- [x] **Release notes** — write release notes per language (what's new in v2.1.1).
+- [x] **APK size** — confirm AAB size is within acceptable limits (current: ~109 MB).
 
 ## 7. Pre-Launch Quality
 

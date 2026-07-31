@@ -13,8 +13,8 @@ android {
         applicationId = "com.ashwathai.jump_droid"
         minSdk = 24
         targetSdk = 37
-        versionCode = 8
-        versionName = "2.1.1"
+        versionCode = 14
+        versionName = "2.2.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -79,6 +79,7 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
+    implementation(libs.google.play.services.database)
     implementation(libs.google.play.services.auth)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)

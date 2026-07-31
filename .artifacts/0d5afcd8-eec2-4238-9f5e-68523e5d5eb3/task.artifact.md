@@ -1,0 +1,7 @@
+- `[x]` Create branch `feature/remote-announcements`
+- `[x]` **Feature: Remote Announcement System**
+    - `[x]` Update `RemoteConfigManager.kt` to listen for Firestore announcements
+    - `[x]` Update `GameEngine.kt` to handle and display remote announcements
+    - `[x]` (Optional) Cleanup `JumpDroidFirebaseMessagingService.kt`
+- `[x]` Verify build
+- `[x]` Finalize walkthrough

@@ -4,6 +4,81 @@ All official releases with build artifacts and key changes.
 
 ---
 
+## v2.2.4 — Elite Urgency & Global Delivery
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-31 |
+| **Version Code** | 14 |
+| **Tag** | `v2.2.4` |
+| **Branch** | `master` |
+| **Status** | 🚀 Production Deployment |
+
+### Highlights
+- **Engine Safety**: Fixed a fatal `RadialGradient` crash by guarding against `NaN` values and division by zero during engine initialization.
+- **Elite Monetization**: Added dynamic Play Store offer selection and native discount detection.
+- **Notification Hardening**: Restored Android 13+ background updates via mandatory permission flow.
+- **UI Polish**: Fixed footer accessibility in Settings and unified the "Elite Upgrade" flow.
+
+---
+
+## v2.2.3 — Zen Mastery & Impossible Uplink
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-30 |
+| **Version Code** | 13 |
+| **Tag** | `v2.2.3` |
+| **Branch** | `feature/zen-mp-overhaul` |
+| **Status** | ✅ Implementation Complete |
+
+### Highlights
+- **Absolute Zen**: Hardened isolation with zero boss spawning and zero achievement popups.
+- **Album Curation**: Grouped Zen music into thematic albums with active selection highlighting.
+- **Elite Block**: Multiplayer unlock set to "3 runs with 50x Combo" as a temporary dev blocker.
+- **UX Safety**: Global system back button now correctly triggers the pause menu during any flight.
+- **Robust Reset**: Fixed state race conditions to ensure clean mode transitions every time.
+
+---
+
+## v2.2.1 — Tactical Terminal & Boss Intelligence
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-30 |
+| **Version Code** | 12 |
+| **Tag** | `v2.2.1` |
+| **Branch** | `bugfix/zen-terminal-polish` |
+| **Status** | ✅ Implementation Complete |
+
+### Highlights
+- **Pilot Command Center**: Dense 2x4 telemetry grid with radar sweep and staggered animations.
+- **CRT Vector Console**: Tactical monitor aesthetic for Zen/Multiplayer protocols.
+- **Intelligent Boss Log**: Confirmed-only encounters (Slayed/Escaped/Defeated By) with "CLASSIFIED" filtering.
+- **Death Attribution**: Active bosses now claim player defeats in the permanent pilot record.
+- **UX Safety**: Automatic game resume on overlay dismissal (Back button hardening).
+
+---
+
+## v2.2.0 — Fleet Terminal & Hangar Ascension
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-29 |
+| **Version Code** | 11 |
+| **Tag** | `v2.2.0` |
+| **Branch** | `feature/remote-announcements` |
+| **Status** | 🚀 Production Deployment |
+
+### Highlights
+- **Fleet Terminal**: Firestore aggregate sync (99% read reduction) and write-squelching.
+- **Hangar Restoration**: Pentagon stat chart and consolidated Command Console.
+- **Hardened Gestures**: Velocity-sensitive flick physics for expedition reward cards.
+- **Zen Immersion**: Binary rain backgrounds and flickering telemetry for locked states.
+- **Intelligence Fixes**: Lifetime stat commitment during all game-over scenarios.
+
+---
+
 ## v2.1.1 — Tactical Polish Update
 
 | Field | Value |

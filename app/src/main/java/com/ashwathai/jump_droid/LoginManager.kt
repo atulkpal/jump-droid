@@ -42,7 +42,25 @@ class LoginManager(private val activity: Activity) {
                     displayName = prefs.getString("player_name", null)
                     playerId = savedId
                     tryUpgradeToPlayGames()
+                } else {
+                    // Fallback: Anonymous Sign-In for secure Firestore access
+                    signInAnonymously()
                 }
+            }
+    }
+
+    fun signInAnonymously() {
+        if (auth.currentUser != null) return
+        
+        auth.signInAnonymously()
+            .addOnSuccessListener { result ->
+                val user = result.user
+                Log.d("LoginManager", "Anonymous Sign-In Successful: ${user?.uid}")
+                // We don't set isSignedIn=true for anonymous, as it's a background session
+                // but we might want to store the UID if needed for analytics pairing.
+            }
+            .addOnFailureListener { e ->
+                Log.e("LoginManager", "Anonymous Sign-In Failed: ${e.message}")
             }
     }
 

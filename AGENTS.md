@@ -1,10 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-29
-**Current Version:** v2.1.1 — Tactical Polish Update
+**Last Updated:** 2026-07-31
+**Current Version:** v2.2.4 — Elite Urgency & Global Delivery
 **Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
-**Current Stable Tag:** `v2.1.1`
-**Branch:** `master` (protected — no direct commits)
+**Current Stable Tag:** `v2.2.2`
+**Branch:** `feature/zen-mp-overhaul`
 **Base Commit:** `HEAD`
 
 ---
@@ -33,14 +33,13 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `master`
-*   **Current Stable Tag**: `v2.1.1`
-*   **Current Version**: v2.1.1 — Tactical Polish Update
-*   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **POLISH FINALIZED 🚀**
-*   **Current Status**: **EPIC 12 Finalized**. Transitioning to **EPIC 13**. All systems verified for production. v2.0.0 includes full fleet expansion, cosmetic economy, performance-optimized rendering, and high-fidelity visual action. Ready for Play Store listing.
-*   **Known Issues**: 
-    *   `GamesAchievementManager.kt` uses placeholder GPG achievement IDs (`PLEASE_REPLACE_ME_*`) — must replace with real Google Play Console IDs before production.
-*   **Current Priorities**: EPIC 13 — Production deployment and Play Store listing.
+*   **Current Branch**: `development`
+*   **Current Stable Tag**: `v2.2.3`
+*   **Current Version**: v2.2.4 — Elite Urgency Update
+*   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **MONETIZATION HARDENED 🚀**
+*   **Current Status**: **EPIC 13 Production Deployment**. All systems verified for production. v2.2.4 includes elite monetization, notification hardening, engine safety fixes, and performance-optimized rendering. Ready for Play Store listing.
+*   **Known Issues**: None. All GPG Achievement IDs and Ad Unit IDs verified for production.
+*   **Current Priorities**: Play Store listing and monitoring.
 
 ---
 
@@ -87,7 +86,13 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Mission Dashboard** | Provide high-level summary (Completion %, Claims). | Faster UX for checking account status. |
 | **SharedPreferences Unification** | DataStore transition in EPIC 8 prototype caused sync debt. | Reverted to `SharedPreferences` as the Single Source of Truth. |
 | **Combo Ring Top-Left** | Avoid overlap with system UI and Pause/Help buttons. | Cleanest possible HUD for high-speed flight. |
-| **Decoupled Altitude/Score** | Altitude-only scoring lacked performance variance. | `runAltitude` (meters) drives physical progress; `score` (points) reflects skill mastery. |
+| **Decoupled Altitude/Score** | Altitude-only scoring lacked performance variance. | `runAltitude` (meters) drives physical progress; `score` (points) reflects skill mastery. Explicitly separated in Telemetry as "BEST ASCENT" vs "MAX SCORE". |
+| **Vector-Scope Console** | Color-cycling disco boxes were distracting and sloppy. | Monochrome CRT aesthetic with scanlines and waveforms for a tactical look. |
+| **Intelligence Integrity** | Cumulative stats (Total Distance) could lag behind personal records after updates. | Implemented self-correction logic in `StatRecorder` to migrate and normalize lifetime data based on high scores. |
+| **Safe Resume Safety** | Back-navigation could freeze the game state. | Mandatory `onDispose` handlers ensure game resumes if Pause/Help overlays are dismissed. |
+| **Zen Mode Hardening** | Feature leakage (bosses/achievements) during peaceful runs. | Applied "Nuke it from orbit" guards in `EncounterDirector` and `GameEngine` to ensure 100% isolation. Removed HUD clutter (Mission Cards) during Zen runs. |
+| **Impossible Uplink Block** | Multiplayer in development. | Set temporary unlock threshold to "3 runs with 50x Combo" to prevent premature access while maintaining thematic terminal requirements. |
+| **Zen Music Curation** | Repetitive track names in the Zen menu. | Grouped 12 tracks into 6 thematic "Albums" and added a motivational footer to encourage high-altitude discovery in the standard game. |
 
 ---
 
@@ -109,6 +114,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Inventory** | `docs/INVENTORY.md` | (Cross-Reference) |
 | **Production Checklist** | `docs/PRODUCTION_CHECKLIST.md` | Mandatory gate before any release |
 | **Website & Community Platform** | `docs/COMMUNITY_PLATFORM.md` | `website/site/AGENTS.md` |
+| **OpenCode Skills** | `agents-skill.md` | `skills/` |
 
 ---
 
@@ -122,6 +128,8 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 `docs/ARCHITECTURE.md` (System Architecture)
 `docs/ANALYTICS.md` (Analytics & Ads Reference)
 `docs/design/` (Gameplay Content Specs)
+`agents-skill.md` (OpenCode Skills & Agent Workflows)
+`skills/` (24 Skill Workflows)
 ↓
 `docs/analysis/` (Technical Context & Audits)
 ↓
@@ -139,6 +147,20 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 1.  **Gradle Build**: Mandatory after any structural or dependency change.
 2.  **Runtime Verification**: Mandatory for all logic. Manually launch and navigate to verify.
 3.  **Visual Validation**: Mandatory for UI. Provide **BEFORE** and **AFTER** screenshots saved to `docs/screenshots/`.
+
+### Skill-Driven Execution
+
+Skills are constitutional requirements, not optional guidance.
+
+For EVERY request:
+
+1. Read `agents-skill.md`.
+2. Resolve applicable skills.
+3. Read every matching `skills/<skill>/SKILL.md`.
+4. Announce the selected skill(s) before implementation.
+5. Execute the selected workflow exactly as written.
+
+Bypassing Skill Resolution or implementing before loading the required skills is a protocol violation.
 
 ### Documentation Preservation Policy
 *   **No Silent Deletions**: Consolidation is encouraged; removal of knowledge is prohibited.
@@ -160,10 +182,36 @@ Agent-specific files (e.g. `agent-opencode.md`) are **OPTIONAL**. They may suppl
 ---
 
 ## 11. Onboarding Flow
-1.  Read **`AGENTS.md`** (this file) for constitution and memory.
-2.  Consult **`docs/JumpDroid_EPIC_Tracker.md`** for current milestone status.
-3.  Review **`docs/INVENTORY.md`** to locate relevant technical specs.
-4.  Execute a **`gradle_build`** to ensure a stable environment.
+1. Read **`AGENTS.md`** (this file) completely. This document is the constitutional authority for the project.
+2. Read **`agents-skill.md`** completely before any reasoning or implementation.
+3. Perform **Skill Resolution (MANDATORY)**:
+   - Determine whether one or more skills apply to the current request.
+   - Read every matching `skills/<skill>/SKILL.md` in full.
+   - State the selected skill(s) before proceeding.
+   - Follow every selected skill exactly.
+   - If no skill applies, explicitly state that no applicable skill exists.
+4. Consult **`docs/JumpDroid_EPIC_Tracker.md`** for current milestone status.
+5. Review **`docs/INVENTORY.md`** to locate relevant technical specifications and supporting documentation.
+6. Execute a **`gradle_build`** to ensure the project is in a stable state before making changes.
+
+**Protocol Violation:** Beginning planning, reasoning, coding, documentation, or refactoring before completing Skill Resolution is a violation of this constitution.
+
+---
+
+## 12. Versioning Protocol (CRITICAL)
+
+> [!CAUTION]
+> **STRICT PROHIBITION ON UNAUTHORIZED VERSIONING**
+> Agents are strictly forbidden from modifying `versionCode` or `versionName` in `build.gradle.kts` without **EXPLICIT, VERBATIM APPROVAL** from the user.
+> 
+> *   **No Implicit Bumps**: Do not assume a version bump is required based on documentation updates or log entries.
+> *   **No Auto-Sync**: Do not "synchronize" the code version to match documentation versions unless specifically told to do so by the user.
+> *   **Approval Gating**:
+>     *   **Strictly Gated**: `versionCode` (Integer) and **Major Version** (`X.0.0`) must **NEVER** be modified without verbatim user approval.
+>     *   **Automatically Updatable**: Agents may automatically increment the **Minor Version** (`0.X.0`) for new features and the **Patch Version** (`0.0.X`) for bug fixes.
+> *   **Status Reporting**: Mismatches for strictly gated tiers should be reported as status, not fixed automatically.
+> 
+> Any violation of this protocol is a breach of the Authoritative Manual.
 
 ---
 
@@ -217,6 +265,12 @@ All changes MUST go through an appropriate branch and be merged via pull request
 
 ### Violations
 Any agent committing directly to `master` will have their changes reverted. The correct branch must be created and a PR opened.
+
+### Semantic Versioning Policy
+Refer to **Section 12 (Versioning Protocol)** for strict approval requirements.
+- **Patch (Bug) version**: May be incremented automatically for any bug fix.
+- **Minor version**: May be incremented automatically for any feature addition, removal, or update.
+- **Major version & Version Code**: **STRICTLY GATED.** Only change when explicitly instructed by the user.
 
 ---
 

@@ -4,6 +4,176 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-07-31 (Dynamic Monetization & Notification Hardening)
+
+**Version:** v2.2.4 — Elite Urgency & Global Delivery
+
+**Status:** Implementation Complete — branch `development`
+
+### Added — Native "Elite" Sales & Urgency
+- **Dynamic Best-Offer Selection**: Updated `PurchaseManager.kt` to iterate through all available Google Play offers and automatically select the lowest price (e.g., ₹160 vs standard ₹200).
+- **Subtle Urgency Mode**: Implemented a smart countdown timer that appears only when a sale is ending in less than 3 days. Displays contextual labels like "ENDS IN 2 DAYS" or "ENDING SOON" to drive conversion.
+- **Native Discount Detection**: Integrated with `discountDisplayInfo` to extract official percentage labels (e.g., "20% OFF") directly from Play Store metadata, with a fallback calculation engine.
+
+### Improved — Unified "Elite Upgrade" Flow
+- **Universal Dialog**: Created a shared `EliteUpgradeDialog` and `EliteBenefitsList` in `EliteComponents.kt` to ensure 100% UI consistency across all purchase touchpoints.
+- **Functional CTA Overhaul**: Wired the "GO PREMIUM" button in the System Protocol (About) screen and made the premium hints on the Game Over screen clickable.
+- **Fixed Footer Layout**: Redesigned the Settings screen with a fixed bottom container for the Return button and Ad Banner, ensuring they are always accessible regardless of scroll position.
+
+### Changed — Background Notification Recovery
+- **Runtime Permissions**: Implemented a mandatory `POST_NOTIFICATIONS` request flow for Android 13+ devices to resolve the "missing notification" issue.
+- **Global Topic Subscription**: Automatically subscribes all pilots to the `"all"` FCM topic on launch, enabling reliable broadcast updates from the Firebase Console.
+- **Diagnostic Logging**: Added explicit FCM token and subscription status logging to Logcat for server-side verification.
+
+### Fixed — Engine Safety & Rendering Stability
+- **RadialGradient Crash Fix** (`IllegalArgumentException`): Implemented a three-tier safety system to prevent `NaN` values from reaching the native Skia shader engine.
+    - **Engine Layer**: Guarded player steering physics against division by zero when `screenWidth` is 0.
+    - **AI Layer**: Added non-finite value filters in `ThreatAIUpdater.kt` to halt `NaN` propagation.
+    - **Renderer Layer**: Added defensive checks in `ScoutDroneRenderer.kt` before calling `Brush.radialGradient`.
+- **Physics Stability**: Clamped `dt` to `(0..0.033f)` to ensure stable calculations even during frame spikes or cold starts.
+
+---
+
+## 2026-07-30 (Zen Mastery & Impossible Uplink)
+
+**Version:** v2.2.3 — Zen Isolation & Elite Protocol
+
+**Status:** Implementation Complete — branch `feature/zen-mp-overhaul`
+
+### Added — Zen Mode "Peaceful Glide" Hardening
+- **Absolute Suppression**: Implemented redundant guards in `EncounterDirector.kt` to ensure 100% suppression of Bosses, Mini-Bosses, and Reinforcements during Zen runs.
+- **Silent Protocol**: Updated `GameEngine.kt` to skip all mission progress, achievement popups, and rank ceremonies in Zen mode. Discoveries are now archived silently.
+- **One-Life Death Flow**: Overhauled `GameOverOverlay.kt` for Zen mode to remove all continue/revive/credit logic. Death is now final, correctly reflecting the "One Life, One Glide" philosophy.
+
+### Improved — Zen Music Archives
+- **Album Grouping**: Grouped 12 repetitively-named tracks into 6 thematic "Albums" (Planetary, Stratospheric, Industrial, Temporal, Ancient, Singularity) for a cleaner selection menu.
+- **Motivational Footer**: Added a smart CTA in the music menu: "KEEP EXPLORING HIGHER TO UNLOCK MORE MUSIC!", appearing only when the collection is incomplete.
+- **Enhanced Collection**: Added "FLEET COMMAND" (Menu Theme) and "CRITICAL THREAT" (Boss Theme) as permanent options in the Zen list.
+- **Visual Feedback**: The active music selection is now highlighted in SciFiCyan for immediate recognition.
+
+### Changed — Multiplayer "Uplink" Protocol
+- **Elite Unlock Criteria**: Set a temporary "Impossible" threshold for Multiplayer access: **3 unique runs with a 50x Combo**. This acts as a skills-based blocker while VS systems are in development.
+- **Stat Tracking**: Added `lifetimeCombosOver50` to `StatRecorder.kt` to track these elite skill runs.
+
+### Fixed — Engine & UX
+- **State Race Condition**: Refactored `GameEngine.restartGame()` to ensure a full state wipe (clearing platforms and stats) happens instantly, even before screen layout is valid, preventing "leaked" state from previous runs.
+- **Pause/Help Restoration**: Fixed a bug where Pause and Help buttons were non-functional during Zen mode.
+- **Universal Back-Pause**: Implemented a global `BackHandler` so the system back button now correctly triggers the pause menu during any active flight (Standard or Zen).
+
+
+## 2026-07-30 (Intelligence Integrity & Terminal Mastery)
+
+**Version:** v2.2.2 — Intelligence Integrity & Tactical Polish
+
+**Status:** Implementation Complete — branch `bugfix/telemetry-integrity-overhaul`
+
+### Added — Statistical Integrity & Migration
+- **Self-Correction Engine**: Updated `StatRecorder.kt` with an intelligence layer that detects and fixes data inconsistencies (e.g., Total Distance < Best Ascent). Migrates legacy data to ensure cumulative stats reflect actual flight history.
+- **Expedition Tracker**: Activated the `totalRuns` metric across the persistence and cloud-sync layers to track every unique pilot sortie.
+
+### Improved — Fleet Terminal Overhaul
+- **Score vs. Ascent Separation**: Overhauled the Telemetry Grid to explicitly distinguish between **BEST ASCENT** (physical height record) and **MAX SCORE** (pilot mastery record).
+- **Metric Expansion**: Added **TOTAL DISTANCE**, **EXPEDITIONS**, **MAX COMBO**, **ARTIFACTS**, **CASH EARNED**, and **PERFECT LANDINGS** to the core dashboard.
+- **Log Precision**: Updated the Historical Expedition Log to **PILOT MASTERY** and removed misleading meter units from skill-based scores.
+- **Hierarchy Refinement**: Repositioned the **Boss Discovery Progress** bar above the Threat Log for a more logical top-down intelligence flow.
+- **Vertical Balance**: Restored ergonomic component scaling (56dp cards) and re-enabled vertical scrolling to maintain a premium, balanced layout on all device sizes.
+
+### Changed — Settings Optimization & Security
+- **Clean Command**: Removed the defunct "Render Mode" toggle from system settings.
+- **Debug Hardening**: Wrapped the "Trigger Test Notification" button in a `BuildConfig.DEBUG` guard to prevent production exposure while maintaining developer testing tools.
+
+## 2026-07-30 (Polish & Analytics)
+
+**Version:** v2.2.1 — Tactical Terminal & Boss Intelligence
+
+**Status:** Implementation Complete — branch `bugfix/zen-terminal-polish`
+
+### Added — High-Fidelity Pilot Command Center
+- **2x4 Telemetry Grid**: Overhauled the Local Terminal into a dense tactical dashboard tracking 8 skill-based metrics (Altitude, Combo, Bosses, Escapes, Continues, Cash, Perfect Landings, Death-Defying).
+- **Terminal Vitality**: Injected "life" into the UI with staggered card boot-up animations and a real-time vertical radar sweep effect.
+- **Threat Neutralization Log**: Implemented a filtered intelligence table that exclusively lists confirmed boss encounters (Slayed/Escaped/Defeated By), hiding "CLASSIFIED" data.
+- **Discovery Progress**: Added a glowing scan-particle animation to the threat database progress bar.
+
+### Added — Vector-Scope CRT Console
+- **Tactical Monitor UI**: Replaced the color-cycling Zen box with a monochrome CRT visualizer featuring scanlines, flickering, and a real-time vector waveform.
+- **Stable State Protocol**: Assigned meaningful, stable colors to protocol stages: Green (Secure), Amber (Calibrating), Purple (Zen Authorized), Cyan (Uplink Protocol Established).
+
+### Improved — Boss Interaction Logic
+- **Tactical Defeat Attribution**: Implemented presence-based detection. If a player fails (off-screen or damage) while a Boss is active, the boss now correctly "claims" the defeat in the permanent pilot record.
+- **Granular Escape Tracking**: Added individual ID-based escape counters to distinguish between bosses neutralised and those that successfully retreated.
+
+### Changed — "Archive Intelligence" Reward Flow
+- **The Droid Way**: Renamed the reward claim action to "ARCHIVE INTELLIGENCE" for thematic consistency.
+- **Reward Badges**: Integrated high-visibility value badges (e.g., "+500 JC") directly onto reward cards to clarify exactly what data is being synced.
+- **Buffer Flush Animation**: Polished the dissolution animation with a "SYNCING..." tactical overlay.
+
+### Fixed — UX & Navigation Safety
+- **Overlay State Lockdown**: Added `DisposableEffect` handlers to the `pause` and `help` dialog routes to ensure the game automatically resumes if the overlay is dismissed via system interaction (Back button/System gestures).
+- **HUD Clutter Reduction**: Removed the redundant `?` button from the top-left HUD; information is now consolidated in the Pause menu.
+
+---
+
+## 2026-07-29 (Feature & Fix)
+
+**Version:** v2.2.0 — Fleet Terminal & Hangar Ascension
+
+**Status:** Implementation Complete — branch `feature/remote-announcements`
+
+### Added — High-Efficiency Fleet Terminal
+- **Firestore Aggregate Sync**: Replaced full-collection reads with `count()` aggregate queries for global ranking, reducing read costs by 99%.
+- **Write-Squelching**: Implemented local best-score caching to prevent redundant Firestore writes unless a new global record is achieved.
+- **Uplink HUD**: Added a live connection status panel to the terminal (ACTIVE / SEVERED) and an immersive CTA for unlinked pilots.
+
+### Added — Hangar "Full Glory" Restoration
+- **Pentagon Stat Chart**: Re-integrated the high-fidelity radar chart with dynamic 5-axis telemetry (Thrust, Fuel, Thermal, Hull, Steering).
+- **Consolidated Console**: Integrated the Chassis Variant selector directly into the Performance Analytics panel for a unified Command Console experience.
+- **Ergonomic Layout**: Removed vertical scrolling by optimizing panel density, fitting the full hangar interface onto a single screen.
+
+### Improved — Zen Mode Immersion
+- **Secure Terminal UI**: Overhauled the locked Zen state with immersive "Binary Rain" backgrounds, flickering decryption telemetry, and "Unauthorized Pilot" alerts.
+- **Intelligence Network Fixes**: Fixed a critical bug where falling off the screen bypassed lifetime stat commitment. All game-over states now correctly contribute to Zen unlock progress.
+
+### Fixed — Mission Reward Stability
+- **Hardened Flick Gestures**: Replaced legacy pointer loop with `VelocityTracker` and `detectHorizontalDragGestures` in the Reward Card deck. Resolved "breaking" flick bug by implementing speed-sensitive dismissal logic and physics-based throw animations.
+- **Card Flow Lockdown**: Fixed intermittent UI freezes on repeated runs by ensuring proper state reset between card transitions.
+
+---
+
+## 2026-07-29 (Feature)
+
+**Version:** v2.1.3 — Remote Intelligence Protocol
+
+**Status:** Implementation Complete — branch `feature/remote-announcements`
+
+### Added — Remote Announcement System
+- **Firestore Intelligence Feed**: Implemented a real-time listener for the `server_config/remote_config` document. Allows for dynamic, code-free news and event updates.
+- **Announcement Persistence**: Integrated local state tracking to ensure "One-Time Read" behavior for remote messages, preventing HUD clutter.
+- **Dynamic HUD Priority**: Announcements respect the `NotificationPriority` engine, allowing for `CRITICAL` (preemptive) or `TACTICAL` (queued) remote alerts.
+
+### Changed — Background Connectivity
+- **FCM Hardening**: Upgraded `JumpDroidFirebaseMessagingService` with `IMPORTANCE_HIGH` channels and cyan-glow visual alerts to ensure mission-critical push notifications reach pilots on all modern Android versions.
+
+---
+
+## 2026-07-29 (Hotfix)
+
+**Version:** v2.1.2 — Startup Stability & Meta Polish
+
+**Status:** Implementation Complete — branch `bugfix/workmanager-crash`
+
+### Fixed — Critical Startup Crash
+- **R8 Proguard Lockdown**: Fixed a fatal `RuntimeException` where WorkManager's Room database implementation was being stripped in release builds. Added explicit `-keep` rules for `androidx.room` and `androidx.work` to ensure production stability.
+
+### Fixed — Zen Mode Persistence
+- **Lifetime Stat Sync**: Fixed the `StatRecorder` failure to persist cumulative altitude and max combo across sessions. Zen Mode now correctly tracks lifetime progress toward the 10,000m and 50x combo goals.
+
+### Added — Post-Expedition Summary
+- **Session Summary Screen**: Replaced the empty state after reward collection with a comprehensive performance debrief.
+- **Lore Sync Status**: Added a visual progress bar tracking total Codex/Archive completion percentage (0-100%).
+- **Calibration HUD**: Added a Zen Mode calibration bar to the summary screen to show real-time progress toward the next unlock while Zen Mode remains locked.
+
+---
+
 ## 2026-07-29
 
 **Version:** v2.1.1 — Tactical Polish Update

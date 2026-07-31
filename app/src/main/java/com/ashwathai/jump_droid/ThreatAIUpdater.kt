@@ -13,6 +13,9 @@ fun ActiveThreat.updateAI(
     powerUps: List<PowerUp> = emptyList(),
     activeThreats: List<ActiveThreat> = emptyList()
 ) {
+    if (!dt.isFinite() || dt <= 0f) return
+    if (!targetX.isFinite() || !targetY.isFinite()) return
+    
     lifetime += dt
     
     // --- Life Cycle Calculation (Adjustment Run 1) ---

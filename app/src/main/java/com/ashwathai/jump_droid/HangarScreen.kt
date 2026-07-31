@@ -165,10 +165,10 @@ private fun OverviewTab(
     }
 
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             // Large detailed rocket preview
             Box(
-                Modifier.fillMaxWidth().height(300.dp).padding(8.dp)
+                Modifier.fillMaxWidth().height(220.dp).padding(horizontal = 8.dp, vertical = 4.dp)
                     .background(SciFiSurface, RoundedCornerShape(16.dp))
                     .border(1.dp, SciFiBorder.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
                     .border(2.dp, SciFiCyan.copy(alpha = 0.12f), RoundedCornerShape(16.dp)),
@@ -257,10 +257,10 @@ private fun OverviewTab(
                 }
             }
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
 
             // Rocket type selector
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 RocketType.entries.forEach { type ->
                     val unlocked = highScore >= type.unlockScore || sharedPrefs.getBoolean("unlock_${type.name}", false)
                     val isActive = player.rocketType == type
@@ -277,8 +277,7 @@ private fun OverviewTab(
                         color = if (isActive) SciFiCyan.copy(alpha = 0.08f) else if (unlocked) SciFiSurface else SciFiSurface.copy(alpha = 0.2f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Column(Modifier.padding(6.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Spacer(Modifier.height(4.dp))
+                        Column(Modifier.padding(vertical = 4.dp, horizontal = 2.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(type.title, color = if (unlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.3f), fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (!unlocked) Text("${type.unlockScore}m", color = SciFiRed, fontSize = 6.sp, fontWeight = FontWeight.Bold)
                             else if (isActive) Text("ACTIVE", color = SciFiCyan, fontSize = 6.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
@@ -287,61 +286,114 @@ private fun OverviewTab(
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
 
-            // Stats & Modules
-            Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.Top) {
-                Surface(Modifier.weight(0.6f), color = SciFiSurface.copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp)) {
-                    Column(Modifier.padding(10.dp)) {
-                        Text("PERFORMANCE", color = SciFiCyan, fontSize = 8.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp)
-                        Spacer(Modifier.height(6.dp))
-                        val currentThrust = player.rocketType.chassisThrustMult(player.currentChassisIndex)
-                        val currentFuel = player.rocketType.chassisFuelMult(player.currentChassisIndex)
-                        val currentHeat = player.rocketType.chassisHeatMult(player.currentChassisIndex)
-                        
-                        StatBar("THRUST", "${(currentThrust * 100).toInt()}%", currentThrust / 1.5f, SciFiGold)
-                        StatBar("FUEL", "${(currentFuel * 100).toInt()}%", currentFuel / 1.5f, SciFiGreen)
-                        StatBar("THERMAL", "${(1.0f / currentHeat * 100).toInt()}%", (1.0f / currentHeat) / 1.5f, SciFiRed)
-                    }
-                }
-                Spacer(Modifier.width(8.dp))
-                // Module slots
-                Column(Modifier.weight(0.4f)) {
-                    loadoutManager.equippedModuleIds.forEachIndexed { index, moduleId ->
-                        val module = moduleId?.let { ModuleRegistry.getById(it) }
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().height(48.dp)
-                                .clickable { showModulePicker = true; pickerSlotIndex = index }
-                                .border(1.dp, if (module != null) module.iconColor.copy(alpha = 0.4f) else SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
-                            color = SciFiSurface,
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                if (module != null) {
-                                    Icon(painter = painterResource(id = categoryIconRes(module.category)), contentDescription = null, modifier = Modifier.size(16.dp), tint = module.iconColor)
-                                } else {
-                                    Text("SLOT ${index+1}", color = SciFiWhite.copy(alpha = 0.2f), fontSize = 8.sp)
+            // Main Console: Chassis & Stats
+            Surface(Modifier.fillMaxWidth().padding(horizontal = 8.dp), color = SciFiSurface.copy(alpha = 0.5f), shape = RoundedCornerShape(10.dp), border = BorderStroke(1.dp, SciFiBorder.copy(alpha = 0.1f))) {
+                Column(Modifier.padding(12.dp)) {
+                    // Internal Chassis Selection
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("CHASSIS VARIANT", color = SciFiWhite.copy(alpha = 0.4f), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 1.sp, modifier = Modifier.width(70.dp))
+                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            player.rocketType.chassisVariants.forEachIndexed { index, chassis ->
+                                val isActive = player.currentChassisIndex == index
+                                Surface(
+                                    modifier = Modifier.weight(1f).height(24.dp)
+                                        .clickable {
+                                            if (isActive) return@clickable
+                                            soundManager?.playSfx("sfx_ui_click")
+                                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                            player.currentChassisIndex = index
+                                        }
+                                        .border(0.5.dp, if (isActive) SciFiCyan else SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(4.dp)),
+                                    color = if (isActive) SciFiCyan.copy(alpha = 0.12f) else Color.Transparent,
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(chassis.name.uppercase(), color = if (isActive) SciFiCyan else SciFiWhite.copy(alpha = 0.7f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
-                        Spacer(Modifier.height(4.dp))
+                    }
+
+                    HorizontalDivider(Modifier.padding(vertical = 10.dp), color = SciFiBorder.copy(alpha = 0.1f))
+                    
+                    val currentThrust = player.rocketType.chassisThrustMult(player.currentChassisIndex)
+                    val currentFuel = player.rocketType.chassisFuelMult(player.currentChassisIndex)
+                    val currentHeat = player.rocketType.chassisHeatMult(player.currentChassisIndex)
+                    val currentIntegrity = player.rocketType.chassisIntegrityMult(player.currentChassisIndex)
+                    val currentSteer = player.rocketType.chassisSteerMult(player.currentChassisIndex)
+
+                    val rocketStats = RocketStats(
+                        thrust = currentThrust,
+                        fuel = currentFuel,
+                        thermal = (1.0f / currentHeat).coerceIn(0.1f, 2.0f),
+                        integrity = currentIntegrity,
+                        maneuverability = currentSteer
+                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            StatBar("THRUST", "${(currentThrust * 100).toInt()}%", currentThrust / 1.5f, SciFiGold)
+                            Spacer(Modifier.height(5.dp))
+                            StatBar("FUEL", "${(currentFuel * 100).toInt()}%", currentFuel / 1.5f, SciFiGreen)
+                            Spacer(Modifier.height(5.dp))
+                            StatBar("THERMAL", "${(rocketStats.thermal * 100).toInt()}%", rocketStats.thermal / 1.5f, SciFiRed)
+                            Spacer(Modifier.height(5.dp))
+                            StatBar("HULL", "${(rocketStats.integrity * 100).toInt()}%", rocketStats.integrity / 2.0f, SciFiCyan)
+                            Spacer(Modifier.height(5.dp))
+                            StatBar("STEERING", "${(rocketStats.maneuverability * 100).toInt()}%", rocketStats.maneuverability / 1.5f, SciFiPurple)
+                        }
+                        Spacer(Modifier.width(20.dp))
+                        PentagonChart(
+                            stats = rocketStats,
+                            color = typeColor(player.rocketType),
+                            modifier = Modifier.size(110.dp)
+                        )
                     }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
+
+            // Module slots
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                loadoutManager.equippedModuleIds.forEachIndexed { index, moduleId ->
+                    val module = moduleId?.let { ModuleRegistry.getById(it) }
+                    Surface(
+                        modifier = Modifier.weight(1f).height(46.dp)
+                            .clickable { showModulePicker = true; pickerSlotIndex = index }
+                            .border(1.dp, if (module != null) module.iconColor.copy(alpha = 0.4f) else SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+                        color = SciFiSurface,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                            if (module != null) {
+                                Icon(painter = painterResource(id = categoryIconRes(module.category)), contentDescription = null, modifier = Modifier.size(14.dp), tint = module.iconColor)
+                                Spacer(Modifier.width(6.dp))
+                                Text(module.name.uppercase(), color = module.iconColor, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            } else {
+                                Text("SLOT ${index+1}", color = SciFiWhite.copy(alpha = 0.2f), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
 
             Button(
                 onClick = {
                     soundManager?.playSfx("sfx_ui_confirm")
                     onNavigate(GameState.MAIN_MENU)
                 },
-                modifier = Modifier.fillMaxWidth(0.8f).height(48.dp),
+                modifier = Modifier.fillMaxWidth(0.8f).height(40.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
                 border = BorderStroke(1.dp, SciFiCyan.copy(alpha = borderPulse))
             ) {
-                Text("BACK TO COMMAND", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text("BACK TO COMMAND", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 10.sp)
             }
         }
 
@@ -405,7 +457,7 @@ private fun CosmeticsTab() {
                     shape = RoundedCornerShape(4.dp),
                     border = BorderStroke(1.dp, SciFiPurple.copy(alpha = 0.3f))
                 ) {
-                    Text("STATUS: RECONFIGURING // v2.1 READY", color = SciFiPurple, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                    Text("STATUS: RECONFIGURING // v2.2.3 READY", color = SciFiPurple, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                 }
             }
         }

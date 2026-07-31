@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,16 +44,30 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
+import android.content.Context
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
+import androidx.core.app.NotificationCompat
 import com.ashwathai.jump_droid.ui.theme.SciFiBackground
 import com.ashwathai.jump_droid.ui.theme.SciFiBorder
 import com.ashwathai.jump_droid.ui.theme.SciFiCyan
@@ -91,6 +107,12 @@ fun SettingsScreen(
     }
 
     val context = LocalContext.current
+    val isPremium = purchaseManager?.isPremiumUser ?: sharedPrefs.getBoolean("premium_user", false)
+    var showDebugPurchaseDialog by remember { mutableStateOf(false) }
+    var showStoreDialog by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(false) }
+    var showFactoryResetDialog by remember { mutableStateOf(false) }
+
     Surface(Modifier.fillMaxSize(), color = SciFiBackground) {
         Box {
             StarfieldBackground(Modifier.fillMaxSize(), starCount = 40, alphaRange = 0.15f..0.55f, starColor = SciFiCyan)
@@ -115,167 +137,276 @@ fun SettingsScreen(
                 }
             }
 
-            Column(Modifier.padding(32.dp).safeDrawingPadding(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_station_sys),
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(Modifier.width(16.dp))
-                    Text(
-                        "SYSTEM SETTINGS",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            shadow = Shadow(SciFiCyan.copy(alpha = 0.4f), blurRadius = 12f)
-                        ),
-                        color = SciFiCyan,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.sp
-                    )
-                }
-                Spacer(Modifier.height(32.dp))
-                Text("SOUND EFFECTS", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 2.sp, fontSize = 10.sp)
-                Spacer(Modifier.height(8.dp))
-                AudioSlider(
-                    value = soundManager?.sfxVolume ?: 0.7f,
-                    onValueChange = { 
-                        soundManager?.sfxVolume = it
-                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                    },
-                    accent = SciFiCyan
-                )
-                Spacer(Modifier.height(16.dp))
-                Text("MUSIC", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 2.sp, fontSize = 10.sp)
-                Spacer(Modifier.height(8.dp))
-                AudioSlider(
-                    value = soundManager?.musicVolume ?: 0.5f,
-                    onValueChange = { 
-                        soundManager?.musicVolume = it
-                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                    },
-                    accent = SciFiGold
-                )
-                Spacer(Modifier.height(16.dp))
-                Row(Modifier.fillMaxWidth(0.6f), horizontalArrangement = Arrangement.Center) {
-                    Button(
-                        onClick = { 
-                            if (soundManager != null) {
-                                soundManager.isMuted = !soundManager.isMuted
-                                soundManager.playSfx("sfx_ui_click")
-                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (soundManager?.isMuted == true) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),
-                            contentColor = if (soundManager?.isMuted == true) SciFiRed else SciFiCyan
-                        ),
-                        modifier = Modifier.height(36.dp).weight(1f),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(if (soundManager?.isMuted == true) "MUTED" else "MUTE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Column(Modifier.fillMaxSize().safeDrawingPadding()) {
+                // Scrollable Content
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .padding(horizontal = 32.dp)
+                        .padding(top = 32.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_station_sys),
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            "SYSTEM SETTINGS",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                shadow = Shadow(SciFiCyan.copy(alpha = 0.4f), blurRadius = 12f)
+                            ),
+                            color = SciFiCyan,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 2.sp
+                        )
                     }
-                    Spacer(Modifier.width(8.dp))
-                    val hapticEnabled = sharedPrefs.getBoolean("haptic_enabled", true)
-                    Button(
-                        onClick = { 
-                            val newState = !hapticEnabled
-                            sharedPrefs.edit { putBoolean("haptic_enabled", newState) }
-                            soundManager?.playSfx("sfx_ui_click")
-                            if (newState) {
-                                hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
-                            } else {
-                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (!hapticEnabled) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),
-                            contentColor = if (!hapticEnabled) SciFiRed else SciFiCyan
-                        ),
-                        modifier = Modifier.height(36.dp).weight(1f),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(if (!hapticEnabled) "HAPTIC OFF" else "HAPTIC ON", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(0.6f), horizontalArrangement = Arrangement.Center) {
-                    val assetMode = sharedPrefs.getBoolean("render_mode_assets", false)
-                    Button(
-                        onClick = { 
-                            val newState = !assetMode
-                            sharedPrefs.edit { putBoolean("render_mode_assets", newState) }
-                            DevConfig.RENDER_MODE_ASSETS = newState
-                            soundManager?.playSfx("sfx_ui_click")
+                    Spacer(Modifier.height(32.dp))
+                    Text("SOUND EFFECTS", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 2.sp, fontSize = 10.sp)
+                    Spacer(Modifier.height(8.dp))
+                    AudioSlider(
+                        value = soundManager?.sfxVolume ?: 0.7f,
+                        onValueChange = { 
+                            soundManager?.sfxVolume = it
                             hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                            if (newState) hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (!assetMode) SciFiWhite.copy(alpha = 0.1f) else SciFiPurple.copy(alpha = 0.3f),
-                            contentColor = if (!assetMode) SciFiWhite.copy(alpha = 0.6f) else SciFiPurple
-                        ),
-                        modifier = Modifier.height(36.dp).fillMaxWidth(),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(if (!assetMode) "RENDER: PROCEDURAL" else "RENDER: ASSETS (BETA)", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        accent = SciFiCyan,
+                        contentDescription = "SFX Volume"
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text("MUSIC", color = SciFiWhite.copy(alpha = 0.7f), letterSpacing = 2.sp, fontSize = 10.sp)
+                    Spacer(Modifier.height(8.dp))
+                    AudioSlider(
+                        value = soundManager?.musicVolume ?: 0.5f,
+                        onValueChange = { 
+                            soundManager?.musicVolume = it
+                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                        },
+                        accent = SciFiGold,
+                        contentDescription = "Music Volume"
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Row(Modifier.fillMaxWidth(0.8f), horizontalArrangement = Arrangement.Center) {
+                        Button(
+                            onClick = { 
+                                if (soundManager != null) {
+                                    soundManager.isMuted = !soundManager.isMuted
+                                    soundManager.playSfx("sfx_ui_click")
+                                    hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (soundManager?.isMuted == true) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),
+                                contentColor = if (soundManager?.isMuted == true) SciFiRed else SciFiCyan
+                            ),
+                            modifier = Modifier.height(36.dp).weight(1f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(if (soundManager?.isMuted == true) "MUTED" else "MUTE", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        val hapticEnabled = sharedPrefs.getBoolean("haptic_enabled", true)
+                        Button(
+                            onClick = { 
+                                val newState = !hapticEnabled
+                                sharedPrefs.edit { putBoolean("haptic_enabled", newState) }
+                                soundManager?.playSfx("sfx_ui_click")
+                                if (newState) {
+                                    hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                                } else {
+                                    hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (!hapticEnabled) SciFiRed.copy(alpha = 0.3f) else SciFiCyan.copy(alpha = 0.2f),
+                                contentColor = if (!hapticEnabled) SciFiRed else SciFiCyan
+                            ),
+                            modifier = Modifier.height(36.dp).weight(1f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(if (!hapticEnabled) "HAPTIC OFF" else "HAPTIC ON", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
-                }
-                Spacer(Modifier.height(16.dp))
-                val isPremium = purchaseManager?.isPremiumUser ?: sharedPrefs.getBoolean("premium_user", false)
-                var showDebugPurchaseDialog by remember { mutableStateOf(false) }
-                var showStoreDialog by remember { mutableStateOf(false) }
-                var showBenefitsDialog by remember { mutableStateOf(false) }
+                    Spacer(Modifier.height(24.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = {
-                            soundManager?.playSfx("sfx_ui_click")
-                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                            if (!isPremium) {
+                    Surface(
+                        color = SciFiSurface,
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.5f) else SciFiGold.copy(alpha = 0.5f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !isPremium) {
+                                soundManager?.playSfx("sfx_ui_click")
+                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
                                 purchaseManager?.launchPurchaseFlow(context as android.app.Activity) {
                                     if (BuildConfig.DEBUG) showDebugPurchaseDialog = true else showStoreDialog = true
                                 }
                             }
-                        },
-                        enabled = !isPremium,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isPremium) SciFiGreen.copy(alpha = 0.2f) else SciFiGold.copy(alpha = 0.2f),
-                            contentColor = if (isPremium) SciFiGreen else SciFiGold,
-                            disabledContainerColor = SciFiGreen.copy(alpha = 0.15f),
-                            disabledContentColor = SciFiGreen.copy(alpha = 0.5f)
-                        ),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.3f) else SciFiGold.copy(alpha = 0.5f)),
-                        modifier = Modifier.weight(1f)
                     ) {
-                        Text(if (isPremium) "ADS REMOVED ✓" else "UPGRADE: REMOVE ADS (\$1.99)", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Column(Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_premium_star),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                    colorFilter = ColorFilter.tint(if (isPremium) SciFiGreen else SciFiGold)
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    if (isPremium) "FLEET COMMAND ELITE" else "UPGRADE TO ELITE FLEET",
+                                    color = if (isPremium) SciFiGreen else SciFiGold,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    letterSpacing = 1.sp
+                                )
+                                
+                                if (!isPremium && (purchaseManager?.hasOffer == true)) {
+                                    Spacer(Modifier.weight(1f))
+                                    DiscountFlyer(
+                                        text = purchaseManager.offerText,
+                                        urgencyText = purchaseManager.offerExpiryText
+                                    )
+                                }
+                            }
+                            
+                            if (!isPremium) {
+                                Spacer(Modifier.height(12.dp))
+                                EliteBenefitsList()
+                            } else {
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    "Thank you for supporting Jump Droid development. All elite protocols are active.",
+                                    color = SciFiWhite.copy(alpha = 0.6f),
+                                    fontSize = 11.sp,
+                                    lineHeight = 16.sp
+                                )
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+                            
+                            Button(
+                                onClick = {
+                                    soundManager?.playSfx("sfx_ui_click")
+                                    hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                    if (!isPremium) {
+                                        purchaseManager?.launchPurchaseFlow(context as android.app.Activity) {
+                                            if (BuildConfig.DEBUG) showDebugPurchaseDialog = true else showStoreDialog = true
+                                        }
+                                    }
+                                },
+                                enabled = !isPremium,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isPremium) SciFiGreen.copy(alpha = 0.15f) else SciFiGold.copy(alpha = 0.2f),
+                                    contentColor = if (isPremium) SciFiGreen else SciFiGold,
+                                    disabledContainerColor = SciFiGreen.copy(alpha = 0.15f),
+                                    disabledContentColor = SciFiGreen.copy(alpha = 0.5f)
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.3f) else SciFiGold.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth().height(44.dp)
+                            ) {
+                                val price = purchaseManager?.premiumPrice ?: "$1.99"
+                                Text(if (isPremium) "ELITE STATUS ACTIVE ✓" else "UPGRADE: REMOVE ADS ($price)", fontWeight = FontWeight.Black, letterSpacing = 1.sp)
+                            }
+                        }
                     }
-                    
-                    Spacer(Modifier.width(8.dp))
-                    
-                    IconButton(
-                        onClick = { 
+                    Spacer(Modifier.height(24.dp))
+                    Button(
+                        onClick = {
                             soundManager?.playSfx("sfx_ui_click")
                             hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                            showBenefitsDialog = true 
+                            showResetDialog = true
                         },
-                        modifier = Modifier.size(40.dp).background(SciFiSurface, RoundedCornerShape(4.dp)).border(1.dp, SciFiCyan.copy(alpha = 0.3f), RoundedCornerShape(4.dp))
+                        colors = ButtonDefaults.buttonColors(containerColor = SciFiGold.copy(alpha = 0.15f), contentColor = SciFiGold),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, SciFiGold.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("?", color = SciFiCyan, fontWeight = FontWeight.Bold)
+                        Text("RESET PROGRESS", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     }
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = {
+                            soundManager?.playSfx("sfx_ui_click")
+                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                            showFactoryResetDialog = true
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = SciFiRed.copy(alpha = 0.15f), contentColor = SciFiRed),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, SciFiRed.copy(alpha = 0.4f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("FACTORY RESET (incl. purchases)", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 11.sp)
+                    }
+                    
+                    if (BuildConfig.DEBUG) {
+                        Spacer(Modifier.height(24.dp))
+                        val permissionLauncher = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestPermission()
+                        ) { isGranted ->
+                            if (isGranted) {
+                                showTestNotification(context)
+                            } else {
+                                android.widget.Toast.makeText(context, "Notification permission denied", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                soundManager?.playSfx("sfx_ui_confirm")
+                                hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+                                
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                                        showTestNotification(context)
+                                    } else {
+                                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                } else {
+                                    showTestNotification(context)
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.1f), contentColor = SciFiCyan),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.3f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("TRIGGER TEST NOTIFICATION", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 11.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(32.dp))
                 }
 
-                if (showBenefitsDialog) {
-                    EliteBenefitsDialog(
-                        soundManager = soundManager,
-                        hapticManager = hapticManager,
-                        onDismiss = { showBenefitsDialog = false }
-                    )
+                // Fixed Footer
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(SciFiBackground.copy(alpha = 0.9f))
+                        .padding(bottom = 16.dp, start = 32.dp, end = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    GlobalAdBanner()
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = {
+                            soundManager?.playSfx("sfx_ui_back")
+                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                            onReturn()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse))
+                    ) {
+                        Text("RETURN", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("SYSTEM PREFERENCES // AUDIO // DATA", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp)
                 }
-                Spacer(Modifier.height(12.dp))
+
                 if (showDebugPurchaseDialog) {
                     AlertDialog(
                         onDismissRequest = { showDebugPurchaseDialog = false },
                         title = { Text("Purchase Remove Ads?", color = SciFiWhite, fontWeight = FontWeight.Bold) },
-                        text = { Text("Remove all ads for a one-time payment of \$1.99.", color = SciFiWhite.copy(alpha = 0.8f)) },
+                        text = { Text("Remove all ads for a one-time payment of Rs 200.", color = SciFiWhite.copy(alpha = 0.8f)) },
                         confirmButton = {
                             TextButton(onClick = {
                                 soundManager?.playSfx("sfx_ui_confirm")
@@ -313,21 +444,6 @@ fun SettingsScreen(
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
                 }
-                Spacer(Modifier.height(12.dp))
-                var showResetDialog by remember { mutableStateOf(false) }
-                var showFactoryResetDialog by remember { mutableStateOf(false) }
-                Button(
-                    onClick = {
-                        soundManager?.playSfx("sfx_ui_click")
-                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                        showResetDialog = true
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SciFiGold.copy(alpha = 0.15f), contentColor = SciFiGold),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SciFiGold.copy(alpha = 0.4f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("RESET PROGRESS", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                }
                 if (showResetDialog) {
                     AlertDialog(
                         onDismissRequest = { showResetDialog = false },
@@ -352,19 +468,6 @@ fun SettingsScreen(
                         titleContentColor = SciFiGold,
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
-                }
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = {
-                        soundManager?.playSfx("sfx_ui_click")
-                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                        showFactoryResetDialog = true
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SciFiRed.copy(alpha = 0.15f), contentColor = SciFiRed),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SciFiRed.copy(alpha = 0.4f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("FACTORY RESET (incl. purchases)", fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontSize = 11.sp)
                 }
                 if (showFactoryResetDialog) {
                     AlertDialog(
@@ -391,89 +494,62 @@ fun SettingsScreen(
                         textContentColor = SciFiWhite.copy(alpha = 0.8f)
                     )
                 }
-                Spacer(Modifier.height(16.dp))
-                GlobalAdBanner()
-                Spacer(Modifier.weight(1f))
-                Button(
-                    onClick = {
-                        soundManager?.playSfx("sfx_ui_back")
-                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                        onReturn()
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = SciFiSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SciFiBorder.copy(alpha = borderPulse))
-                ) {
-                    Text("RETURN", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                }
-                Spacer(Modifier.height(8.dp))
-                Text("SYSTEM PREFERENCES // AUDIO // DATA", color = SciFiWhite.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp)
             }
         }
     }
 }
 
-@Composable
-fun EliteBenefitsDialog(onDismiss: () -> Unit, soundManager: SoundManager? = null, hapticManager: HapticManager? = null) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = SciFiSurface,
-        titleContentColor = SciFiCyan,
-        textContentColor = SciFiWhite.copy(alpha = 0.8f),
-        title = { Text("ELITE FLEET BENEFITS", fontWeight = FontWeight.Black, letterSpacing = 2.sp) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                BenefitItem("AD-FREE COMMAND", "Remove all intermittent and optional ads.", true)
-                BenefitItem("ELITE IDENT", "Exclusive Supporter badge on your profile.", true)
-                BenefitItem("CLOUD RELAY", "Enhanced cloud sync with offline local caching.", true)
-                BenefitItem("PRIORITY ACCESS", "Early testing of experimental engine assets.", true)
-                
-                HorizontalDivider(color = SciFiWhite.copy(alpha = 0.1f), modifier = Modifier.padding(vertical = 4.dp))
-                
-                Text(
-                    "One-time purchase supports all future engine development and zone expansions.",
-                    fontSize = 10.sp,
-                    color = SciFiGold.copy(alpha = 0.7f),
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                soundManager?.playSfx("sfx_ui_back")
-                hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                onDismiss()
-            }) {
-                Text("ACKNOWLEDGED", color = SciFiCyan, fontWeight = FontWeight.Bold)
-            }
+fun showTestNotification(context: Context) {
+    val channelId = "jump_droid_general"
+    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channel = NotificationChannel(
+            channelId,
+            "Jump Droid Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Game updates, lore discoveries, and mission alerts"
+            enableLights(true)
+            lightColor = android.graphics.Color.CYAN
+            enableVibration(true)
         }
+        manager.createNotificationChannel(channel)
+    }
+
+    val intent = Intent(context, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+    }
+    val pendingIntent = PendingIntent.getActivity(
+        context, 0, intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
+
+    val notification = NotificationCompat.Builder(context, channelId)
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setContentTitle("JUMP DROID // INCOMING")
+        .setContentText("Tactical update received. The Singularity is approaching.")
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+        .setAutoCancel(true)
+        .setContentIntent(pendingIntent)
+        .build()
+
+    manager.notify(System.currentTimeMillis().toInt(), notification)
 }
 
-@Composable
-private fun BenefitItem(title: String, desc: String, isPremium: Boolean) {
-    Row(verticalAlignment = Alignment.Top) {
-        Text(
-            if (isPremium) "★" else "○",
-            color = if (isPremium) SciFiGold else SciFiWhite.copy(alpha = 0.3f),
-            modifier = Modifier.padding(top = 2.dp)
-        )
-        Spacer(Modifier.width(12.dp))
-        Column {
-            Text(title, color = SciFiWhite, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Text(desc, color = SciFiWhite.copy(alpha = 0.6f), fontSize = 10.sp)
-        }
-    }
-}
+
 
 @Composable
 private fun AudioSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
-    accent: Color = SciFiCyan
+    accent: Color = SciFiCyan,
+    contentDescription: String? = null
 ) {
     Row(
-        Modifier.fillMaxWidth(0.6f).height(24.dp),
+        Modifier.fillMaxWidth(0.6f).height(24.dp)
+            .semantics { if (contentDescription != null) this.contentDescription = contentDescription },
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

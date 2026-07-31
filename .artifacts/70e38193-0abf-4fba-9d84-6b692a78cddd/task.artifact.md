@@ -1,0 +1,4 @@
+- [x] Fix potential division by zero in `GameEngine.kt`
+- [x] Add safety guards in `ThreatAIUpdater.kt` for movement and distance calculations
+- [x] Implement defensive checks in `ScoutDroneRenderer.kt` before calling `radialGradient`
+- [x] Verify fix with a unit test and manual check
