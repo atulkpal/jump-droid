@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -314,6 +315,14 @@ fun JumpDroidApp(
                 engine.soundManager.killAllMusic()
                 engine.soundManager.playMenuMusic()
             }
+        }
+    }
+
+    // --- Purchase: Live Countdown Timer ---
+    LaunchedEffect(Unit) {
+        while (true) {
+            engine.purchaseManager.updateCountdown()
+            delay(30000) // Update every 30 seconds for precision
         }
     }
 

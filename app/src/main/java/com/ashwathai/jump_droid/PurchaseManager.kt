@@ -33,6 +33,7 @@ class PurchaseManager(private val appContext: Context) {
     var offerExpiryText by mutableStateOf("")
         private set
     private var bestOfferToken: String? = null
+    private var offerEndTimeMillis: Long = 0L
 
     companion object {
         const val PREMIUM_PRODUCT_ID = "jumpdroid_premium01"
@@ -144,23 +145,8 @@ class PurchaseManager(private val appContext: Context) {
                                 }
 
                                 // Precise Expiry Logic
-                                val endTime = bestOffer.validTimeWindow?.endTimeMillis ?: 0L
-                                if (endTime > 0) {
-                                    val remaining = endTime - System.currentTimeMillis()
-                                    val days = remaining / (1000 * 60 * 60 * 24)
-                                    val hours = (remaining / (1000 * 60 * 60)) % 24
-                                    val minutes = (remaining / (1000 * 60)) % 60
-                                    
-                                    offerExpiryText = when {
-                                        remaining <= 0 -> ""
-                                        days >= 3 -> "OFFER ENDS IN $days DAYS"
-                                        days >= 1 -> "ENDS IN $days DAYS"
-                                        hours >= 1 -> "ENDS IN ${hours}h ${minutes}m"
-                                        else -> "ENDS IN $minutes MIN"
-                                    }
-                                } else {
-                                    offerExpiryText = ""
-                                }
+                                offerEndTimeMillis = bestOffer.validTimeWindow?.endTimeMillis ?: 0L
+                                updateCountdown()
                             }
                         }
                     }
@@ -207,6 +193,25 @@ class PurchaseManager(private val appContext: Context) {
             Log.w("PurchaseManager", "Billing client NOT ready. Attempting reconnection...")
             connectToBilling()
             onFallback()
+        }
+    }
+
+    fun updateCountdown() {
+        if (offerEndTimeMillis > 0) {
+            val remaining = offerEndTimeMillis - System.currentTimeMillis()
+            val days = remaining / (1000 * 60 * 60 * 24)
+            val hours = (remaining / (1000 * 60 * 60)) % 24
+            val minutes = (remaining / (1000 * 60)) % 60
+            
+            offerExpiryText = when {
+                remaining <= 0 -> ""
+                days >= 3 -> "OFFER ENDS IN $days DAYS"
+                days >= 1 -> "ENDS IN $days DAYS"
+                hours >= 1 -> "ENDS IN ${hours}h ${minutes}m"
+                else -> "ENDS IN $minutes MIN"
+            }
+        } else {
+            offerExpiryText = ""
         }
     }
 

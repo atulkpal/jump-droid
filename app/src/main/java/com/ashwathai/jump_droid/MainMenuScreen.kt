@@ -419,8 +419,13 @@ fun MainMenuScreen(
                     
                     val isPremium = purchaseManager?.isPremiumUser ?: false
                     val hasSale = !isPremium && (purchaseManager?.hasOffer == true)
+                    val saleLabel = if (hasSale) {
+                        val expiry = purchaseManager?.offerExpiryText ?: ""
+                        if (expiry.isNotEmpty()) "SHOP ($expiry)" else "SHOP (SALE!)"
+                    } else "SHOP"
+                    
                     GhostButton(
-                        label = if (hasSale) "SHOP (SALE!)" else "SHOP",
+                        label = saleLabel,
                         accent = if (hasSale) SciFiGold else SciFiGreen,
                         borderPulse = if (hasSale) borderPulse else borderPulse * 0.5f,
                         shape = shape,

@@ -1,10 +1,11 @@
-# Task List: Global UI Polish & Granular Urgency
+# Task List: Live Countdown & UI Sync
 
-- [x] Implement granular countdown engine in `PurchaseManager.kt`
-- [x] Add standalone `EliteUpgradeButton` and remove nesting in `GameOverOverlay.kt`
-- [x] Add `DiscountFlyer` and separate button to `AboutScreen.kt`
-- [x] Update `ShopScreen.kt` Elite card with new urgency text
-- [x] Add sale indicator/countdown to Main Menu "SHOP" button in `MainMenuScreen.kt`
-- [x] Update `DiscountFlyer` layout in `EliteComponents.kt`
-- [x] Verify Zen "RE-DEPLOY" button logic and ad flow
-- [x] Verify global sale propagation across all 4 screens
+- [x] Add `offerEndTimeMillis` and `updateCountdown()` to `PurchaseManager.kt`
+- [x] Implement periodic update loop in `MainActivity.kt` (`JumpDroidApp`)
+- [x] Verify `DiscountFlyer` is correctly hooked up on all screens:
+    - [x] Main Menu (Shop button sale status + countdown text)
+    - [x] Shop Screen (Elite Card)
+    - [x] About Screen (Support Indie section)
+    - [x] Game Over Screen (Dedicated Upgrade Button)
+- [x] Update `DiscountFlyer` styling in `EliteComponents.kt`
+- [x] Manual verification of the "live" ticking behavior

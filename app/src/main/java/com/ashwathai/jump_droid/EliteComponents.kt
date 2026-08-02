@@ -73,7 +73,8 @@ fun DiscountFlyer(text: String, urgencyText: String = "") {
                 color = Color.White,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Black,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                maxLines = 1
             )
         }
         if (urgencyText.isNotEmpty()) {
@@ -84,7 +85,8 @@ fun DiscountFlyer(text: String, urgencyText: String = "") {
                 fontSize = 7.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 0.5.sp,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
         }
     }
