@@ -1069,19 +1069,19 @@ class ZoneBackgroundRenderer {
                         progress = progress,
                         topStart = Color(0xFF0288D1), // Deep Sky Blue
                         middleStart = Color(0xFF4FC3F7), // Saturated Sky
-                        bottomStart = Color(0xFF81D4FA), // Light Blue Horizon (No white)
-                        topEnd = Color(0xFF0D47A1),
-                        middleEnd = Color(0xFF1976D2),
-                        bottomEnd = Color(0xFF42A5F5)
+                        bottomStart = Color(0xFF81D4FA), // Light Blue Horizon
+                        topEnd = Color(0xFF0D47A1), // Dusk Blue
+                        middleEnd = Color(0xFF1976D2), // Dusk Middle
+                        bottomEnd = Color(0xFF42A5F5) // Dusk Horizon
                     )
                 }
                 AltitudeZone.CLOUD_LAYER -> {
                     drawInterpolatedBackground(
                         progress = progress,
-                        topStart = Color(0xFF1A0033),
-                        middleStart = Color(0xFF0D001A),
-                        bottomStart = Color(0xFF1A1A3E),
-                        topEnd = Color(0xFF0D001A),
+                        topStart = Color(0xFF0D47A1), // Matches Earth End
+                        middleStart = Color(0xFF1976D2),
+                        bottomStart = Color(0xFF42A5F5),
+                        topEnd = Color(0xFF0D001A), // Transitioning to Night Purple
                         middleEnd = Color(0xFF1A0033),
                         bottomEnd = Color(0xFF311B92)
                     )
@@ -1092,7 +1092,7 @@ class ZoneBackgroundRenderer {
                         topStart = Color(0xFF0D001A),
                         middleStart = Color(0xFF1A0033),
                         bottomStart = Color(0xFF311B92),
-                        topEnd = Color(0xFF000411),
+                        topEnd = Color(0xFF000411), // Transitioning to Space Black
                         middleEnd = Color(0xFF0D001A),
                         bottomEnd = Color(0xFF1A0033)
                     )
@@ -1111,20 +1111,20 @@ class ZoneBackgroundRenderer {
                 AltitudeZone.THE_FOUNDRY -> {
                     drawInterpolatedBackground(
                         progress = progress,
-                        topStart = Color(0xFF1A0A00),
-                        middleStart = Color(0xFF3E1A00),
+                        topStart = Color.Black,
+                        middleStart = Color.Black,
                         bottomStart = Color(0xFF0D001A),
-                        topEnd = Color(0xFF000000),
-                        middleEnd = Color(0xFF1A0000),
-                        bottomEnd = Color(0xFF0D001A)
+                        topEnd = Color(0xFF1A0A00), // Foundry Ember
+                        middleEnd = Color(0xFF3E1A00),
+                        bottomEnd = Color(0xFF000000)
                     )
                 }
                 AltitudeZone.DEEP_SPACE -> {
                     drawInterpolatedBackground(
                         progress = progress,
-                        topStart = Color.Black,
-                        middleStart = Color.Black,
-                        bottomStart = Color(0xFF0D001A),
+                        topStart = Color(0xFF1A0A00),
+                        middleStart = Color(0xFF3E1A00),
+                        bottomStart = Color(0xFF000000),
                         topEnd = Color.Black,
                         middleEnd = Color.Black,
                         bottomEnd = Color.Black
@@ -1133,21 +1133,21 @@ class ZoneBackgroundRenderer {
                 AltitudeZone.CHRONO_RIFT -> {
                     drawInterpolatedBackground(
                         progress = progress,
-                        topStart = Color(0xFF0D001A),
-                        middleStart = Color(0xFF1A0033),
-                        bottomStart = Color(0xFF311B92),
-                        topEnd = Color(0xFF000000),
-                        middleEnd = Color(0xFF0D001A),
-                        bottomEnd = Color(0xFF1A0033)
+                        topStart = Color.Black,
+                        middleStart = Color.Black,
+                        bottomStart = Color.Black,
+                        topEnd = Color(0xFF0D001A), // Chrono Purple
+                        middleEnd = Color(0xFF1A0033),
+                        bottomEnd = Color(0xFF311B92)
                     )
                 }
                 AltitudeZone.VOID -> {
                     drawInterpolatedBackground(
                         progress = progress,
-                        topStart = Color.Black,
-                        middleStart = Color.Black,
-                        bottomStart = Color.Black,
-                        topEnd = Color(0xFF001219),
+                        topStart = Color(0xFF0D001A),
+                        middleStart = Color(0xFF1A0033),
+                        bottomStart = Color(0xFF311B92),
+                        topEnd = Color(0xFF001219), // Void Cyan/Red
                         middleEnd = Color(0xFF005F73),
                         bottomEnd = Color(0xFF0A9396)
                     )
@@ -1437,8 +1437,8 @@ class ZoneBackgroundRenderer {
         if (range <= 0) return 0f
 
         // Increased window for smoother early transitions (Earth -> Cloud)
-        val maxWindow = if (currentZone == AltitudeZone.EARTH) 800f else 400f
-        val transitionWindow = (range * 0.4f).coerceAtMost(maxWindow)
+        val maxWindow = if (currentZone == AltitudeZone.EARTH) 1200f else 600f
+        val transitionWindow = (range * 0.6f).coerceAtMost(maxWindow)
         val transitionStart = nextThreshold - transitionWindow
 
         if (altitude < transitionStart) return 0f

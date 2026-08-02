@@ -134,8 +134,11 @@ fun EliteUpgradeDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    purchaseManager?.launchPurchaseFlow(context as Activity) {
-                        // Fallback logic handled by the caller or inside PurchaseManager
+                    val activity = context.findActivity()
+                    if (activity != null) {
+                        purchaseManager?.launchPurchaseFlow(activity) {
+                            // Fallback logic handled by the caller or inside PurchaseManager
+                        }
                     }
                     onDismiss()
                 },

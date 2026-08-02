@@ -75,6 +75,14 @@ fun GameOverOverlay(
         }
     }
 
+    val context = LocalContext.current
+    var adRetryCount by remember { mutableStateOf(0) }
+    LaunchedEffect(adRetryCount, continuesUsed) {
+        if (!isPremiumUser) {
+            RewardedAdHelper.load(context)
+        }
+    }
+
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
         StarfieldBackground(Modifier.fillMaxSize(), starCount = 50, alphaRange = 0.1f..0.4f, starColor = if (isZenMode) SciFiPurple else Color(0xFFD32F2F))
         
@@ -233,15 +241,9 @@ fun GameOverOverlay(
                     val continuesRemaining = maxContinues - continuesUsed
 
                     if (continuesUsed < maxContinues) {
-                        val context = LocalContext.current
                         val scope = rememberCoroutineScope()
-                        var retryCount by remember { mutableStateOf(0) }
                         var isAdLoading by remember { mutableStateOf(false) }
                         val hasCredits = progressionManager.creditBalance > 0
-
-                        if (!isFreeContinue && !hasCredits) {
-                            LaunchedEffect(retryCount, continuesUsed) { RewardedAdHelper.load(context) }
-                        }
 
                         if (hasCredits) {
                             Button(
@@ -287,11 +289,11 @@ fun GameOverOverlay(
                                                     onContinue()
                                                 },
                                                 onFailed = {
-                                                    if (retryCount >= 2) {
+                                                    if (adRetryCount >= 2) {
                                                         isAdLoading = false
                                                         onContinue()
                                                     } else {
-                                                        retryCount++
+                                                        adRetryCount++
                                                         RewardedAdHelper.load(context)
                                                         scope.launch {
                                                             delay(1000)
@@ -299,11 +301,11 @@ fun GameOverOverlay(
                                                                 analytics = analytics,
                                                                 onReward = { isAdLoading = false; onContinue() },
                                                                 onFailed = { 
-                                                                    if (retryCount >= 2) {
+                                                                    if (adRetryCount >= 2) {
                                                                         isAdLoading = false
                                                                         onContinue()
                                                                     } else {
-                                                                        retryCount++
+                                                                        adRetryCount++
                                                                         isAdLoading = false
                                                                     }
                                                                 }
@@ -424,7 +426,6 @@ fun GameOverOverlay(
                 }
 
                 // NEW EXPEDITION BUTTON
-                val context = LocalContext.current
                 var isRestartAdLoading by remember { mutableStateOf(false) }
 
                 Button(
