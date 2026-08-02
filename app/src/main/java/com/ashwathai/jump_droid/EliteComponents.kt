@@ -53,24 +53,42 @@ private fun EliteBenefitItem(title: String, desc: String) {
 }
 
 @Composable
-fun DiscountFlyer(text: String, urgencyText: String = "") {
+fun DiscountFlyer(text: String, urgencyText: String = "", severity: Int = 0) {
     val infiniteTransition = rememberInfiniteTransition(label = "FlyerTransition")
+    
+    val pulseDuration = when (severity) {
+        3 -> 400  // Critical: Fast
+        2 -> 800  // High: Medium
+        else -> 1500 // Normal: Slow
+    }
+
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
+        initialValue = if (severity >= 2) 0.5f else 0.8f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+        animationSpec = infiniteRepeatable(tween(pulseDuration), RepeatMode.Reverse),
         label = "Alpha"
     )
 
+    val bgColor = when (severity) {
+        3 -> SciFiRed
+        2 -> SciFiOrange
+        else -> SciFiGold
+    }
+
+    val textColor = when (severity) {
+        3 -> Color.White
+        else -> Color.Black
+    }
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(
-            color = SciFiRed.copy(alpha = alpha),
+            color = bgColor.copy(alpha = alpha),
             shape = RoundedCornerShape(4.dp),
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.3f))
         ) {
             Text(
                 text = text,
-                color = Color.White,
+                color = textColor,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Black,
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -81,7 +99,7 @@ fun DiscountFlyer(text: String, urgencyText: String = "") {
             Spacer(Modifier.height(2.dp))
             Text(
                 text = urgencyText,
-                color = SciFiGold.copy(alpha = alpha),
+                color = if (severity >= 3) SciFiRed.copy(alpha = alpha) else SciFiGold.copy(alpha = alpha),
                 fontSize = 7.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 0.5.sp,
@@ -118,7 +136,8 @@ fun EliteUpgradeDialog(
                     Spacer(Modifier.weight(1f))
                     DiscountFlyer(
                         text = purchaseManager.offerText,
-                        urgencyText = purchaseManager.offerExpiryText
+                        urgencyText = purchaseManager.offerExpiryText,
+                        severity = purchaseManager.urgencySeverity
                     )
                 }
             }

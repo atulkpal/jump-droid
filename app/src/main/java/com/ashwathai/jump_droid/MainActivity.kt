@@ -322,7 +322,9 @@ fun JumpDroidApp(
     LaunchedEffect(Unit) {
         while (true) {
             engine.purchaseManager.updateCountdown()
-            delay(30000) // Update every 30 seconds for precision
+            // Dynamic Ticking: Every second in last hour (Severity 3), else every 30s
+            val delayMillis = if (engine.purchaseManager.urgencySeverity >= 3 && engine.purchaseManager.offerExpiryText.contains("SEC")) 1000L else 30000L
+            delay(delayMillis)
         }
     }
 

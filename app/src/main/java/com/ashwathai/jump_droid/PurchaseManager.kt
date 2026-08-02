@@ -32,6 +32,8 @@ class PurchaseManager(private val appContext: Context) {
         private set
     var offerExpiryText by mutableStateOf("")
         private set
+    var urgencySeverity by mutableStateOf(0) // 0: None, 1: 3 days, 2: 2 days, 3: <24h
+        private set
     private var bestOfferToken: String? = null
     private var offerEndTimeMillis: Long = 0L
 
@@ -199,19 +201,31 @@ class PurchaseManager(private val appContext: Context) {
     fun updateCountdown() {
         if (offerEndTimeMillis > 0) {
             val remaining = offerEndTimeMillis - System.currentTimeMillis()
+            if (remaining <= 0) {
+                offerExpiryText = ""
+                urgencySeverity = 0
+                return
+            }
+
             val days = remaining / (1000 * 60 * 60 * 24)
             val hours = (remaining / (1000 * 60 * 60)) % 24
             val minutes = (remaining / (1000 * 60)) % 60
+            val seconds = (remaining / 1000) % 60
             
+            urgencySeverity = when {
+                days >= 3 -> 1
+                days >= 2 -> 2
+                else -> 3
+            }
+
             offerExpiryText = when {
-                remaining <= 0 -> ""
-                days >= 3 -> "OFFER ENDS IN $days DAYS"
-                days >= 1 -> "ENDS IN $days DAYS"
-                hours >= 1 -> "ENDS IN ${hours}h ${minutes}m"
-                else -> "ENDS IN $minutes MIN"
+                days > 0 -> "ENDING IN $days DAYS, $hours HRS, $minutes MIN"
+                hours > 0 -> "ENDING IN $hours HRS, $minutes MIN"
+                else -> "ENDING IN $minutes MIN, $seconds SEC"
             }
         } else {
             offerExpiryText = ""
+            urgencySeverity = 0
         }
     }
 

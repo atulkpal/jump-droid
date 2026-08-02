@@ -196,7 +196,8 @@ fun ShopScreen(
                                     Spacer(Modifier.width(12.dp))
                                     DiscountFlyer(
                                         text = purchaseManager.offerText,
-                                        urgencyText = purchaseManager.offerExpiryText
+                                        urgencyText = purchaseManager.offerExpiryText,
+                                        severity = purchaseManager.urgencySeverity
                                     )
                                 }
                             }
