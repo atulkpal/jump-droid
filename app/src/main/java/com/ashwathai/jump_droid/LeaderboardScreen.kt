@@ -160,7 +160,7 @@ fun LeaderboardScreen(
             }
 
             Spacer(Modifier.height(8.dp))
-            GlobalAdBanner()
+            NativeIntegratedAd()
         }
     }
 }

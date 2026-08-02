@@ -21,6 +21,7 @@ interface GameAnalytics {
     fun logScreenView(screenName: String, screenClass: String)
     fun logAdImpression(adType: String, adUnitId: String)
     fun logAdClicked(adType: String, adUnitId: String)
+    fun logEvent(name: String, params: Map<String, Any> = emptyMap())
 }
 
 /**
@@ -131,5 +132,20 @@ class FirebaseGameAnalytics(context: Context) : GameAnalytics {
             putString("ad_unit_id", adUnitId)
         }
         firebase.logEvent("ad_clicked", params)
+    }
+
+    override fun logEvent(name: String, params: Map<String, Any>) {
+        val bundle = Bundle().apply {
+            params.forEach { (key, value) ->
+                when (value) {
+                    is String -> putString(key, value)
+                    is Int -> putInt(key, value)
+                    is Float -> putFloat(key, value)
+                    is Long -> putLong(key, value)
+                    is Boolean -> putBoolean(key, value)
+                }
+            }
+        }
+        firebase.logEvent(name, bundle)
     }
 }

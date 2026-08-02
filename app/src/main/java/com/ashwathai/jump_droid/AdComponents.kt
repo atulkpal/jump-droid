@@ -3,15 +3,18 @@ package com.ashwathai.jump_droid
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.view.LayoutInflater
+import android.widget.TextView
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.nativead.NativeAd
+import com.google.android.gms.ads.nativead.NativeAdView
 
 fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -20,31 +23,44 @@ fun Context.findActivity(): Activity? = when (this) {
 }
 
 @Composable
-fun GlobalAdBanner(isPremiumUser: Boolean = false) {
+fun NativeIntegratedAd(isPremiumUser: Boolean = false) {
     val context = LocalContext.current
-    val analytics = LocalAnalytics.current
     val prefs = remember { context.getSharedPreferences("JumpDroidPrefs", Context.MODE_PRIVATE) }
     val premium = if (BuildConfig.DEBUG) false else (isPremiumUser || prefs.getBoolean("premium_user", false))
     if (premium) return
 
-    AndroidView(
-        factory = {
-            AdView(context).apply {
-                setAdSize(AdSize.SMART_BANNER)
-                setAdUnitId(AdConfig.BANNER_UNIT_ID)
-                adListener = object : com.google.android.gms.ads.AdListener() {
-                    override fun onAdImpression() {
-                        analytics.logAdImpression("banner", AdConfig.BANNER_UNIT_ID)
-                    }
-                    override fun onAdClicked() {
-                        analytics.logAdClicked("banner", AdConfig.BANNER_UNIT_ID)
-                    }
-                }
-                loadAd(AdRequest.Builder().build())
-            }
-        },
-        modifier = Modifier.fillMaxWidth()
-    )
+    var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
+
+    LaunchedEffect(Unit) {
+        val adLoader = com.google.android.gms.ads.AdLoader.Builder(context, AdConfig.NATIVE_UNIT_ID)
+            .forNativeAd { ad -> nativeAd = ad }
+            .build()
+        adLoader.loadAd(AdRequest.Builder().build())
+    }
+
+    nativeAd?.let { ad ->
+        AndroidView(
+            factory = { ctx ->
+                val adView = LayoutInflater.from(ctx).inflate(R.layout.ad_unified, null) as NativeAdView
+                populateNativeAdView(ad, adView)
+                adView
+            },
+            update = { adView -> populateNativeAdView(ad, adView) },
+            modifier = Modifier.fillMaxWidth().height(100.dp)
+        )
+    }
+}
+
+private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView) {
+    adView.headlineView = adView.findViewById(R.id.ad_headline)
+    adView.bodyView = adView.findViewById(R.id.ad_body)
+    adView.callToActionView = adView.findViewById(R.id.ad_call_to_action)
+
+    (adView.headlineView as TextView).text = nativeAd.headline
+    (adView.bodyView as TextView).text = nativeAd.body
+    (adView.callToActionView as android.widget.Button).text = nativeAd.callToAction
+
+    adView.setNativeAd(nativeAd)
 }
 
 object RewardedAdHelper {

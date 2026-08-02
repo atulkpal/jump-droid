@@ -127,7 +127,7 @@ fun HangarScreen(
                 }
                 
                 Spacer(Modifier.height(8.dp))
-                GlobalAdBanner()
+                NativeIntegratedAd()
             }
         }
     }
@@ -381,7 +381,21 @@ private fun OverviewTab(
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    soundManager?.playSfx("sfx_ui_confirm")
+                    onNavigate(GameState.CALIBRATION)
+                },
+                modifier = Modifier.fillMaxWidth(0.9f).height(48.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SciFiGold, contentColor = Color.Black)
+            ) {
+                Text("START EXPEDITION", fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             Button(
                 onClick = {

@@ -556,6 +556,38 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 ---
 
+# EPIC 14 — Global Polish & Strategic Monetization
+
+**Status: IN PROGRESS 🚀**
+
+## Phase 1 — Technical Hardening
+- [ ] **[BUG]** StatRecorder Persistence (High Score Fix)
+- [ ] Rendering Allocation Audit (Paint/Path Caching)
+- [ ] Re-composition Optimization (Lambda-based HUD)
+- [ ] Lifecycle Management (Battery Efficient Loops)
+
+## Phase 2 — Strategic Monetization
+- [ ] Centralized AdManager (Singleton with Frequency Capping)
+- [ ] Zen Discovery Rewards (End-of-run reward extraction)
+- [ ] Zen Music & Theme Rentals (Rewarded discovery)
+- [ ] Hangar Tech Calibration (Pre-run buffs)
+- [ ] Archive Data Restoration (Lore restoration rewards)
+- [ ] Mission Intel Refresh (Objective re-rolling)
+- [ ] Daily Supply Drop (Retentive rewards)
+
+## Phase 3 — Tactical UX Polish
+- [ ] Immersion Audit (Remove ads from Pause/Help/Tutorial)
+- [ ] Zen Mode Restart Polish (Non-gated flow)
+
+## Phase 4 — Testing & Quality Assurance
+- [ ] Testing Infrastructure Setup (MockK + Coroutines)
+- [ ] StatRecorder Unit Tests
+- [ ] MissionManager Unit Tests
+- [ ] AltitudeManager Unit Tests
+- [ ] GameEngine Unit Tests
+
+---
+
 # Tasks Discovered During Development (Sprint C Archive)
 
 - [x] **Structural AI Fix**: Decoupled Boss update loops from Enemy loops to allow complex AI to run.

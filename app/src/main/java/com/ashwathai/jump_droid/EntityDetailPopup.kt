@@ -191,7 +191,7 @@ fun EntityDetailPopup(
                 Spacer(Modifier.height(32.dp))
             }
 
-            GlobalAdBanner()
+            NativeIntegratedAd()
         }
     }
 }

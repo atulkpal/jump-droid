@@ -23,7 +23,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 class GameEngine(
-    activity: android.app.Activity,
+    val activity: android.app.Activity,
     val analytics: GameAnalytics
 ) {
     val sharedPrefs = activity.getSharedPreferences("JumpDroidPrefs", android.content.Context.MODE_PRIVATE)
@@ -104,6 +104,10 @@ class GameEngine(
     var currentUnlockEvent by mutableStateOf<UnlockEvent?>(null)
     var codexNotification by mutableStateOf<DiscoveryType?>(null)
     val pendingUnlocks = mutableStateListOf<UnlockEvent>()
+    
+    // EPIC 14: Tech Calibration
+    var activeBuff by mutableStateOf<CalibrationBuff?>(null)
+    var showCalibration by mutableStateOf(false)
 
     fun showUnlockEvent(event: UnlockEvent) {
         if (activeGameMode == GameMode.ZEN) return // Zen Mode Silence: Absolute Guard
@@ -982,6 +986,13 @@ class GameEngine(
                     saveHighAltitude(runAltitude)
                     analytics.logGameOver(score, altitudeManager.currentZone, player.rocketType, "hull_breach")
                     progressionManager.commitSessionStats(getGameStats())
+                    
+                    // EPIC 14: Rewarded Interstitial for long runs
+                    if (runAltitude >= 10000) {
+                        RewardedInterstitialHelper.show(activity) { amount ->
+                            progressionManager.addCash(amount)
+                        }
+                    }
 
                     if (pendingUnlocks.isNotEmpty()) {
                         gameState = GameState.EXPEDITION_REWARDS
@@ -1264,6 +1275,7 @@ class GameEngine(
 
     fun restartGame(mode: GameMode = GameMode.STANDARD) {
         activeGameMode = mode
+        if (mode == GameMode.STANDARD) activeBuff = null
         analytics.logGameStart(player.rocketType)
         
         // --- Core State Reset (Must happen even if screenWidth is 0) ---

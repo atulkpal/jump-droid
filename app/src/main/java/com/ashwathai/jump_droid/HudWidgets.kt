@@ -733,8 +733,8 @@ fun NotificationLayer(
 @Composable
 fun LeftGauges(
     modifier: Modifier = Modifier,
-    fuel: Float, maxFuel: Float,
-    heat: Float, maxHeat: Float, isOverheated: Boolean,
+    fuelProvider: () -> Float, maxFuel: Float,
+    heatProvider: () -> Float, maxHeat: Float, isOverheatedProvider: () -> Boolean,
     hud: HudContext
 ) {
     Column(
@@ -747,18 +747,20 @@ fun LeftGauges(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        FuelGauge(fuel = fuel, maxFuel = maxFuel, hud = hud)
-        HeatGauge(heat = heat, maxHeat = maxHeat, isOverheated = isOverheated, hud = hud)
+        FuelGauge(fuel = fuelProvider(), maxFuel = maxFuel, hud = hud)
+        HeatGauge(heat = heatProvider(), maxHeat = maxHeat, isOverheated = isOverheatedProvider(), hud = hud)
     }
 }
 
 @Composable
 fun RightGauges(
     modifier: Modifier = Modifier,
-    shield: Float, maxShield: Float,
-    integrity: Float, maxIntegrity: Float,
+    shieldProvider: () -> Float, maxShield: Float,
+    integrityProvider: () -> Float, maxIntegrity: Float,
     hud: HudContext
 ) {
+    val shield = shieldProvider()
+    val integrity = integrityProvider()
     val isShieldCritical = shield < maxShield * 0.25f
     val isHullCritical = integrity < maxIntegrity * 0.25f
     Column(

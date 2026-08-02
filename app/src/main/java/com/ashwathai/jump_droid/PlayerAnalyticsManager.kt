@@ -385,6 +385,10 @@ class PlayerAnalyticsManager(
         syncRequired = true
     }
 
+    override fun logEvent(name: String, params: Map<String, Any>) {
+        analytics.logEvent(name, params)
+    }
+
     // --- Internal accumulators ---
 
     private fun incrementCounter(key: String) {

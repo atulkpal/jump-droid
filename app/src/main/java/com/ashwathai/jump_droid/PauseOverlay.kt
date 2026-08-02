@@ -239,8 +239,6 @@ fun PauseOverlay(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text("MISSION PAUSED // ${zone.zoneName.uppercase()} SECTOR", color = accent.copy(alpha = 0.2f), letterSpacing = 1.sp, fontSize = 8.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                Spacer(Modifier.height(8.dp))
-                GlobalAdBanner()
             }
         }
     }

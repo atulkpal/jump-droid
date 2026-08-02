@@ -9,6 +9,7 @@ class WorldRenderer {
     private val backgroundRenderer = ZoneBackgroundRenderer()
     private val rocketRenderer = RocketRenderer()
     private val platformRenderer = PlatformRenderer()
+    private val sharedPath = androidx.compose.ui.graphics.Path()
 
     fun render(drawScope: DrawScope, engine: GameEngine, context: android.content.Context) {
         val score = engine.score
@@ -28,7 +29,11 @@ class WorldRenderer {
 
         drawScope.translate(shakeX, shakeY) {
             // 1. Background
-            backgroundRenderer.render(this, score, altitudeManager.currentZone, cameraY, gameTime, context = context)
+            if (engine.activeGameMode == GameMode.ZEN) {
+                backgroundRenderer.renderZenBackground(this, ZenThemeManager.currentTheme, gameTime)
+            } else {
+                backgroundRenderer.render(this, score, altitudeManager.currentZone, cameraY, gameTime, context = context)
+            }
             
             // 2. Ground (before everything else in-game)
             val isPlaying = engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.PAUSED || engine.gameState == GameState.GAMEOVER
@@ -66,7 +71,7 @@ class WorldRenderer {
             }
 
             // 11. PowerUps
-            drawPowerUps(engine.powerUpManager.powerUps, cameraY, gameTime)
+            drawPowerUps(engine.powerUpManager.powerUps, cameraY, gameTime, sharedPath)
 
             // 12. Rocket
             rocketRenderer.render(this, player, engine.effectiveThrust, engine.effectiveTarget, cameraY, gameTime, context = context)

@@ -76,31 +76,15 @@ fun GameOverOverlay(
     }
 
     val context = LocalContext.current
-    var adRetryCount by remember { mutableStateOf(0) }
-    LaunchedEffect(adRetryCount, continuesUsed) {
-        if (!isPremiumUser) {
-            RewardedAdHelper.load(context)
-        }
-    }
+    
+    // Zen Discovery Rewards State
+    var showZenRewardClaimed by remember { mutableStateOf(false) }
+    val zenCreditReward = (altitude / 5000).coerceIn(0, 3)
+    val hasZenReward = isZenMode && altitude >= 5000 && !showZenRewardClaimed
 
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.95f)), contentAlignment = Alignment.Center) {
         StarfieldBackground(Modifier.fillMaxSize(), starCount = 50, alphaRange = 0.1f..0.4f, starColor = if (isZenMode) SciFiPurple else Color(0xFFD32F2F))
         
-        // --- TOP CURRENCY HUD (Hidden in Zen) ---
-        if (!isZenMode) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .statusBarsPadding(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                CurrencyBadge(label = "CREDITS", value = progressionManager.creditBalance.toString(), color = SciFiGold)
-                CurrencyBadge(label = "CASH", value = progressionManager.totalCash.toString(), color = SciFiGreen)
-            }
-        }
-
         Canvas(Modifier.fillMaxSize()) {
             val ft = frameTime.value / 1000f
             val w = size.width
@@ -120,6 +104,21 @@ fun GameOverOverlay(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 12.dp)
         ) {
+            // --- TOP CURRENCY HUD (Integrated into Column) ---
+            if (!isZenMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    CurrencyBadge(label = "CREDITS", value = progressionManager.creditBalance.toString(), color = SciFiGold)
+                    CurrencyBadge(label = "CASH", value = progressionManager.totalCash.toString(), color = SciFiGreen)
+                }
+
+                Spacer(Modifier.height(32.dp)) // Increased spacing to prevent title overlap
+            }
+
             val titleAnim by animateFloatAsState(if (startAnims) 0f else -100f, tween(600, easing = FastOutSlowInEasing), label = "TitleAnim")
             
             Column(Modifier.offset(y = titleAnim.dp).graphicsLayer(alpha = if (startAnims) 1f else 0f), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -279,39 +278,18 @@ fun GameOverOverlay(
                                         onContinue()
                                     } else {
                                         isAdLoading = true
-                                        analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
                                         val activity = context.findActivity()
                                         if (activity != null) {
-                                            RewardedAdHelper.show(activity,
+                                            AdManager.showRewardedAd(activity,
                                                 analytics = analytics,
+                                                countsAgainstCap = false, // Service Ad (Unlimited)
                                                 onReward = {
                                                     isAdLoading = false
                                                     onContinue()
                                                 },
                                                 onFailed = {
-                                                    if (adRetryCount >= 2) {
-                                                        isAdLoading = false
-                                                        onContinue()
-                                                    } else {
-                                                        adRetryCount++
-                                                        RewardedAdHelper.load(context)
-                                                        scope.launch {
-                                                            delay(1000)
-                                                            RewardedAdHelper.show(activity,
-                                                                analytics = analytics,
-                                                                onReward = { isAdLoading = false; onContinue() },
-                                                                onFailed = { 
-                                                                    if (adRetryCount >= 2) {
-                                                                        isAdLoading = false
-                                                                        onContinue()
-                                                                    } else {
-                                                                        adRetryCount++
-                                                                        isAdLoading = false
-                                                                    }
-                                                                }
-                                                            )
-                                                        }
-                                                    }
+                                                    isAdLoading = false
+                                                    onContinue() // Fallback to free for stability
                                                 }
                                             )
                                         } else {
@@ -365,42 +343,6 @@ fun GameOverOverlay(
                     }
                 }
 
-                // Credit management row (Hidden in Zen)
-                if (!isZenMode) {
-                    Spacer(Modifier.height(4.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                        val creditContext = LocalContext.current
-                        Text(
-                            text = "CREDITS: ${progressionManager.creditBalance}",
-                            color = SciFiGold,
-                            fontSize = 11.sp,
-                            letterSpacing = 1.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Button(
-                            onClick = {
-                                analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
-                                val activity = creditContext.findActivity()
-                                if (activity != null) {
-                                    RewardedAdHelper.show(activity,
-                                        analytics = analytics,
-                                        onReward = { progressionManager.addCredits(1) },
-                                        onFailed = {}
-                                    )
-                                }
-                            },
-                            modifier = Modifier.height(32.dp),
-                            shape = RoundedCornerShape(4.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f), contentColor = SciFiCyan),
-                            border = BorderStroke(1.dp, SciFiCyan.copy(alpha = 0.4f))
-                        ) {
-                            Text("+1 CREDIT [AD]", fontWeight = FontWeight.Bold, fontSize = 9.sp, letterSpacing = 1.sp)
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                }
-
                 // UPGRADE TO ELITE (Standalone Button)
                 if (!isPremiumUser) {
                     Button(
@@ -434,25 +376,14 @@ fun GameOverOverlay(
                 }
 
                 // NEW EXPEDITION BUTTON
-                var isRestartAdLoading by remember { mutableStateOf(false) }
-
                 Button(
                     onClick = {
                         if (isZenMode && !isPremiumUser) {
-                            isRestartAdLoading = true
                             val activity = context.findActivity()
                             if (activity != null) {
-                                RewardedAdHelper.show(activity,
-                                    analytics = analytics,
-                                    onReward = {
-                                        isRestartAdLoading = false
-                                        onRestart()
-                                    },
-                                    onFailed = {
-                                        isRestartAdLoading = false
-                                        onRestart() // Fallback to free for now to avoid blocking
-                                    }
-                                )
+                                AdManager.showRewardedAd(activity, analytics, onReward = {
+                                    onRestart()
+                                })
                             } else {
                                 onRestart()
                             }
@@ -460,19 +391,41 @@ fun GameOverOverlay(
                             onRestart()
                         }
                     },
-                    enabled = !isRestartAdLoading,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = if (isZenMode) SciFiPurple.copy(alpha = 0.2f) else SciFiSurface),
                     border = BorderStroke(1.dp, if (isZenMode) SciFiPurple.copy(alpha = 0.5f) else SciFiBorder)
                 ) {
-                    if (isRestartAdLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = SciFiWhite, strokeWidth = 2.dp)
-                    } else {
-                        val label = if (isZenMode) "RE-DEPLOY ZEN MODE" else "NEW EXPEDITION"
-                        val adHint = if (isZenMode && !isPremiumUser) " [AD]" else ""
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "$label$adHint", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    val label = if (isZenMode) "RE-DEPLOY ZEN MODE" else "NEW EXPEDITION"
+                    val adHint = if (isZenMode && !isPremiumUser) " [AD LINK]" else ""
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "$label$adHint", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    }
+                }
+
+                // --- ZEN DISCOVERY REWARDS ---
+                if (hasZenReward) {
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            val activity = context.findActivity()
+                            if (activity != null) {
+                                AdManager.showRewardedAd(activity, analytics, onReward = {
+                                    progressionManager.addCredits(zenCreditReward)
+                                    showZenRewardClaimed = true
+                                    analytics.logEvent("zen_discovery_claimed", mapOf("credits" to zenCreditReward))
+                                })
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SciFiPurple.copy(alpha = 0.2f), contentColor = SciFiPurple),
+                        border = BorderStroke(1.dp, SciFiPurple)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("\u2728", fontSize = 14.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Text("EXTRACT ZEN DISCOVERY [+$zenCreditReward CR]", fontWeight = FontWeight.Black)
                         }
                     }
                 }
@@ -490,7 +443,7 @@ fun GameOverOverlay(
                     }
                 }
                 Spacer(Modifier.height(8.dp))
-                GlobalAdBanner()
+                NativeIntegratedAd()
             }
         }
 
@@ -537,13 +490,18 @@ fun GameOverOverlay(
 
 @Composable
 private fun CurrencyBadge(label: String, value: String, color: Color) {
+    val iconRes = if (label == "CREDITS") R.drawable.ic_currency_cr else R.drawable.ic_currency_jc
     Surface(
         color = Color.Black.copy(alpha = 0.4f),
         shape = RoundedCornerShape(4.dp),
         border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
     ) {
         Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, color = color.copy(alpha = 0.7f), fontSize = 8.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Image(
+                painter = painterResource(id = iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(14.dp)
+            )
             Spacer(Modifier.width(8.dp))
             Text(value, color = color, fontSize = 12.sp, fontWeight = FontWeight.Black)
         }

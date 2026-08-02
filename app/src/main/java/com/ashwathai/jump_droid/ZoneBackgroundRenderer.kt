@@ -1472,4 +1472,24 @@ class ZoneBackgroundRenderer {
             alpha = start.alpha + (end.alpha - start.alpha) * f
         )
     }
+
+    fun renderZenBackground(
+        drawScope: DrawScope,
+        theme: ZenTheme,
+        gameTime: Long
+    ) {
+        with(drawScope) {
+            drawRect(
+                brush = Brush.verticalGradient(listOf(theme.topColor, theme.bottomColor)),
+                size = size
+            )
+            
+            // Theme specific effects
+            when (theme) {
+                ZenTheme.AURORA -> drawAurora(this, size.width, size.height, gameTime, 0.4f)
+                ZenTheme.SOLAR -> drawAtmosphericDust(this, size.width, size.height, gameTime, 0.3f)
+                else -> {}
+            }
+        }
+    }
 }

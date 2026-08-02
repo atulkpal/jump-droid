@@ -22,7 +22,6 @@ import com.ashwathai.jump_droid.ui.theme.SciFiSurface
 fun TopRightUtilityButtons(
     modifier: Modifier = Modifier,
     gameState: GameState,
-    onHelp: () -> Unit,
     onPause: () -> Unit
 ) {
     Row(

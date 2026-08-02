@@ -99,6 +99,11 @@ class ProgressionManager(private val sharedPrefs: SharedPreferences) : Progressi
     val missionsCompleted: Int get() = missionTracker.completedMissionIds.size
 
     fun getCashBalance(): Int = totalCash
+    
+    fun addCash(amount: Int) {
+        totalCash += amount
+        sharedPrefs.edit { putInt("total_cash", totalCash) }
+    }
 
     fun spendCash(amount: Int): Boolean {
         if (totalCash >= amount) {

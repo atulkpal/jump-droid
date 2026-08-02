@@ -204,10 +204,8 @@ class StatRecorder(private val sharedPrefs: SharedPreferences) {
             putInt("stat_perfect_landings", perfectLandings)
             putInt("stat_total_runs", totalRuns)
             
-            if (topRuns.size >= 3) {
-                putInt("top_run_1", topRuns[0])
-                putInt("top_run_2", topRuns[1])
-                putInt("top_run_3", topRuns[2])
+            topRuns.forEachIndexed { index, score ->
+                putInt("top_run_${index + 1}", score)
             }
         }
     }

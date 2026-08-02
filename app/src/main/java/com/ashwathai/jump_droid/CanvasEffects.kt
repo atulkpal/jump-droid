@@ -250,7 +250,8 @@ private fun getZoneColor(zone: AltitudeZone): Color {
 fun DrawScope.drawPowerUps(
     powerUps: List<PowerUp>,
     cameraY: Float,
-    gameTime: Long
+    gameTime: Long,
+    sharedPath: Path = Path()
 ) {
     powerUps.forEach { pu ->
         val px = pu.x
@@ -262,7 +263,7 @@ fun DrawScope.drawPowerUps(
         // Shrink in last 2s
         val despawnScale = if (pu.despawnTimer < 2f) (pu.despawnTimer / 2f).coerceIn(0.3f, 1f) else 1f
         val glowFreq = gameTime / (120f / pu.glowPulseSpeed)
-        val glowPulse = sin(glowFreq) * 0.2f * despawnAlpha + 0.8f * despawnAlpha
+        val glowPulse = kotlin.math.sin(glowFreq) * 0.2f * despawnAlpha + 0.8f * despawnAlpha
         val baseColor = when (pu.type) {
             PowerUpType.FUEL_TANK -> Color(0xFFE57373)
             PowerUpType.TURBO_BOOSTER -> Color.Cyan
@@ -280,16 +281,16 @@ fun DrawScope.drawPowerUps(
         scale(despawnScale, pivot = Offset(px, py)) {
         // D1: Hexagonal background plate
         val plateRadius = 28f
-        val hexPath = Path().apply {
-            moveTo(px + plateRadius * cos(0f), py + plateRadius * sin(0f))
-            for (i in 1..6) {
-                val angle = i * (kotlin.math.PI.toFloat() / 3f)
-                lineTo(px + plateRadius * cos(angle), py + plateRadius * sin(angle))
-            }
-            close()
+        sharedPath.reset()
+        sharedPath.moveTo(px + plateRadius * kotlin.math.cos(0f), py + plateRadius * kotlin.math.sin(0f))
+        for (i in 1..6) {
+            val angle = i * (kotlin.math.PI.toFloat() / 3f)
+            sharedPath.lineTo(px + plateRadius * kotlin.math.cos(angle), py + plateRadius * kotlin.math.sin(angle))
         }
-        drawPath(hexPath, Color(0xFF1A1A2E).copy(alpha = 0.7f))
-        drawPath(hexPath, baseColor.copy(alpha = 0.7f * glowPulse), style = Stroke(width = 3f))
+        sharedPath.close()
+        
+        drawPath(sharedPath, Color(0xFF1A1A2E).copy(alpha = 0.7f))
+        drawPath(sharedPath, baseColor.copy(alpha = 0.7f * glowPulse), style = Stroke(width = 3f))
 
         // D2: Outer glow ring (wide, soft)
         drawCircle(

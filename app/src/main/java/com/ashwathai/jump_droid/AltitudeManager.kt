@@ -43,4 +43,8 @@ class AltitudeManager {
     fun isIn(zone: AltitudeZone): Boolean {
         return currentZone == zone
     }
+
+    fun reset() {
+        currentZone = AltitudeZone.EARTH
+    }
 }

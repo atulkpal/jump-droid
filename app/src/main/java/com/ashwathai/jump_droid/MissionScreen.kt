@@ -1,6 +1,7 @@
 package com.ashwathai.jump_droid
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -122,6 +124,27 @@ fun MissionScreen(
                 )
             }
 
+            val context = LocalContext.current
+            
+            Button(
+                onClick = {
+                    val activity = (context as? android.app.Activity)
+                    if (activity != null) {
+                        AdManager.showRewardedAd(activity, FirebaseGameAnalytics(context), onReward = {
+                            missionManager.refreshActiveMissions()
+                        })
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SciFiCyan.copy(alpha = 0.2f), contentColor = SciFiCyan),
+                border = BorderStroke(1.dp, SciFiCyan)
+            ) {
+                Text("REFRESH INTEL [AD]", fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(Modifier.height(12.dp))
+
             Button(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -132,7 +155,7 @@ fun MissionScreen(
                 Text("BACK TO COMMAND", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
             Spacer(Modifier.height(4.dp))
-            GlobalAdBanner()
+            NativeIntegratedAd()
 
             if (claimEffectAlpha > 0f) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

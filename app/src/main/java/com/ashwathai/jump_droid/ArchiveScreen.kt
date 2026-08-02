@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,6 +61,8 @@ fun ArchiveScreen(
     progressionManager: ProgressionManager,
     onNavigate: (GameState) -> Unit
 ) {
+    val context = LocalContext.current
+    val analytics = LocalAnalytics.current
     val cats = listOf(
         CatDef("BOSSES", SciFiRed, R.drawable.ic_track_combat),
         CatDef("ENEMIES", SciFiGold, R.drawable.ic_track_combat),
@@ -163,15 +166,26 @@ fun ArchiveScreen(
                     "LOGS" -> LoreLog.ALL_LOGS.forEach { log ->
                         val unlocked = sharedPrefs.getBoolean("log_${log.id}", false)
                         val viewed = sharedPrefs.getBoolean("viewed_log_${log.id}", false)
-                        val title = if (unlocked) log.title else "SIGNAL LOST"
-                        val desc = if (unlocked) log.text else "ENCRYPTED SIGNAL DETECTED AT ${log.unlockAltitude}m."
-                        ArchiveCard(title, desc, if (unlocked) "CATEGORY: ${log.category.name}" else "", unlocked, selectedCat.accent, isNew = unlocked && !viewed, onClick = {
-                            selectedDetail = EntityDetailRegistry.byDiscovery(DiscoveryType.LOG_GENERIC).copy(
-                                id = log.id,
-                                archiveRecord = if (unlocked) log.text else "█ SIGNAL LOST",
-                                status = "RECORD // ${log.category.name}"
-                            )
-                            if (unlocked && !viewed) sharedPrefs.edit { putBoolean("viewed_log_${log.id}", true) }
+                        val title = if (unlocked) log.title else "█ CORRUPTED SIGNAL █"
+                        val desc = if (unlocked) log.text else "ENCRYPTED SIGNAL DETECTED. RESTORE LINK TO ACCESS."
+                        
+                        ArchiveCard(title, desc, if (unlocked) "CATEGORY: ${log.category.name}" else "", unlocked || !unlocked, selectedCat.accent, isNew = unlocked && !viewed, onClick = {
+                            if (unlocked) {
+                                selectedDetail = EntityDetailRegistry.byDiscovery(DiscoveryType.LOG_GENERIC).copy(
+                                    id = log.id,
+                                    archiveRecord = log.text,
+                                    status = "RECORD // ${log.category.name}"
+                                )
+                                if (!viewed) sharedPrefs.edit { putBoolean("viewed_log_${log.id}", true) }
+                            } else {
+                                val activity = (context as? android.app.Activity)
+                                if (activity != null) {
+                                    AdManager.showRewardedAd(activity, analytics, onReward = {
+                                        sharedPrefs.edit { putBoolean("log_${log.id}", true) }
+                                        progressionManager.updateRank() // Boost mastery
+                                    })
+                                }
+                            }
                         })
                     }
                     "ACHIEVEMENTS" -> AchievementsList.forEach { ach ->
@@ -246,6 +260,8 @@ fun ArchiveScreen(
                 }
             }
             Spacer(Modifier.height(16.dp))
+            NativeIntegratedAd()
+            Spacer(Modifier.height(8.dp))
             Button(
                 onClick = { onNavigate(GameState.MAIN_MENU) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -256,7 +272,7 @@ fun ArchiveScreen(
                 Text("BACK", color = SciFiWhite, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(8.dp))
-            GlobalAdBanner()
+            NativeIntegratedAd()
         }
         selectedDetail?.let { detail ->
             EntityDetailPopup(

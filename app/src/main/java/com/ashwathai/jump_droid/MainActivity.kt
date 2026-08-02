@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
         val firebaseAnalytics = FirebaseGameAnalytics(this)
         playerAnalytics = PlayerAnalyticsManager(this, firebaseAnalytics)
         analytics = playerAnalytics
-        MobileAds.initialize(this) {}
+        AdManager.initialize(this)
         
         // Experimental: Asset Rendering Init
         val sharedPrefs = getSharedPreferences("jump_droid_prefs", MODE_PRIVATE)
@@ -85,6 +85,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val engine = remember { GameEngine(this, analytics) }
             gameEngine = engine
+            
+            LaunchedEffect(Unit) {
+                RewardedInterstitialHelper.load(this@MainActivity)
+            }
+            
             var showRegistration by remember { mutableStateOf(!playerAnalytics.isConsented) }
             LaunchedEffect(Unit) { engine.loginManager.restoreSession() }
             if (showRegistration) {
@@ -304,6 +309,9 @@ fun JumpDroidApp(
         }
     }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val activity = remember { context as? android.app.Activity }
+    
     // --- Audio: Menu Music Management ---
     LaunchedEffect(navController) {
         navController.currentBackStackEntryFlow.collect { backStackEntry ->
@@ -319,8 +327,19 @@ fun JumpDroidApp(
     }
 
     // --- Purchase: Live Countdown Timer ---
-    LaunchedEffect(Unit) {
-        while (true) {
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var isAppVisible by remember { mutableStateOf(true) }
+    
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            isAppVisible = event == androidx.lifecycle.Lifecycle.Event.ON_START || event == androidx.lifecycle.Lifecycle.Event.ON_RESUME
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(isAppVisible) {
+        while (isAppVisible) {
             engine.purchaseManager.updateCountdown()
             // Dynamic Ticking: Every second in last hour (Severity 3), else every 30s
             val delayMillis = if (engine.purchaseManager.urgencySeverity >= 3 && engine.purchaseManager.offerExpiryText.contains("SEC")) 1000L else 30000L
@@ -384,6 +403,8 @@ fun JumpDroidApp(
                         GameState.LEADERBOARD -> navController.navigate("leaderboard")
                         GameState.SHOP -> navController.navigate("shop")
                         GameState.MULTIPLAYER -> navController.navigate("multiplayer")
+                        GameState.CALIBRATION -> navController.navigate("tech_calibration")
+                        GameState.DAILY_REWARD -> navController.navigate("daily_reward")
                         else -> {}
                     }
                 },
@@ -523,37 +544,6 @@ fun JumpDroidApp(
             )
         }
         dialog(
-            route = "tutorial",
-            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            engine.activeDiscovery?.let { discovery ->
-                TutorialOverlay(
-                    activeDiscovery = discovery,
-                    onAcknowledge = { 
-                        engine.gameState = engine.preOverlayState
-                        engine.activeDiscovery = null
-                        navController.popBackStack()
-                    }
-                )
-            }
-        }
-        dialog(
-            route = "help",
-            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            DisposableEffect(Unit) {
-                onDispose {
-                    if (engine.gameState == GameState.HELP) {
-                        engine.gameState = engine.preOverlayState
-                    }
-                }
-            }
-            HelpOverlay(onDismiss = { 
-                engine.gameState = engine.preOverlayState
-                navController.popBackStack() 
-            })
-        }
-        dialog(
             route = "unlock",
             dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
@@ -587,6 +577,38 @@ fun JumpDroidApp(
                     popUpTo("title") { inclusive = false }
                 }
             })
+        }
+        dialog(
+            route = "tech_calibration",
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            TechCalibrationOverlay(
+                onBuffSelected = { engine.activeBuff = it },
+                onDismiss = { navController.popBackStack() },
+                analytics = analytics
+            )
+        }
+        dialog(
+            route = "daily_reward",
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            val (credits, cash) = AdManager.getDailyDropRewards()
+            DailyRewardOverlay(
+                streak = AdManager.dailyStreak,
+                credits = credits,
+                cash = cash,
+                onClaim = {
+                    if (activity != null) {
+                        AdManager.showRewardedAd(activity, analytics, countsAgainstCap = false, onReward = {
+                            engine.progressionManager.addCredits(credits)
+                            engine.progressionManager.addCash(cash)
+                            AdManager.claimSupplyDrop(activity)
+                            navController.popBackStack()
+                        })
+                    }
+                },
+                soundManager = engine.soundManager
+            )
         }
         composable(
             route = "hangar",

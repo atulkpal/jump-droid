@@ -13,7 +13,7 @@ class MissionManager(private val progressionService: ProgressionService) {
     val activeMissions = mutableStateListOf<Mission>()
 
     // Lifetime tracking for all missions (The Intelligence Network)
-    private val allMissionInstances = mutableStateMapOf<String, Mission>()
+    internal val allMissionInstances = mutableStateMapOf<String, Mission>()
 
     var onMissionCompleted: ((Mission) -> Unit)? = null
     var onHiddenSignalRevealed: ((Mission) -> Unit)? = null
@@ -315,6 +315,11 @@ class MissionManager(private val progressionService: ProgressionService) {
                 }
             }
         }
+    }
+
+    fun refreshActiveMissions() {
+        activeMissions.clear()
+        selectNextMission()
     }
 
     /**

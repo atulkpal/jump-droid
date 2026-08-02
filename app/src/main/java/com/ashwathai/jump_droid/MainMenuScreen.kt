@@ -96,6 +96,7 @@ fun MainMenuScreen(
     purchaseManager: PurchaseManager? = null,
     onSignIn: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val infiniteTransition = rememberInfiniteTransition(label = "MenuTransition")
     val scanAngle by infiniteTransition.animateFloat(0f, 360f, infiniteRepeatable(tween(4000, easing = androidx.compose.animation.core.LinearEasing), RepeatMode.Restart), label = "ScanAngle")
     val borderPulse by infiniteTransition.animateFloat(0.6f, 1f, infiniteRepeatable(tween(1200), RepeatMode.Reverse), label = "BorderPulse")
@@ -254,18 +255,29 @@ fun MainMenuScreen(
                         Spacer(Modifier.width(4.dp))
                         Surface(
                             modifier = Modifier.clickable {
-                                soundManager?.playSfx("sfx_ui_click")
-                                hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                                showCreditDialog = true
+                                val activity = (context as? Activity)
+                                if (activity != null && AdManager.canEarnMoreCredits()) {
+                                    AdManager.showRewardedAd(activity, analytics, onReward = {
+                                        progressionManager?.addCredits(1)
+                                    })
+                                } else {
+                                    soundManager?.playSfx("sfx_ui_click")
+                                    hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                                    showCreditDialog = true
+                                }
                             },
-                            color = SciFiCyan.copy(alpha = 0.1f),
+                            color = if (AdManager.canEarnMoreCredits()) SciFiCyan.copy(alpha = 0.15f) else SciFiCyan.copy(alpha = 0.1f),
                             shape = RoundedCornerShape(4.dp),
-                            border = BorderStroke(0.5.dp, SciFiCyan.copy(alpha = 0.3f))
+                            border = BorderStroke(0.5.dp, if (AdManager.canEarnMoreCredits()) SciFiCyan.copy(alpha = 0.6f) else SciFiCyan.copy(alpha = 0.3f))
                         ) {
-                            Row(Modifier.padding(horizontal = 6.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                            val bankingGlow by infiniteTransition.animateFloat(0.4f, 1f, infiniteRepeatable(tween(1000), RepeatMode.Reverse), label = "BankingGlow")
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp).then(if (AdManager.canEarnMoreCredits()) Modifier.graphicsLayer { alpha = bankingGlow } else Modifier),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text("+1", color = SciFiGold, fontSize = 8.sp, fontWeight = FontWeight.Black)
                                 Spacer(Modifier.width(2.dp))
-                                Text("\u25B6", color = SciFiCyan.copy(alpha = 0.5f), fontSize = 7.sp)
+                                Text("\u25B6", color = SciFiCyan.copy(alpha = 0.8f), fontSize = 7.sp)
                             }
                         }
                     }
@@ -291,6 +303,35 @@ fun MainMenuScreen(
                             )
                             Spacer(Modifier.width(3.dp))
                             Text("\u2713", color = SciFiGreen.copy(alpha = 0.7f), fontSize = 9.sp)
+                        }
+                    }
+
+                    // EPIC 14: Daily Supply Drop
+                    val remaining = AdManager.getDailySupplyDropRemaining(context)
+                    val canClaim = remaining <= 0
+                    Surface(
+                        modifier = Modifier.clickable(enabled = true) {
+                            if (canClaim) {
+                                onNavigate(GameState.DAILY_REWARD)
+                            } else {
+                                soundManager?.playSfx("sfx_ui_click")
+                            }
+                        },
+                        color = if (canClaim) SciFiGold.copy(alpha = 0.15f) else Color.Transparent,
+                        shape = RoundedCornerShape(4.dp),
+                        border = if (canClaim) BorderStroke(1.dp, SciFiGold.copy(alpha = 0.4f)) else null
+                    ) {
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("\uD83D\uDCE6", fontSize = 14.sp)
+                            if (canClaim) {
+                                Spacer(Modifier.width(4.dp))
+                                Text("CLAIM READY", color = SciFiGold, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                            } else {
+                                Spacer(Modifier.width(4.dp))
+                                val hours = (remaining / (1000 * 60 * 60))
+                                val mins = (remaining / (1000 * 60)) % 60
+                                Text("NEXT: ${hours}H ${mins}M", color = SciFiWhite.copy(alpha = 0.3f), fontSize = 7.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -845,47 +886,62 @@ private fun AddCreditDialog(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Terminal Header
+                //Terminal Header
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_currency_cr),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "CREDIT ACQUISITION",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = SciFiGold,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 3.sp
+                    )
+                }
                 Text(
-                    "CREDIT ACQUISITION",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = SciFiGold,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 3.sp
-                )
-                Text(
-                    "ACCESSING: ACCOUNT_MGMT_V4",
+                    "AD-LINK QUOTA: ${AdManager.adsWatchedToday}/5 UTILIZED",
                     style = MaterialTheme.typography.labelSmall,
-                    color = SciFiGold.copy(alpha = 0.4f),
+                    color = if (AdManager.canEarnMoreCredits()) SciFiGold.copy(alpha = 0.4f) else SciFiRed,
                     letterSpacing = 1.sp
                 )
 
                 Spacer(Modifier.height(24.dp))
 
                 // Action Buttons
+                val canEarn = AdManager.canEarnMoreCredits()
                 Button(
                     onClick = {
-                        analytics.logAdClicked("rewarded", AdConfig.REWARDED_UNIT_ID)
-                        soundManager?.playSfx("sfx_ui_click")
-                        hapticManager?.vibrate(HapticManager.HapticType.TICK)
-                        RewardedAdHelper.show(context as Activity,
-                            analytics = analytics,
-                            onReward = { progressionManager.addCredits(1) },
-                            onFailed = {}
-                        )
+                        val activity = (context as? Activity)
+                        if (activity != null && canEarn) {
+                            soundManager?.playSfx("sfx_ui_click")
+                            hapticManager?.vibrate(HapticManager.HapticType.TICK)
+                            AdManager.showRewardedAd(activity,
+                                analytics = analytics,
+                                countsAgainstCap = true, // Banking Ad (Capped)
+                                onReward = { progressionManager.addCredits(1) }
+                            )
+                        }
                     },
+                    enabled = canEarn,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = SciFiCyan.copy(alpha = 0.15f),
-                        contentColor = SciFiCyan
+                        containerColor = if (canEarn) SciFiCyan.copy(alpha = 0.15f) else Color.Transparent,
+                        contentColor = SciFiCyan,
+                        disabledContainerColor = Color.Transparent,
+                        disabledContentColor = SciFiWhite.copy(alpha = 0.2f)
                     ),
-                    border = BorderStroke(1.5.dp, SciFiCyan.copy(alpha = 0.4f))
+                    border = BorderStroke(1.5.dp, if (canEarn) SciFiCyan.copy(alpha = 0.4f) else SciFiWhite.copy(alpha = 0.1f))
                 ) {
+                    val btnText = if (canEarn) "ESTABLISH AD-LINK  [+1 CR]" else "DAILY PROTOCOL LIMIT REACHED"
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("\u25B6", fontSize = 10.sp, modifier = Modifier.padding(bottom = 2.dp))
                         Spacer(Modifier.width(10.dp))
-                        Text("ESTABLISH AD-LINK  [+1 CR]", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text(btnText, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     }
                 }
 
@@ -910,7 +966,17 @@ private fun AddCreditDialog(
                     ),
                     border = BorderStroke(1.5.dp, SciFiGold.copy(alpha = if (canBuy) 0.35f else 0.1f))
                 ) {
-                    Text("$currentRate JC \u2192 1 CREDIT", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("$currentRate", fontWeight = FontWeight.Black)
+                        Spacer(Modifier.width(4.dp))
+                        Image(painter = painterResource(id = R.drawable.ic_currency_jc), contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("\u2192", fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(8.dp))
+                        Text("1", fontWeight = FontWeight.Black)
+                        Spacer(Modifier.width(4.dp))
+                        Image(painter = painterResource(id = R.drawable.ic_currency_cr), contentDescription = null, modifier = Modifier.size(14.dp))
+                    }
                 }
 
                 Spacer(Modifier.height(28.dp))

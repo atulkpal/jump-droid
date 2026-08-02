@@ -56,6 +56,9 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
     val worldRenderer = remember { WorldRenderer() }
     val inputProcessor = remember { PlayerInputProcessor(engine.inputBufferManager) }
 
+    val ghostPaint = remember { Paint().apply { textAlign = Paint.Align.CENTER } }
+    val mainPaint = remember { Paint().apply { textAlign = Paint.Align.CENTER } }
+
     val density = LocalDensity.current
     val context = LocalContext.current
     val activity = remember { context as? ComponentActivity }
@@ -80,8 +83,6 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
             GameState.PAUSED -> navController.navigate("pause")
             GameState.GAMEOVER -> navController.navigate("game_over")
             GameState.EXPEDITION_REWARDS -> navController.navigate("expedition_rewards")
-            GameState.TUTORIAL -> if (engine.activeDiscovery != null) navController.navigate("tutorial")
-            GameState.HELP -> navController.navigate("help")
             GameState.UNLOCK -> if (engine.currentUnlockEvent != null) navController.navigate("unlock")
             GameState.CONTINUE_READY -> navController.navigate("continue_ready")
             else -> {}
@@ -174,14 +175,14 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
                     val ghostProgress = (fs.progress - 0.05f * (i + 1)).coerceAtLeast(0f)
                     val gx = fs.x + (targetX - fs.x) * ghostProgress
                     val gy = fs.y + (targetY - fs.y) * ghostProgress
-                    val gPaint = Paint().apply {
+                    
+                    ghostPaint.apply {
                         color = fs.color.toArgb()
                         textSize = (18f + (if (fs.value >= 100) 8f else 0f)) * (1f + ghostProgress * 0.3f)
                         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                         this.alpha = (alpha * 60 / (i + 1)).toInt()
-                        textAlign = Paint.Align.CENTER
                     }
-                    drawContext.canvas.nativeCanvas.drawText("[ +${fs.value} ]", gx, gy, gPaint)
+                    drawContext.canvas.nativeCanvas.drawText("[ +${fs.value} ]", gx, gy, ghostPaint)
                 }
 
                 // Main Packet Background
@@ -194,20 +195,19 @@ fun GamePlayScreen(engine: GameEngine, onMainMenu: () -> Unit, navController: Na
                 )
                 
                 // Main Futuristic Text
-                val paint = Paint().apply {
+                mainPaint.apply {
                     color = fs.color.toArgb()
                     textSize = (18f + (if (fs.value >= 100) 8f else 0f)) * (1f + fs.progress * 0.3f)
                     typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     setShadowLayer(15f, 0f, 0f, fs.color.toArgb())
                     this.alpha = (alpha * 255).toInt()
-                    textAlign = Paint.Align.CENTER
                 }
                 
                 drawContext.canvas.nativeCanvas.drawText(
                     "[ +${fs.value} ]",
                     currentX,
                     currentY + boxHeight/4, // Vertical centering adjustment
-                    paint
+                    mainPaint
                 )
             }
         }
@@ -274,12 +274,6 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
                     engine.preOverlayState = engine.gameState
                     engine.gameState = GameState.PAUSED 
                 }
-            },
-            onHelp = {
-                if (engine.gameState == GameState.PLAYING || engine.gameState == GameState.ASCENSION_PROTOCOL || engine.gameState == GameState.ZEN) {
-                    engine.preOverlayState = engine.gameState
-                    engine.gameState = GameState.HELP
-                }
             }
         )
 
@@ -288,15 +282,15 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
 
         LeftGauges(
             modifier = Modifier.align(Alignment.CenterStart),
-            fuel = player.fuel, maxFuel = player.maxFuel,
-            heat = player.heat, maxHeat = player.maxHeat,
-            isOverheated = player.isOverheated,
+            fuelProvider = { player.fuel }, maxFuel = player.maxFuel,
+            heatProvider = { player.heat }, maxHeat = player.maxHeat,
+            isOverheatedProvider = { player.isOverheated },
             hud = hud
         )
         RightGauges(
             modifier = Modifier.align(Alignment.CenterEnd),
-            shield = player.shield, maxShield = player.maxShield,
-            integrity = player.integrity, maxIntegrity = player.maxIntegrity,
+            shieldProvider = { player.shield }, maxShield = player.maxShield,
+            integrityProvider = { player.integrity }, maxIntegrity = player.maxIntegrity,
             hud = hud
         )
 
@@ -341,7 +335,17 @@ fun HUDLayer(engine: GameEngine, onNavigateArchive: () -> Unit) {
             ZenMusicSelector(
                 unlockedTracks = engine.progressionManager.unlockedMusicTracks,
                 onTrackSelected = { engine.soundManager.playSpecificTrackByName(it) },
+                isPremium = engine.isPremiumUser,
+                analytics = engine.analytics,
                 modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 150.dp)
+            )
+            
+            ZenThemeSelector(
+                currentTheme = ZenThemeManager.currentTheme,
+                onThemeSelected = { ZenThemeManager.currentTheme = it },
+                isPremium = engine.isPremiumUser,
+                analytics = engine.analytics,
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 16.dp, bottom = 100.dp)
             )
         }
 
@@ -424,12 +428,15 @@ private fun ZoneTransitionOverlay(
 fun ZenMusicSelector(
     unlockedTracks: Set<String>,
     onTrackSelected: (String) -> Unit,
+    isPremium: Boolean,
+    analytics: GameAnalytics,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedKey by remember { mutableStateOf("DYNAMIC") }
+    val context = LocalContext.current
 
-    // Track grouping mapping to "Albums"
+    // ... (rest of albumMapping)
     val albumMapping = mapOf(
         "bgm_menu" to "FLEET COMMAND",
         "bgm_earth" to "PLANETARY GLIDE",
@@ -499,25 +506,39 @@ fun ZenMusicSelector(
 
                     HorizontalDivider(color = SciFiPurple.copy(alpha = 0.2f), thickness = 0.5.dp)
 
-                    // Group unlocked tracks into unique Album entries
-                    val unlockedAlbums = unlockedTracks
+                    // Group ALL potential tracks into unique Album entries
+                    val allTracks = albumMapping.keys
+                    val allAlbums = allTracks
                         .mapNotNull { res -> albumMapping[res]?.let { it to res } }
                         .groupBy({ it.first }, { it.second })
                         .toSortedMap()
 
-                    unlockedAlbums.forEach { (albumName, resNames) ->
+                    allAlbums.forEach { (albumName, resNames) ->
                         val itemKey = resNames.first()
+                        val isUnlocked = unlockedTracks.contains(itemKey) || isPremium
+                        
                         Text(
-                            text = albumName,
-                            color = if (selectedKey == itemKey) SciFiCyan else SciFiWhite,
+                            text = if (isUnlocked) albumName else "$albumName [AD LINK]",
+                            color = if (selectedKey == itemKey) SciFiCyan else if (isUnlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.4f),
                             fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = if (isUnlocked) FontWeight.Bold else FontWeight.Normal,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { 
-                                    selectedKey = itemKey
-                                    onTrackSelected(itemKey)
-                                    expanded = false 
+                                    if (isUnlocked) {
+                                        selectedKey = itemKey
+                                        onTrackSelected(itemKey)
+                                        expanded = false
+                                    } else {
+                                        val activity = context.findActivity()
+                                        if (activity != null) {
+                                            AdManager.showRewardedAd(activity, analytics, onReward = {
+                                                selectedKey = itemKey
+                                                onTrackSelected(itemKey)
+                                                expanded = false
+                                            })
+                                        }
+                                    }
                                 }
                                 .padding(vertical = 6.dp)
                         )
@@ -542,6 +563,67 @@ fun ZenMusicSelector(
     }
 }
 
+@Composable
+fun ZenThemeSelector(
+    currentTheme: ZenTheme,
+    onThemeSelected: (ZenTheme) -> Unit,
+    isPremium: Boolean,
+    analytics: GameAnalytics,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    Column(modifier = modifier) {
+        Button(
+            onClick = { expanded = !expanded },
+            colors = ButtonDefaults.buttonColors(containerColor = currentTheme.accentColor.copy(alpha = 0.6f)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.height(36.dp)
+        ) {
+            Text("THEME: ${currentTheme.displayName} \u25B2", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Surface(
+                color = Color.Black.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, currentTheme.accentColor.copy(alpha = 0.4f)),
+                modifier = Modifier.padding(top = 4.dp).width(160.dp)
+            ) {
+                Column(Modifier.padding(8.dp)) {
+                    ZenTheme.entries.forEach { theme ->
+                        val isUnlocked = ZenThemeManager.isThemeUnlocked(theme, isPremium)
+                        Text(
+                            text = if (isUnlocked) theme.displayName else "${theme.displayName} [AD]",
+                            color = if (currentTheme == theme) SciFiCyan else if (isUnlocked) SciFiWhite else SciFiWhite.copy(alpha = 0.4f),
+                            fontSize = 10.sp,
+                            fontWeight = if (isUnlocked) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (isUnlocked) {
+                                        onThemeSelected(theme)
+                                        expanded = false
+                                    } else {
+                                        val activity = context.findActivity()
+                                        if (activity != null) {
+                                            AdManager.showRewardedAd(activity, analytics, onReward = {
+                                                ZenThemeManager.unlockTheme(theme)
+                                                onThemeSelected(theme)
+                                                expanded = false
+                                            })
+                                        }
+                                    }
+                                }
+                                .padding(vertical = 6.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 @Composable
 private fun HeatEdgeGlow(heat: Float, maxHeat: Float, isOverheated: Boolean) {
     val heatRatio = (heat / maxHeat).coerceIn(0f, 1f)

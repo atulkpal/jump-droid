@@ -384,7 +384,7 @@ fun SettingsScreen(
                         .padding(bottom = 16.dp, start = 32.dp, end = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    GlobalAdBanner()
+                    NativeIntegratedAd()
                     Spacer(Modifier.height(12.dp))
                     Button(
                         onClick = {
