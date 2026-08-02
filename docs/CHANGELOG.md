@@ -4,6 +4,38 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-08-02 (Zen Polish & High-Precision Urgency)
+
+**Version:** v2.2.5 (Release Candidate) — Tactical Refinement
+
+**Status:** Implementation Complete — branch `fix/zen-overhaul-polish`
+
+### Fixed — Critical Crashes & Ad Logic
+- **Elite Upgrade Flow**: Resolved a fatal `ClassCastException` in `EliteUpgradeDialog` by implementing safe activity retrieval from wrapped contexts.
+- **Zen Mode Ad Recovery**: Fixed a bug where ad loading was bypassed in Zen mode, ensuring "RE-DEPLOY" now correctly triggers rewarded ads for non-premium pilots.
+
+### Added — Truly "Live" Sale Urgency
+- **Ticking Countdown Engine**: Upgraded `PurchaseManager.kt` with a real-time calculation engine that maintains live state without screen reloads.
+- **Dynamic Granularity**:
+    - **Standard**: Shows `DAYS, HRS, MIN`.
+    - **Final Hour**: Switches to a high-frequency `MIN, SEC` countdown for maximum impact.
+- **Progressive Visual Styling**: Rebuilt the `DiscountFlyer` component with three severity levels:
+    - **Level 1 (3+ Days)**: Professional Gold theme with slow pulse.
+    - **Level 2 (2 Days)**: Amber theme with medium pulse to signal closing windows.
+    - **Level 3 (< 24 Hours)**: Critical Red theme with fast pulse and white text.
+- **Global Synchronization**: Propagated the sale status and countdown to all promotion sites: Main Menu (Shop button), Shop Screen, About Screen, and Game Over Screen.
+
+### Improved — Clean UI Architecture
+- **Single-Action Philosophy**: Eliminated confusing nested clickables inside action buttons. "RE-DEPLOY" and "CONTINUE" now focus 100% on gameplay recovery.
+- **Dedicated Elite CTA**: Introduced a standalone, gold-styled "UPGRADE TO ELITE" button on the Game Over screen to provide a clear, confusion-free path for supporters.
+- **Zen Restart Polish**: Decoupled the restart ad flow from the buy modal, ensuring the "RE-DEPLOY" action is responsive and safe.
+
+### Changed — Zone Transition Smoothing
+- **Seamless Handover**: Synchronized background gradient endpoints across all 12 zones, ensuring that the end of one biome perfectly matches the start of the next (No more "instant jumps").
+- **Atmospheric Thinning**: Refined the transition windows (e.g., Earth → Cloud Layer) to be significantly more gradual, improving the sense of scale during early ascent.
+
+---
+
 ## 2026-07-31 (Dynamic Monetization & Notification Hardening)
 
 **Version:** v2.2.4 — Elite Urgency & Global Delivery

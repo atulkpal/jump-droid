@@ -50,6 +50,7 @@ Ad IDs are managed in `AdConfig.kt`.
 **Impression Logging:**
 - **Banner Ads**: Logged via `onAdImpression` callback.
 - **Rewarded Ads**: Logged via `fullScreenContentCallback.onAdImpression` to ensure accuracy.
+- **Context Safety**: All ad show/load triggers must use the `findActivity()` helper from `AdComponents.kt` to ensure reliability on devices using wrapped contexts (e.g., Pixel 9 Pro).
 
 ---
 

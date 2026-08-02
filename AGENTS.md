@@ -1,10 +1,10 @@
 # Jump Droid — Authoritative Agent Manual
 
-**Last Updated:** 2026-07-31
+**Last Updated:** 2026-08-02
 **Current Version:** v2.2.4 — Elite Urgency & Global Delivery
-**Project Status:** EPIC 13 — Production Deployment & Store Listing — IN PROGRESS 🚀
-**Current Stable Tag:** `v2.2.2`
-**Branch:** `feature/zen-mp-overhaul`
+**Project Status:** EPIC 13 — Production Deployment & Store Listing — POLISHED 🚀
+**Current Stable Tag:** `v2.2.3`
+**Branch:** `fix/zen-overhaul-polish`
 **Base Commit:** `HEAD`
 
 ---
@@ -33,11 +33,11 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `development`
+*   **Current Branch**: `fix/zen-overhaul-polish`
 *   **Current Stable Tag**: `v2.2.3`
-*   **Current Version**: v2.2.4 — Elite Urgency Update
-*   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **MONETIZATION HARDENED 🚀**
-*   **Current Status**: **EPIC 13 Production Deployment**. All systems verified for production. v2.2.4 includes elite monetization, notification hardening, engine safety fixes, and performance-optimized rendering. Ready for Play Store listing.
+*   **Current Version**: v2.2.4 — Elite Urgency & Global Delivery
+*   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **POLISHED 🚀**
+*   **Current Status**: **EPIC 13 Production Deployment**. v2.2.4 has been polished with high-precision monetization, live sale countdowns, clean UI action buttons, and synchronized atmospheric transitions. Ready for release.
 *   **Known Issues**: None. All GPG Achievement IDs and Ad Unit IDs verified for production.
 *   **Current Priorities**: Play Store listing and monitoring.
 
@@ -93,6 +93,9 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Zen Mode Hardening** | Feature leakage (bosses/achievements) during peaceful runs. | Applied "Nuke it from orbit" guards in `EncounterDirector` and `GameEngine` to ensure 100% isolation. Removed HUD clutter (Mission Cards) during Zen runs. |
 | **Impossible Uplink Block** | Multiplayer in development. | Set temporary unlock threshold to "3 runs with 50x Combo" to prevent premature access while maintaining thematic terminal requirements. |
 | **Zen Music Curation** | Repetitive track names in the Zen menu. | Grouped 12 tracks into 6 thematic "Albums" and added a motivational footer to encourage high-altitude discovery in the standard game. |
+| **Single-Action Buttons** | Nested clickables caused event conflicts and confusion. | Established a "one button, one action" rule. Removed purchase links from restart/continue buttons; used standalone gold CTA buttons instead. |
+| **Seamless Handover** | Gradient jumps at zone boundaries broke immersion. | Synchronized end-colors of zone N with start-colors of zone N+1. Transition windows increased (800m->1200m) for atmospheric thinning effect. |
+| **Live Urgency Engine** | Static sale labels didn't drive "last-minute" conversion. | Implemented a ticking 1s/30s countdown driver in the app root. Dynamically switches from Days to Secs as deadlines approach. |
 
 ---
 
