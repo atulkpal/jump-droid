@@ -153,14 +153,14 @@ fun AboutScreen(
                                 contentColor = if (isPremium) SciFiGreen else Color.Black
                             ),
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                                 Text(
-                                    if (isPremium) "ELITE STATUS ACTIVE" else "GO PREMIUM",
+                                    if (isPremium) "ELITE STATUS ACTIVE" else "UPGRADE TO ELITE",
                                     fontWeight = FontWeight.Black,
                                     fontSize = 11.sp
                                 )
                                 if (!isPremium && purchaseManager?.hasOffer == true) {
-                                    Spacer(Modifier.width(8.dp))
+                                    Spacer(Modifier.width(12.dp))
                                     DiscountFlyer(
                                         text = purchaseManager.offerText,
                                         urgencyText = purchaseManager.offerExpiryText

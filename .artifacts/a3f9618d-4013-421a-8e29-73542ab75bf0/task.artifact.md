@@ -1,6 +1,10 @@
-# Task List: Bug Fixes (Crash, Zen Ads, Transitions)
+# Task List: Global UI Polish & Granular Urgency
 
-- [x] Elite Upgrade Crash Fix (`EliteComponents.kt`)
-- [x] Zen Mode Ad Integration (`GameOverOverlay.kt`)
-- [x] Zone Transition Smoothing (`ZoneBackgroundRenderer.kt`)
-- [x] Verification of all fixes
+- [x] Implement granular countdown engine in `PurchaseManager.kt`
+- [x] Add standalone `EliteUpgradeButton` and remove nesting in `GameOverOverlay.kt`
+- [x] Add `DiscountFlyer` and separate button to `AboutScreen.kt`
+- [x] Update `ShopScreen.kt` Elite card with new urgency text
+- [x] Add sale indicator/countdown to Main Menu "SHOP" button in `MainMenuScreen.kt`
+- [x] Update `DiscountFlyer` layout in `EliteComponents.kt`
+- [x] Verify Zen "RE-DEPLOY" button logic and ad flow
+- [x] Verify global sale propagation across all 4 screens

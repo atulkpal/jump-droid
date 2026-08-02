@@ -418,10 +418,11 @@ fun MainMenuScreen(
                     Spacer(Modifier.height(8.dp))
                     
                     val isPremium = purchaseManager?.isPremiumUser ?: false
+                    val hasSale = !isPremium && (purchaseManager?.hasOffer == true)
                     GhostButton(
-                        label = "SHOP",
-                        accent = SciFiGreen,
-                        borderPulse = borderPulse,
+                        label = if (hasSale) "SHOP (SALE!)" else "SHOP",
+                        accent = if (hasSale) SciFiGold else SciFiGreen,
+                        borderPulse = if (hasSale) borderPulse else borderPulse * 0.5f,
                         shape = shape,
                         soundManager = soundManager,
                         hapticManager = hapticManager,

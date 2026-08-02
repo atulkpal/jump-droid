@@ -186,14 +186,14 @@ fun ShopScreen(
                             ),
                             border = BorderStroke(1.dp, if (isPremium) SciFiGreen.copy(alpha = 0.3f) else SciFiGold.copy(alpha = 0.5f))
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                                 Text(
-                                    if (isPremium) "ELITE STATUS ACTIVE ✓" else "REMOVE ADS (${purchaseManager?.premiumPrice ?: "$1.99"})",
+                                    if (isPremium) "ELITE STATUS ACTIVE ✓" else "UPGRADE TO ELITE (${purchaseManager?.premiumPrice ?: "$1.99"})",
                                     fontWeight = FontWeight.Black,
                                     letterSpacing = 1.sp
                                 )
                                 if (!isPremium && (purchaseManager?.hasOffer == true)) {
-                                    Spacer(Modifier.width(8.dp))
+                                    Spacer(Modifier.width(12.dp))
                                     DiscountFlyer(
                                         text = purchaseManager.offerText,
                                         urgencyText = purchaseManager.offerExpiryText

@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ashwathai.jump_droid.ui.theme.*
@@ -61,7 +62,7 @@ fun DiscountFlyer(text: String, urgencyText: String = "") {
         label = "Alpha"
     )
 
-    Column(horizontalAlignment = Alignment.End) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(
             color = SciFiRed.copy(alpha = alpha),
             shape = RoundedCornerShape(4.dp),
@@ -82,7 +83,8 @@ fun DiscountFlyer(text: String, urgencyText: String = "") {
                 color = SciFiGold.copy(alpha = alpha),
                 fontSize = 7.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 0.5.sp
+                letterSpacing = 0.5.sp,
+                textAlign = TextAlign.Center
             )
         }
     }

@@ -143,19 +143,20 @@ class PurchaseManager(private val appContext: Context) {
                                     offerText = ""
                                 }
 
-                                // Subtle Urgency Logic
+                                // Precise Expiry Logic
                                 val endTime = bestOffer.validTimeWindow?.endTimeMillis ?: 0L
                                 if (endTime > 0) {
                                     val remaining = endTime - System.currentTimeMillis()
                                     val days = remaining / (1000 * 60 * 60 * 24)
-                                    val hours = remaining / (1000 * 60 * 60)
+                                    val hours = (remaining / (1000 * 60 * 60)) % 24
+                                    val minutes = (remaining / (1000 * 60)) % 60
                                     
                                     offerExpiryText = when {
                                         remaining <= 0 -> ""
-                                        days >= 3 -> "" // Too far out, keep it subtle
+                                        days >= 3 -> "OFFER ENDS IN $days DAYS"
                                         days >= 1 -> "ENDS IN $days DAYS"
-                                        hours >= 1 -> "ENDS IN $hours HOURS"
-                                        else -> "ENDING SOON"
+                                        hours >= 1 -> "ENDS IN ${hours}h ${minutes}m"
+                                        else -> "ENDS IN $minutes MIN"
                                     }
                                 } else {
                                     offerExpiryText = ""

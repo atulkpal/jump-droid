@@ -1,38 +1,61 @@
-# Release v2.2.4 Implementation Plan
+# Implementation Plan - Global Sale Urgency & Clean UI Architecture
 
-The goal is to release the production APK for version v2.2.4 on GitHub. According to the project's constitutional documents (`AGENTS.md` and `docs/PRODUCTION_CHECKLIST.md`), a specific workflow must be followed to ensure stability and compliance.
+This plan establishes a "Single-Action" UI philosophy across the game, removing confusing nested clickables, and propagates a precise, granular sale countdown timer to all promotion surfaces.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Production Checklist Status**: The `docs/PRODUCTION_CHECKLIST.md` for v2.2.4 currently has many unverified items (Firestore rules, Beta Analytics, Crashlytics validation, etc.). Proceeding with the release assumes these manual verifications have been completed by the developer.
-
-> [!WARNING]
-> **Branching Policy**: I will be creating a `release/v2.2.4` branch to perform the final build and merge, as committing directly to `master` is prohibited.
+> - **Unified Upgrade Button**: All promotional surfaces (Game Over, Shop, About) will now use a dedicated, standalone "UPGRADE TO ELITE" button for non-premium users.
+> - **Nested Logic Removal**: Nested `clickable` elements inside Action Buttons (like "RE-DEPLOY") are removed to prevent event swallowing and user confusion.
+> - **Global Sale Presence**: A sale countdown timer will now appear on the Main Menu (Shop button), Shop Screen, About Screen, and Game Over Screen.
+> - **Enhanced Urgency**: Detailed countdowns (Hours/Minutes) will be shown when the sale deadline is near.
 
 ## Proposed Changes
 
-### Release Preparation
+### 1. Granular Urgency Engine
+Implement a high-precision countdown calculation in the billing manager.
 
-#### [MODIFY] [PRODUCTION_CHECKLIST.md](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/docs/PRODUCTION_CHECKLIST.md)
-Update the checklist to reflect the final release steps.
+#### [MODIFY] [PurchaseManager.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/PurchaseManager.kt)
+- **Precise Expiry Logic**:
+    - `> 3 days`: "ENDS IN X DAYS" (Static indicator)
+    - `1 - 3 days`: "ENDS IN X DAYS" (High Urgency / Pulsing)
+    - `< 24 hours`: "ENDS IN Xh Ym" (Extreme Urgency)
+    - `< 1 hour`: "ENDS IN X MIN" (Critical)
+- Ensure the `validTimeWindow` is queried on every product refresh.
 
-#### [NEW] release_notes.md (Temporary)
-Create a temporary file containing the release notes extracted from `CHANGELOG.md` for use with the GitHub CLI.
+---
 
-### Build and Deployment
+### 2. Clean UI: Single-Action Action Buttons
+Refactor the Game Over screen and Zen mode restart flow to eliminate confusion.
 
-1.  **Branching**: Create `release/v2.2.4` from the current `development` branch.
-2.  **Build**: Execute `./gradlew :app:assembleRelease` to generate the signed production APK.
-3.  **Merge**: Prepare the merge into `master`.
-4.  **Tagging**: Tag the release commit as `v2.2.4`.
-5.  **GitHub Release**: Use `gh release create` to upload the APK to GitHub with the prepared notes.
+#### [MODIFY] [GameOverOverlay.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameOverOverlay.kt)
+- **Remove Nested Links**: Delete `Modifier.clickable` from inside "RE-DEPLOY" and "CONTINUE" rows.
+- **Dedicated Elite CTA**: Add a standalone `EliteUpgradeButton` (SciFiGold styling) above the action block for non-premium users.
+- **Zen Restart Fix**: Ensure the "RE-DEPLOY ZEN MODE" button focuses 100% on the restart/ad flow. Remove the "REMOVE ADS WITH PREMIUM" sub-clickable.
+
+---
+
+### 3. Global Sale Propagation
+Ensure the sale is visible at every touchpoint.
+
+#### [MODIFY] [MainMenuScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/MainMenuScreen.kt)
+- Add a "SALE" badge or a mini countdown timer to the **SHOP** button in the "COMMAND CENTER" list when an offer is active.
+
+#### [MODIFY] [ShopScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/ShopScreen.kt)
+- Update the Elite purchase card to show the `DiscountFlyer` with the new granular countdown.
+
+#### [MODIFY] [AboutScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/AboutScreen.kt)
+- Add the `DiscountFlyer` to the "SUPPORT INDIE" section near the "GO PREMIUM" button.
+
+#### [MODIFY] [EliteComponents.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/EliteComponents.kt)
+- Update `DiscountFlyer` layout to accommodate longer strings (e.g., "ENDS IN 18h 45m") without clipping.
 
 ## Verification Plan
 
-### Automated Tests
-- Run `./gradlew :app:assembleRelease` to ensure the build is successful and artifacts are generated.
-- Verify the existence of `app/build/outputs/apk/release/app-release.apk`.
-
 ### Manual Verification
-- The user should verify the live release on GitHub once the process is complete.
+1.  **Zen Re-Deploy**: Die in Zen mode. Click "RE-DEPLOY". Confirm it restarts/shows an ad and **never** opens the purchase modal directly.
+2.  **Upgrade Button**: Confirm a clear "UPGRADE TO ELITE" button exists on Game Over, Shop, and About screens.
+3.  **Sale Countdown**:
+    - Verify the countdown appears on the Main Menu Shop button.
+    - Verify granular timing (h/m) when a sale is expiring within 24h.
+4.  **No Nesting**: Click all action buttons to ensure no unexpected modals open from "sub-text" or adjacent areas.

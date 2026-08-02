@@ -1,26 +1,32 @@
-# Walkthrough - Bug Fixes: Crash, Zen Ads, and Transitions
+# Walkthrough - Global UI Polish & Granular Sale Urgency
 
-I have addressed the reported issues regarding the crash in the Elite upgrade flow, the missing ads in Zen mode restarts, and the "instant" zone transitions.
+I have implemented a comprehensive UI refactor to establish a "Single-Action" philosophy and propagated a granular sale countdown across all promotion surfaces.
 
 ## Changes Made
 
-### 1. Elite Upgrade Crash Fix
-Fixed a `ClassCastException` that occurred when clicking "Go Premium" on the Game Over screen.
-- **Root Cause**: Direct cast of `context` to `Activity` failed when the context was a `ContextThemeWrapper`.
-- **Fix**: Implemented safe activity retrieval using the `findActivity()` helper.
-- **File**: [EliteComponents.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/EliteComponents.kt)
+### 1. Granular Urgency Engine
+The `PurchaseManager` now calculates highly precise countdown strings for active sales.
+- **Dynamic Thresholds**:
+    - Sales ending in > 3 days show "OFFER ENDS IN X DAYS".
+    - Sales ending in < 24 hours show "ENDS IN Xh Ym".
+    - Sales ending in < 1 hour show "ENDS IN X MIN".
+- **Files**: [PurchaseManager.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/PurchaseManager.kt)
 
-### 2. Zen Mode Ad Integration
-Enabled rewarded ads for "RE-DEPLOY ZEN MODE" for non-premium users.
-- **Root Cause**: Ad loading logic was incorrectly scoped within a `!isZenMode` block.
-- **Fix**: Moved `RewardedAdHelper.load(context)` to a global scope within `GameOverOverlay` so it triggers for all game modes.
-- **File**: [GameOverOverlay.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameOverOverlay.kt)
+### 2. Single-Action UI Architecture
+Removed confusing nested clickables and added dedicated upgrade buttons.
+- **Game Over Overlay**: Action buttons like "RE-DEPLOY" and "CONTINUE" no longer contain nested upgrade links. A standalone "UPGRADE TO ELITE" button (Gold) is shown instead.
+- **Zen Mode**: The "RE-DEPLOY" button now focuses strictly on the restart/ad flow, eliminating accidental modal opens.
+- **Files**: [GameOverOverlay.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameOverOverlay.kt)
 
-### 3. Zone Transition Smoothing
-Eliminated "instant" jumps and refined the visual transition between zones.
-- **Root Cause**: Mismatched background gradient endpoints caused color jumps when the current zone changed.
-- **Fix**: Synchronized all zone gradients so that the end colors of one zone exactly match the start colors of the next. Also increased the transition window for the Earth -> Cloud transition for a smoother gradual fade.
-- **File**: [ZoneBackgroundRenderer.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/ZoneBackgroundRenderer.kt)
+### 3. Global Sale Propagation
+The countdown and sale urgency now appear at every promotional touchpoint.
+- **Main Menu**: The "SHOP" button now displays "(SALE!)" and pulses if an offer is active.
+- **Shop & About Screens**: Both now feature the `DiscountFlyer` with the new granular countdown next to their respective upgrade buttons.
+- **Files**: [MainMenuScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/MainMenuScreen.kt), [ShopScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/ShopScreen.kt), [AboutScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/AboutScreen.kt)
+
+### 4. UI Polish & Component Updates
+- **DiscountFlyer**: Updated layout to handle longer countdown strings without clipping and improved alignment.
+- **Files**: [EliteComponents.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/EliteComponents.kt)
 
 ## Verification Results
 
@@ -28,10 +34,11 @@ Eliminated "instant" jumps and refined the visual transition between zones.
 - **Build Status**: `app:assembleDebug` completed successfully.
 
 ### Manual Verification Required
-- [ ] **Elite Upgrade**: Verify "Go Premium" opens the purchase dialog without crashing.
-- [ ] **Zen Ads**: Verify "RE-DEPLOY ZEN MODE" shows a rewarded ad for non-premium users.
-- [ ] **Transitions**: Verify Earth zone looks correctly "Earth-like" on start and transitions smoothly to Cloud Layer at 500m.
+- [ ] **Sale Countdown**: Verify the countdown shows "h/m" precision when a sale is under 24 hours.
+- [ ] **Main Menu**: Check that the Shop button indicates "SALE!" when an offer exists.
+- [ ] **Game Over Screen**: Verify the new standalone "UPGRADE TO ELITE" button and ensure "RE-DEPLOY" never opens the modal.
 
-render_diffs(file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/EliteComponents.kt)
+render_diffs(file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/PurchaseManager.kt)
 render_diffs(file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameOverOverlay.kt)
-render_diffs(file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/ZoneBackgroundRenderer.kt)
+render_diffs(file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/MainMenuScreen.kt)
+render_diffs(file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/EliteComponents.kt)

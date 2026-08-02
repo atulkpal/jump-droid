@@ -342,37 +342,13 @@ fun GameOverOverlay(
                         }
 
                         if (continuesRemaining > 0) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Continue ${continuesUsed + 1} of $maxContinues",
-                                    color = SciFiWhite.copy(alpha = 0.4f),
-                                    fontSize = 11.sp,
-                                    letterSpacing = 1.sp,
-                                    textAlign = TextAlign.Center
-                                )
-                                if (!isPremiumUser) {
-                                    Spacer(Modifier.width(6.dp))
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.clickable { showUpgradeDialog = true }
-                                    ) {
-                                        Text(
-                                            text = "(GO PREMIUM FOR 5)",
-                                            color = SciFiGold.copy(alpha = 0.6f),
-                                            fontSize = 8.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            letterSpacing = 1.sp
-                                        )
-                                        if (purchaseManager?.hasOffer == true) {
-                                            Spacer(Modifier.width(6.dp))
-                                            DiscountFlyer(
-                                                text = purchaseManager.offerText,
-                                                urgencyText = purchaseManager.offerExpiryText
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                            Text(
+                                text = "Continue ${continuesUsed + 1} of $maxContinues",
+                                color = SciFiWhite.copy(alpha = 0.4f),
+                                fontSize = 11.sp,
+                                letterSpacing = 1.sp,
+                                textAlign = TextAlign.Center
+                            )
                         }
 
                         val nextBossTarget = ((runBossesDefeated / 5) + 1) * 5
@@ -425,6 +401,37 @@ fun GameOverOverlay(
                     Spacer(Modifier.height(8.dp))
                 }
 
+                // UPGRADE TO ELITE (Standalone Button)
+                if (!isPremiumUser) {
+                    Button(
+                        onClick = { showUpgradeDialog = true },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = SciFiGold.copy(alpha = 0.15f), contentColor = SciFiGold),
+                        border = BorderStroke(1.dp, SciFiGold.copy(alpha = borderPulse))
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_premium_star),
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                colorFilter = ColorFilter.tint(SciFiGold)
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text("UPGRADE TO ELITE", fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                            
+                            if (purchaseManager?.hasOffer == true) {
+                                Spacer(Modifier.width(12.dp))
+                                DiscountFlyer(
+                                    text = purchaseManager.offerText,
+                                    urgencyText = purchaseManager.offerExpiryText
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
+
                 // NEW EXPEDITION BUTTON
                 var isRestartAdLoading by remember { mutableStateOf(false) }
 
@@ -465,27 +472,6 @@ fun GameOverOverlay(
                         val adHint = if (isZenMode && !isPremiumUser) " [AD]" else ""
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = "$label$adHint", color = SciFiWhite, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                            if (isZenMode && !isPremiumUser) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.clickable { showUpgradeDialog = true }
-                                ) {
-                                    Text(
-                                        "REMOVE ADS WITH PREMIUM",
-                                        color = SciFiGold.copy(alpha = 0.5f),
-                                        fontSize = 7.sp,
-                                        fontWeight = FontWeight.Black,
-                                        letterSpacing = 1.sp
-                                    )
-                                    if (purchaseManager?.hasOffer == true) {
-                                        Spacer(Modifier.width(6.dp))
-                                        DiscountFlyer(
-                                            text = purchaseManager.offerText,
-                                            urgencyText = purchaseManager.offerExpiryText
-                                        )
-                                    }
-                                }
-                            }
                         }
                     }
                 }
