@@ -607,7 +607,8 @@ fun JumpDroidApp(
                         })
                     }
                 },
-                soundManager = engine.soundManager
+                soundManager = engine.soundManager,
+                hapticManager = engine.hapticManager
             )
         }
         composable(

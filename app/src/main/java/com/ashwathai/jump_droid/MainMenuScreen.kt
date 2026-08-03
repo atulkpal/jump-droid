@@ -915,7 +915,7 @@ private fun AddCreditDialog(
                 val canEarn = AdManager.canEarnMoreCredits()
                 Button(
                     onClick = {
-                        val activity = (context as? Activity)
+                        val activity = context.findActivity()
                         if (activity != null && canEarn) {
                             soundManager?.playSfx("sfx_ui_click")
                             hapticManager?.vibrate(HapticManager.HapticType.TICK)

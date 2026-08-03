@@ -1,28 +1,32 @@
-# Credit Acquisition Modal Icon Polish
+# Bug Fix: java.lang.ClassCastException in EliteUpgradeDialog
 
-This plan addresses the "crazy colors" regression in the Credit Acquisition modal by unifying the icon styling with the rest of the application.
+This plan addresses a fatal crash occurring during purchase flows where a `ContextThemeWrapper` is incorrectly cast to an `Activity`.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **Icon Tinting Removal:** I will remove the manual `SciFiGold` tint from the currency icons in the `AddCreditDialog`. This allows the vector icons to use their original designed colors, ensuring consistency with the top status bar and removing the "crazy" high-contrast effect.
+> **Safe Context Handling:** I am replacing all direct `as Activity` casts with a safe `findActivity()` extension that traverses the `ContextWrapper` chain. This is a critical stability fix for devices that wrap contexts (e.g., Pixel 9 Pro or devices using specific theme wrappers).
 
 ## Proposed Changes
 
-### 1. Main Menu: Credit Dialog Refinement
+### 1. Stability Fixes
+
+#### [MODIFY] [ShopScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/ShopScreen.kt)
+- Replace `context as Activity` with `context.findActivity()`.
+- Add null-safety guard for the purchase flow trigger.
+
+#### [MODIFY] [EliteComponents.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/EliteComponents.kt)
+- Standardize the `confirmButton` logic to use `findActivity()`.
+- Ensure no other unsafe casts exist in the dialog lambdas.
 
 #### [MODIFY] [MainMenuScreen.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/MainMenuScreen.kt)
-- Remove `tint = SciFiGold` from all instances of `ic_currency_cr` and `ic_currency_jc` within the `AddCreditDialog`.
-- Update the dialog's conversion button to use standard `Image` or untinted `Icon` for the currency symbols.
-- Ensure the "Daily Protocol Limit" text remains subtle and doesn't compete with the primary icons.
-
-### 2. UI Consistency Pass
-
-#### [MODIFY] [GameOverOverlay.kt](file:///C:/Users/Atul/AndroidStudioProjects/Jump_droid/app/src/main/java/com/ashwathai/jump_droid/GameOverOverlay.kt)
-- Review and ensure that currency indicators are consistent across the Game Over screen.
+- Update `AddCreditDialog` to use safe activity retrieval for rewarded ad triggers.
 
 ## Verification Plan
 
+### Automated Tests
+- Run `gradle_build` to ensure the project compiles with the new safety logic.
+
 ### Manual Verification
-1. **Modal Check:** Open the Credit Acquisition modal and verify that the Credits (Gold) and Cash (Green/Gold) icons look natural and identical to their status bar counterparts.
-2. **Visual Consistency:** Compare the icons in the Main Menu, Hangar, and Game Over screen to ensure a unified currency identity.
+1. **Purchase Flow Check:** Open the Shop and trigger a purchase. Verify the dialog opens without crashing.
+2. **Elite Upgrade Check:** Open the Elite Upgrade dialog from the Game Over screen and click "Upgrade." Verify no `ClassCastException` occurs.

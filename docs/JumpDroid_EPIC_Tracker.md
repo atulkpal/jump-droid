@@ -558,33 +558,35 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 
 # EPIC 14 — Global Polish & Strategic Monetization
 
-**Status: IN PROGRESS 🚀**
+**Status: COMPLETE ✅**
 
 ## Phase 1 — Technical Hardening
-- [ ] **[BUG]** StatRecorder Persistence (High Score Fix)
-- [ ] Rendering Allocation Audit (Paint/Path Caching)
-- [ ] Re-composition Optimization (Lambda-based HUD)
-- [ ] Lifecycle Management (Battery Efficient Loops)
+- [x] **[BUG]** StatRecorder Persistence (High Score Fix)
+- [x] Rendering Allocation Audit (Paint/Path Caching)
+- [x] Re-composition Optimization (Lambda-based HUD)
+- [x] Lifecycle Management (Battery Efficient Loops)
 
 ## Phase 2 — Strategic Monetization
-- [ ] Centralized AdManager (Singleton with Frequency Capping)
-- [ ] Zen Discovery Rewards (End-of-run reward extraction)
-- [ ] Zen Music & Theme Rentals (Rewarded discovery)
-- [ ] Hangar Tech Calibration (Pre-run buffs)
-- [ ] Archive Data Restoration (Lore restoration rewards)
-- [ ] Mission Intel Refresh (Objective re-rolling)
-- [ ] Daily Supply Drop (Retentive rewards)
+- [x] Centralized AdManager (Singleton with Frequency Capping)
+- [x] Zen Discovery Rewards (End-of-run reward extraction)
+- [x] Zen Music & Theme Rentals (Rewarded discovery)
+- [x] Hangar Tech Calibration (Pre-run buffs)
+- [x] Archive Data Restoration (Lore restoration rewards)
+- [x] Mission Intel Refresh (Objective re-rolling)
+- [x] Daily Supply Drop (Retentive rewards)
 
 ## Phase 3 — Tactical UX Polish
-- [ ] Immersion Audit (Remove ads from Pause/Help/Tutorial)
-- [ ] Zen Mode Restart Polish (Non-gated flow)
+- [x] Immersion Audit (Remove ads from Pause/Help/Tutorial)
+- [x] Zen Mode Restart Polish (Non-gated flow)
+- [x] UI Cleanup (Removal of dated Help/Tutorial overlays)
+- [x] GameOver Regression Fixes (Layout & Overlap)
 
 ## Phase 4 — Testing & Quality Assurance
-- [ ] Testing Infrastructure Setup (MockK + Coroutines)
-- [ ] StatRecorder Unit Tests
-- [ ] MissionManager Unit Tests
-- [ ] AltitudeManager Unit Tests
-- [ ] GameEngine Unit Tests
+- [x] Testing Infrastructure Setup (MockK + Coroutines)
+- [x] StatRecorder Unit Tests
+- [x] MissionManager Unit Tests
+- [x] AltitudeManager Unit Tests
+- [x] GameEngine Unit Tests
 
 ---
 

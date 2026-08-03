@@ -5,16 +5,25 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.view.LayoutInflater
 import android.widget.TextView
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
+import com.ashwathai.jump_droid.ui.theme.*
 
 fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -48,6 +57,17 @@ fun NativeIntegratedAd(isPremiumUser: Boolean = false) {
             update = { adView -> populateNativeAdView(ad, adView) },
             modifier = Modifier.fillMaxWidth().height(100.dp)
         )
+    } ?: Box(
+        modifier = Modifier.fillMaxWidth().height(100.dp)
+            .background(SciFiSurface, RoundedCornerShape(8.dp))
+            .border(1.dp, SciFiBorder.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("SYSTEM LINK STABILIZING...", color = SciFiWhite.copy(alpha = 0.2f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(Modifier.height(4.dp))
+            LinearProgressIndicator(modifier = Modifier.width(100.dp).height(2.dp), color = SciFiCyan.copy(alpha = 0.1f), trackColor = Color.Transparent)
+        }
     }
 }
 

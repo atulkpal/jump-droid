@@ -2,9 +2,9 @@
 
 **Last Updated:** 2026-08-02
 **Current Version:** v2.2.4 — Elite Urgency & Global Delivery
-**Project Status:** EPIC 13 — Production Deployment & Store Listing — POLISHED 🚀
+**Project Status:** EPIC 14 — Global Polish & Strategic Monetization — [DEVELOPMENT ON BRANCH]
 **Current Stable Tag:** `v2.2.3`
-**Branch:** `fix/zen-overhaul-polish`
+**Branch:** `feature/epic14-polish-monetization`
 **Base Commit:** `HEAD`
 
 ---
@@ -33,13 +33,13 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 
 ## 2. Current Project State
 
-*   **Current Branch**: `fix/zen-overhaul-polish`
+*   **Current Branch**: `feature/epic14-polish-monetization`
 *   **Current Stable Tag**: `v2.2.3`
 *   **Current Version**: v2.2.4 — Elite Urgency & Global Delivery
-*   **Current EPIC**: EPIC 13 — Production Deployment & Store Listing — **POLISHED 🚀**
-*   **Current Status**: **EPIC 13 Production Deployment**. v2.2.4 has been polished with high-precision monetization, live sale countdowns, clean UI action buttons, and synchronized atmospheric transitions. Ready for release.
-*   **Known Issues**: None. All GPG Achievement IDs and Ad Unit IDs verified for production.
-*   **Current Priorities**: Play Store listing and monitoring.
+*   **Current EPIC**: EPIC 14 — Global Polish & Strategic Monetization — **DEVELOPMENT 🚀**
+*   **Current Status**: **EPIC 14 Monetization & Performance**. v2.2.4 has been polished with high-precision monetization, live sale countdowns, clean UI action buttons, and synchronized atmospheric transitions. Currently implementing advanced ad formats and daily streak rewards on branch.
+*   **Known Issues**: None.
+*   **Current Priorities**: Strategic monetization and performance hardening.
 
 ---
 
@@ -54,6 +54,9 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **EPIC 9: Hidden Signals & Dynamic Unlocks**: Secret missions, dynamic unlock engine (AND/OR), artifact set bonuses, lore logs, blueprints.
 *   **EPIC 10: The Outer Reaches**: 4 new zones, Flux/Graviton platforms, Foundry & Chrono-Rift, 12 new threats, 3 power-ups, 5 library boss encounters, full visual fidelity upgrade.
 *   **EPIC 11: Ascension (The End)**: The Singularity meta-boss, origin reset, ascension ceremony, prestige system, Omega Modules, Eternal Mode, PlayerInputProcessor extraction, GameEngine state container, SoundManager audio system, comprehensive bug fixes.
+*   **EPIC 12: Fleet Ascension**: Visual identity overhaul, Main Menu redesign, Equipment visual feedback, 12 fleet variants, in-run mission cards, Boss arrival cinematics, Engine trail customization, Cyber-Packet scoring visuals.
+*   **EPIC 13: Production Readiness**: Play Billing v9.1.0 upgrade, dynamic sale urgency engine, Zen Mode hardening, single-action UI architecture, seamless biome transitions, production security lockdown.
+*   **EPIC 14: Global Polish (Current)**: AdManager orchestration, high-revenue ad formats (App Open, Rewarded Interstitial), daily streak multipliers, zero-allocation rendering optimization, lambda-based HUD re-composition fixes.
 
 ---
 
@@ -73,6 +76,14 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 *   **Tag**: `epic8.5-structured`
 *   **Commit**: `9363434`
 *   **Outcome**: GameScreen.kt reduced from 3,901 to 2,011 lines (48% reduction). ActiveThreat.kt reduced from 1,224 to 123 lines (90% reduction). 26 threat renderers extracted. Mission system purified: `MissionRow.kt` deleted, `isNew` removed, `CeremonyStage` collapsed, `checkCompletion()` made pure. HUD components extracted: `StarfieldBackground`, `GaugeBar`, `HudContext`. ProgressionService interface decouples MissionManager from ProgressionManager. GameEngine state container created.
+
+### **EPIC 12 Complete**
+*   **Tag**: `v1.6.0-overhaul`
+*   **Outcome**: Fleet expansion finalized. Cyber-Packet scoring system implemented. Asset suite unified under colorful vectors. Navigation migrated to dialog routes.
+
+### **EPIC 13 Complete**
+*   **Tag**: `v2.2.4-stable`
+*   **Outcome**: Production-ready deployment. Play Billing v9.1 integration. Live sale countdown driver established. Zen Mode isolation verified.
 
 ---
 
@@ -96,6 +107,9 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 | **Single-Action Buttons** | Nested clickables caused event conflicts and confusion. | Established a "one button, one action" rule. Removed purchase links from restart/continue buttons; used standalone gold CTA buttons instead. |
 | **Seamless Handover** | Gradient jumps at zone boundaries broke immersion. | Synchronized end-colors of zone N with start-colors of zone N+1. Transition windows increased (800m->1200m) for atmospheric thinning effect. |
 | **Live Urgency Engine** | Static sale labels didn't drive "last-minute" conversion. | Implemented a ticking 1s/30s countdown driver in the app root. Dynamically switches from Days to Secs as deadlines approach. |
+| **Centralized Ad Orchestration** | Decentralized ad logic caused race conditions and economy inflation. | Introduced `AdManager` singleton to handle pre-loading, frequency capping (5 links/day), and logic separation (Banking vs Service). |
+| **Zero-Allocation Rendering** | High-frequency Draw calls caused GC jank. | Implemented caching for `Paint` and `Path` objects in rendering loops. Moved object instantiation out of `onDraw` phase. |
+| **Lambda HUD Reading** | HUD re-composed every frame on state change. | Refactored HUDLayer to accept lambdas (`() -> Float`). Skips recomposition unless structural changes occur. |
 
 ---
 

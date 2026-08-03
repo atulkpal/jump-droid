@@ -43,14 +43,22 @@ Screen views are automatically tracked via the `NavHost` backstack observer in `
 ---
 
 ## 4. AdMob Integration
-Ad IDs are managed in `AdConfig.kt`.
-- **Debug Builds**: Uses Google sample test IDs.
-- **Release Builds**: Uses production IDs.
+Jump Droid uses a centralized `AdManager.kt` for orchestration and `AdConfig.kt` for unit ID management.
 
-**Impression Logging:**
-- **Banner Ads**: Logged via `onAdImpression` callback.
-- **Rewarded Ads**: Logged via `fullScreenContentCallback.onAdImpression` to ensure accuracy.
-- **Context Safety**: All ad show/load triggers must use the `findActivity()` helper from `AdComponents.kt` to ensure reliability on devices using wrapped contexts (e.g., Pixel 9 Pro).
+#### Supported Formats
+- **Banner**: Standard 320x50 fallback.
+- **Rewarded**: Opt-in ads for banking credits and continues.
+- **App Open**: High-value ads on app foreground (4h frequency cap).
+- **Rewarded Interstitial**: Automatic bonus ads for long expeditions (>10km).
+- **Native Advanced**: Highly integrated "System Terminal" ads for maximum immersion.
+
+#### Monetization Logic (EPIC 14)
+- **Banking Ads**: Capped at 5/day to preserve the credit economy.
+- **Service Ads**: Unlimited (Watch to Continue, Calibration, Lore Restoration).
+- **Elite Bypass**: Premium users bypass all ad requirements while retaining rewards.
+
+#### Instrumentation
+Ad events are tracked via `logAdImpression` and `logAdClicked` for eCPM analysis. All ad triggers must use the `findActivity()` helper from `AdComponents.kt`.
 
 ---
 

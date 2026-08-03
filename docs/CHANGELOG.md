@@ -4,6 +4,42 @@ All notable changes to this project are recorded as dated engineering events.
 
 ---
 
+## 2026-08-02 (Global Polish & Strategic Monetization)
+
+**Version:** v2.2.6 — Optimization & Monetization Mastery
+
+**Status:** Implementation Complete — branch `feature/epic14-polish-monetization`
+
+### Added — Strategic Monetization Suite
+- **Centralized AdManager**: Introduced a singleton for ad orchestration with pre-loading and smart frequency capping.
+- **High-Revenue Formats**: Integrated App Open ads and Rewarded Interstitials for frictionless monetization.
+- **Native "System Terminal" Ads**: Implemented custom-styled Native Advanced ads in the Hangar and Archive screens for high immersion.
+- **Daily Streak Multiplier**: Added a consecutive login system with up to 5x rewards for the Daily Supply Drop.
+- **Cinematic Reward Experience**: Created `DailyRewardOverlay.kt` with golden crate-opening animations and high-fidelity sound.
+
+### Added — Gameplay Continuity Features
+- **Hangar Tech Calibration**: Rewarded pre-run buffs (Fuel, Heat, Shield) to boost expedition performance.
+- **Archive Lore Restoration**: Ability to unlock rare "Corrupted Logs" via discovery ads.
+- **Zen Discovery Extraction**: End-of-run reward bonuses for long Zen sessions.
+- **Zen Visual Themes**: Added Nebula, Void, Aurora, and Solar themes with unique background rendering logic.
+
+### Fixed — Critical Issues & Technical Hardening
+- **StatRecorder Persistence**: Fixed a bug where high scores weren't saved for new players with < 3 runs.
+- **Zero-Jank Rendering**: Cached `Paint` and `Path` objects in high-frequency rendering loops to eliminate GC pressure.
+- **HUD Re-composition Optimization**: Refactored `HUDLayer` to use lambda-based state reading, reducing re-draw overhead.
+- **Battery Saver**: Made the purchase countdown lifecycle-aware, pausing automatically in the background.
+
+### Improved — UX Cleanup
+- **HUD Streamlining**: Removed dated Help (`?`) button and all banner ads from tactical overlays (Pause/Help/Tutorial) for 100% survival focus.
+- **GameOver Clarity**: Fixed HUD overlaps and simplified the layout by removing redundant credit indicators.
+- **Zen Mode Restart**: Integrated `RewardedAd` gate for Zen restarts (free for Elite pilots) while maintaining free initial entry.
+
+### Added — Quality Assurance
+- **Testing Infrastructure**: Integrated MockK and Coroutines Test libraries.
+- **Core Logic Tests**: Implemented unit test suites for `StatRecorder`, `MissionManager`, and `AltitudeManager`.
+
+---
+
 ## 2026-08-02 (Zen Polish & High-Precision Urgency)
 
 **Version:** v2.2.5 (Release Candidate) — Tactical Refinement

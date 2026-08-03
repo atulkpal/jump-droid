@@ -178,7 +178,7 @@ fun ArchiveScreen(
                                 )
                                 if (!viewed) sharedPrefs.edit { putBoolean("viewed_log_${log.id}", true) }
                             } else {
-                                val activity = (context as? android.app.Activity)
+                                val activity = context.findActivity()
                                 if (activity != null) {
                                     AdManager.showRewardedAd(activity, analytics, onReward = {
                                         sharedPrefs.edit { putBoolean("log_${log.id}", true) }

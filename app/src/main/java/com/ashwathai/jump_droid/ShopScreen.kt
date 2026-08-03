@@ -170,8 +170,11 @@ fun ShopScreen(
                             onClick = {
                                 soundManager?.playSfx("sfx_ui_click")
                                 if (!isPremium) {
-                                    purchaseManager?.launchPurchaseFlow(context as Activity) {
-                                        if (BuildConfig.DEBUG) showDebugPurchaseDialog = true else showStoreDialog = true
+                                    val activity = context.findActivity()
+                                    if (activity != null) {
+                                        purchaseManager?.launchPurchaseFlow(activity) {
+                                            if (BuildConfig.DEBUG) showDebugPurchaseDialog = true else showStoreDialog = true
+                                        }
                                     }
                                 }
                             },

@@ -64,8 +64,14 @@
 *   `docs/ANALYTICS.md`: Primary doc — event catalog, screen tracking, AdMob, user properties, governance.
 *   `app/src/main/java/com/ashwathai/jump_droid/GameAnalytics.kt`: Domain-driven analytics interface + Firebase implementation.
 *   `app/src/main/java/com/ashwathai/jump_droid/PlayerAnalyticsManager.kt`: Firestore-backed tester analytics decorator (Beta Analytics V0).
+*   `app/src/main/java/com/ashwathai/jump_droid/AdManager.kt`: Centralized ad orchestration & frequency capping.
+*   `app/src/main/java/com/ashwathai/jump_droid/AppOpenAdManager.kt`: Application-level return-from-background ad handler.
 *   `app/src/main/java/com/ashwathai/jump_droid/AdConfig.kt`: Centralized AdMob unit IDs with debug/release switching.
-*   `app/src/main/java/com/ashwathai/jump_droid/AdComponents.kt`: Banner ad composable + Rewarded ad helper.
+*   `app/src/main/java/com/ashwathai/jump_droid/AdComponents.kt`: Banner ad composable + Rewarded ad helper + Native ads.
+*   `app/src/main/java/com/ashwathai/jump_droid/RewardedInterstitialHelper.kt`: Automated end-of-run bonus ad handler.
+*   `app/src/main/java/com/ashwathai/jump_droid/ZenThemeManager.kt`: Registry of visual themes for Zen mode.
+*   `app/src/main/java/com/ashwathai/jump_droid/DailyRewardOverlay.kt`: High-fidelity streak reward presentation.
+*   `app/src/main/java/com/ashwathai/jump_droid/TechCalibrationOverlay.kt`: Pre-run tech buff acquisition UI.
 *   `app/proguard-rules.pro`: Production R8/ProGuard rules.
 *   `app/google-services.json`: Firebase project configuration.
 

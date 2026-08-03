@@ -34,7 +34,8 @@ fun DailyRewardOverlay(
     credits: Int,
     cash: Int,
     onClaim: () -> Unit,
-    soundManager: SoundManager?
+    soundManager: SoundManager?,
+    hapticManager: HapticManager? = null
 ) {
     var revealed by remember { mutableStateOf(false) }
     val infiniteTransition = rememberInfiniteTransition(label = "RewardGlow")
@@ -47,6 +48,9 @@ fun DailyRewardOverlay(
         delay(300)
         revealed = true
         soundManager?.playSfx("sfx_fanfare_mission")
+        hapticManager?.vibrate(HapticManager.HapticType.SUCCESS)
+        delay(400)
+        hapticManager?.vibrate(HapticManager.HapticType.TICK)
     }
 
     Box(
