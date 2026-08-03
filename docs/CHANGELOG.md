@@ -28,10 +28,13 @@ All notable changes to this project are recorded as dated engineering events.
 - **Zero-Jank Rendering**: Cached `Paint` and `Path` objects in high-frequency rendering loops to eliminate GC pressure.
 - **HUD Re-composition Optimization**: Refactored `HUDLayer` to use lambda-based state reading, reducing re-draw overhead.
 - **Battery Saver**: Made the purchase countdown lifecycle-aware, pausing automatically in the background.
+- **Context Safety**: Resolved a fatal `ClassCastException` in the purchase and ad flows by implementing a recursive `findActivity()` helper to safely traverse `ContextThemeWrapper` chains.
 
 ### Improved — UX Cleanup
 - **HUD Streamlining**: Removed dated Help (`?`) button and all banner ads from tactical overlays (Pause/Help/Tutorial) for 100% survival focus.
 - **GameOver Clarity**: Fixed HUD overlaps and simplified the layout by removing redundant credit indicators.
+- **Visual Stability**: Added a "SYSTEM LINK STABILIZING" loading fallback for Native Ads to prevent UI layout shifts during ad initialization.
+- **Haptic Immersion**: Integrated a synchronized haptic pulse sequence for Daily Reward crate reveals.
 - **Zen Mode Restart**: Integrated `RewardedAd` gate for Zen restarts (free for Elite pilots) while maintaining free initial entry.
 
 ### Added — Quality Assurance

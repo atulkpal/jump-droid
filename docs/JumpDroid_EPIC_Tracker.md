@@ -565,6 +565,7 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 - [x] Rendering Allocation Audit (Paint/Path Caching)
 - [x] Re-composition Optimization (Lambda-based HUD)
 - [x] Lifecycle Management (Battery Efficient Loops)
+- [x] **[BUG]** Fatal `ClassCastException` in purchase flows (Safe Context Unwrap)
 
 ## Phase 2 — Strategic Monetization
 - [x] Centralized AdManager (Singleton with Frequency Capping)
@@ -580,6 +581,8 @@ All core mission items implemented. Stretch items above deferred to future EPICs
 - [x] Zen Mode Restart Polish (Non-gated flow)
 - [x] UI Cleanup (Removal of dated Help/Tutorial overlays)
 - [x] GameOver Regression Fixes (Layout & Overlap)
+- [x] **[POLISH]** Native Ad Fallback ("SYSTEM LINK STABILIZING")
+- [x] **[POLISH]** Haptic reward sequence (Crate Reveal)
 
 ## Phase 4 — Testing & Quality Assurance
 - [x] Testing Infrastructure Setup (MockK + Coroutines)
