@@ -4,6 +4,25 @@ All official releases with build artifacts and key changes.
 
 ---
 
+## v2.2.6 — Optimization & Monetization Mastery
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-04 |
+| **Version Code** | 15 |
+| **Tag** | `v2.2.6` |
+| **Branch** | `master` |
+| **Status** | 🚀 Production Released |
+
+### Highlights
+- **Centralized AdManager**: Introduced a singleton for ad orchestration with pre-loading and frequency capping.
+- **High-Revenue Formats**: Integrated App Open ads and Rewarded Interstitials.
+- **Daily Streak Multiplier**: Added a consecutive login system with up to 5x rewards.
+- **Zero-Jank Rendering**: Optimized Draw calls by caching Paint/Path objects.
+- **Lambda HUD Reading**: Refactored HUDLayer for efficient state reading, reducing recompositions.
+
+---
+
 ## v2.2.4 — Elite Urgency & Global Delivery
 
 | Field | Value |

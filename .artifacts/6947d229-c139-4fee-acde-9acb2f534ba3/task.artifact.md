@@ -1,0 +1,21 @@
+# Release Jump Droid v2.2.6
+
+- [ ] Phase 1: Branch Management
+    - [ ] Create `release/v2.2.6` branch
+- [ ] Phase 2: Artifact Archiving
+    - [ ] Rename `app-debug.apk` to `debug-2.2.4-14.apk`
+    - [ ] Rename `app-release.apk` to `release-2.2.4-14.apk`
+    - [ ] Rename `app-release.aab` to `release-2.2.4-14.aab`
+- [ ] Phase 3: Build Configuration & Execution
+    - [ ] Update `versionCode` and `versionName` in `build.gradle.kts`
+    - [ ] Run `assembleDebug`
+    - [ ] Run `assembleRelease`
+    - [ ] Run `bundleRelease`
+- [ ] Phase 4: Documentation & Verification
+    - [ ] Update `RELEASES.md`
+    - [ ] Update `AGENTS.md`
+    - [ ] Verify `PRODUCTION_CHECKLIST.md`
+    - [ ] Run unit tests
+- [ ] Phase 5: Merge & Tagging
+    - [ ] Merge `release/v2.2.6` into `master`
+    - [ ] Tag `master` with `v2.2.6`
