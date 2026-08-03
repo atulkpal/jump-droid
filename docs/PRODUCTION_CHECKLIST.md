@@ -7,6 +7,12 @@
 
 ---
 
+## 0. Artifact Archiving (History)
+
+- [ ] **Archive previous artifacts** — Move existing APKs and AABs from `app/build/outputs/` to a persistent history folder: `releases/v<version>/`.
+- [ ] **Rename for traceability** — Use the format `debug-<version>-<versionCode>.apk`, `release-<version>-<versionCode>.apk`, and `release-<version>-<versionCode>.aab`.
+- [ ] **Verification** — Confirm the `releases/` folder is not in `.gitignore` and is tracked for project history.
+
 ## 1. Firestore Security
 
 - [x] **Lock Firestore security rules** — remove any `allow read, write: if true;` from Firestore Rules in Firebase Console.

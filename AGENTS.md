@@ -151,6 +151,7 @@ Jump Droid is an advanced vertical exploration simulator built with Jetpack Comp
 `docs/analysis/` (Technical Context & Audits)
 ↓
 `docs/PRODUCTION_CHECKLIST.md` (Release Gate — mandatory before any production release)
+`releases/` (Persistent history of production artifacts)
 
 ---
 
@@ -332,3 +333,22 @@ If no existing Library entry covers the needed design:
 3. Submit for approval before writing any code
 
 **Violations:** Any agent or engineer implementing content without library traceability will have their changes reverted and must re-submit with proper documentation.
+
+---
+
+## 16. Artifact Archiving Policy
+
+**Release artifacts MUST be preserved for historical reference.**
+
+### The Rule
+Before executing a new production build (via `gradle_build`), the existing artifacts from the previous release must be archived.
+
+1.  **Storage Location**: `releases/v<version>/` (at project root).
+2.  **Naming Convention**:
+    *   `debug-<version>-<code>.apk`
+    *   `release-<version>-<code>.apk`
+    *   `release-<version>-<code>.aab`
+3.  **Persistence**: The `releases/` directory is persistent and must NOT be placed in the build folder or `.gitignore`.
+4.  **Verification**: The move must be performed *before* the next `gradle_build` to prevent Gradle from cleaning and deleting the previous artifacts.
+
+**Violations:** Failure to archive previous artifacts before a build cycle results in loss of historical binaries and is a breach of the production protocol.

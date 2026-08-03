@@ -1,21 +1,21 @@
 # Release Jump Droid v2.2.6
 
-- [ ] Phase 1: Branch Management
-    - [ ] Create `release/v2.2.6` branch
-- [ ] Phase 2: Artifact Archiving
-    - [ ] Rename `app-debug.apk` to `debug-2.2.4-14.apk`
-    - [ ] Rename `app-release.apk` to `release-2.2.4-14.apk`
-    - [ ] Rename `app-release.aab` to `release-2.2.4-14.aab`
-- [ ] Phase 3: Build Configuration & Execution
-    - [ ] Update `versionCode` and `versionName` in `build.gradle.kts`
-    - [ ] Run `assembleDebug`
-    - [ ] Run `assembleRelease`
-    - [ ] Run `bundleRelease`
-- [ ] Phase 4: Documentation & Verification
-    - [ ] Update `RELEASES.md`
-    - [ ] Update `AGENTS.md`
-    - [ ] Verify `PRODUCTION_CHECKLIST.md`
-    - [ ] Run unit tests
-- [ ] Phase 5: Merge & Tagging
-    - [ ] Merge `release/v2.2.6` into `master`
-    - [ ] Tag `master` with `v2.2.6`
+- [x] Phase 1: Branch Management
+    - [x] Create `release/v2.2.6` branch
+- [x] Phase 2: Artifact Archiving
+    - [x] Rename `app-debug.apk` to `debug-2.2.4-14.apk`
+    - [x] Rename `app-release.apk` to `release-2.2.4-14.apk`
+    - [x] Rename `app-release.aab` to `release-2.2.4-14.aab`
+- [x] Phase 3: Build Configuration & Execution
+    - [x] Update `versionCode` and `versionName` in `build.gradle.kts`
+    - [x] Run `assembleDebug`
+    - [x] Run `assembleRelease`
+    - [x] Run `bundleRelease`
+- [x] Phase 4: Documentation & Verification
+    - [x] Update `RELEASES.md`
+    - [x] Update `AGENTS.md`
+    - [x] Verify `PRODUCTION_CHECKLIST.md`
+    - [x] Run unit tests
+- [x] Phase 5: Merge & Tagging
+    - [x] Merge `release/v2.2.6` into `master`
+    - [x] Tag `master` with `v2.2.6`
